@@ -1,95 +1,235 @@
 {
-  "version": "0.2.0",
-  "skills": [
+  "version": "0.3.0",
+  "deprecatedTargets": [
     {
       "name": "using-superpowers",
-      "source": "skills/upstream/using-superpowers",
       "target": "skills/using-superpowers",
-      "origin": "superpowers"
+      "legacyHashes": [
+        "5050279df0d8f24aeccfe8b6a050312b58e1674c18a8e8694d87a0eccb9f87a6"
+      ],
+      "reason": "renamed into do-it-router; adapter guidance lives in docs/upstream-map.md"
     },
     {
       "name": "brainstorming",
-      "source": "skills/upstream/brainstorming",
       "target": "skills/brainstorming",
-      "origin": "superpowers"
+      "legacyHashes": [
+        "55d0dece3e093868722f24ce228f59cdc1ea4118d02a8578bcf59cea403ebf4e"
+      ],
+      "reason": "absorbed into do-it-grill and do-it-router"
     },
     {
       "name": "quality-workflow-router",
-      "source": "skills/upstream/quality-workflow-router",
       "target": "skills/quality-workflow-router",
-      "origin": "local-codex"
+      "legacyHashes": [
+        "d961a153fb63661a645d59112ca10e54a2d363d96d5d8c26d50a4b622ec707c2"
+      ],
+      "reason": "replaced by do-it-router"
     },
     {
       "name": "decision-first-brainstorming",
-      "source": "skills/upstream/decision-first-brainstorming",
       "target": "skills/decision-first-brainstorming",
-      "origin": "local-codex"
+      "legacyHashes": [
+        "0574c61fca666ea6a2399283233606dc7e6b997d919788862714f633cedcc652"
+      ],
+      "reason": "absorbed into do-it-grill"
     },
     {
       "name": "agentic-tdd-execution",
-      "source": "skills/upstream/agentic-tdd-execution",
       "target": "skills/agentic-tdd-execution",
-      "origin": "local-codex"
+      "legacyHashes": [
+        "1d91834b9a041ace828b67f1bdc49aa1ab30536b3f8f040f9a4d4608553b9564"
+      ],
+      "reason": "absorbed into do-it-delivery-loop, do-it-tdd, and do-it-subagent-orchestration"
     },
     {
       "name": "multi-perspective-review",
-      "source": "skills/upstream/multi-perspective-review",
       "target": "skills/multi-perspective-review",
-      "origin": "local-codex"
+      "legacyHashes": [
+        "cba1a86bc493b19cf27b27499faa8098503f6d139768b0a7e6ce9dff7b6c365f"
+      ],
+      "reason": "absorbed into do-it-review-loop and the do-it reviewer agent set"
     },
     {
       "name": "verification-before-completion",
-      "source": "skills/upstream/verification-before-completion",
       "target": "skills/verification-before-completion",
-      "origin": "superpowers"
+      "legacyHashes": [
+        "48e8432dd21874a4e71441666a31bbb39af6cf089fda9285bcf2128fc6dc92c7"
+      ],
+      "reason": "absorbed into do-it-verification-gate"
     },
     {
       "name": "finishing-a-development-branch",
-      "source": "skills/upstream/finishing-a-development-branch",
       "target": "skills/finishing-a-development-branch",
-      "origin": "superpowers"
+      "legacyHashes": [
+        "db2532293f335f6734aed3803185375523941626ef0d35bf5322e50534bc0da8"
+      ],
+      "reason": "absorbed into do-it-branch-closeout and do-it-verification-gate"
     },
     {
       "name": "requesting-code-review",
-      "source": "skills/upstream/requesting-code-review",
       "target": "skills/requesting-code-review",
-      "origin": "superpowers"
+      "legacyHashes": [
+        "11b6fb1b76ea63c141700f2a23f58b9eb080f4a309de93413afc5603d3a520fa"
+      ],
+      "reason": "absorbed into do-it-review-loop"
     },
     {
       "name": "receiving-code-review",
-      "source": "skills/upstream/receiving-code-review",
       "target": "skills/receiving-code-review",
-      "origin": "superpowers"
+      "legacyHashes": [
+        "b90b1e180f11fa06053fc0f9fb0a957935dce35168897d1aff6be33e14545b3e"
+      ],
+      "reason": "absorbed into do-it-review-loop and do-it-fix-loop"
     },
     {
       "name": "systematic-debugging",
-      "source": "skills/upstream/systematic-debugging",
       "target": "skills/systematic-debugging",
-      "origin": "superpowers"
+      "legacyHashes": [
+        "7117bbc142b0d48f653a8720dc168ab500e751c0e9ae8c7a45f90302fa269d57"
+      ],
+      "reason": "absorbed into do-it-debugging and do-it-fix-loop"
     },
     {
       "name": "test-driven-development",
-      "source": "skills/upstream/test-driven-development",
       "target": "skills/test-driven-development",
-      "origin": "superpowers"
+      "legacyHashes": [
+        "e647a888d27815e31a73f05f131542870e2f9aa2bf36bb7b25eee0d34287f997"
+      ],
+      "reason": "absorbed into do-it-tdd"
     },
     {
       "name": "using-git-worktrees",
-      "source": "skills/upstream/using-git-worktrees",
       "target": "skills/using-git-worktrees",
-      "origin": "superpowers"
+      "legacyHashes": [
+        "898e7cff32ffbc562afbca2cb858aaf9d4f7190817c5881405f1f7b5bf55e789"
+      ],
+      "reason": "absorbed into do-it-worktree-isolation"
     },
     {
       "name": "subagent-driven-development",
-      "source": "skills/upstream/subagent-driven-development",
       "target": "skills/subagent-driven-development",
-      "origin": "superpowers"
+      "legacyHashes": [
+        "0b2f86263c54ee7afd99fbd5204cc043528ad2d61856b701fa3d71441178538e"
+      ],
+      "reason": "absorbed into do-it-subagent-orchestration"
     },
     {
       "name": "writing-plans",
-      "source": "skills/upstream/writing-plans",
       "target": "skills/writing-plans",
-      "origin": "superpowers"
+      "legacyHashes": [
+        "1dd9a7f0f8b51f914722acf613424a78d1e7e52b5fff43ae1f63b40b6c6f25ce"
+      ],
+      "reason": "absorbed into do-it-planning, do-it-slicing, and do-it-grill"
+    }
+  ],
+  "skills": [
+    {
+      "name": "do-it-router",
+      "source": "skills/do-it/do-it-router",
+      "target": "skills/do-it-router",
+      "origin": "do-it"
+    },
+    {
+      "name": "do-it-planning",
+      "source": "skills/do-it/do-it-planning",
+      "target": "skills/do-it-planning",
+      "origin": "do-it"
+    },
+    {
+      "name": "do-it-slicing",
+      "source": "skills/do-it/do-it-slicing",
+      "target": "skills/do-it-slicing",
+      "origin": "do-it"
+    },
+    {
+      "name": "do-it-grill",
+      "source": "skills/do-it/do-it-grill",
+      "target": "skills/do-it-grill",
+      "origin": "do-it"
+    },
+    {
+      "name": "do-it-architecture-scan",
+      "source": "skills/do-it/do-it-architecture-scan",
+      "target": "skills/do-it-architecture-scan",
+      "origin": "do-it"
+    },
+    {
+      "name": "do-it-interface-drill",
+      "source": "skills/do-it/do-it-interface-drill",
+      "target": "skills/do-it-interface-drill",
+      "origin": "do-it"
+    },
+    {
+      "name": "do-it-domain-language",
+      "source": "skills/do-it/do-it-domain-language",
+      "target": "skills/do-it-domain-language",
+      "origin": "do-it"
+    },
+    {
+      "name": "do-it-delivery-loop",
+      "source": "skills/do-it/do-it-delivery-loop",
+      "target": "skills/do-it-delivery-loop",
+      "origin": "do-it"
+    },
+    {
+      "name": "do-it-tdd",
+      "source": "skills/do-it/do-it-tdd",
+      "target": "skills/do-it-tdd",
+      "origin": "do-it"
+    },
+    {
+      "name": "do-it-debugging",
+      "source": "skills/do-it/do-it-debugging",
+      "target": "skills/do-it-debugging",
+      "origin": "do-it"
+    },
+    {
+      "name": "do-it-subagent-orchestration",
+      "source": "skills/do-it/do-it-subagent-orchestration",
+      "target": "skills/do-it-subagent-orchestration",
+      "origin": "do-it"
+    },
+    {
+      "name": "do-it-review-loop",
+      "source": "skills/do-it/do-it-review-loop",
+      "target": "skills/do-it-review-loop",
+      "origin": "do-it"
+    },
+    {
+      "name": "do-it-fix-loop",
+      "source": "skills/do-it/do-it-fix-loop",
+      "target": "skills/do-it-fix-loop",
+      "origin": "do-it"
+    },
+    {
+      "name": "do-it-verification-gate",
+      "source": "skills/do-it/do-it-verification-gate",
+      "target": "skills/do-it-verification-gate",
+      "origin": "do-it"
+    },
+    {
+      "name": "do-it-worktree-isolation",
+      "source": "skills/do-it/do-it-worktree-isolation",
+      "target": "skills/do-it-worktree-isolation",
+      "origin": "do-it"
+    },
+    {
+      "name": "do-it-branch-closeout",
+      "source": "skills/do-it/do-it-branch-closeout",
+      "target": "skills/do-it-branch-closeout",
+      "origin": "do-it"
+    },
+    {
+      "name": "do-it-visual-planning",
+      "source": "skills/do-it/do-it-visual-planning",
+      "target": "skills/do-it-visual-planning",
+      "origin": "do-it"
+    },
+    {
+      "name": "do-it-skill-authoring",
+      "source": "skills/do-it/do-it-skill-authoring",
+      "target": "skills/do-it-skill-authoring",
+      "origin": "do-it"
     }
   ],
   "agents": [
@@ -109,9 +249,19 @@
       "target": "agents/code-quality-cleaner.toml"
     },
     {
+      "name": "domain-language-reviewer",
+      "source": "agents/domain-language-reviewer.toml",
+      "target": "agents/domain-language-reviewer.toml"
+    },
+    {
       "name": "documentation-engineer",
       "source": "agents/documentation-engineer.toml",
       "target": "agents/documentation-engineer.toml"
+    },
+    {
+      "name": "install-release-reviewer",
+      "source": "agents/install-release-reviewer.toml",
+      "target": "agents/install-release-reviewer.toml"
     },
     {
       "name": "plan-challenger",
@@ -152,6 +302,11 @@
       "name": "spec-compliance-reviewer",
       "source": "agents/spec-compliance-reviewer.toml",
       "target": "agents/spec-compliance-reviewer.toml"
+    },
+    {
+      "name": "skill-quality-reviewer",
+      "source": "agents/skill-quality-reviewer.toml",
+      "target": "agents/skill-quality-reviewer.toml"
     },
     {
       "name": "typescript-pro",

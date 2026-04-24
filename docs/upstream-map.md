@@ -1,48 +1,87 @@
-# Origin And Rewrite Map
+# Source And Rewrite Map
 
-Imported on `2026-04-12`. Unified rewrite completed on `2026-04-12`.
-Live global rebaseline imported on `2026-04-24`.
+This file records where do-it deliberately absorbs outside workflow ideas. It is
+not an install manifest; `manifest.json` is the install source of truth.
 
-These directories are maintained in this repository as install-stable,
-repo-managed workflow entries. The `2026-04-24` rebaseline intentionally copied
-the current global `~/.codex/skills` and `~/.codex/agents` entries back into the
-repo so the next rewrite starts from the actual live behavior. Legacy
-`superpowers` terminology and restored support files are known cleanup targets.
+The public package now installs only do-it-native skill names. Older workflow
+copies are kept out of the install surface so stale names, paths, and
+runtime-specific assumptions do not leak into new Codex installs.
 
-## Skills
+## Installed Skills
 
-| Skill | Source Family | Imported From | Notes |
-|---|---|---|---|
-| `using-superpowers` | superpowers | `~/.codex/skills/using-superpowers` | Live global snapshot. Keeps entrypoint discipline but still carries legacy naming and platform-reference support files. |
-| `brainstorming` | superpowers | `~/.codex/skills/brainstorming` | Live global snapshot. Includes restored support files that should be re-evaluated during the semantic cleanup. |
-| `quality-workflow-router` | local codex | `~/.codex/skills/quality-workflow-router` | Repo-first router retained and tightened around current task/wave/phase policy. |
-| `decision-first-brainstorming` | local codex | `~/.codex/skills/decision-first-brainstorming` | Repo-first planning adapter retained and simplified. |
-| `agentic-tdd-execution` | local codex | `~/.codex/skills/agentic-tdd-execution` | Repo-first implementation workflow retained and aligned with current Codex constraints. |
-| `multi-perspective-review` | local codex | `~/.codex/skills/multi-perspective-review` | Repo-first review router retained with clarified reviewer-stack sizing. |
-| `verification-before-completion` | superpowers | `~/.codex/skills/verification-before-completion` | Live global snapshot. Evidence-first rule retained; wording still needs repo-first cleanup. |
-| `finishing-a-development-branch` | superpowers | `~/.codex/skills/finishing-a-development-branch` | Live global snapshot. Branch closeout flow retained; exact closeout policy should be rechecked in the rewrite. |
-| `requesting-code-review` | superpowers | `~/.codex/skills/requesting-code-review` | Live global snapshot. Includes restored reviewer prompt support. |
-| `receiving-code-review` | superpowers | `~/.codex/skills/receiving-code-review` | Live global snapshot. Keeps technical skepticism; wording still needs repo-first cleanup. |
-| `systematic-debugging` | superpowers | `~/.codex/skills/systematic-debugging` | Live global snapshot. Includes restored debugging support references. |
-| `test-driven-development` | superpowers | `~/.codex/skills/test-driven-development` | Live global snapshot. Includes restored anti-pattern reference. |
-| `using-git-worktrees` | superpowers | `~/.codex/skills/using-git-worktrees` | Live global snapshot. Isolation workflow retained; mandatory-worktree assumptions need cleanup review. |
-| `subagent-driven-development` | superpowers | `~/.codex/skills/subagent-driven-development` | Live global snapshot. Includes restored prompt-template support files. |
-| `writing-plans` | superpowers | `~/.codex/skills/writing-plans` | Live global snapshot. Includes restored plan-review prompt support. |
-
-## Agents
-
-| Agent | Imported From | Notes |
+| Installed Skill | Role | Rewrite Notes |
 |---|---|---|
-| `architect-reviewer` | `~/.codex/agents/architect-reviewer.toml` | Portable at import time. |
-| `code-mapper` | `~/.codex/agents/code-mapper.toml` | Portable at import time. |
-| `code-quality-cleaner` | `~/.codex/agents/code-quality-cleaner.toml` | Portable at import time. |
-| `documentation-engineer` | `~/.codex/agents/documentation-engineer.toml` | Portable at import time. |
-| `plan-challenger` | `~/.codex/agents/plan-challenger.toml` | Portable at import time. |
-| `react-specialist` | `~/.codex/agents/react-specialist.toml` | Portable at import time. |
-| `red-team-reviewer` | `~/.codex/agents/red-team-reviewer.toml` | Portable at import time. |
-| `reviewer` | `~/.codex/agents/reviewer.toml` | Portable at import time. |
-| `sql-pro` | `~/.codex/agents/sql-pro.toml` | Portable at import time. |
-| `spec-compliance-reviewer` | repo-authored | Added locally for task and plan conformance review. |
-| `test-automator` | `~/.codex/agents/test-automator.toml` | Portable at import time. |
-| `tdd-red-writer` | repo-authored | Added locally for RED-only test authoring. |
-| `typescript-pro` | `~/.codex/agents/typescript-pro.toml` | Portable at import time. |
+| `do-it-router` | front door and three-tier route selection | Absorbs strict skill-selection discipline, task sizing, token-budget awareness, and parent-agent coordination into a Codex-first router. |
+| `do-it-planning` | durable plan or PRD handoff | Absorbs plan writing, PRD synthesis, non-goal capture, acceptance criteria, and test decision capture. |
+| `do-it-slicing` | vertical-slice breakdown | Absorbs tracer-bullet issue planning, dependency ordering, and HITL/AFK marking while keeping do-it local-first unless issue creation is explicitly requested. |
+| `do-it-grill` | plan, review-response, and closeout pressure test | Absorbs adversarial questioning, decision-tree challenge, zoom-out checks, review response skepticism, and closeout honesty. It challenges review-loop output rather than owning delivered diff review. |
+| `do-it-architecture-scan` | architecture risk and opportunity scan | Absorbs codebase-improvement heuristics while keeping opportunities non-blocking unless correctness or delivery risk is real. |
+| `do-it-interface-drill` | interface and boundary design | Absorbs interface-design drills for APIs, schemas, CLIs, events, UI contracts, and agent handoffs. |
+| `do-it-domain-language` | canonical term and model alignment | Absorbs ubiquitous-language and domain-model discipline for overloaded terms, glossary updates, and contradictions between code/docs/user language. |
+| `do-it-delivery-loop` | truth-first execution loop | Absorbs plan-execute-verify-review-fix-closeout discipline, including delegated slice execution. |
+| `do-it-tdd` | behavior-first RED/GREEN loop | Absorbs behavior-via-public-interface testing and one-test-at-a-time tracer-bullet TDD. |
+| `do-it-debugging` | root-cause investigation | Absorbs systematic debugging and issue triage: reproduce, trace, find root cause, then plan durable RED/GREEN fixes. |
+| `do-it-subagent-orchestration` | delegated slice protocol | Absorbs parallel-agent dispatch and subagent-driven development, but defaults child agents to Standard slices instead of inheriting Heavy parent flows. |
+| `do-it-review-loop` | correctness, quality, multi-perspective, and QA review | Absorbs review-request, multi-perspective review, and QA-session habits: durable behavior language, reviewer routing, and evidence-backed findings. |
+| `do-it-fix-loop` | review-feedback repair | Absorbs receiving-review discipline: verify the feedback, fix root cause, rerun evidence, and re-review. |
+| `do-it-verification-gate` | evidence-before-claims closeout | Absorbs legacy verification discipline and makes success claims depend on fresh commands or explicit evidence. |
+| `do-it-worktree-isolation` | workspace isolation | Absorbs git-worktree setup and current-worktree safety into a do-it support skill. |
+| `do-it-branch-closeout` | branch/PR/merge finish | Absorbs development-branch finish checks, commit/PR evidence, and cleanup choices. |
+| `do-it-visual-planning` | optional planning companion | Absorbs the older visual brainstorming helper as an optional `.do-it/visual` support path, not a core workflow gate. |
+| `do-it-skill-authoring` | skill creation and maintenance | Absorbs progressive-disclosure skill writing and repo-managed skill validation. |
+
+## External Idea Map
+
+The do-it skills are rewrites, not vendored copies. Useful ideas from
+`mattpocock/skills` are mapped this way:
+
+| Source Idea | do-it Destination | Absorbed Shape |
+|---|---|---|
+| `to-prd` | `do-it-planning` | Current-context synthesis, module/test decisions, non-goals, and acceptance criteria. |
+| `to-issues` | `do-it-slicing` | Tracer-bullet vertical slices, HITL/AFK split, dependency order, independently grabbable work. |
+| `grill-me`, `zoom-out` | `do-it-grill` | Decision-tree interview, recommended answers, and codebase exploration instead of asking answerable questions. |
+| `request-refactor-plan` | `do-it-planning`, `do-it-slicing`, `do-it-architecture-scan` | Tiny safe steps, scope/non-scope, alternatives, test coverage, and refactor RFC shape. |
+| `design-an-interface` | `do-it-interface-drill` | Multiple radically different interface shapes before committing to a boundary. |
+| `improve-codebase-architecture` | `do-it-architecture-scan` | Friction-led exploration, shallow-module detection, deep-module candidates, coupling and testability impact. |
+| `tdd` | `do-it-tdd` | Public-interface behavior tests and one RED/GREEN vertical slice at a time. |
+| `triage-issue` | `do-it-debugging` | Manifestation, code path, root cause, minimal fix, and TDD fix plan. |
+| `qa` | `do-it-review-loop`, `do-it-domain-language` | User-facing durable issues, concise reproduction, and project domain language. |
+| `ubiquitous-language`, `domain-model` | `do-it-domain-language` | Canonical glossary, ambiguity flags, code/docs contradiction checks, and lightweight ADR triggers. |
+| `write-a-skill` | `do-it-skill-authoring` | Concise SKILL.md, progressive disclosure, optional resources, and validation. |
+
+Excluded or adapter-only ideas remain outside the core install flow unless a
+future do-it skill explicitly needs them: article editing, exercise scaffolds,
+Obsidian vault helpers, pre-commit setup, and runtime-specific guardrail
+installers.
+
+## Installed Agents
+
+| Agent | do-it Role | Notes |
+|---|---|---|
+| `architect-reviewer` | architecture scan | Reviews boundaries, dependency direction, rollout risk, and durable design tradeoffs. |
+| `code-mapper` | path map | Builds ownership, call-path, branch-point, and unknown maps before edits. |
+| `code-quality-cleaner` | maintainability review lens | Finds redundancy, dead paths, avoidable abstraction, brittle tests, and cleanup risk. |
+| `domain-language-reviewer` | domain review lens | Checks canonical terms, domain model contradictions, aliases, and naming drift. |
+| `documentation-engineer` | docs interface drill | Keeps docs faithful to tooling, install flow, adapters, and operator workflows. |
+| `install-release-reviewer` | install/release review lens | Reviews package metadata, manifest inventory, installer/doctor behavior, and release docs. |
+| `plan-challenger` | plan grill | Challenges assumptions, scope, acceptance criteria, alternatives, and route sizing. |
+| `react-specialist` | React interface drill | Handles component behavior, state flow, rendering, effects, and accessibility. |
+| `red-team-reviewer` | adversarial review lens | Reviews security, state, persistence, concurrency, replay, and failure modes. |
+| `reviewer` | correctness review lens | Performs PR-style correctness, regression, security, contract, and test review. |
+| `sql-pro` | SQL interface drill | Reviews query semantics, migrations, transactions, storage contracts, and performance risk. |
+| `spec-compliance-reviewer` | scope review lens | Checks changes against the written task, plan, acceptance criteria, and ownership boundary. |
+| `skill-quality-reviewer` | skill quality review lens | Reviews skill trigger clarity, tier behavior, stop conditions, schemas, and cross-skill consistency. |
+| `test-automator` | test drill | Adds or assesses durable regression coverage, fixtures, and harness behavior. |
+| `tdd-red-writer` | RED-only contract drill | Writes failing tests only, then stops before implementation. |
+| `typescript-pro` | TypeScript interface drill | Designs or edits types, APIs, package contracts, and compiler-driven fixes. |
+
+## Adapter Notes
+
+- Codex is the primary install target.
+- Other agent runtimes should reuse the same do-it roles and translate only
+  mechanics: skill invocation, subagent dispatch, file tools, sandbox controls,
+  and verification commands.
+- Subagents should receive a do-it slice contract: route, write ownership,
+  current facts, verification expectation, stop condition, and return shape.
+- Source-inspired text must be rewritten before installation. Do not vendor raw
+  workflow copies into the public package.

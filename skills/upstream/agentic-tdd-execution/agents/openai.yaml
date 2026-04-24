@@ -1,7 +1,0 @@
-interface:
-  display_name: "Agentic TDD Execution"
-  short_description: "Mapper-first TDD with agents"
-  default_prompt: "Use $agentic-tdd-execution to implement this with mapper-first TDD, targeted agents when permitted, and controller-owned commit policy."
-
-policy:
-  allow_implicit_invocation: true

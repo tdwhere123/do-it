@@ -1,7 +1,0 @@
-interface:
-  display_name: "Quality Workflow Router"
-  short_description: "Auto-routes coding and review workflows"
-  default_prompt: "Use $quality-workflow-router to choose the right quality workflow, agent stack, token budget, and repository commit policy for this task."
-
-policy:
-  allow_implicit_invocation: true

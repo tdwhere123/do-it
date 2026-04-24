@@ -1,36 +1,97 @@
 # Release Notes
 
-This workflow bundle is designed so `codex/` can later be published as its own
-repository.
+This workflow bundle is designed to ship as a global npm CLI. The public path is
+`npm install -g ...`, then `do-it setup`.
 
 ## Baseline
 
-- `2026-04-24`: repo bundle rebaselined from the current live global
-  `~/.codex/skills` and `~/.codex/agents` entries. This is a pre-rewrite
-  baseline; legacy `superpowers` terminology is still expected in some files.
+- `2026-04-24`: do-it rewrite installs only do-it-native skill names while
+  preserving the portable Codex agent definitions and copy-based doctor flow.
+  The install surface includes the full do-it skill flow: router, planning,
+  slicing, grill, architecture scan, interface drill, domain language, delivery,
+  TDD, debugging, subagent orchestration, review, fix-loop, verification,
+  worktree isolation, branch closeout, visual planning, and skill authoring.
+  The review agent set includes correctness, scope compliance, maintainability,
+  architecture, red-team, domain-language, skill-quality, and install/release
+  lenses.
+
+## Global Install Surface
+
+From the npm registry:
+
+```bash
+npm install -g @tdwhere/do-it
+do-it setup
+```
+
+From a GitHub repository before registry publication:
+
+```bash
+npm install -g github:OWNER/do-it
+do-it setup
+```
+
+`do-it setup` delegates to the same installer and doctor logic as the local
+scripts. It does not run from npm lifecycle hooks.
+
+## Local Checkout Surface
+
+From the repository root:
+
+```bash
+npm exec --package . -- do-it setup
+npm exec --package . -- do-it install
+npm exec --package . -- do-it doctor
+```
+
+The package bin is `do-it`, and it delegates to `install/manage.mjs`. The shell
+wrappers remain available:
+
+```bash
+./install/install.sh
+./install/doctor.sh
+```
+
+Set `CODEX_HOME=/path/to/codex-home` to test or install into a temporary target.
 
 ## Publish Paths
 
-### Option 1: Split This Subtree
+### Option 1: Publish To npm
 
 ```bash
-git subtree split --prefix=codex -b codex-workflow-release
+npm publish --access public
 ```
 
-Push that branch to a new GitHub repository and continue maintaining the bundle
-there if you want it fully separated from the product repository.
+Keep the package scoped and keep `do-it` as the bin:
 
-### Option 2: Mirror Manually
+```bash
+npm install -g @tdwhere/do-it
+do-it setup
+```
 
-Copy the `codex/` subtree into a dedicated repository and keep this repository
-as the staging area while the layout is still evolving.
+### Option 2: Pack And Test Locally
+
+```bash
+npm pack
+```
+
+Use the generated tarball with `npm install --global` or
+`npm exec --package ./tdwhere-do-it-0.3.0.tgz -- do-it setup` when testing a
+release artifact.
 
 ## Release Checklist
 
-1. Run `./codex/install/install.sh`.
-2. Run `./codex/install/doctor.sh`.
-3. Confirm `codex/docs/upstream-map.md` reflects the latest imports.
-4. Confirm `codex/manifest.json` matches the on-disk inventory.
-5. Confirm no machine-local files were added under `codex/`.
-6. Confirm the release instructions describe copy-based install behavior only,
+1. Run `CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it setup`.
+2. Run `CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it doctor`.
+3. Confirm `docs/upstream-map.md` reflects the latest imports.
+4. Confirm `manifest.json` matches the on-disk inventory.
+5. Confirm the temporary/source-only rewrite material is not included in the
+   package.
+6. Confirm a simulated legacy upgrade can remove unmodified deprecated targets
+   without `DO_IT_FORCE=1`.
+7. Confirm a simulated replacement failure preserves both current managed
+   targets and deprecated legacy targets.
+8. Confirm `doctor` fails when `.do-it-install-state.json` is missing or stale.
+9. Confirm no machine-local files were added to the package.
+10. Confirm the release instructions describe copy-based install behavior only,
    not symlink-based deployment.

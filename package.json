@@ -1,0 +1,52 @@
+{
+  "name": "@tdwhere/do-it",
+  "version": "0.3.0",
+  "description": "Codex-first workflow skills and agents for truth-first do-it delivery.",
+  "type": "module",
+  "license": "MIT",
+  "author": "tdwhere123",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tdwhere123/codex-workflow.git"
+  },
+  "bugs": {
+    "url": "https://github.com/tdwhere123/codex-workflow/issues"
+  },
+  "homepage": "https://github.com/tdwhere123/codex-workflow#readme",
+  "keywords": [
+    "agentic-workflow",
+    "ai-agents",
+    "codex-cli",
+    "codex",
+    "do-it",
+    "workflow",
+    "skills",
+    "agents",
+    "subagents",
+    "developer-tools"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "agents/",
+    "bin/",
+    "docs/",
+    "install/",
+    "manifest.json",
+    "skills/custom/README.md",
+    "skills/do-it/"
+  ],
+  "bin": {
+    "do-it": "./bin/do-it.mjs"
+  },
+  "scripts": {
+    "setup": "node bin/do-it.mjs setup",
+    "install:do-it": "node install/manage.mjs install",
+    "doctor": "node install/manage.mjs doctor",
+    "do-it": "node bin/do-it.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
