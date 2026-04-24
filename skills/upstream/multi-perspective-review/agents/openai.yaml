@@ -1,0 +1,7 @@
+interface:
+  display_name: "Multi-Perspective Review"
+  short_description: "Specialist and quality review routing"
+  default_prompt: "Use $multi-perspective-review to review this diff for correctness, quality, redundancy, and hidden risks."
+
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,7 @@
+interface:
+  display_name: "Decision-First Brainstorming"
+  short_description: "Clarify intent before implementation"
+  default_prompt: "Use $decision-first-brainstorming to clarify the goal and tradeoffs before planning implementation."
+
+policy:
+  allow_implicit_invocation: true

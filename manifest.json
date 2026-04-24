@@ -1,0 +1,162 @@
+{
+  "version": "0.2.0",
+  "skills": [
+    {
+      "name": "using-superpowers",
+      "source": "skills/upstream/using-superpowers",
+      "target": "skills/using-superpowers",
+      "origin": "superpowers"
+    },
+    {
+      "name": "brainstorming",
+      "source": "skills/upstream/brainstorming",
+      "target": "skills/brainstorming",
+      "origin": "superpowers"
+    },
+    {
+      "name": "quality-workflow-router",
+      "source": "skills/upstream/quality-workflow-router",
+      "target": "skills/quality-workflow-router",
+      "origin": "local-codex"
+    },
+    {
+      "name": "decision-first-brainstorming",
+      "source": "skills/upstream/decision-first-brainstorming",
+      "target": "skills/decision-first-brainstorming",
+      "origin": "local-codex"
+    },
+    {
+      "name": "agentic-tdd-execution",
+      "source": "skills/upstream/agentic-tdd-execution",
+      "target": "skills/agentic-tdd-execution",
+      "origin": "local-codex"
+    },
+    {
+      "name": "multi-perspective-review",
+      "source": "skills/upstream/multi-perspective-review",
+      "target": "skills/multi-perspective-review",
+      "origin": "local-codex"
+    },
+    {
+      "name": "verification-before-completion",
+      "source": "skills/upstream/verification-before-completion",
+      "target": "skills/verification-before-completion",
+      "origin": "superpowers"
+    },
+    {
+      "name": "finishing-a-development-branch",
+      "source": "skills/upstream/finishing-a-development-branch",
+      "target": "skills/finishing-a-development-branch",
+      "origin": "superpowers"
+    },
+    {
+      "name": "requesting-code-review",
+      "source": "skills/upstream/requesting-code-review",
+      "target": "skills/requesting-code-review",
+      "origin": "superpowers"
+    },
+    {
+      "name": "receiving-code-review",
+      "source": "skills/upstream/receiving-code-review",
+      "target": "skills/receiving-code-review",
+      "origin": "superpowers"
+    },
+    {
+      "name": "systematic-debugging",
+      "source": "skills/upstream/systematic-debugging",
+      "target": "skills/systematic-debugging",
+      "origin": "superpowers"
+    },
+    {
+      "name": "test-driven-development",
+      "source": "skills/upstream/test-driven-development",
+      "target": "skills/test-driven-development",
+      "origin": "superpowers"
+    },
+    {
+      "name": "using-git-worktrees",
+      "source": "skills/upstream/using-git-worktrees",
+      "target": "skills/using-git-worktrees",
+      "origin": "superpowers"
+    },
+    {
+      "name": "subagent-driven-development",
+      "source": "skills/upstream/subagent-driven-development",
+      "target": "skills/subagent-driven-development",
+      "origin": "superpowers"
+    },
+    {
+      "name": "writing-plans",
+      "source": "skills/upstream/writing-plans",
+      "target": "skills/writing-plans",
+      "origin": "superpowers"
+    }
+  ],
+  "agents": [
+    {
+      "name": "architect-reviewer",
+      "source": "agents/architect-reviewer.toml",
+      "target": "agents/architect-reviewer.toml"
+    },
+    {
+      "name": "code-mapper",
+      "source": "agents/code-mapper.toml",
+      "target": "agents/code-mapper.toml"
+    },
+    {
+      "name": "code-quality-cleaner",
+      "source": "agents/code-quality-cleaner.toml",
+      "target": "agents/code-quality-cleaner.toml"
+    },
+    {
+      "name": "documentation-engineer",
+      "source": "agents/documentation-engineer.toml",
+      "target": "agents/documentation-engineer.toml"
+    },
+    {
+      "name": "plan-challenger",
+      "source": "agents/plan-challenger.toml",
+      "target": "agents/plan-challenger.toml"
+    },
+    {
+      "name": "react-specialist",
+      "source": "agents/react-specialist.toml",
+      "target": "agents/react-specialist.toml"
+    },
+    {
+      "name": "red-team-reviewer",
+      "source": "agents/red-team-reviewer.toml",
+      "target": "agents/red-team-reviewer.toml"
+    },
+    {
+      "name": "reviewer",
+      "source": "agents/reviewer.toml",
+      "target": "agents/reviewer.toml"
+    },
+    {
+      "name": "sql-pro",
+      "source": "agents/sql-pro.toml",
+      "target": "agents/sql-pro.toml"
+    },
+    {
+      "name": "test-automator",
+      "source": "agents/test-automator.toml",
+      "target": "agents/test-automator.toml"
+    },
+    {
+      "name": "tdd-red-writer",
+      "source": "agents/tdd-red-writer.toml",
+      "target": "agents/tdd-red-writer.toml"
+    },
+    {
+      "name": "spec-compliance-reviewer",
+      "source": "agents/spec-compliance-reviewer.toml",
+      "target": "agents/spec-compliance-reviewer.toml"
+    },
+    {
+      "name": "typescript-pro",
+      "source": "agents/typescript-pro.toml",
+      "target": "agents/typescript-pro.toml"
+    }
+  ]
+}
