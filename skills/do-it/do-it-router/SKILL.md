@@ -1,6 +1,6 @@
 ---
 name: do-it-router
-description: Use when a task should follow the do-it-native workflow, especially planning, slicing, design, grill, architecture, implementation, review, wave, phase, or multi-agent work.
+description: Use when routing any non-trivial repository work; mandatory before planning, slicing, design, implementation, review, verification, closeout, or multi-agent work.
 ---
 
 # Do-It Router
@@ -10,6 +10,23 @@ description: Use when a task should follow the do-it-native workflow, especially
 Use this as the front door for do-it-native work. It selects the smallest useful workflow, keeps current truth ahead of old plans, and routes to the planning or design skill that matches the risk.
 
 Upstream workflows are source material, not public names. Use do-it terms in handoffs and reports.
+
+## Mandatory Activation
+
+For any non-trivial repository task, the parent agent MUST load this router before
+planning, editing, delegating, reviewing, verifying, committing, or claiming
+completion.
+
+This includes planning, slicing, implementation, debugging, review, fix-loop,
+verification, branch closeout, wave/phase work, task-card work, docs-truth work,
+interface design, architecture review, and multi-agent work.
+
+The router may be skipped only for truly trivial answers or pure status questions
+that do not plan, edit, review, verify, or close work. When skipped, state the
+reason briefly.
+
+After loading the router, announce the selected do-it skills and tier before
+continuing.
 
 ## First Move
 
@@ -110,6 +127,8 @@ For final delivery:
 
 ## Common Mistakes
 
+- Starting planning, edits, subagents, review, verification, commit, or closeout
+  without first loading `do-it-router` for matching non-trivial repository work.
 - Asking the user for facts that can be read locally.
 - Letting a subagent self-promote to Heavy without explicit assignment.
 - Applying Heavy workflow to a one-file mechanical edit.
