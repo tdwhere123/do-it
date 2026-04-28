@@ -32,7 +32,7 @@ the parent explicitly writes `tier: Heavy` and narrows the child scope.
 
 ## Dispatch Rules
 
-- Do not delegate before the parent understands current truth enough to bound the slice.
+- Do not delegate before the parent understands current truth enough to bound the slice, forecast likely failure modes, and map any required proof path.
 - Do not parallelize workers that can write the same file or hidden shared state.
 - Keep shared files, final integration, branch closeout, and completion claims under the parent unless explicitly assigned.
 - Review agents use read-only configs. If fixes are needed, return findings to
@@ -48,6 +48,9 @@ Every subagent prompt must include:
 - `write ownership`: allowed directories/files, or `read-only`.
 - `forbidden paths`: files, dirs, generated outputs, or user-owned edits to avoid.
 - `current truth`: facts the parent verified and the child may rely on.
+- `failure-mode forecast`: expected failure classes the child must actively cover or refute.
+- `path map`: producer -> contract/event/schema -> transport/client -> state/query -> surface/operator action -> verification, or `not applicable`.
+- `readiness target`: fixture-ready, live-event-ready, operator-ready, docs-truth-ready, or install-ready.
 - `must-verify facts`: facts the child must check itself before acting or reporting.
 - `stop condition`: when to return `NEEDS_CONTEXT`, `BLOCKED`, or `STILL_OPEN` instead of improvising.
 - `return schema`: the exact shape the parent needs.
@@ -65,6 +68,8 @@ Implementation/debugging workers return:
 - files changed;
 - commands run with results;
 - facts verified;
+- failure modes covered or still open;
+- proof path evidence or why it was not applicable;
 - assumptions;
 - residual risk;
 - requested parent action.
@@ -75,6 +80,7 @@ Review/drill workers return:
 - scope reviewed;
 - findings ordered by `Blocking`, `Important`, `Opportunity`;
 - evidence for each finding;
+- cause class when known;
 - commands or inspections run;
 - facts verified;
 - assumptions;
@@ -85,6 +91,6 @@ Review/drill workers return:
 
 - Inspect diffs and reports before accepting them.
 - Resolve duplicate or conflicting findings.
-- Re-run verification that supports final claims.
+- Re-run verification that supports final claims on the integrated branch or current worktree.
 - Ensure subagents did not touch forbidden paths.
 - Close or re-dispatch workers only after the stop condition is satisfied.

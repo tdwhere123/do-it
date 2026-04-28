@@ -30,7 +30,7 @@ config where an executable RED test is not useful.
 Use for normal behavior changes and subagent implementation work. Subagents
 default to Standard unless the parent explicitly assigns Light or Heavy.
 
-1. Map the owning files, call path, side effects, and first test to fail.
+1. Map the owning files, call path, side effects, failure-mode forecast, and first test to fail.
 2. Write the smallest RED test for one behavior.
 3. Run it and confirm it fails for the expected reason.
 4. Implement the smallest GREEN change.
@@ -49,9 +49,25 @@ or multi-slice behavior. Heavy is parent-only unless explicitly assigned.
 - Add boundary, migration, failure-path, or e2e checks according to risk.
 - Require review and fix-loop closure before closeout.
 
+## Failure-Mode RED Matrix
+
+Choose RED coverage from the forecast, not only from the happy path:
+
+- live-path gap: exercise the real producer -> consumer chain or the closest
+  integration seam that proves it is wired.
+- state-machine gap: cover at least one deletion, stale completion, duplicate,
+  rollback, retry, replay, idempotency, or concurrency branch.
+- contract drift: assert schema/enum/event/route/client lists cannot diverge
+  silently.
+- synthetic proof: add one test that fails if the mocked collaborator is removed
+  from the path being claimed.
+- operator gap: cover the command, visible control, or user action that makes
+  the capability discoverable and actionable.
+- evidence drift: identify the final branch/worktree verification that must be
+  rerun after integration.
 ## Test Quality
 
-- Test user-visible or contract behavior, not implementation trivia.
+- Test user-visible, operator-visible, or contract behavior, not implementation trivia.
 - Prefer real code paths over mocks; mock only unavoidable external seams.
 - If the test name needs "and", split the behavior.
 - A passing test that never failed is not regression evidence.
@@ -70,5 +86,7 @@ When TDD is delegated, the subagent returns:
 - RED command and failure reason;
 - GREEN command and pass result;
 - files changed;
+- failure modes covered and not covered;
 - behaviors covered and not covered;
+- prevention hook added or still needed;
 - assumptions or residual risk.

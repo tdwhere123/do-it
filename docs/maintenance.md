@@ -15,7 +15,10 @@ Working rule:
 
 Exception: for an intentional live-global rebaseline, copy only
 manifest-managed targets from `~/.codex` back into this repository, then run the
-doctor command to prove the repository and live global entries match.
+doctor command to prove the repository and live global entries match. Use this
+only when the operator explicitly asks for live-first workflow changes. The
+closeout must name it as `live-global rebaseline`, show source/live parity, and
+run package or temporary `CODEX_HOME` validation before any commit.
 
 For workflow policy changes, update `docs/routing-matrix.md` so
 `do-it-router`, the three-tier routing model, planning, slicing, drills,
@@ -95,7 +98,7 @@ For either kind:
 
 1. Edit the maintained copy under `skills/`.
 2. Remove stale support files if the rewritten skill no longer references them.
-3. Update `docs/routing-matrix.md` when routing, stack depth, or closeout gates
+3. Update `docs/routing-matrix.md` when routing, failure-mode forecasting, path maps, stack depth, readiness labels, prevention records, or closeout gates
    change.
 4. Update `docs/upstream-map.md` when origin notes, adapter status, or rewrite
    status changes.
@@ -172,7 +175,7 @@ unstructured side quest. When adding or changing an agent:
 - keep its write permissions narrow;
 - require it to inspect current truth before acting;
 - require verification evidence when it edits files;
-- require residual risk and stop conditions in the return shape;
+- require failure-mode coverage, path-map evidence when applicable, and residual risk in the return shape;
 - remind implementation agents that the parent owns integration and final
   claims.
 
@@ -183,9 +186,10 @@ and return schema.
 
 ## Verification
 
-Recommended checks before committing workflow changes:
+Recommended checks before committing workflow changes. For live-first rebaseline, run the source/live parity check before these commands:
 
 ```bash
+diff -qr ~/.codex/skills skills/do-it
 ./install/install.sh
 ./install/doctor.sh
 CODEX_HOME=/tmp/do-it-codex-test ./install/install.sh

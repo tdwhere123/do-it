@@ -22,7 +22,7 @@ Use for normal work and subagent closeout. Subagents verify their own slice, but
 the parent independently verifies any integrated claim.
 
 1. Identify the claim.
-2. Choose the command or inspection that proves it.
+2. Choose the command or inspection that proves it on the current branch/worktree.
 3. Run the full targeted check fresh, or state why it cannot run.
 4. Read output and exit code.
 5. Compare evidence to the claim and acceptance surface.
@@ -34,7 +34,7 @@ Use for wave, phase, gate, release, install, branch closeout, or broad
 integration claims. Heavy is parent-only unless explicitly assigned.
 
 - Verify narrow slice checks first.
-- Verify integrated behavior after merging slices.
+- Verify integrated behavior after merging slices on the final branch/worktree, not only in worker lanes.
 - Include review/fix-loop status, not just tests.
 - Confirm docs, manifest, install, or branch state only from current files and commands.
 - Record skipped checks and residual risk plainly.
@@ -47,6 +47,10 @@ integration claims. Heavy is parent-only unless explicitly assigned.
 - `review clean`: requires no unresolved `Blocking` or `Important` findings.
 - `ready to merge`: requires verification, review, clean intended diff, and commit policy check.
 - `ready to install`: requires package/install/doctor checks relevant to the changed surface.
+- `fixture-ready`: requires fixture-level behavior proof and no live/operator-ready wording.
+- `live-event-ready`: requires producer -> transport/client -> consumer proof on real wiring.
+- `operator-ready`: requires a discoverable user action and visible feedback proof.
+- `workflow synced`: requires source/live parity plus install or doctor evidence.
 
 ## Failure Handling
 
@@ -69,7 +73,9 @@ If verification is blocked, skipped, or cannot run:
 ## Output Shape
 
 - Claim checked.
+- Branch/worktree/ref checked.
 - Evidence command or inspection.
 - Result: `VERIFIED`, `FAILED`, or `NOT_VERIFIED`.
 - What remains unverified.
+- Review/fix-loop and prevention status when relevant.
 - Next action if not clean.

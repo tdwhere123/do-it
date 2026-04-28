@@ -39,6 +39,33 @@ Before routing:
 
 Do not ask the user for facts that can be read locally. Ask only preference or priority questions that can change the route.
 
+## Required Risk Forecast
+
+For every Standard or Heavy route, name the likely review-failure modes before
+planning or implementation. Use concrete classes, not vague "risk":
+
+- live-path gap: producer, transport, consumer, or surface is not actually wired;
+- state-machine gap: stale async completion, deletion, rollback, retry, replay,
+  idempotency, or concurrency can change the outcome;
+- contract drift: schema, enum, event, route, CLI, copy, or docs disagree;
+- synthetic proof: tests mock away the collaborator chain the task must prove;
+- operator gap: a capability exists but is not discoverable, actionable, or
+  understandable in the user workflow;
+- evidence drift: a report, worker result, or pre-merge run is older than the
+  branch or worktree being claimed.
+
+If no class fits, state `failure-mode forecast: none identified` and why.
+
+## Required Path Map
+
+For Standard or Heavy work that touches behavior, interfaces, runtime state, or
+surfaces, map the proof path before execution:
+
+`producer -> contract/event/schema -> transport/client -> state/query -> surface/operator action -> verification`
+
+Use the map to choose drills, tests, reviewers, and verification. If the work is
+docs-only or mechanical, state why a path map is not applicable.
+
 ## Tier Rules
 
 ### Light
@@ -58,7 +85,7 @@ Use for ordinary non-trivial work. This is the default tier for subagents unless
 
 - multi-step task, behavior change, review, or design choice;
 - a plan must name acceptance evidence, verification, and review depth;
-- subagent work needs explicit write ownership, stop conditions, and return evidence.
+- subagent work needs explicit write ownership, stop conditions, return evidence, and any required failure-mode forecast or path map.
 
 Flow: inspect -> classify -> use the narrow design drills needed -> plan or execute -> verify -> review -> fix important findings -> closeout.
 
@@ -105,6 +132,7 @@ Every subagent prompt should include:
 - facts it may rely on and facts it must verify;
 - forbidden paths or shared files;
 - expected evidence and return shape;
+- failure-mode forecast and path map when the slice can fail through live wiring, state, contract drift, synthetic proof, operator UX, or evidence drift;
 - stop conditions for `NEEDS_CONTEXT` or `BLOCKED`;
 - reminder that other agents may be editing the codebase and unrelated edits must not be reverted.
 
@@ -114,6 +142,8 @@ For routing or planning:
 
 - tier;
 - current facts that drove it;
+- failure-mode forecast for Standard/Heavy work;
+- path map or `not applicable` reason;
 - selected do-it skills;
 - next action;
 - stop condition or approval gate.
@@ -122,6 +152,7 @@ For final delivery:
 
 - changed files;
 - verification run and outcome;
+- final-branch or current-worktree evidence for completion claims;
 - review/fix-loop status;
 - assumptions, skipped checks, or residual risk.
 
@@ -129,6 +160,7 @@ For final delivery:
 
 - Starting planning, edits, subagents, review, verification, commit, or closeout
   without first loading `do-it-router` for matching non-trivial repository work.
+- Routing Standard/Heavy work without a failure-mode forecast and path map.
 - Asking the user for facts that can be read locally.
 - Letting a subagent self-promote to Heavy without explicit assignment.
 - Applying Heavy workflow to a one-file mechanical edit.

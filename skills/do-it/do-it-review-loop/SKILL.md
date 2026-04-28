@@ -24,10 +24,11 @@ explicitly assigned otherwise.
 
 1. Freeze the review scope: task, commit, range, PR, or changed files.
 2. Read the actual diff and relevant current files.
-3. Check requirements before quality polish when a plan or task card exists.
-4. Report only confirmed issues or clearly labeled uncertainty.
-5. Order findings by severity with evidence.
-6. Send `Blocking` and `Important` findings into `do-it-fix-loop`.
+3. Check the failure-mode forecast, proof path map, readiness target, and final evidence expectations when they exist.
+4. Check requirements before quality polish when a plan or task card exists.
+5. Report only confirmed issues or clearly labeled uncertainty.
+6. Order findings by severity with evidence.
+7. Send `Blocking` and `Important` findings into `do-it-fix-loop`.
 
 ### Heavy
 
@@ -60,10 +61,13 @@ multi-agent integration review. Heavy is parent-only unless explicitly assigned.
 Use durable, user-facing language:
 
 - severity;
+- stable ID when the review emits multiple findings;
 - file/line or command evidence;
 - issue in terms of observed behavior or delivery risk;
-- cause if known;
+- cause class or root cause when known;
+- repro, witness, or proof-path break;
 - required fix or verification;
+- prevention expectation when the issue is Blocking or Important;
 - residual uncertainty if proof is incomplete.
 
 ## QA Intake Mode
@@ -95,6 +99,7 @@ workflow clearly owns issue creation.
 
 ## Review Rules
 
+- Missing or stale failure-mode forecast, path map, readiness target, or final evidence is a review finding when it can hide a live-path, state, contract, operator, or evidence-drift bug.
 - Do not review from commit messages alone.
 - Do not auto-fix when the user asked for review-only work.
 - Tests passing do not replace review.
@@ -103,5 +108,5 @@ workflow clearly owns issue creation.
 
 ## Closeout Gate
 
-Review is not clean while unresolved `Blocking` or `Important` findings remain.
+Review is not clean while unresolved `Blocking` or `Important` findings remain. Blocking/Important fixes need a closure record that includes cause and prevention, not only code changes.
 Deferred `Opportunity` findings must be explicit and non-blocking.

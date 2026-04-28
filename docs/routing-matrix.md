@@ -10,10 +10,11 @@ runtime.
 ## Core Skills
 
 - `do-it-router`: classifies the work into Light, Standard, or Heavy, names
-  the minimum useful agent set, and keeps the parent agent responsible for
-  scope.
+  the minimum useful agent set, forecasts likely failure modes, and keeps the
+  parent agent responsible for scope.
 - `do-it-planning`: turns intent, current repo truth, non-goals, acceptance
-  criteria, and verification expectations into a durable handoff.
+  criteria, failure-mode forecast, path map, readiness target, and verification
+  expectations into a durable handoff.
 - `do-it-slicing`: breaks a plan into tracer-bullet vertical slices that can be
   implemented, reviewed, and verified independently.
 - `do-it-grill`: stress-tests premises, plans, review responses, and closeout
@@ -39,8 +40,9 @@ runtime.
   artifacts; it is not part of the default delivery route.
 
 The do-it roles absorb the useful discipline from the previous workflow family:
-mandatory truth checks, explicit planning, isolated delegation, adversarial
-review, and evidence-first closeout. The installed names and public routing are
+mandatory truth checks, failure-mode forecasting, explicit planning, isolated
+delegation, adversarial review, prevention-backed fix loops, and
+evidence-first closeout. The installed names and public routing are
 do-it-native.
 
 ## Three Tiers
@@ -87,9 +89,12 @@ Every implementation-ready handoff should name:
 - write ownership and restricted paths
 - discovered facts that matter
 - success criteria
+- failure-mode forecast
+- path map or `not applicable` reason
+- readiness target (`fixture-ready`, `live-event-ready`, `operator-ready`, `docs-truth-ready`, or `install-ready`)
 - implementation mode
 - review stack
-- verification commands or evidence checks
+- final-branch/worktree verification commands or evidence checks
 - whether local notes belong in the private `.do-it/` workspace
 
 Use the smallest planning stack that removes real risk:
@@ -119,7 +124,7 @@ the specific requirement.
 
 Default for `Standard` work:
 
-1. Make a modification map before production edits.
+1. Make a modification map, failure-mode forecast, and proof path map before production edits.
 2. Write or tighten the smallest failing test when behavior is changed.
 3. Verify RED for the expected reason when tests apply.
 4. Implement the minimal GREEN change.
@@ -146,8 +151,8 @@ separate agent before implementation:
 
 Use for `Heavy` work:
 
-1. Freeze route, non-goals, and acceptance criteria with `do-it-planning`.
-2. Use `do-it-grill` to challenge the decision tree before implementation.
+1. Freeze route, non-goals, acceptance criteria, readiness target, and final evidence with `do-it-planning`.
+2. Use `do-it-grill` to challenge the decision tree, failure-mode forecast, and path map before implementation.
 3. Use `do-it-slicing` to define lanes and shared-file ownership.
 4. Run `do-it-interface-drill`, `do-it-architecture-scan`, and
    `do-it-domain-language` only where their evidence will change the plan.
@@ -201,6 +206,7 @@ Every subagent prompt should include:
 - the scope and non-goals;
 - write ownership and restricted paths;
 - the current facts it may rely on and the facts it must verify itself;
+- the failure-mode forecast, path map, and readiness target for the slice;
 - the expected loop: inspect, plan, execute or review, verify when applicable,
   and report;
 - a stop condition for `NEEDS_CONTEXT`, `BLOCKED`, or `STILL_OPEN`;
@@ -236,6 +242,8 @@ Before claiming completion:
 1. Re-read the request and write-ownership boundary.
 2. Inspect the diff for restricted-file edits.
 3. Run the relevant verification commands or grep checks.
-4. Confirm stale terminology and adapter gaps are either removed or reported.
-5. Confirm review findings are fixed, deferred with rationale, or explicitly
+4. Confirm final-branch/current-worktree evidence supports the exact readiness claim.
+5. Confirm stale terminology and adapter gaps are either removed or reported.
+6. Confirm Blocking/Important fixes include prevention hooks.
+7. Confirm review findings are fixed, deferred with rationale, or explicitly
    outside scope.
