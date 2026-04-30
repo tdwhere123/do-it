@@ -1,5 +1,48 @@
 {
-  "version": "0.3.0",
+  "version": "0.4.0",
+  "targets": {
+    "codex": {
+      "rootEnv": "CODEX_HOME",
+      "rootDefault": "$HOME/.codex",
+      "stateFile": ".do-it-install-state.json",
+      "agentSourceFrom": "agents",
+      "agentSourceExt": ".toml",
+      "agentTargetExt": ".toml",
+      "extras": [],
+      "preInstall": []
+    },
+    "claude": {
+      "rootEnv": "CLAUDE_PLUGIN_ROOT_OVERRIDE",
+      "rootDefault": "$HOME/.claude",
+      "stateFile": ".do-it-install-state-claude.json",
+      "agentSourceFrom": "dist/claude/agents",
+      "agentSourceExt": ".md",
+      "agentTargetExt": ".md",
+      "extras": [
+        {
+          "name": "claude-plugin-meta",
+          "kind": "directory",
+          "source": ".claude-plugin",
+          "target": ".claude-plugin"
+        },
+        {
+          "name": "claude-hooks",
+          "kind": "directory",
+          "source": "hooks",
+          "target": "hooks"
+        },
+        {
+          "name": "claude-commands",
+          "kind": "directory",
+          "source": "commands",
+          "target": "commands"
+        }
+      ],
+      "preInstall": [
+        "scripts/build-claude-agents.mjs"
+      ]
+    }
+  },
   "deprecatedTargets": [
     {
       "name": "using-superpowers",
@@ -120,6 +163,14 @@
         "1dd9a7f0f8b51f914722acf613424a78d1e7e52b5fff43ae1f63b40b6c6f25ce"
       ],
       "reason": "absorbed into do-it-planning, do-it-slicing, and do-it-grill"
+    },
+    {
+      "name": "do-it-delivery-loop",
+      "target": "skills/do-it-delivery-loop",
+      "legacyHashes": [
+        "15619616cf9b0d82f74f81e472ad1669b5cc23f56b8b6adb31d9e33ddb16d79e"
+      ],
+      "reason": "absorbed into do-it-router (Heavy path) and do-it-planning; the loop is the Heavy route, not a separate skill"
     }
   ],
   "skills": [
@@ -163,12 +214,6 @@
       "name": "do-it-domain-language",
       "source": "skills/do-it/do-it-domain-language",
       "target": "skills/do-it-domain-language",
-      "origin": "do-it"
-    },
-    {
-      "name": "do-it-delivery-loop",
-      "source": "skills/do-it/do-it-delivery-loop",
-      "target": "skills/do-it-delivery-loop",
       "origin": "do-it"
     },
     {
@@ -223,7 +268,8 @@
       "name": "do-it-visual-planning",
       "source": "skills/do-it/do-it-visual-planning",
       "target": "skills/do-it-visual-planning",
-      "origin": "do-it"
+      "origin": "do-it",
+      "optional": true
     },
     {
       "name": "do-it-skill-authoring",

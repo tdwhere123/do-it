@@ -1,0 +1,18 @@
+{
+  "name": "do-it",
+  "description": "do-it workflow marketplace for Claude Code: tier routing, premise grilling, verification gates.",
+  "owner": {
+    "name": "tdwhere123"
+  },
+  "plugins": [
+    {
+      "name": "do-it",
+      "description": "Workflow discipline plugin: skills auto-trigger via hooks; no slash commands required.",
+      "version": "0.4.0",
+      "source": "./",
+      "author": {
+        "name": "tdwhere123"
+      }
+    }
+  ]
+}

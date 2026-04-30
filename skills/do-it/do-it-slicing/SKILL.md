@@ -1,6 +1,6 @@
 ---
 name: do-it-slicing
-description: Use when breaking a plan, feature, wave, phase, or multi-agent effort into independent do-it slices with ownership, verification, and HITL or AFK execution markers.
+description: "Problem: a plan ships as one giant blob, so review, test, and rollback can only happen at the end, and any failure invalidates the whole effort. Fix: cut the plan into tracer-bullet vertical slices that each can be implemented, reviewed, and verified independently — with explicit ownership and stop conditions."
 ---
 
 # Do-It Slicing

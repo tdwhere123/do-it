@@ -1,6 +1,6 @@
 ---
 name: do-it-verification-gate
-description: Use when you are about to claim do-it work is complete, fixed, passing, ready to merge, ready to install, or otherwise verified.
+description: "Problem: claims of 'done / fixed / passing' arrive without fresh verification output; the agent's confidence is not the same as evidence, and broken work ships. Fix: gate every completion claim behind a fresh, full verification command and its actual output, cited inline; no claim without evidence."
 ---
 
 # Do-It Verification Gate

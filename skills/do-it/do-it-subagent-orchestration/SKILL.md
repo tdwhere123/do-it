@@ -1,6 +1,6 @@
 ---
 name: do-it-subagent-orchestration
-description: Use when delegating do-it work to subagents, coordinating multiple agents, assigning write ownership, or collecting evidence from worker or reviewer slices.
+description: "Problem: delegated agents drift past their assigned slice, write outside ownership, or return free-form output that the parent then has to re-parse and reconcile. Fix: constrain each subagent with explicit scope, write ownership, forbidden paths, must-verify facts, stop condition, and a return schema."
 ---
 
 # Do-It Subagent Orchestration

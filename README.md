@@ -5,16 +5,21 @@
 [![npm version](https://img.shields.io/npm/v/@tdwhere/do-it.svg)](https://www.npmjs.com/package/@tdwhere/do-it)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-`do-it` is a Codex-first workflow bundle for agentic software delivery. It
+`do-it` is a cross-host workflow bundle for agentic software delivery. It
 packages the operating habits that keep AI-assisted work useful: route the task,
 inspect the current truth, plan only as much as the risk requires, implement in
 bounded slices, review the result, fix findings, and make completion claims only
 after fresh verification.
 
-The maintained install target is `~/.codex`. The package installs workflow
-skills under `~/.codex/skills` and portable agent definitions under
-`~/.codex/agents`. Claude Code and other runtimes can reuse the same policies
-through adapter guidance, but Codex remains the primary distribution target.
+Two install targets are first-class as of 0.4.0:
+
+- **Codex** (`do-it install` — default): copies skills to `~/.codex/skills` and
+  TOML agents to `~/.codex/agents`.
+- **Claude Code** (`do-it install --target=claude`, or via plugin marketplace):
+  copies skills to `~/.claude/skills`, Markdown agents to `~/.claude/agents`,
+  and wires hook scripts so the workflow auto-triggers without slash commands.
+
+Both targets use the same `skills/do-it/*/SKILL.md` and `agents/*.toml` source.
 
 ## What This Package Provides
 
@@ -71,6 +76,36 @@ The installer will not silently replace user-owned skill or agent files. If it
 finds a target that is not already marked as do-it-managed, it stops. Set
 `DO_IT_FORCE=1` only when you intentionally want the package to replace those
 targets.
+
+## Install In Claude Code
+
+`do-it` ships as a Claude Code plugin. Install via the plugin marketplace:
+
+```text
+/plugin marketplace add tdwhere123/codex-workflow
+/plugin install do-it
+```
+
+Or via the CLI (when not using marketplace):
+
+```bash
+do-it install --target=claude
+do-it doctor --target=claude
+```
+
+The Claude target installs to `~/.claude/` by default; override with
+`CLAUDE_PLUGIN_ROOT_OVERRIDE`. Optional skills (e.g. `do-it-visual-planning`)
+are excluded by default — opt in with `--with-optional`.
+
+The Claude target wires three hooks so the workflow shows up automatically:
+
+- `UserPromptSubmit` → `do-it-router` (Light/Standard/Heavy classification)
+  and `do-it-grill` (premise pressure-test)
+- `PreToolUse(Edit|Write)` → grill plan-card and src-edit gates
+- `Stop` → `do-it-verification-gate` (block completion claims without evidence)
+
+There are no slash commands to remember. To bypass for one turn, include
+`yolo`, `直接做`, `skip grill`, or `/do-it-skip` in the prompt.
 
 ## Install Before Registry Publication
 

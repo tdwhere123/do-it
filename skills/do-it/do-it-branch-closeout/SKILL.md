@@ -1,6 +1,6 @@
 ---
 name: do-it-branch-closeout
-description: Use when do-it work is implemented and needs commit, merge, pull request, install-adjacent validation, cleanup, or a keep/discard branch decision.
+description: "Problem: branches get merged with uncited verification gaps, half-finished refactors, or missing rollback notes; the cost surfaces after merge. Fix: close the branch only when scope, evidence, and integration steps are all named in writing — before the merge call."
 ---
 
 # Do-It Branch Closeout

@@ -1,6 +1,6 @@
 ---
 name: do-it-planning
-description: Use when turning a request, idea, spec, investigation, or current repository state into a do-it-native plan before implementation or delegation.
+description: "Problem: plans get written without current repo truth, acceptance criteria, or a verification path, so the next agent re-discovers the same questions and rolls the work back. Fix: turn intent + current truth + non-goals + acceptance + failure-mode forecast + path map + verification expectations into a durable handoff card."
 ---
 
 # Do-It Planning

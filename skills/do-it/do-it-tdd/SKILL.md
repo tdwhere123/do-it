@@ -1,6 +1,6 @@
 ---
 name: do-it-tdd
-description: Use when implementing do-it work that changes behavior, fixes a bug, refactors code, adds tests, or needs regression coverage before code changes.
+description: "Problem: behavior changes ship without a failing test first, so no one knows whether the diff is the actual fix or just makes the symptom go away. Fix: red test before code; smallest implementation that turns it green; never weaken a test to make it pass."
 ---
 
 # Do-It TDD

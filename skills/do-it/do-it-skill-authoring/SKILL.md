@@ -1,6 +1,6 @@
 ---
 name: do-it-skill-authoring
-description: Use when creating, rewriting, reviewing, or maintaining do-it skills, workflow skills, agent instructions, or progressive-disclosure skill files.
+description: "Problem: skills get authored ad-hoc without clear trigger conditions, return shape, or interaction with the rest of do-it; they collide, under-trigger, or duplicate work. Fix: enforce the skill schema (purpose, when-to-use, decision tree, output shape, escape hatch) and name the trigger event for hook-level integration."
 ---
 
 # Do-It Skill Authoring

@@ -1,6 +1,6 @@
 ---
 name: do-it-architecture-scan
-description: Use when scanning current code, docs, plans, or diffs for architecture correctness risks, boundary issues, coupling, maintainability opportunities, or right-sized refactor options.
+description: "Problem: changes that touch multiple packages or public surfaces drift dependency direction, hide circular coupling, or expose un-isolated failure paths that diff review never catches. Fix: audit ownership, dependency direction, coupling, migration path, rollout risk, and failure isolation before locking the plan."
 ---
 
 # Do-It Architecture Scan

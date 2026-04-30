@@ -4,30 +4,55 @@ import fs from "node:fs";
 import crypto from "node:crypto";
 import path from "node:path";
 import process from "node:process";
+import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const VALID_COMMANDS = new Set(["install", "doctor", "setup"]);
 const HELP_FLAGS = new Set(["-h", "--help", "help"]);
 const FORCE_INSTALL = process.env.DO_IT_FORCE === "1";
+const DEFAULT_TARGET = process.env.DO_IT_TARGET || "codex";
 
 function usage(stream = console.error) {
   const commandName =
     process.env.DO_IT_CLI_NAME ||
     path.basename(process.argv[1] || "manage.mjs");
 
-  stream(`Usage: ${commandName} <install|doctor|setup>`);
+  stream(`Usage: ${commandName} <install|doctor|setup> [--target=<name>]`);
   stream("");
   stream("Commands:");
-  stream("  install  Copy managed skills and agents into CODEX_HOME");
-  stream("  doctor   Verify managed entries in CODEX_HOME");
+  stream("  install  Copy managed skills and agents into the install root");
+  stream("  doctor   Verify managed entries in the install root");
   stream("  setup    Run install, then doctor");
   stream("");
+  stream("Options:");
+  stream("  --target=<name>  Pick install target (default: codex). Available: codex, claude.");
+  stream("  --with-optional  Include skills marked optional (e.g. visual-planning).");
+  stream("");
   stream("Environment:");
-  stream("  CODEX_HOME  Override the install target; defaults to $HOME/.codex");
-  stream("  DO_IT_FORCE=1  Replace existing skill or agent files that are not marked as managed by do-it");
+  stream("  CODEX_HOME                    Override codex install root (default: $HOME/.codex)");
+  stream("  CLAUDE_PLUGIN_ROOT_OVERRIDE   Override claude install root (default: $HOME/.claude)");
+  stream("  DO_IT_TARGET                  Set default target if --target is omitted");
+  stream("  DO_IT_FORCE=1                 Replace existing files not marked as do-it managed");
 }
 
-const command = process.argv[2];
+function parseArgs(argv) {
+  const positional = [];
+  let targetName = DEFAULT_TARGET;
+  let withOptional = false;
+  for (const arg of argv) {
+    if (arg === "--with-optional") {
+      withOptional = true;
+    } else if (arg.startsWith("--target=")) {
+      targetName = arg.slice("--target=".length);
+    } else {
+      positional.push(arg);
+    }
+  }
+  return { positional, targetName, withOptional };
+}
+
+const { positional, targetName, withOptional } = parseArgs(process.argv.slice(2));
+const command = positional[0];
 
 if (HELP_FLAGS.has(command)) {
   usage(console.log);
@@ -39,7 +64,7 @@ if (!VALID_COMMANDS.has(command)) {
   process.exit(2);
 }
 
-if (process.argv.length > 3) {
+if (positional.length > 1) {
   usage();
   process.exit(2);
 }
@@ -47,50 +72,100 @@ if (process.argv.length > 3) {
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, "..");
 const manifestPath = path.join(repoRoot, "manifest.json");
-const codexHome = process.env.CODEX_HOME
-  ? path.resolve(process.env.CODEX_HOME)
-  : path.join(process.env.HOME ?? "", ".codex");
-
-if (!process.env.CODEX_HOME && !process.env.HOME) {
-  throw new Error("HOME is not set. Set CODEX_HOME explicitly.");
-}
 
 const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+const targetsConfig = manifest.targets ?? {};
+const targetConfig = targetsConfig[targetName];
+if (!targetConfig) {
+  console.error(
+    `Unknown target: ${targetName}. Available: ${Object.keys(targetsConfig).join(", ") || "(none)"}.`
+  );
+  process.exit(2);
+}
+
+function expandRootDefault(template) {
+  return template.replace(/\$HOME/g, process.env.HOME ?? "");
+}
+
+const rootEnvName = targetConfig.rootEnv;
+const installRoot = process.env[rootEnvName]
+  ? path.resolve(process.env[rootEnvName])
+  : expandRootDefault(targetConfig.rootDefault);
+
+if (!process.env[rootEnvName] && !process.env.HOME) {
+  throw new Error(`HOME is not set. Set ${rootEnvName} explicitly.`);
+}
+
 const deprecatedTargets = manifest.deprecatedTargets ?? [];
-const entries = [
-  ...manifest.skills.map((entry) => ({ kind: "skill", ...entry })),
-  ...manifest.agents.map((entry) => ({ kind: "agent", ...entry }))
-];
-const statePath = resolveHomePath(".do-it-install-state.json");
+
+function adaptEntry(entry, kind) {
+  if (kind === "skill") {
+    return { kind, ...entry };
+  }
+  // Agents: derive source/target from target config + agent name so a single
+  // manifest definition can be installed to multiple hosts.
+  const source = `${targetConfig.agentSourceFrom}/${entry.name}${targetConfig.agentSourceExt}`;
+  const target = `agents/${entry.name}${targetConfig.agentTargetExt}`;
+  return { kind, ...entry, source, target };
+}
+
+const skillEntries = manifest.skills
+  .filter((entry) => withOptional || !entry.optional)
+  .map((entry) => adaptEntry(entry, "skill"));
+const agentEntries = manifest.agents.map((entry) => adaptEntry(entry, "agent"));
+const extraEntries = (targetConfig.extras ?? []).map((extra) => ({
+  kind: "extra",
+  name: extra.name,
+  source: extra.source,
+  target: extra.target,
+  shape: extra.kind === "directory" ? "directory" : "file"
+}));
+const entries = [...skillEntries, ...agentEntries, ...extraEntries];
 
 function resolveRepoPath(relativePath) {
   return path.join(repoRoot, relativePath);
 }
 
 function resolveHomePath(relativePath) {
-  return path.join(codexHome, relativePath);
+  return path.join(installRoot, relativePath);
 }
 
-function assertWithinCodexHome(targetPath) {
-  const relativePath = path.relative(codexHome, targetPath);
+const statePath = resolveHomePath(targetConfig.stateFile ?? ".do-it-install-state.json");
+
+function assertWithinInstallRoot(targetPath) {
+  const relativePath = path.relative(installRoot, targetPath);
   const isWithin =
     relativePath === "" ||
     (!relativePath.startsWith("..") && !path.isAbsolute(relativePath));
 
   if (!isWithin) {
-    throw new Error(`Refusing to operate outside CODEX_HOME: ${targetPath}`);
+    throw new Error(`Refusing to operate outside install root: ${targetPath}`);
   }
 }
 
 function assertManagedTargetShape(entry) {
+  if (entry.kind === "extra") {
+    // Extras are top-level dirs/files added by target config (e.g.
+    // .claude-plugin, hooks, commands). Allow single-segment names.
+    if (!/^[A-Za-z0-9_.-]+$/.test(entry.target)) {
+      throw new Error(
+        `Unsafe extra target for ${entry.name}: ${entry.target}. ` +
+          "Expected a single-segment top-level name."
+      );
+    }
+    return;
+  }
+
   const skillPattern = /^skills\/[^/]+$/;
-  const agentPattern = /^agents\/[^/]+\.toml$/;
+  const agentExtRaw = targetConfig.agentTargetExt ?? ".toml";
+  const agentExtEscaped = agentExtRaw.replace(/\./g, "\\.");
+  const agentPattern = new RegExp(`^agents/[^/]+${agentExtEscaped}$`);
   const pattern = entry.kind === "agent" ? agentPattern : skillPattern;
 
   if (!pattern.test(entry.target)) {
     throw new Error(
       `Unsafe ${entry.kind} target for ${entry.name}: ${entry.target}. ` +
-        "Expected skills/<name> or agents/<name>.toml."
+        `Expected skills/<name> or agents/<name>${agentExtRaw}.`
     );
   }
 }
@@ -111,7 +186,7 @@ function tempSiblingPath(targetPath, purpose) {
     `.do-it-${purpose}-${baseName}-${process.pid}-${crypto.randomUUID()}`
   );
 
-  assertWithinCodexHome(tempPath);
+  assertWithinInstallRoot(tempPath);
   return tempPath;
 }
 
@@ -129,23 +204,23 @@ function copyEntry(sourcePath, targetPath) {
 
 function createStagingRoot() {
   const stagingRoot = path.join(
-    codexHome,
+    installRoot,
     `.do-it-install-staging-${process.pid}-${crypto.randomUUID()}`
   );
 
-  assertWithinCodexHome(stagingRoot);
+  assertWithinInstallRoot(stagingRoot);
   fs.mkdirSync(stagingRoot, { recursive: true });
   return stagingRoot;
 }
 
 function stagedEntryPath(stagingRoot, entry) {
   const stagedPath = path.join(stagingRoot, entry.target);
-  assertWithinCodexHome(stagedPath);
+  assertWithinInstallRoot(stagedPath);
   return stagedPath;
 }
 
 function backupTargetForTransaction(targetPath, transaction) {
-  assertWithinCodexHome(targetPath);
+  assertWithinInstallRoot(targetPath);
   fs.mkdirSync(path.dirname(targetPath), { recursive: true });
 
   const targetState = pathState(targetPath);
@@ -165,8 +240,8 @@ function backupTargetForTransaction(targetPath, transaction) {
 }
 
 function replaceManagedTarget(stagedPath, targetPath, transaction) {
-  assertWithinCodexHome(stagedPath);
-  assertWithinCodexHome(targetPath);
+  assertWithinInstallRoot(stagedPath);
+  assertWithinInstallRoot(targetPath);
 
   const record = backupTargetForTransaction(targetPath, transaction);
   fs.renameSync(stagedPath, targetPath);
@@ -260,7 +335,7 @@ function readInstallState() {
 }
 
 function writeFileAtomic(targetPath, content) {
-  assertWithinCodexHome(targetPath);
+  assertWithinInstallRoot(targetPath);
   fs.mkdirSync(path.dirname(targetPath), { recursive: true });
 
   const tempPath = tempSiblingPath(targetPath, "state");
@@ -330,7 +405,7 @@ function assertInstallSafe(entry, state) {
     throw new Error(`Manifest source is missing: ${entry.source}`);
   }
 
-  assertWithinCodexHome(targetPath);
+  assertWithinInstallRoot(targetPath);
 
   const targetState = pathState(targetPath);
   if (!targetState || treesMatch(sourcePath, targetPath)) {
@@ -359,7 +434,7 @@ function assertDeprecatedRemovalSafe(entry, state) {
     return false;
   }
 
-  assertWithinCodexHome(targetPath);
+  assertWithinInstallRoot(targetPath);
 
   const stateEntry = state.entries?.[entry.target];
   const targetHash = hashPath(targetPath);
@@ -421,7 +496,26 @@ function collectInstallStateDrift() {
   return issues;
 }
 
+function runPreInstall() {
+  for (const script of targetConfig.preInstall ?? []) {
+    const scriptPath = resolveRepoPath(script);
+    if (!fs.existsSync(scriptPath)) {
+      throw new Error(`Pre-install script missing: ${script}`);
+    }
+    const result = spawnSync(process.execPath, [scriptPath], {
+      stdio: "inherit",
+      env: process.env
+    });
+    if (result.error) throw result.error;
+    if (result.status !== 0) {
+      throw new Error(`Pre-install script failed: ${script} (exit ${result.status})`);
+    }
+  }
+}
+
 function install() {
+  runPreInstall();
+
   const state = readInstallState();
 
   for (const entry of entries) {
@@ -479,7 +573,7 @@ function install() {
     fs.rmSync(stagingRoot, { recursive: true, force: true });
   }
 
-  console.log(`install completed into ${codexHome}`);
+  console.log(`install completed into ${installRoot} (target=${targetName})`);
   console.log(`managed entries: ${summary.length}`);
   for (const item of summary) {
     console.log(`- ${item}`);
@@ -537,7 +631,7 @@ function doctor() {
     }
   }
 
-  console.log(`doctor checked ${entries.length} managed entries in ${codexHome}`);
+  console.log(`doctor checked ${entries.length} managed entries in ${installRoot} (target=${targetName})`);
   console.log(`ok: ${ok.length}`);
   console.log(`missing: ${missing.length}`);
   console.log(`drift: ${drift.length}`);

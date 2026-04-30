@@ -1,6 +1,6 @@
 ---
 name: do-it-visual-planning
-description: Use when optional visual artifacts, diagrams, sketches, mockups, or side-by-side comparisons would clarify a do-it plan or design decision.
+description: "Problem: text-only plans miss spatial structure (layout, flow, state machine) that only a diagram can pin down efficiently. Fix: produce a small visual artifact (mermaid, ascii, sketch) alongside the plan when the work is structural; not the default route."
 ---
 
 # Do-It Visual Planning

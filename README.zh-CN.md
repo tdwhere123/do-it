@@ -5,9 +5,14 @@
 [![npm version](https://img.shields.io/npm/v/@tdwhere/do-it.svg)](https://www.npmjs.com/package/@tdwhere/do-it)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-`do-it` 是面向 Codex 的智能体软件交付工作流包。它把一套可执行的工程习惯打包起来：先判断任务类型，检查当前事实，再按风险决定规划深度；实现时保持切片边界，交付后审查和修复，最后只用刚刚验证过的证据说明完成状态。
+`do-it` 是跨 host 的智能体软件交付工作流包。它把一套可执行的工程习惯打包起来：先判断任务类型，检查当前事实，再按风险决定规划深度；实现时保持切片边界，交付后审查和修复，最后只用刚刚验证过的证据说明完成状态。
 
-默认安装目标是 `~/.codex`。包会把工作流技能安装到 `~/.codex/skills`，把可移植的智能体定义安装到 `~/.codex/agents`。Claude Code 和其他运行环境可以通过适配说明复用同一套策略，但 Codex 是这个仓库的主要发布目标。
+0.4.0 起两个目标都是一等公民：
+
+- **Codex**（`do-it install`，默认）：技能装到 `~/.codex/skills`，TOML 智能体装到 `~/.codex/agents`。
+- **Claude Code**（`do-it install --target=claude`，或通过插件 marketplace）：技能装到 `~/.claude/skills`，Markdown 智能体装到 `~/.claude/agents`，钩子脚本让工作流在对话里自动触发，不需要任何斜杠命令。
+
+两个目标共用同一份 `skills/do-it/*/SKILL.md` 和 `agents/*.toml`。
 
 ## 这个包提供什么
 
@@ -49,6 +54,32 @@ CODEX_HOME=/tmp/do-it-codex-test do-it setup
 ```
 
 安装器不会静默覆盖用户自己的技能或智能体文件。如果目标文件没有被标记为 do-it 受管文件，安装会停止。只有在你明确要替换这些目标时，才设置 `DO_IT_FORCE=1`。
+
+## 安装到 Claude Code
+
+`do-it` 是 Claude Code 插件。通过插件 marketplace 安装：
+
+```text
+/plugin marketplace add tdwhere123/codex-workflow
+/plugin install do-it
+```
+
+或者用 CLI（无 marketplace 时）：
+
+```bash
+do-it install --target=claude
+do-it doctor --target=claude
+```
+
+Claude target 默认装到 `~/.claude/`；用 `CLAUDE_PLUGIN_ROOT_OVERRIDE` 改根目录。可选技能（如 `do-it-visual-planning`）默认不装，加 `--with-optional` 才装。
+
+Claude target 接了三个 hook，工作流在对话里自动出现：
+
+- `UserPromptSubmit` → `do-it-router`（Light/Standard/Heavy 分级）+ `do-it-grill`（前提压测）
+- `PreToolUse(Edit|Write)` → 落计划前 / 动 src 前的 grill 门
+- `Stop` → `do-it-verification-gate`（完成声明没有证据时阻拦）
+
+不需要记任何斜杠命令。当前 turn 想跳过钩子：在输入里加 `yolo / 直接做 / skip grill / /do-it-skip`。
 
 ## registry 发布前的安装方式
 

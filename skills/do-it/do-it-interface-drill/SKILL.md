@@ -1,6 +1,6 @@
 ---
 name: do-it-interface-drill
-description: Use when designing, changing, reviewing, or documenting an interface such as an API, function boundary, event, schema, CLI, UI contract, agent handoff, or module seam.
+description: "Problem: API/schema/CLI/protocol changes pass diff review but break consumers because contract compatibility was checked at the wrong boundary or against the wrong version. Fix: walk the producer/consumer boundary — types, schemas, CLI flags, docs, adapters — and catch breakage before merge."
 ---
 
 # Do-It Interface Drill

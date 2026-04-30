@@ -1,6 +1,6 @@
 ---
 name: do-it-debugging
-description: Use when do-it work hits a bug, failing test, broken command, unexpected behavior, unclear root cause, or regression that must be diagnosed before fixing.
+description: "Problem: bugs get patched at the symptom level after one or two failed attempts, so the actual root cause and its blast radius stay hidden and resurface later. Fix: form a hypothesis, instrument the boundary, falsify or confirm, fix at root, then verify the fix did not move the bug elsewhere."
 ---
 
 # Do-It Debugging

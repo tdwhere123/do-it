@@ -1,7 +1,7 @@
 {
   "name": "@tdwhere/do-it",
-  "version": "0.3.0",
-  "description": "Codex-first workflow skills and agents for truth-first do-it delivery.",
+  "version": "0.4.0",
+  "description": "Cross-host workflow skills and agents for truth-first do-it delivery (Codex + Claude Code).",
   "type": "module",
   "license": "MIT",
   "author": "tdwhere123",
@@ -29,12 +29,17 @@
     "access": "public"
   },
   "files": [
+    ".claude-plugin/",
     "agents/",
     "bin/",
+    "commands/",
+    "dist/claude/",
     "docs/",
+    "hooks/",
     "install/",
     "manifest.json",
     "README.zh-CN.md",
+    "scripts/",
     "skills/custom/README.md",
     "skills/do-it/"
   ],
@@ -44,7 +49,11 @@
   "scripts": {
     "setup": "node bin/do-it.mjs setup",
     "install:do-it": "node install/manage.mjs install",
+    "install:claude": "node install/manage.mjs install --target=claude",
     "doctor": "node install/manage.mjs doctor",
+    "doctor:claude": "node install/manage.mjs doctor --target=claude",
+    "build:claude-agents": "node scripts/build-claude-agents.mjs",
+    "prepack": "node scripts/build-claude-agents.mjs",
     "do-it": "node bin/do-it.mjs"
   },
   "engines": {

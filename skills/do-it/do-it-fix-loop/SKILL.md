@@ -1,6 +1,6 @@
 ---
 name: do-it-fix-loop
-description: Use when applying review feedback, closing findings, repairing regressions, or proving that Blocking or Important do-it findings are resolved.
+description: "Problem: review findings get spot-fixed without re-running the same review pass, so partial fixes and new regressions ship under the cover of 'addressed'. Fix: address each finding atomically, re-run the review on the same scope, and repeat until Blocking and Important categories are empty."
 ---
 
 # Do-It Fix Loop

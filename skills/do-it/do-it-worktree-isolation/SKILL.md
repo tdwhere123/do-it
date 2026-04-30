@@ -1,6 +1,6 @@
 ---
 name: do-it-worktree-isolation
-description: Use when do-it work needs an isolated git worktree, lane workspace, dirty-worktree protection, or safe parallel implementation setup.
+description: "Problem: parallel high-risk work corrupts the main checkout, mixes unrelated changes, or makes rollback impossible when something goes wrong. Fix: run risky or long work inside an isolated git worktree until it is ready to integrate."
 ---
 
 # Do-It Worktree Isolation

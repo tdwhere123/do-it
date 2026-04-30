@@ -1,6 +1,6 @@
 ---
 name: do-it-grill
-description: Use when a plan, premise, implementation approach, handoff, review response, or delivery claim needs adversarial but constructive challenge before execution or closeout.
+description: "Problem: you think you heard the requirement but you only heard the surface; hidden assumptions, unstated constraints, and contradictions with project invariants ship as bugs and rework. Fix: list the 5 premises most likely wrong, surface conflicts with current truth, pin down ambiguous terms, and predict failure modes by category — before any plan or code."
 ---
 
 # Do-It Grill

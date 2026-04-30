@@ -1,6 +1,6 @@
 ---
 name: do-it-router
-description: Use when routing any non-trivial repository work; mandatory before planning, slicing, design, implementation, review, verification, closeout, or multi-agent work.
+description: "Problem: agents jump from request straight to code, dragging Light tasks through Heavy ceremony or hauling Heavy work across stale truth without classification. Fix: classify the request as Light/Standard/Heavy, name the minimum useful skill+agent set, forecast likely failure modes, and pin the parent agent's scope before any planning or implementation."
 ---
 
 # Do-It Router

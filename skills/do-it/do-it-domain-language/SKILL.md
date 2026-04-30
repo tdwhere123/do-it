@@ -1,6 +1,6 @@
 ---
 name: do-it-domain-language
-description: Use when code, docs, user language, or plans need canonical terms, domain model clarity, naming alignment, or contradiction checks before design or implementation.
+description: "Problem: user, docs, and code use different names for the same concept, so reviewers and downstream agents re-derive intent and disagree on what 'done' looks like. Fix: stabilize the domain terms; catch contradictions between user language, docs, and code; produce a canonical glossary used in the handoff."
 ---
 
 # Do-It Domain Language

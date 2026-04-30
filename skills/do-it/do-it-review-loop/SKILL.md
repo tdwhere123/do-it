@@ -1,6 +1,6 @@
 ---
 name: do-it-review-loop
-description: Use when reviewing do-it changes, auditing a diff, checking task compliance, assessing quality risk, capturing QA findings, or deciding whether work is ready to close.
+description: "Problem: a worker says 'DONE' and the parent ships it; defects, contract violations, and missing tests survive into production. Fix: run a structured PR-style correctness review (reviewer agent, severity-graded findings, evidence-backed) before the parent accepts the diff."
 ---
 
 # Do-It Review Loop
