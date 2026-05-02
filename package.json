@@ -1,6 +1,6 @@
 {
   "name": "@tdwhere/do-it",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Cross-host workflow skills and agents for truth-first do-it delivery (Codex + Claude Code).",
   "type": "module",
   "license": "MIT",
@@ -54,7 +54,9 @@
     "doctor:claude": "node install/manage.mjs doctor --target=claude",
     "build:claude-agents": "node scripts/build-claude-agents.mjs",
     "prepack": "node scripts/build-claude-agents.mjs",
-    "do-it": "node bin/do-it.mjs"
+    "do-it": "node bin/do-it.mjs",
+    "lint": "bash scripts/lint-hooks.sh",
+    "test": "bash scripts/lint-hooks.sh"
   },
   "engines": {
     "node": ">=18"

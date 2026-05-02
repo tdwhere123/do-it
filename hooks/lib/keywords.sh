@@ -1,53 +1,73 @@
 #!/usr/bin/env bash
 # do-it hook keyword tables. Sourced by all hook scripts.
 #
-# Project-level override: <cwd>/.do-it/keywords.local.sh can append additional
-# words to any of these arrays without removing the defaults. Example:
-#   DO_IT_INTENT_VERBS+=("微调" "审稿")
+# As of 0.5.0 the keyword data lives in hooks/data/*.tsv. This file is a thin
+# loader that reads the tsv files into the same DO_IT_* arrays that the rest of
+# the hook code expects, preserving backwards compatibility for project-level
+# overrides (`<cwd>/.do-it/keywords.local.sh`).
+#
+# These arrays are read via `local -n` indirection in hooks/lib/common.sh
+# (do_it_prompt_has_any), which shellcheck cannot resolve — so SC2034 is a
+# false positive here.
+# shellcheck disable=SC2034
 
-# Intent verbs — promotes prompt to at least Standard tier; triggers grill #1.
-DO_IT_INTENT_VERBS=(
-  "做" "实现" "写" "加" "添加" "新增" "创建" "构建" "搭" "接入" "集成" "引入"
-  "改" "修改" "修" "修复" "调整" "重构" "重写" "优化" "升级" "迁移" "替换" "移除" "删除"
-  "排查" "调试" "复现" "评审" "审" "检查" "测试" "设计" "规划" "切片"
-  "implement" "build" "add " " add " "create" "fix" "refactor" "rewrite" "migrate"
-  "remove" "delete" "debug" "review" "test " "design" "plan"
-)
+# Resolve the data directory relative to this lib file. The two-step expansion
+# is so this still works when sourced from any cwd.
+_DO_IT_KEYWORDS_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+_DO_IT_KEYWORDS_DATA_DIR="$(cd "${_DO_IT_KEYWORDS_LIB_DIR}/../data" && pwd)"
 
-# Uncertainty words — triggers grill #2 (premise pressure-test).
-DO_IT_UNCERTAINTY_WORDS=(
-  "我想" "我觉得" "我希望" "应该" "大概" "可能" "也许" "或许"
-  "是不是" "能不能" "要不要" "估计" "似乎"
-  "i think" "maybe" "perhaps" "should " "probably" "could " "might "
-  "wondering" "not sure" "i guess"
-)
+# Read a tsv file into an array passed by name. Comments (`#`) and blank lines
+# are skipped. Each line is `<term><TAB><flags>`; flags may be empty. The flags
+# `leading-ws` / `trailing-ws` adjust the term inline before storage, so the
+# downstream substring matcher needs no flag awareness.
+#
+# Args: <array-name> <tsv-path>
+_do_it_load_tsv() {
+  local __arr_name="$1" __path="$2"
+  local -n __arr_ref="$__arr_name"
+  __arr_ref=()
+  if [[ ! -f "$__path" ]]; then
+    return 0
+  fi
+  local line term flags first=1
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    # Strip UTF-8 BOM from the very first line if present, and trim CR for
+    # CRLF-saved files; both come up when the file was edited on Windows or
+    # pasted via a web tool.
+    if [[ "$first" -eq 1 ]]; then
+      line="${line#$'\xef\xbb\xbf'}"
+      first=0
+    fi
+    line="${line%$'\r'}"
+    case "$line" in
+      ''|'#'*) continue ;;
+    esac
+    if [[ "$line" == *$'\t'* ]]; then
+      term="${line%%$'\t'*}"
+      flags="${line#*$'\t'}"
+      flags="${flags%$'\r'}"
+    else
+      term="$line"
+      flags=""
+    fi
+    case ",$flags," in
+      *,leading-ws,*) term=" $term" ;;
+    esac
+    case ",$flags," in
+      *,trailing-ws,*) term="$term " ;;
+    esac
+    __arr_ref+=("$term")
+  done < "$__path"
+}
 
-# Heavy signals — promotes to Heavy tier (overrides Standard/Light).
-DO_IT_HEAVY_SIGNALS=(
-  "wave" "phase" "公共接口" "公开接口" "公开 api" "api 改" "api 变" "schema"
-  "协议" "多包" "跨包" "架构" "边界" "依赖方向" "循环依赖" "发布" "release"
-  "migration" "迁移" "breaking change" "不兼容" "数据库" "db schema" "升版" "入口"
-  "across packages" "api change" "schema change"
-)
+_do_it_load_tsv DO_IT_INTENT_VERBS       "${_DO_IT_KEYWORDS_DATA_DIR}/intent-verbs.tsv"
+_do_it_load_tsv DO_IT_UNCERTAINTY_WORDS  "${_DO_IT_KEYWORDS_DATA_DIR}/uncertainty-words.tsv"
+_do_it_load_tsv DO_IT_HEAVY_SIGNALS      "${_DO_IT_KEYWORDS_DATA_DIR}/heavy-signals.tsv"
+_do_it_load_tsv DO_IT_LIGHT_SIGNALS      "${_DO_IT_KEYWORDS_DATA_DIR}/light-signals.tsv"
+_do_it_load_tsv DO_IT_ESCAPE_WORDS       "${_DO_IT_KEYWORDS_DATA_DIR}/escape-words.tsv"
+_do_it_load_tsv DO_IT_LONG_INPUT_HINTS   "${_DO_IT_KEYWORDS_DATA_DIR}/long-input-hints.tsv"
+_do_it_load_tsv DO_IT_QUESTION_HINTS     "${_DO_IT_KEYWORDS_DATA_DIR}/question-hints.tsv"
 
-# Light signals — caps at Light tier when paired with short input.
-DO_IT_LIGHT_SIGNALS=(
-  "typo" "拼写" "错字" "文档" "doc " "注释" "rename" "改名" "重命名"
-  "整理" "format" "lint only" "comment only"
-)
-
-# Escape words — disable router/grill/gate for the current turn.
-DO_IT_ESCAPE_WORDS=(
-  "skip grill" "直接做" "不用 grill" "不用grill" "我已经想清楚"
-  "yolo" "just do it" "skip do-it" "skip router" "skip gate"
-  "/do-it-skip"
-)
-
-# Long-input grill threshold (character count).
+# Long-input grill threshold (character count). Kept here because it's a tunable
+# scalar, not a list — would feel forced as a tsv.
 DO_IT_LONG_INPUT_THRESHOLD="${DO_IT_LONG_INPUT_THRESHOLD:-300}"
-
-# Long-input topical hints — combined with length > threshold to trigger grill #3.
-DO_IT_LONG_INPUT_HINTS=(
-  "需求" "方案" "思路" "想法" "计划" "拆分" "拆解" "策略"
-  "requirement" "approach" "idea" "strategy" "spec" "rfc"
-)

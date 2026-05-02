@@ -1,6 +1,6 @@
 ---
 name: do-it-grill
-description: "Problem: you think you heard the requirement but you only heard the surface; hidden assumptions, unstated constraints, and contradictions with project invariants ship as bugs and rework. Fix: list the 5 premises most likely wrong, surface conflicts with current truth, pin down ambiguous terms, and predict failure modes by category — before any plan or code."
+description: "Problem: you think you heard the requirement but you only heard the surface; hidden assumptions, unstated constraints, and contradictions with project invariants ship as bugs and rework. Fix: pressure-test one premise at a time, anchor every fuzzy term to CLAUDE.md / .do-it/CONTEXT.md and the actual code, and only move on when each premise is either confirmed by evidence or refuted and rerouted."
 ---
 
 # Do-It Grill
@@ -9,9 +9,16 @@ description: "Problem: you think you heard the requirement but you only heard th
 
 Use this to pressure-test reasoning before work hardens into code, docs, commits, or claims. The goal is to expose weak assumptions, missing truth checks, vague acceptance criteria, and hidden delivery risk early.
 
-`do-it-review-loop` owns delivered diff review, QA intake, and multi-perspective
-findings. `do-it-grill` challenges whether that review is needed, sufficient,
-or honestly closed.
+`do-it-review-loop` owns delivered diff review, QA intake, and multi-perspective findings. `do-it-grill` challenges whether that review is needed, sufficient, or honestly closed.
+
+## How It Differs From a Q&A Template
+
+A common failure is to dump a 5-question template at the user and call it grilling. That gets shallow, scattered answers. Instead:
+
+1. **One premise at a time.** Pick the single most-load-bearing premise that, if wrong, would invalidate the most downstream work. Ask only that. Wait for the answer. Then pick the next.
+2. **Anchor terms before debating intent.** If the user uses a term that has a definition in `CLAUDE.md`, `.do-it/CONTEXT.md`, or visible in code with a different shape — surface the conflict before going further.
+3. **Verify, don't ask, when verification is cheap.** If the question can be answered with `grep`, `cat`, or a 5-second tool call, do that and report what you found.
+4. **Sediment what you learned.** When a term gets clarified or a constraint surfaces, append it to `.do-it/CONTEXT.md` (one line, declarative). Use `do-it-grill-log` for the per-task `.do-it/grill/<task>.md` artifact (premises, falsifiers, decisions).
 
 ## When To Use
 
@@ -42,7 +49,7 @@ Use for bounded work:
 Default for subagents and ordinary non-trivial planning:
 
 - inspect code/docs/tests before asking;
-- build a short decision tree;
+- pick the single highest-leverage premise — ask, verify, decide, then move to the next;
 - challenge goal, non-goals, acceptance, sequencing, and verification;
 - return blockers, important risks, options, and a recommendation.
 
@@ -54,16 +61,33 @@ Parent-only unless explicitly assigned:
 - codebase exploration is mandatory;
 - include scope lock, verified facts, decision options, gates, and residual risk.
 
-## Decision Tree Interview
+## The Iterative Loop
 
-Use this instead of a list of generic questions:
+Run this loop until every premise is either `confirmed` (with evidence) or `refuted` (with a reroute):
 
-1. If a question is answerable by reading files or running a safe command, inspect instead of asking.
-2. If repository truth contradicts the premise, show the evidence and reroute.
-3. If the gap is a human preference, priority, or risk appetite, ask one concrete question with a recommended option.
-4. If a risk can be resolved with a cheap check, run or propose that check before asking.
-5. If there are multiple viable paths, compare 2-3 options and pick one.
-6. If no user input is needed, state the assumption and continue.
+1. **Pick the most load-bearing premise.** What single belief, if wrong, would change the most downstream decisions?
+2. **Try to falsify cheaply.** Read the file, grep for the symbol, run the unit test, glance at the schema. If you find evidence, jump to step 4.
+3. **Ask one focused question** — not five. Recommend a default option so the user has something to push back on.
+4. **Record the outcome** in `.do-it/grill/<task>.md` (see `do-it-grill-log`). Status moves to `confirmed` or `refuted`.
+5. **Repeat** with the next-most-load-bearing premise, until the remaining unknowns no longer change the route.
+
+## Anchoring Terms
+
+When a term feels fuzzy, before you debate it:
+
+1. Search `CLAUDE.md`, `.do-it/CONTEXT.md`, and `docs/` for an existing definition.
+2. If a definition exists and the user is using it differently, **call out the conflict immediately**. Quote both definitions side by side. Ask which one applies.
+3. If no definition exists and the term will be re-used, propose one in CONTEXT-FORMAT shape (see `do-it-context`) and write it back.
+4. Avoid synonyms — if `payload` and `event body` mean the same thing in this conversation, pick one and stick to it.
+
+## Code Reverification
+
+When the user makes a factual claim about behavior ("the validator already checks X", "this is called from one place", "we don't ship Y in prod"):
+
+1. Treat it as a premise, not a fact.
+2. `grep` / open the file. Two minutes of reading beats five minutes of debate.
+3. If the code disagrees, surface the disagreement with a path:line citation.
+4. Update the grill log with the verified state.
 
 ## Lenses
 
@@ -77,6 +101,28 @@ Use these as checks, not personas:
 - Review: What would a skeptical reviewer block on?
 - Maintenance: What future churn can be avoided without expanding scope?
 - Delegation: Does each worker have a tier, ownership, verification, and stop conditions?
+
+## Common Rationalizations
+
+These are the "I'm done grilling" excuses that should each cost you another loop:
+
+- *"It feels reasonable."* — Reasonable ≠ verified. Name the evidence.
+- *"The user said it works that way."* — Treat as premise. Grep before believing.
+- *"It would be a small refactor if wrong."* — Costed in tokens or in a follow-up sprint? Re-state.
+- *"We can fix it in review."* — Maybe; but if grill catches it now, review carries fewer findings.
+- *"There's no time to anchor terms."* — There's also no time to debug a contract mismatch in production.
+- *"Both interpretations probably work."* — Then which one ships? Pick.
+
+## Red Flags
+
+Pause and re-grill when you see:
+
+- The user agreeing immediately with whatever you propose. (Are they confirming or appeasing?)
+- Acceptance criteria that say "looks good" or "works".
+- A plan that names `Phase 2` of work that doesn't yet exist.
+- "Should be straightforward" applied to a multi-package change.
+- Terms used inconsistently in the same paragraph.
+- A review response that has zero `Blocking` / `Important` items but the change touches a public interface.
 
 ## Codebase Exploration
 
@@ -102,7 +148,7 @@ For a light grill:
 For a standard grill:
 
 - current truth checked;
-- decision tree with the next controlling decision;
+- premise log (each: confirmed / refuted, with evidence) — usually written to `.do-it/grill/<task>.md`;
 - blockers;
 - important risks;
 - options considered;
@@ -127,9 +173,17 @@ For a heavy grill:
 
 ## Common Mistakes
 
+- Asking five generic questions at once instead of one focused premise.
 - Challenging in the abstract without reading files.
 - Turning every idea into a blocker.
-- Asking many questions when one decision controls the next step.
 - Asking about facts that codebase exploration can answer.
 - Accepting a plan because it sounds reasonable while evidence is missing.
 - Treating architecture taste as delivery truth.
+- Using a fuzzy term repeatedly without ever defining it back to the user or to `.do-it/CONTEXT.md`.
+
+## Related Skills
+
+- `do-it-context` — set up and maintain `.do-it/CONTEXT.md` with project terms and invariants.
+- `do-it-grill-log` — write per-task `.do-it/grill/<task>.md` artifacts (premise / falsifier / decision).
+- `do-it-planning` — consume the grill outcome into a plan card under `.do-it/plans/<task>.md`.
+- `do-it-review-loop` — apply pressure to the delivered diff after grilling has set the bar.

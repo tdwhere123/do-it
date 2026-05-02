@@ -14,6 +14,14 @@
 
 两个目标共用同一份 `skills/do-it/*/SKILL.md` 和 `agents/*.toml`。
 
+## 升级到 0.5.0
+
+`do-it 0.5.0` 带来更精准的钩子触发（单字 CJK 不再误命中、ASCII 用词边界匹配、Heavy 升级要求 ≥2 信号）、同会话 grill 去重、问答 / 讨论模式自动识别、结构化 `DO_IT_DEBUG=1` 调试输出，以及 `.do-it/grill/<task>.md` 工件契约。
+
+0.4.x 老用户无需特殊操作 —— `do-it install` 会检测旧 state、备份到 `.pre-migrate.json`、再静默迁移。详见 [`install/migrations/0.4-to-0.5.md`](./install/migrations/0.4-to-0.5.md)。如果想拒绝迁移，用 `do-it install --no-migrate`（会以退出码 2 失败）。
+
+调试钩子：`DO_IT_DEBUG=1` 让每个 hook 在 stderr 上输出一行决策跟踪（escape / skip / question / tier / trigger / evidence）。用 `do-it doctor --session=<id>` 查看会话状态。
+
 ## 这个包提供什么
 
 - `Light`、`Standard`、`Heavy` 三层任务路由模型。

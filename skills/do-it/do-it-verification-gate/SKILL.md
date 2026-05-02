@@ -9,6 +9,14 @@ description: "Problem: claims of 'done / fixed / passing' arrive without fresh v
 
 Use this before any completion claim. Evidence comes before status.
 
+## Inputs
+
+Before running the gate, read:
+
+- `.do-it/grill/<task>.md` if it exists. **Closeout is blocked while any premise has `decision: pending`.** Resolve it (confirmed / refuted with evidence) or escalate as a `Blocking` finding.
+- `.do-it/plans/<task>.md` for the acceptance surface and verification command(s) the plan named.
+- `.do-it/CONTEXT.md` for any contract terms relevant to the changed surface.
+
 ## Tiers
 
 ### Light

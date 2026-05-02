@@ -21,6 +21,23 @@ Two install targets are first-class as of 0.4.0:
 
 Both targets use the same `skills/do-it/*/SKILL.md` and `agents/*.toml` source.
 
+## Upgrading to 0.5.0
+
+`do-it 0.5.0` ships sharper hook triggering (no more single-CJK false fires,
+ASCII word-boundary matching, ≥2-signal Heavy upgrade), same-session grill
+de-duplication, automatic question / discussion mode, structured
+`DO_IT_DEBUG=1` traces, and a `.do-it/grill/<task>.md` artifact contract.
+
+Existing 0.4.x users do nothing special — `do-it install` detects the older
+state, backs it up to `.pre-migrate.json`, and migrates silently. See
+[`install/migrations/0.4-to-0.5.md`](./install/migrations/0.4-to-0.5.md) for
+the breakdown. Use `do-it install --no-migrate` if you want to fail loudly
+instead of migrating.
+
+Debugging hooks: `DO_IT_DEBUG=1` makes each hook emit one stderr line per
+decision (escape / skip / question / tier / trigger / evidence). Inspect
+session state with `do-it doctor --session=<id>`.
+
 ## What This Package Provides
 
 - A three-tier routing model for `Light`, `Standard`, and `Heavy` work.
@@ -154,6 +171,9 @@ managed install behavior:
 This package does not use npm lifecycle scripts to modify `~/.codex`.
 Installation into Codex happens only when the operator runs `do-it setup` or
 `do-it install`.
+
+Before sending hook changes for review, run `npm run lint` (shellcheck via
+`scripts/lint-hooks.sh`). CI runs the same script on push / PR.
 
 ## Repository Layout
 

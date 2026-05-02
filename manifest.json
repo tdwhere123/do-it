@@ -1,5 +1,11 @@
 {
-  "version": "0.4.0",
+  "version": "0.5.0",
+  "migrations": [
+    {
+      "from": "0.4.x",
+      "actions": []
+    }
+  ],
   "targets": {
     "codex": {
       "rootEnv": "CODEX_HOME",
@@ -196,6 +202,18 @@
       "name": "do-it-grill",
       "source": "skills/do-it/do-it-grill",
       "target": "skills/do-it-grill",
+      "origin": "do-it"
+    },
+    {
+      "name": "do-it-context",
+      "source": "skills/do-it/do-it-context",
+      "target": "skills/do-it-context",
+      "origin": "do-it"
+    },
+    {
+      "name": "do-it-grill-log",
+      "source": "skills/do-it/do-it-grill-log",
+      "target": "skills/do-it-grill-log",
       "origin": "do-it"
     },
     {

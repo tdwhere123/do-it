@@ -1,0 +1,23 @@
+# Question hints — when the prompt matches any of these (or ends with `?` /
+# `？` / 吗 / 呢, handled directly in do_it_prompt_is_question), the router
+# caps at Light and the grill hook is suppressed.
+#
+# Format: see hooks/data/SCHEMA.md.
+#
+# Punctuation-only sentinels (?, ？, 吗, 呢) live in code (do_it_prompt_is_question)
+# rather than this table because grep -wF would not match a non-word-character
+# pattern under -w word-boundary semantics.
+
+你觉得
+你怎么看
+怎么看
+如何
+为什么
+什么是
+区别是
+what do you think
+how do
+why is
+what is
+should i
+whether to

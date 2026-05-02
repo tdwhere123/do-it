@@ -7,6 +7,31 @@ The default environment is Codex. In Claude Code or another agent runtime, keep
 the same roles and gates, then adapt tool names and delegation mechanics to that
 runtime.
 
+## 0.5.0 Routing Changes
+
+- **Heavy promotion now requires ≥2 heavy signals.** A single mention of
+  `schema` / `migration` / `api change` / `breaking change` no longer pulls
+  the full Heavy ceremony in by itself; it caps at Standard. Two or more
+  heavy signals (or one signal in a multi-package context) escalates to
+  Heavy.
+- **Question / discussion mode is automatic Light.** When the prompt ends
+  with `?` / `？` / `吗` / `呢`, or matches phrases like `你觉得`,
+  `怎么看`, `as how do`, `should i`, `whether to`, the router classifies
+  Light, suppresses the grill template, and bypasses the verification gate.
+  Discussion turns are no longer treated as implementation requests.
+- **Same-session grill de-duplication.** Once `do-it-grill` has fired in a
+  session, subsequent prompts will not re-emit the template unless the user
+  explicitly says `重新 grill` / `re-grill` / `再 pressure-test` /
+  `重新审视`, or escapes the workflow.
+- **Single CJK intent verbs no longer trigger.** `做`, `改`, `加`, `写`,
+  `修`, `审`, `搭` (1-character) are gone from the default intent verbs;
+  use specific 2-character compounds (`修改`, `修复`, `添加`, …) for clear
+  classification.
+- **ASCII word-boundary matching.** `fix` no longer matches `prefix`;
+  `add` no longer matches `address`. Drop the trailing-space hacks from
+  any project-level `keywords.local.sh` overrides — they are no longer
+  required.
+
 ## Core Skills
 
 - `do-it-router`: classifies the work into Light, Standard, or Heavy, names
@@ -20,6 +45,12 @@ runtime.
 - `do-it-grill`: stress-tests premises, plans, review responses, and closeout
   claims. It can require or challenge `do-it-review-loop` output, but it is not
   the owner for delivered diff or QA review.
+- `do-it-context`: maintains the project's canonical `.do-it/CONTEXT.md` —
+  one-line definitions for terms, invariants, and relationships that
+  downstream skills (grill, planning, review) read before debating semantics.
+- `do-it-grill-log`: writes the per-task `.do-it/grill/<task>.md` artifact
+  (premise / falsifier / decision / evidence). Read by `do-it-planning` and
+  `do-it-verification-gate` so a `pending` premise blocks closeout.
 - `do-it-architecture-scan`: checks ownership, dependency direction, coupling,
   migration path, rollout risk, and failure isolation.
 - `do-it-interface-drill`: checks API, type, schema, CLI, docs, protocol, and

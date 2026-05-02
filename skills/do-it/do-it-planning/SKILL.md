@@ -42,18 +42,19 @@ Parent-only unless explicitly assigned:
 
 ## Planning Sequence
 
-1. Read local instructions and write constraints.
-2. Inspect current truth: files, docs, tests, diffs, plans, issues, runtime state, and adjacent patterns.
-3. Separate facts from preferences. Ask only for preferences that affect the plan.
-4. Classify tier: `Light`, `Standard`, or `Heavy`; add task class
+1. Read local instructions and write constraints (CLAUDE.md, `.do-it/CONTEXT.md`).
+2. **Read the grill log first.** If `.do-it/grill/<task>.md` exists, every premise must be `confirmed` or `refuted` before you finalize the plan. Any `pending` premise either gets resolved or becomes a `Blocking` open question. Reference the slug in the plan card frontmatter (`grill: <slug>`).
+3. Inspect current truth: files, docs, tests, diffs, plans, issues, runtime state, and adjacent patterns.
+4. Separate facts from preferences. Ask only for preferences that affect the plan.
+5. Classify tier: `Light`, `Standard`, or `Heavy`; add task class
    `task`, `wave`, or `phase` when delivery shape matters.
-5. State goal, non-goals, acceptance evidence, and residual unknowns.
-6. For Standard/Heavy work, add a failure-mode forecast and the proof path map.
-7. Choose an approach and reject plausible alternatives with reasons.
-8. Break work into slices when more than one deliverable exists.
-9. Name verification commands or evidence checks.
-10. Name review depth and fix-loop expectations.
-11. Define closeout shape.
+6. State goal, non-goals, acceptance evidence, and residual unknowns.
+7. For Standard/Heavy work, add a failure-mode forecast and the proof path map.
+8. Choose an approach and reject plausible alternatives with reasons.
+9. Break work into slices when more than one deliverable exists.
+10. Name verification commands or evidence checks.
+11. Name review depth and fix-loop expectations.
+12. Define closeout shape.
 
 ## Planning Lenses
 

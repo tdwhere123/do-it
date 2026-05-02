@@ -25,8 +25,10 @@ function usage(stream = console.error) {
   stream("  setup    Run install, then doctor");
   stream("");
   stream("Options:");
-  stream("  --target=<name>  Pick install target (default: codex). Available: codex, claude.");
-  stream("  --with-optional  Include skills marked optional (e.g. visual-planning).");
+  stream("  --target=<name>   Pick install target (default: codex). Available: codex, claude.");
+  stream("  --with-optional   Include skills marked optional (e.g. visual-planning).");
+  stream("  --session=<id>    With doctor: pretty-print session state (hook invocations, tier history) for the given session id.");
+  stream("  --no-migrate      With install: refuse to silently migrate from an older install-state version (exit code 2).");
   stream("");
   stream("Environment:");
   stream("  CODEX_HOME                    Override codex install root (default: $HOME/.codex)");
@@ -39,19 +41,25 @@ function parseArgs(argv) {
   const positional = [];
   let targetName = DEFAULT_TARGET;
   let withOptional = false;
+  let sessionId = null;
+  let noMigrate = false;
   for (const arg of argv) {
     if (arg === "--with-optional") {
       withOptional = true;
+    } else if (arg === "--no-migrate") {
+      noMigrate = true;
     } else if (arg.startsWith("--target=")) {
       targetName = arg.slice("--target=".length);
+    } else if (arg.startsWith("--session=")) {
+      sessionId = arg.slice("--session=".length);
     } else {
       positional.push(arg);
     }
   }
-  return { positional, targetName, withOptional };
+  return { positional, targetName, withOptional, sessionId, noMigrate };
 }
 
-const { positional, targetName, withOptional } = parseArgs(process.argv.slice(2));
+const { positional, targetName, withOptional, sessionId, noMigrate } = parseArgs(process.argv.slice(2));
 const command = positional[0];
 
 if (HELP_FLAGS.has(command)) {
@@ -513,10 +521,91 @@ function runPreInstall() {
   }
 }
 
+function parseMinor(version) {
+  if (typeof version !== "string") return null;
+  const match = /^(\d+)\.(\d+)/.exec(version);
+  if (!match) return null;
+  return `${match[1]}.${match[2]}`;
+}
+
+function needsMigration(state) {
+  if (!state || typeof state !== "object") return false;
+  if (!state.version) return false;
+  if (state.version === manifest.version) return false;
+  const stateMinor = parseMinor(state.version);
+  const manifestMinor = parseMinor(manifest.version);
+  return stateMinor !== null && manifestMinor !== null && stateMinor !== manifestMinor;
+}
+
+function runMigration(state) {
+  if (noMigrate) {
+    console.error(
+      `do-it: install state at ${statePath} is ${state.version}, but the bundled manifest is ${manifest.version}. ` +
+        "Re-run without --no-migrate (silent migrate is the default) or run \`do-it install\` once interactively to migrate."
+    );
+    process.exit(2);
+  }
+
+  console.error(`[do-it] migrating ${state.version} → ${manifest.version} (state at ${statePath})`);
+
+  const backupPath = `${statePath}.pre-migrate.json`;
+  try {
+    fs.copyFileSync(statePath, backupPath);
+    console.error(`[do-it] state backup → ${backupPath}`);
+  } catch (err) {
+    console.error(`[do-it] could not back up install state: ${err.message}`);
+    throw err;
+  }
+
+  const migrations = Array.isArray(manifest.migrations) ? manifest.migrations : [];
+  for (const m of migrations) {
+    if (!matchesFromRange(m.from, state.version)) continue;
+    for (const action of m.actions ?? []) {
+      applyMigrationAction(action, state);
+    }
+  }
+}
+
+function matchesFromRange(spec, version) {
+  if (!spec || !version) return false;
+  if (spec === version) return true;
+  // "0.4.x" matches any 0.4.* version.
+  if (spec.endsWith(".x")) {
+    const base = spec.slice(0, -2);
+    return version.startsWith(`${base}.`);
+  }
+  return false;
+}
+
+function applyMigrationAction(action, state) {
+  switch (action.type) {
+    case "remove-state-entry": {
+      if (state.entries && state.entries[action.target]) {
+        delete state.entries[action.target];
+        console.error(`[do-it]   removed state entry ${action.target}`);
+      }
+      break;
+    }
+    case "rename-state-key": {
+      if (state.entries && state.entries[action.from] && !state.entries[action.to]) {
+        state.entries[action.to] = state.entries[action.from];
+        delete state.entries[action.from];
+        console.error(`[do-it]   renamed state entry ${action.from} → ${action.to}`);
+      }
+      break;
+    }
+    default:
+      console.error(`[do-it]   skipping unknown migration action: ${JSON.stringify(action)}`);
+  }
+}
+
 function install() {
   runPreInstall();
 
   const state = readInstallState();
+  if (needsMigration(state)) {
+    runMigration(state);
+  }
 
   for (const entry of entries) {
     assertInstallSafe(entry, state);
@@ -651,6 +740,57 @@ function doctor() {
   if (missing.length > 0 || drift.length > 0) {
     process.exitCode = 1;
   }
+
+  // Friendly nudge when the *only* problem is a minor-version drift — `do-it
+  // install` will silently migrate.
+  const stateOnDisk = readInstallState();
+  if (needsMigration(stateOnDisk)) {
+    console.log("");
+    console.log(
+      `hint: install state at ${statePath} is ${stateOnDisk.version}, manifest is ${manifest.version}. ` +
+        `Run \`do-it install --target=${targetName}\` to migrate (silent by default).`
+    );
+  }
+
+  if (sessionId) {
+    printSessionSummary(sessionId);
+  }
+}
+
+function sessionsBaseDir() {
+  if (process.env.CLAUDE_PLUGIN_DATA) {
+    return path.join(process.env.CLAUDE_PLUGIN_DATA, "sessions");
+  }
+  return path.join(process.env.TMPDIR || "/tmp", "do-it-sessions");
+}
+
+function printSessionSummary(id) {
+  const sessionDir = path.join(sessionsBaseDir(), id);
+  console.log("");
+  console.log(`session: ${id}`);
+  console.log(`  dir: ${sessionDir}`);
+
+  const jsonPath = path.join(sessionDir, "state.json");
+  const kvPath = path.join(sessionDir, "state.kv");
+
+  if (fs.existsSync(jsonPath)) {
+    try {
+      const raw = fs.readFileSync(jsonPath, "utf8");
+      const parsed = JSON.parse(raw);
+      console.log(JSON.stringify(parsed, null, 2));
+      return;
+    } catch (err) {
+      console.log(`  (state.json unreadable: ${err.message})`);
+    }
+  }
+
+  if (fs.existsSync(kvPath)) {
+    console.log("(jq unavailable; flat state.kv follows)");
+    console.log(fs.readFileSync(kvPath, "utf8"));
+    return;
+  }
+
+  console.log("  (no state recorded for this session)");
 }
 
 if (command === "install") {
