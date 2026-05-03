@@ -1,13 +1,13 @@
 ---
 name: do-it-grill
-description: "Problem: you think you heard the requirement but you only heard the surface; hidden assumptions, unstated constraints, and contradictions with project invariants ship as bugs and rework. Fix: pressure-test one premise at a time, anchor every fuzzy term to CLAUDE.md / .do-it/CONTEXT.md and the actual code, and only move on when each premise is either confirmed by evidence or refuted and rerouted."
+description: "Problem: hidden assumptions and user-only decisions ship as rework. Fix: verify facts first, ask one decision question only when needed."
 ---
 
 # Do-It Grill
 
 ## Purpose
 
-Use this to pressure-test reasoning before work hardens into code, docs, commits, or claims. The goal is to expose weak assumptions, missing truth checks, vague acceptance criteria, and hidden delivery risk early.
+Use this to pressure-test reasoning before work hardens into code, docs, commits, or claims. The goal is to verify the facts that can be verified locally, expose the decision that actually needs a user choice, and keep hidden delivery risk from leaking into implementation.
 
 `do-it-review-loop` owns delivered diff review, QA intake, and multi-perspective findings. `do-it-grill` challenges whether that review is needed, sufficient, or honestly closed.
 
@@ -17,8 +17,9 @@ A common failure is to dump a 5-question template at the user and call it grilli
 
 1. **One premise at a time.** Pick the single most-load-bearing premise that, if wrong, would invalidate the most downstream work. Ask only that. Wait for the answer. Then pick the next.
 2. **Anchor terms before debating intent.** If the user uses a term that has a definition in `CLAUDE.md`, `.do-it/CONTEXT.md`, or visible in code with a different shape — surface the conflict before going further.
-3. **Verify, don't ask, when verification is cheap.** If the question can be answered with `grep`, `cat`, or a 5-second tool call, do that and report what you found.
-4. **Sediment what you learned.** When a term gets clarified or a constraint surfaces, append it to `.do-it/CONTEXT.md` (one line, declarative). Use `do-it-grill-log` for the per-task `.do-it/grill/<task>.md` artifact (premises, falsifiers, decisions).
+3. **Verify, don't ask, when verification is cheap.** If the question can be answered with `rg`, `cat`, or a quick local command, do that and report what you found.
+4. **Ask only for decisions.** Ask the user one focused question only when local truth cannot decide a preference, priority, or scope tradeoff that changes execution.
+5. **Sediment what you learned.** When a term gets clarified or a constraint surfaces, append it to `.do-it/CONTEXT.md` (one line, declarative). Use `do-it-grill-log` for the per-task `.do-it/grill/<task>.md` artifact (`kind: fact|decision`, falsifier, status, evidence).
 
 ## When To Use
 
@@ -40,8 +41,8 @@ Skip the grill for tiny mechanical edits with obvious acceptance checks.
 Use for bounded work:
 
 - inspect the nearest truth;
-- name 2-5 assumptions or risks;
-- ask at most one question if a preference is needed;
+- name the one assumption or risk that could change the route;
+- ask at most one question, and only if a preference is needed;
 - recommend the next route.
 
 ### Standard
@@ -63,12 +64,12 @@ Parent-only unless explicitly assigned:
 
 ## The Iterative Loop
 
-Run this loop until every premise is either `confirmed` (with evidence) or `refuted` (with a reroute):
+Run this loop until every execution-blocking item is resolved: facts become `confirmed` or `refuted`, while user preferences become `chosen`, `deferred`, or `needs_user_decision`.
 
 1. **Pick the most load-bearing premise.** What single belief, if wrong, would change the most downstream decisions?
 2. **Try to falsify cheaply.** Read the file, grep for the symbol, run the unit test, glance at the schema. If you find evidence, jump to step 4.
-3. **Ask one focused question** — not five. Recommend a default option so the user has something to push back on.
-4. **Record the outcome** in `.do-it/grill/<task>.md` (see `do-it-grill-log`). Status moves to `confirmed` or `refuted`.
+3. **Ask one focused question** only when the remaining unknown is a user decision. Recommend a default option so the user has something to push back on.
+4. **Record the outcome** in `.do-it/grill/<task>.md` (see `do-it-grill-log`). Use `kind: fact` with `confirmed/refuted` for evidence, or `kind: decision` with `chosen/deferred/needs_user_decision` for user preferences.
 5. **Repeat** with the next-most-load-bearing premise, until the remaining unknowns no longer change the route.
 
 ## Anchoring Terms
@@ -141,14 +142,14 @@ Stop exploration when the next unknown is a real user decision or the facts are 
 For a light grill:
 
 - current truth checked;
-- assumptions;
-- 2-5 sharp questions or risks;
+- one route-changing assumption or risk;
+- one question only if user preference blocks the next action;
 - recommended route.
 
 For a standard grill:
 
 - current truth checked;
-- premise log (each: confirmed / refuted, with evidence) — usually written to `.do-it/grill/<task>.md`;
+- grill log items (facts confirmed/refuted; decisions chosen/deferred/needs_user_decision) — usually written to `.do-it/grill/<task>.md`;
 - blockers;
 - important risks;
 - options considered;
@@ -184,6 +185,6 @@ For a heavy grill:
 ## Related Skills
 
 - `do-it-context` — set up and maintain `.do-it/CONTEXT.md` with project terms and invariants.
-- `do-it-grill-log` — write per-task `.do-it/grill/<task>.md` artifacts (premise / falsifier / decision).
+- `do-it-grill-log` — write per-task `.do-it/grill/<task>.md` artifacts (`kind`, falsifier, status, evidence).
 - `do-it-planning` — consume the grill outcome into a plan card under `.do-it/plans/<task>.md`.
 - `do-it-review-loop` — apply pressure to the delivered diff after grilling has set the bar.

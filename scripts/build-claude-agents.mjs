@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import fs from "node:fs";
+import crypto from "node:crypto";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
@@ -90,6 +91,23 @@ function buildClaudeAgent(toml) {
   ].join("\n");
 }
 
+function writeFileAtomic(targetPath, content) {
+  const tempDir = path.join(repoRoot, ".do-it", "build-claude-agents");
+  fs.mkdirSync(tempDir, { recursive: true });
+
+  const tempPath = path.join(
+    tempDir,
+    `${path.basename(targetPath)}.${process.pid}.${crypto.randomUUID()}.tmp`
+  );
+
+  try {
+    fs.writeFileSync(tempPath, content);
+    fs.renameSync(tempPath, targetPath);
+  } finally {
+    fs.rmSync(tempPath, { force: true });
+  }
+}
+
 function main() {
   if (!fs.existsSync(agentsDir)) {
     throw new Error(`agents directory missing: ${agentsDir}`);
@@ -109,7 +127,7 @@ function main() {
     try {
       const toml = fs.readFileSync(sourcePath, "utf8");
       const md = buildClaudeAgent(toml);
-      fs.writeFileSync(targetPath, md);
+      writeFileAtomic(targetPath, md);
       count += 1;
     } catch (error) {
       errors.push(`${file}: ${error.message}`);

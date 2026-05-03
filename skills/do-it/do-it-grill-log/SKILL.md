@@ -1,21 +1,21 @@
 ---
 name: do-it-grill-log
-description: "Problem: a grill in turn 1 produces sharp premises that get forgotten by turn 5; planning skips them, verification ignores them, and the same blind spot ships in different shape next sprint. Fix: write each premise (with falsifier and decision) into `.do-it/grill/<task>.md` as it is tested, link from the plan card, and require verification-gate to read it before claiming done."
+description: "Problem: grills blur facts and choices, so pending preferences block work or vanish. Fix: log each item as kind fact or decision with the right status."
 ---
 
 # Do-It Grill Log
 
 ## Purpose
 
-`.do-it/grill/<task>.md` is the per-task artifact that records every premise grilling has actually pressure-tested, the cheap falsifier you used, and the resolution. It outlives any single chat turn and feeds `do-it-planning` and `do-it-verification-gate`.
+`.do-it/grill/<task>.md` is the per-task artifact that records every fact or decision grilling has actually pressure-tested, the cheap falsifier you used when one exists, and the resolution. It outlives any single chat turn and feeds `do-it-planning` and `do-it-verification-gate`.
 
 Without it, grilling is just a vibe — once context compacts, every signal is gone.
 
 ## When To Use
 
-- Inside `do-it-grill` after a premise has been tested or refuted — write the result here.
-- Inside `do-it-planning` to confirm no `pending` premise blocks the plan.
-- Inside `do-it-verification-gate` (and the gate hook) — fail closeout if any premise is still `pending`.
+- Inside `do-it-grill` after a fact has been tested or a user decision has been made — write the result here.
+- Inside `do-it-planning` to confirm no unresolved item blocks the plan.
+- Inside `do-it-verification-gate` (and the gate hook) — fail closeout only when an unresolved decision still changes execution or a factual premise is still unverified.
 
 ## File Path
 
@@ -41,11 +41,12 @@ created: <YYYY-MM-DD>
 status: open
 ---
 
-## Premises tested
+## Items tested
 
-- [ ] **<the load-bearing premise, stated as a claim>**
-  - falsifier: <the cheap check used to test it (grep, file read, single command)>
-  - decision: <pending | confirmed | refuted>
+- [ ] **<the load-bearing fact or decision, stated as a claim>**
+  - kind: <fact | decision>
+  - falsifier: <the cheap check used to test a fact, or `user choice required` for a decision>
+  - status: <confirmed | refuted | chosen | deferred | needs_user_decision>
   - evidence: <link / file:line / grep output snippet>
 
 ## Anchored terms
@@ -62,20 +63,22 @@ status: open
 - UX: ...
 ```
 
-When all premises are `confirmed` or `refuted`, change frontmatter `status: open` → `status: resolved`.
+Use `confirmed` / `refuted` only for facts. Use `chosen` / `deferred` / `needs_user_decision` only for user preferences or product decisions. A `needs_user_decision` item blocks only when it changes the next execution step. When every blocking item is resolved, change frontmatter `status: open` → `status: resolved`.
 
 ## Style rules
 
-- One bullet per premise. No nested bullets in the bullet body — each premise is independent.
+- One bullet per item. No nested bullets in the bullet body — each item is independent.
 - Falsifier must be cheap and deterministic. "Read the spec" is not a falsifier; "grep -F 'createOrder' src/" is.
 - Evidence is the literal artifact: a path, a line number, a snippet of output. Never paraphrase.
 - "Anchored terms" entries get sedimented to `.do-it/CONTEXT.md` (see `do-it-context`) — this section is just a working pad.
 - Failure modes section captures predicted modes by category; it is permission-to-stop-thinking, not a binding promise.
+- Do not mark a user preference as `confirmed`; if the user chose it, use `chosen`.
+- Do not block closeout on a `deferred` preference unless the current implementation still depends on it.
 
 ## Append-only discipline
 
-- New premises are appended; existing premises are mutated in place (decision `pending` → `confirmed`/`refuted`, evidence filled in). Never delete a premise — refute it instead.
-- The frontmatter `status` flips to `resolved` once the last `pending` premise resolves. Do not flip it back to `open` retroactively without a new entry explaining why.
+- New items are appended; existing items are mutated in place (`needs_user_decision` → `chosen`/`deferred`, or fact status filled in). Never delete an item — refute or defer it instead.
+- The frontmatter `status` flips to `resolved` once no execution-blocking item remains. Do not flip it back to `open` retroactively without a new entry explaining why.
 
 ## Worked example
 
@@ -87,20 +90,22 @@ created: 2026-05-02
 status: resolved
 ---
 
-## Premises tested
+## Items tested
 
 - [x] **Same-session re-grill is wasted unless prompt diverges materially.**
+  - kind: fact
   - falsifier: count tokens injected for back-to-back implement requests in one transcript.
-  - decision: confirmed
+  - status: confirmed
   - evidence: hooks/grill-prompt.sh:38 — emits ~300 tokens; second call adds zero signal.
-- [x] **Heavy tier still warrants full template even on second prompt.**
-  - falsifier: simulate Heavy + already-grilled — does TIER==Heavy branch fire?
-  - decision: confirmed
-  - evidence: hooks/grill-prompt.sh:80 sets TRIGGER=heavy-tier independent of grilled flag.
+- [x] **Question turns must not consume the real same-session grill marker.**
+  - kind: fact
+  - falsifier: simulate question prompt followed by work prompt and inspect session state.
+  - status: confirmed
+  - evidence: hooks/router.sh sets `last_prompt_kind`, while hooks/grill-prompt.sh treats `grilled=1` as the real de-dup marker.
 
 ## Anchored terms
 
-- **grilled**: a session-state flag in `${session_dir}/state.json`; values `1` (grilled this session), `skip-question` (router suppressed grill because turn was a question).
+- **grilled**: a session-state flag in `${session_dir}/state.json`; value `1` means a real grill reminder fired this session. Question turns use `last_prompt_kind=question`.
 
 ## Failure modes considered
 
@@ -117,9 +122,9 @@ status: resolved
 
 ## Red Flags
 
-- All decisions are `confirmed`. (Are you grilling, or rubber-stamping?)
-- All decisions are `refuted` and the plan still proceeds unchanged. (Why grill?)
-- `status: resolved` with `pending` items remaining. (Do not flip status until each item resolves.)
+- Every fact is `confirmed`. (Are you grilling, or rubber-stamping?)
+- All facts are `refuted` and the plan still proceeds unchanged. (Why grill?)
+- `status: resolved` with execution-blocking `needs_user_decision` items remaining. (Do not flip status until each blocking item resolves.)
 - File grows past ~150 lines for a single task. (Probably needs splitting into sub-tasks, or the task is too broad.)
 
 ## Related Skills
@@ -127,4 +132,4 @@ status: resolved
 - `do-it-grill` — primary writer.
 - `do-it-context` — destination for sediment of "anchored terms".
 - `do-it-planning` — must read this file before producing the plan card; references the slug in plan frontmatter.
-- `do-it-verification-gate` — must check that no `pending` premise remains before allowing closeout.
+- `do-it-verification-gate` — must check that no execution-blocking unresolved item remains before allowing closeout.

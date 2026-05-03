@@ -1,5 +1,5 @@
 {
-  "version": "0.5.0",
+  "version": "0.5.1",
   "migrations": [
     {
       "from": "0.4.x",
@@ -88,7 +88,7 @@
       "legacyHashes": [
         "1d91834b9a041ace828b67f1bdc49aa1ab30536b3f8f040f9a4d4608553b9564"
       ],
-      "reason": "absorbed into do-it-delivery-loop, do-it-tdd, and do-it-subagent-orchestration"
+      "reason": "absorbed into do-it-router, do-it-tdd, and do-it-subagent-orchestration"
     },
     {
       "name": "multi-perspective-review",
@@ -176,7 +176,7 @@
       "legacyHashes": [
         "15619616cf9b0d82f74f81e472ad1669b5cc23f56b8b6adb31d9e33ddb16d79e"
       ],
-      "reason": "absorbed into do-it-router (Heavy path) and do-it-planning; the loop is the Heavy route, not a separate skill"
+      "reason": "removed after 0.4.x; use do-it-router plus focused planning, TDD/debugging, review-loop, fix-loop, and verification-gate as needed"
     }
   ],
   "skills": [

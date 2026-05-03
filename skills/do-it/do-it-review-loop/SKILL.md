@@ -15,7 +15,8 @@ Review is findings-first and evidence-backed.
 ### Light
 
 Use for tiny mechanical edits. The parent reads the diff, checks scope, and
-records any concrete issue.
+records any concrete issue. Docs-only Light work stays local unless it changes
+published install, release, or workflow policy.
 
 ### Standard
 
@@ -28,17 +29,20 @@ explicitly assigned otherwise.
 4. Check requirements before quality polish when a plan or task card exists.
 5. Report only confirmed issues or clearly labeled uncertainty.
 6. Order findings by severity with evidence.
-7. Send `Blocking` and `Important` findings into `do-it-fix-loop`.
+7. Use at most one focused reviewer when the risk is not locally reviewable; otherwise the parent performs local review.
+8. Send `Blocking` and `Important` findings into `do-it-fix-loop`.
 
 ### Heavy
 
 Use for wave, phase, gate, release, broad refactor, risky state/security, or
 multi-agent integration review. Heavy is parent-only unless explicitly assigned.
 
-- Heavy wave review requires at least two independent lenses even when tests are
-  green.
-- Heavy phase review defaults to architecture scan, post-diff interface review,
-  correctness review, and one domain/risk reviewer.
+- Heavy release, workflow, or policy review defaults to two independent lenses:
+  one for the changed skill/policy behavior and one for install/release
+  readiness.
+- Add more than two lenses only when the delivered diff touches migration,
+  security, broad public interfaces, state/persistence, or a phase-scale
+  architecture boundary.
 - A pre-implementation interface drill can count toward Heavy review only when
   a read-only reviewer rechecks the delivered diff against the chosen contract
   and returns the review schema.
@@ -103,6 +107,9 @@ workflow clearly owns issue creation.
 - Do not review from commit messages alone.
 - Do not auto-fix when the user asked for review-only work.
 - Tests passing do not replace review.
+- Review budget should follow risk. Do not spawn a multi-agent review stack for
+  Light/docs-only work, and do not add overlapping reviewers when one focused
+  lens covers the credible failure mode.
 - Style-only comments need maintenance or correctness impact to be findings.
 - If evidence is blocked, return `Needs more evidence` instead of inventing certainty.
 

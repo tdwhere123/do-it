@@ -13,7 +13,7 @@ Use this before any completion claim. Evidence comes before status.
 
 Before running the gate, read:
 
-- `.do-it/grill/<task>.md` if it exists. **Closeout is blocked while any premise has `decision: pending`.** Resolve it (confirmed / refuted with evidence) or escalate as a `Blocking` finding.
+- `.do-it/grill/<task>.md` if it exists. **Closeout is blocked only by unresolved facts or decision items that still change execution.** Facts must be `confirmed` or `refuted`; preferences must be `chosen`, `deferred`, or explicitly escalated as `needs_user_decision`.
 - `.do-it/plans/<task>.md` for the acceptance surface and verification command(s) the plan named.
 - `.do-it/CONTEXT.md` for any contract terms relevant to the changed surface.
 

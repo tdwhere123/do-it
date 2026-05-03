@@ -1,5 +1,52 @@
 # Changelog
 
+## 0.5.1
+
+### Highlights
+
+- **Flow reduction.** Standard prompts no longer default to `grill -> planning
+  -> review-loop`. The router now tells agents to use an inline modification
+  map, add grill only when the decision actually needs it, and select review
+  depth by risk.
+- **Non-sticky question state.** Router now records
+  `last_prompt_kind=question|work`, so a question turn can bypass grill/gate
+  for that turn without suppressing the next implementation turn.
+- **Decision-triggered grill.** `grill-prompt` no longer fires just because an
+  intent verb appears. Standard grill triggers only on uncertainty, explicit
+  grill requests, or long input that also has a plan/spec hint. Heavy still
+  auto-grills.
+- **Lighter plan gate.** `grill-pretool` only requires `.do-it/plans/*` for
+  Heavy work or explicit durable-plan requests. Standard source edits may use
+  an inline modification map. Existing plan partial edits are no longer blocked
+  just because the edited fragment lacks `## Grill`.
+- **Risk-budgeted review.** `do-it-review-loop` now spells out local Light /
+  docs-only review, at most one focused Standard reviewer, and two default
+  Heavy release/workflow lenses: skill quality and install/release readiness.
+
+### Added
+
+- `scripts/test-hooks.sh` — regression coverage for question-state recovery,
+  reduced grill triggers, Heavy two-signal behavior, long-input `length + hint`,
+  Standard vs Heavy source plan gates, and existing-plan partial edits.
+- `npm run lint-hooks` and `npm run test-hooks`; `npm test` now runs both.
+
+### Changed
+
+- `hooks/router.sh` — separates prompt kind from grill state, records durable
+  plan requirement, and updates Standard/Heavy reminders.
+- `hooks/grill-prompt.sh` — removes intent-only trigger, changes long-input
+  trigger from `length OR hint` to `length AND hint`, and changes reminders to
+  fact-first / one-question guidance.
+- `hooks/grill-pretool.sh` — scopes hard plan gates to Heavy or explicit
+  durable-plan work.
+- `hooks/verification-gate.sh` — checks `last_prompt_kind=question` instead of
+  relying on `grilled=skip-question`.
+- `do-it-grill`, `do-it-grill-log`, `do-it-planning`, and
+  `do-it-verification-gate` — align the contract around fact verification,
+  one user decision at a time, and `kind: fact|decision` grill-log items.
+- README, routing, release, and migration docs updated for 0.5.1 behavior and
+  tarball examples.
+
 ## 0.5.0
 
 ### Highlights

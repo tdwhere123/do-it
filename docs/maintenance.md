@@ -23,7 +23,8 @@ run package or temporary `CODEX_HOME` validation before any commit.
 For workflow policy changes, update `docs/routing-matrix.md` so
 `do-it-router`, the three-tier routing model, planning, slicing, drills,
 implementation, review, fix-loop, verification, and closeout guidance stay
-aligned.
+aligned. For mixed code/docs changes, update docs after behavior and review are
+proven so documentation follows current truth.
 
 ## Package And CLI Coordination
 
@@ -33,7 +34,7 @@ stable:
 
 - use `npm install -g @tdwhere/do-it` followed by `do-it setup` as the public
   registry path
-- mention `npm install -g github:OWNER/do-it` for GitHub-hosted pre-registry
+- mention `npm install -g github:OWNER/codex-workflow` for GitHub-hosted pre-registry
   installs
 - use `npm exec --package . -- do-it setup` for checkout-local package examples
   when the package surface is present
@@ -45,9 +46,12 @@ stable:
 Current validation commands:
 
 ```bash
+npm test
+npm run build:claude-agents
 npm exec --package . -- do-it setup
 npm exec --package . -- do-it install
 npm exec --package . -- do-it doctor
+CLAUDE_PLUGIN_ROOT_OVERRIDE=/tmp/do-it-claude-test npm exec --package . -- do-it setup --target=claude
 ./install/install.sh
 ./install/doctor.sh
 CODEX_HOME=/tmp/do-it-codex-test ./install/install.sh
@@ -140,9 +144,10 @@ has been verified.
 6. Update `docs/routing-matrix.md` if the agent changes default planning,
    implementation, review, or closeout flow.
 
-Review coverage should stay explicit. Keep dedicated read-only reviewer agents
-for correctness, scope compliance, maintainability, architecture, red-team,
-domain-language, skill-quality, and install/release readiness. Writer
+Review coverage should stay explicit and risk-budgeted. Keep dedicated
+read-only reviewer agents for correctness, scope compliance, maintainability,
+architecture, red-team, domain-language, skill-quality, and install/release
+readiness, but do not run all of them for every change. Writer
 specialists can support drills or fixes, but they should not be counted as the
 only Heavy review lens unless the parent explicitly scopes them as read-only and
 the report satisfies the review schema.
@@ -182,8 +187,9 @@ the same `agents/*.toml` source-of-truth. The Claude target adds:
   reliable when hooks are bypassed.
 - **Agent change:** edit `agents/<name>.toml`. The next install (or
   `npm run build:claude-agents`) regenerates the Claude `.md` form.
-- **Hook keyword change:** edit `hooks/lib/keywords.sh`. End users override
-  locally via `<cwd>/.do-it/keywords.local.sh` (sourced after defaults).
+- **Hook keyword change:** edit `hooks/data/*.tsv` and keep
+  `hooks/data/SCHEMA.md` aligned. End users override locally via
+  `<cwd>/.do-it/keywords.local.sh` (sourced after defaults).
 - **Hook behavior change:** edit the relevant `hooks/*.sh`. Hook scripts must
   remain bash, jq-only, and degrade silently (exit 0) on unexpected input.
 
@@ -200,13 +206,15 @@ the same `agents/*.toml` source-of-truth. The Claude target adds:
 ### Verification
 
 ```bash
+git diff --check
+npm test
+npm run build:claude-agents
 # Codex (default): byte-equal with prior versions except for deprecated/optional skills
 CODEX_HOME=/tmp/cx do-it install
 diff -r --exclude='.do-it-install-state*' /tmp/cx /tmp/cx-old   # against worktree of v0.3.x
 
 # Claude target
-CLAUDE_PLUGIN_ROOT_OVERRIDE=/tmp/cl do-it install --target=claude
-do-it doctor --target=claude
+CLAUDE_PLUGIN_ROOT_OVERRIDE=/tmp/cl do-it setup --target=claude
 
 # Optional skills opt-in
 CLAUDE_PLUGIN_ROOT_OVERRIDE=/tmp/cl-full do-it install --target=claude --with-optional
@@ -245,11 +253,13 @@ and return schema.
 Recommended checks before committing workflow changes. For live-first rebaseline, run the source/live parity check before these commands:
 
 ```bash
-diff -qr ~/.codex/skills skills/do-it
-./install/install.sh
-./install/doctor.sh
+git diff --check
+npm test
+npm run build:claude-agents
 CODEX_HOME=/tmp/do-it-codex-test ./install/install.sh
 CODEX_HOME=/tmp/do-it-codex-test ./install/doctor.sh
+CLAUDE_PLUGIN_ROOT_OVERRIDE=/tmp/do-it-claude-test npm exec --package . -- do-it setup --target=claude
+npm pack --dry-run --json
 ```
 
 Also run targeted sweeps for stale references after substantial rewrites, for

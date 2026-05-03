@@ -21,12 +21,20 @@ Two install targets are first-class as of 0.4.0:
 
 Both targets use the same `skills/do-it/*/SKILL.md` and `agents/*.toml` source.
 
-## Upgrading to 0.5.0
+## Upgrading to 0.5.1
 
-`do-it 0.5.0` ships sharper hook triggering (no more single-CJK false fires,
-ASCII word-boundary matching, ≥2-signal Heavy upgrade), same-session grill
-de-duplication, automatic question / discussion mode, structured
-`DO_IT_DEBUG=1` traces, and a `.do-it/grill/<task>.md` artifact contract.
+`do-it 0.5.1` keeps the 0.5.0 keyword hardening and trims the default flow:
+Standard prompts no longer auto-grill just because they contain an intent verb,
+long-input grill requires both length and a planning/spec hint, question turns
+no longer leave a sticky skip state, and Standard source edits can use an
+inline modification map instead of a required `.do-it/plans/*` file.
+
+Heavy work still auto-triggers the grill and still uses durable planning when
+release, policy, migration, broad interface, or architecture risk justifies it.
+Review is risk-budgeted: Light/docs-only stays local, Standard uses at most one
+focused reviewer when needed, and Heavy release/workflow work defaults to the
+two lenses that matter here: skill/policy quality plus install/release
+readiness.
 
 Existing 0.4.x users do nothing special — `do-it install` detects the older
 state, backs it up to `.pre-migrate.json`, and migrates silently. See
@@ -118,7 +126,8 @@ The Claude target wires three hooks so the workflow shows up automatically:
 
 - `UserPromptSubmit` → `do-it-router` (Light/Standard/Heavy classification)
   and `do-it-grill` (premise pressure-test)
-- `PreToolUse(Edit|Write)` → grill plan-card and src-edit gates
+- `PreToolUse(Edit|Write)` → Heavy / explicit durable-plan gates for plan-card
+  and source edits
 - `Stop` → `do-it-verification-gate` (block completion claims without evidence)
 
 There are no slash commands to remember. To bypass for one turn, include
@@ -137,7 +146,7 @@ For a packed release artifact:
 
 ```bash
 npm pack
-npm install -g ./tdwhere-do-it-0.3.0.tgz
+npm install -g ./tdwhere-do-it-0.5.1.tgz
 do-it setup
 ```
 
@@ -173,7 +182,8 @@ Installation into Codex happens only when the operator runs `do-it setup` or
 `do-it install`.
 
 Before sending hook changes for review, run `npm run lint` (shellcheck via
-`scripts/lint-hooks.sh`). CI runs the same script on push / PR.
+`scripts/lint-hooks.sh`). `npm test` runs hook lint plus the hook regression
+suite in `scripts/test-hooks.sh`. CI runs the lint script on push / PR.
 
 ## Repository Layout
 
@@ -206,9 +216,13 @@ installer behavior, or package metadata. In short:
 Useful release checks:
 
 ```bash
-npm pack --dry-run
+git diff --check
+npm test
+npm run build:claude-agents
 CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it setup
 CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it doctor
+CLAUDE_PLUGIN_ROOT_OVERRIDE=/tmp/do-it-claude-test npm exec --package . -- do-it setup --target=claude
+npm pack --dry-run --json
 ```
 
 ## Acknowledgements

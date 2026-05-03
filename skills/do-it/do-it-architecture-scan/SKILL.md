@@ -116,7 +116,7 @@ Use this compact shape:
 
 ## Integration With Delivery
 
-During `do-it-delivery-loop`:
+During delivery:
 
 - run an architecture scan before edits for heavy work;
 - rerun it after review if fixes touched boundaries;

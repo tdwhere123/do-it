@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 # do-it grill (UserPromptSubmit half).
-# Triggers when the prompt contains intent verbs / uncertainty words / long
-# input with topical hints. Injects "list 5 most-likely-wrong premises" guidance.
+# Triggers when the current tier and prompt shape justify decision pressure:
+# Heavy always, Standard when uncertain / explicitly requested / long with a
+# planning hint. Light never auto-grills.
 #
-# 0.5.0 changes:
+# 0.5.x behavior:
 #   - Once a session is already grilled, subsequent prompts are skipped unless
 #     the user explicitly asks to re-grill (重新 grill / 再 pressure-test /
 #     重新审视 / re-grill).
-#   - Question / discussion turns (caught by router via DO_IT_QUESTION_HINTS)
-#     are skipped — router writes state.grilled=skip-question so we can detect
-#     them here without re-running the question detection.
-#   - Standard-tier turns receive a compact pointer (~60 tokens) instead of the
-#     full 5-step template; Heavy-tier turns still receive the full version.
+#   - Question / discussion turns are skipped via state.last_prompt_kind=question
+#     and by direct detection here.
+#   - Standard-tier turns receive a compact decision-check pointer; Heavy-tier
+#     turns receive the fuller fact-first grill reminder.
 
 set -uo pipefail
 
@@ -43,26 +43,43 @@ if do_it_check_skip "$SESSION_ID" grill; then
   exit 0
 fi
 
-# Question turns: router has already classified Light + tagged skip-question.
-if do_it_prompt_is_question "$PROMPT"; then
-  do_it_debug grill-prompt "decision=question"
-  exit 0
-fi
-
-# Detect explicit re-grill requests so a returning user can force it back on.
+# Detect explicit grill / re-grill requests so a returning user can force it
+# back on without relying on intent verbs.
 PROMPT_LC="$(do_it_lc "$PROMPT")"
+EXPLICIT_GRILL=0
 RE_GRILL=0
 case "$PROMPT_LC" in
+  *"grill"*|*"pressure-test"*|*"pressure test"*|*"压力测试"*|*"压测"*|*"挑战一下"*|*"拷问"*|*"审视一下"*)
+    EXPLICIT_GRILL=1
+    ;;
+esac
+case "$PROMPT_LC" in
   *"重新 grill"*|*"重新grill"*|*"再 pressure-test"*|*"再pressure-test"*|*"重新审视"*|*"re-grill"*|*"regrill"*)
+    EXPLICIT_GRILL=1
     RE_GRILL=1
     ;;
 esac
+
+LAST_PROMPT_KIND="$(do_it_session_state_get "$SESSION_ID" last_prompt_kind)"
+
+# Question turns: router has already classified Light and tagged the prompt
+# kind, but keep local detection as a fallback when the hook is run alone.
+# A direct "grill this?" request is still a manual grill request, not an
+# ordinary discussion turn.
+if [[ "$EXPLICIT_GRILL" -eq 0 ]] && { [[ "$LAST_PROMPT_KIND" == "question" ]] || do_it_prompt_is_question "$PROMPT"; }; then
+  do_it_debug grill-prompt "decision=question"
+  exit 0
+fi
 
 # Same-session de-dup: if we already grilled and the user did not re-request,
 # stay quiet.
 if [[ "$RE_GRILL" -eq 0 ]]; then
   GRILLED="$(do_it_session_state_get "$SESSION_ID" grilled)"
-  if [[ -n "$GRILLED" && "$GRILLED" != "0" ]]; then
+  if [[ "$GRILLED" == "skip-question" && "$LAST_PROMPT_KIND" != "question" ]]; then
+    do_it_session_state_set "$SESSION_ID" grilled "0"
+    GRILLED="0"
+  fi
+  if [[ -n "$GRILLED" && "$GRILLED" != "0" && "$GRILLED" != "skip-question" ]]; then
     do_it_debug grill-prompt "decision=already-grilled state=$GRILLED"
     exit 0
   fi
@@ -73,19 +90,23 @@ TRIGGER=""
 TIER="$(do_it_session_state_get "$SESSION_ID" tier)"
 
 # Heavy tier always triggers grill — high risk earns the budget regardless of
-# whether an intent verb appears in the prompt itself.
+# whether another trigger appears in the prompt itself.
 if [[ "$TIER" == "Heavy" ]]; then
   TRIGGER="heavy-tier"
 fi
 
-if [[ -z "$TRIGGER" ]] && do_it_prompt_has_any "$PROMPT" DO_IT_INTENT_VERBS; then
-  TRIGGER="intent-verb"
+if [[ -z "$TRIGGER" && "$EXPLICIT_GRILL" -eq 1 ]]; then
+  TRIGGER="explicit"
 fi
-if [[ -z "$TRIGGER" ]] && do_it_prompt_has_any "$PROMPT" DO_IT_UNCERTAINTY_WORDS; then
+if [[ -z "$TRIGGER" && "$TIER" == "Light" ]]; then
+  do_it_debug grill-prompt "decision=no-trigger tier=$TIER reason=light"
+  exit 0
+fi
+if [[ -z "$TRIGGER" && "$TIER" == "Standard" ]] && do_it_prompt_has_any "$PROMPT" DO_IT_UNCERTAINTY_WORDS; then
   TRIGGER="uncertainty"
 fi
-if [[ -z "$TRIGGER" ]]; then
-  if [[ "$PROMPT_LEN" -gt "$DO_IT_LONG_INPUT_THRESHOLD" ]] || \
+if [[ -z "$TRIGGER" && "$TIER" == "Standard" ]]; then
+  if [[ "$PROMPT_LEN" -gt "$DO_IT_LONG_INPUT_THRESHOLD" ]] && \
      do_it_prompt_has_any "$PROMPT" DO_IT_LONG_INPUT_HINTS; then
     TRIGGER="long-input"
   fi
@@ -96,24 +117,18 @@ if [[ -z "$TRIGGER" ]]; then
   exit 0
 fi
 
-# Heavy-tier turns get the full 5-step template; everyone else gets the
+# Heavy-tier turns get a fuller fact-first reminder; everyone else gets the
 # pointer-mode compressed reminder.
 
 if [[ "$TIER" == "Heavy" ]]; then
   MSG="<system-reminder>
-do-it grill (Heavy, trigger: ${TRIGGER}). Before any plan or code:
-
-1. List the 5 premises most likely to be wrong about this task — including unstated assumptions and constraints the user did NOT spell out.
-2. Identify any conflict between the request and existing project invariants (CLAUDE.md, code conventions, current data shapes).
-3. Pin down ambiguous terms — what does each fuzzy noun/verb actually mean here?
-4. Surface the failure modes you can already predict, by category (correctness / contract / migration / performance / security / UX).
-5. Decide what evidence would falsify your current understanding — and how to gather it cheaply.
+do-it grill (Heavy, trigger: ${TRIGGER}). Before plan or code: verify local facts first, pressure-test the load-bearing decision, ask the user only one question when facts cannot decide, then record the decision/evidence in the grill log if durable planning is used.
 
 Skip grill only if: prompt contains 'yolo', '直接做', '我已经想清楚', 'skip grill', or /do-it-skip was invoked.
 </system-reminder>"
 else
   MSG="<system-reminder>
-do-it grill (trigger: ${TRIGGER}). Before acting: list the top 5 premises most likely wrong (incl. unstated constraints), check conflicts vs CLAUDE.md / project invariants, pin down fuzzy terms. Full flow: load skill do-it-grill. Skip: yolo / /do-it-skip.
+do-it grill (trigger: ${TRIGGER}). Verify facts first; ask one focused question only if the next action depends on a user decision. Full flow: load skill do-it-grill. Skip: yolo / /do-it-skip.
 </system-reminder>"
 fi
 

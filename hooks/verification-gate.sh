@@ -3,14 +3,14 @@
 # Blocks Claude from declaring "done/passed/完成/通过" without recent verification
 # evidence (Bash, pnpm test, vitest, jest, etc.) in the recent transcript tail.
 #
-# 0.5.0 changes:
+# 0.5.x behavior:
 #   - Completion-language detection narrowed to the *last* assistant message
 #     instead of the last 80 transcript lines; prevents stale "done" from a
 #     prior turn from re-triggering the gate this turn.
 #   - Pass-through when the current turn made no Edit/Write/MultiEdit calls —
 #     pure discussion / answer-the-question turns no longer get gated.
 #   - Pass-through when the router classified this prompt as a question
-#     (state.grilled == skip-question).
+#     (state.last_prompt_kind == question).
 #   - Evidence pattern expanded: pytest, mypy, tsc, eslint, ruff, biome,
 #     cargo (run|build|check), go (run|build|vet).
 
@@ -40,9 +40,10 @@ if do_it_check_skip "$SESSION_ID" gate; then
   exit 0
 fi
 
-# Question turns: router tagged state.grilled=skip-question; never gate.
+# Question turns: router tagged state.last_prompt_kind=question; never gate.
+LAST_PROMPT_KIND="$(do_it_session_state_get "$SESSION_ID" last_prompt_kind)"
 GRILLED_FLAG="$(do_it_session_state_get "$SESSION_ID" grilled)"
-if [[ "$GRILLED_FLAG" == "skip-question" ]]; then
+if [[ "$LAST_PROMPT_KIND" == "question" ]] || [[ -z "$LAST_PROMPT_KIND" && "$GRILLED_FLAG" == "skip-question" ]]; then
   do_it_debug verification-gate "decision=skip-question"
   exit 0
 fi

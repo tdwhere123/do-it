@@ -84,10 +84,11 @@ Flow: inspect -> compact plan -> act or answer -> targeted verification or evide
 Use for ordinary non-trivial work. This is the default tier for subagents unless the parent explicitly assigns another tier.
 
 - multi-step task, behavior change, review, or design choice;
-- a plan must name acceptance evidence, verification, and review depth;
+- use an inline modification map when the work is bounded; durable plan cards are for Heavy work, explicit plan requests, or handoffs that must survive the session;
+- review depth is selected by risk, not by a fixed `grill -> planning -> review` chain;
 - subagent work needs explicit write ownership, stop conditions, return evidence, and any required failure-mode forecast or path map.
 
-Flow: inspect -> classify -> use the narrow design drills needed -> plan or execute -> verify -> review -> fix important findings -> closeout.
+Flow: inspect -> classify -> use the narrow design drills needed -> inline map or light plan -> execute -> verify -> local or focused review by risk -> fix important findings -> closeout.
 
 ### Heavy
 
@@ -98,7 +99,7 @@ Use only in the parent agent unless a subagent is explicitly assigned Heavy.
 - cross-boundary interface, data model, storage, security, async, replay, migration, or architecture risk;
 - closeout requires review/fix-loop proof.
 
-Flow: scope lock -> deep truth scan -> grill/interface/architecture/domain drills as needed -> slice plan -> execution and review gates -> integrated verification -> closeout.
+Flow: scope lock -> deep truth scan -> grill/interface/architecture/domain drills as needed -> slice plan -> execution and right-sized review gates -> integrated verification -> closeout.
 
 ## Route Map
 
@@ -109,7 +110,7 @@ Flow: scope lock -> deep truth scan -> grill/interface/architecture/domain drill
 - Need coupling, ownership, modularity, or testability analysis: `do-it-architecture-scan`.
 - Need names, domain model, glossary, or code/docs/user terminology alignment: `do-it-domain-language`.
 - Need optional visual comparison or diagrams: `do-it-visual-planning`. This is auxiliary and does not participate in the core tier flow.
-- Need implementation, verification, review, and closeout: `do-it-delivery-loop`.
+- Need implementation: execute locally or delegate a bounded slice after the route is clear; add `do-it-tdd` or `do-it-debugging` when the behavior or root cause warrants it.
 - Need behavior-first implementation or regression coverage: `do-it-tdd`.
 - Need root-cause diagnosis before fixing: `do-it-debugging`.
 - Need delegated workers or reviewers: `do-it-subagent-orchestration`.

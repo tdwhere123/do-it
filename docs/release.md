@@ -27,7 +27,7 @@ do-it setup
 From a GitHub repository before registry publication:
 
 ```bash
-npm install -g github:OWNER/do-it
+npm install -g github:OWNER/codex-workflow
 do-it setup
 ```
 
@@ -76,22 +76,26 @@ npm pack
 ```
 
 Use the generated tarball with `npm install --global` or
-`npm exec --package ./tdwhere-do-it-0.3.0.tgz -- do-it setup` when testing a
+`npm exec --package ./tdwhere-do-it-0.5.1.tgz -- do-it setup` when testing a
 release artifact.
 
 ## Release Checklist
 
-1. Run `CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it setup`.
-2. Run `CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it doctor`.
-3. Confirm `docs/upstream-map.md` reflects the latest imports.
-4. Confirm `manifest.json` matches the on-disk inventory.
-5. Confirm the temporary/source-only rewrite material is not included in the
+1. Run `git diff --check`.
+2. Run `npm test`.
+3. Run `npm run build:claude-agents`.
+4. Run `CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it setup`.
+5. Run `CLAUDE_PLUGIN_ROOT_OVERRIDE=/tmp/do-it-claude-test npm exec --package . -- do-it setup --target=claude`.
+6. Run `npm pack --dry-run --json`.
+7. Confirm `docs/upstream-map.md` reflects the latest imports.
+8. Confirm `manifest.json` matches the on-disk inventory.
+9. Confirm the temporary/source-only rewrite material is not included in the
    package.
-6. Confirm a simulated legacy upgrade can remove unmodified deprecated targets
+10. Confirm a simulated legacy upgrade can remove unmodified deprecated targets
    without `DO_IT_FORCE=1`.
-7. Confirm a simulated replacement failure preserves both current managed
+11. Confirm a simulated replacement failure preserves both current managed
    targets and deprecated legacy targets.
-8. Confirm `doctor` fails when `.do-it-install-state.json` is missing or stale.
-9. Confirm no machine-local files were added to the package.
-10. Confirm the release instructions describe copy-based install behavior only,
+12. Confirm `doctor` fails when `.do-it-install-state.json` is missing or stale.
+13. Confirm no machine-local files were added to the package.
+14. Confirm the release instructions describe copy-based install behavior only,
    not symlink-based deployment.

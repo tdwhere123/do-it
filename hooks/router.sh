@@ -21,6 +21,17 @@ CWD="$(do_it_json_get "$RAW_INPUT" cwd)"
 do_it_source_local_keywords "$CWD"
 do_it_session_state_inc "$SESSION_ID" hook_invocations router
 
+do_it_prompt_requires_durable_plan() {
+  local prompt_lc
+  prompt_lc="$(do_it_lc "$1")"
+  case "$prompt_lc" in
+    *".do-it/plans"*|*"durable plan"*|*"plan card"*|*"handoff card"*|*"written plan"*|*"write a plan first"*|*"plan first"*|*"先写"*"计划"*|*"先制定"*"计划"*|*"先确认"*"计划"*|*"先规划"*"计划"*|*"计划卡"*|*"持久计划"*)
+      return 0
+      ;;
+  esac
+  return 1
+}
+
 # Escape keywords: write skip flags for ALL hooks and pass through.
 if do_it_prompt_has_escape "$PROMPT"; then
   do_it_debug router "decision=escape session=$SESSION_ID"
@@ -37,12 +48,18 @@ fi
 PROMPT_LEN=${#PROMPT}
 TIER=""
 
-# Question / discussion mode short-circuits to Light and writes a sticky
-# skip-question flag so the grill hook can suppress itself this turn.
+# Question / discussion mode short-circuits to Light. Track this separately
+# from the "already grilled" marker so one question turn cannot suppress the
+# next implementation turn in the same session.
 if do_it_prompt_is_question "$PROMPT"; then
   TIER="Light"
-  do_it_session_state_set "$SESSION_ID" grilled "skip-question"
+  do_it_session_state_set "$SESSION_ID" last_prompt_kind "question"
   do_it_debug router "question=true tier=Light"
+else
+  do_it_session_state_set "$SESSION_ID" last_prompt_kind "work"
+  if [[ "$(do_it_session_state_get "$SESSION_ID" grilled)" == "skip-question" ]]; then
+    do_it_session_state_set "$SESSION_ID" grilled "0"
+  fi
 fi
 
 # Heavy upgrade requires ≥2 heavy signals to land. Single signal demotes to
@@ -79,17 +96,24 @@ fi
 
 do_it_session_state_set "$SESSION_ID" tier "$TIER"
 do_it_session_state_inc "$SESSION_ID" tier_history "$TIER"
+
+durable_plan_required=0
+if [[ "$TIER" == "Heavy" ]] || do_it_prompt_requires_durable_plan "$PROMPT"; then
+  durable_plan_required=1
+fi
+do_it_session_state_set "$SESSION_ID" durable_plan_required "$durable_plan_required"
+
 do_it_debug router "tier=$TIER heavy_count=$heavy_count prompt_len=$PROMPT_LEN"
 
 case "$TIER" in
   Heavy)
     MSG="<system-reminder>
-do-it tier: Heavy. Multi-signal change. Run do-it-router skill for the full Heavy path (grill → planning → architecture-scan → slicing → tdd → review → verification → branch-closeout). Bypass: yolo / 直接做 / /do-it-skip.
+do-it tier: Heavy. Multi-signal change. Run do-it-router skill, verify facts before asking, use durable planning, and budget review by release/interface risk. Bypass: yolo / 直接做 / /do-it-skip.
 </system-reminder>"
     ;;
   Standard)
     MSG="<system-reminder>
-do-it tier: Standard. Recommended: do-it-grill (1 round) → light planning → tdd if behavior changes → review-loop → verification-gate. Bypass: yolo / /do-it-skip.
+do-it tier: Standard. Use an inline modification map. Add grill only for uncertainty, explicit request, or long plan-like input; choose review by risk. Bypass: yolo / /do-it-skip.
 </system-reminder>"
     ;;
   Light)

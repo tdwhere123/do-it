@@ -43,7 +43,7 @@ Parent-only unless explicitly assigned:
 ## Planning Sequence
 
 1. Read local instructions and write constraints (CLAUDE.md, `.do-it/CONTEXT.md`).
-2. **Read the grill log first.** If `.do-it/grill/<task>.md` exists, every premise must be `confirmed` or `refuted` before you finalize the plan. Any `pending` premise either gets resolved or becomes a `Blocking` open question. Reference the slug in the plan card frontmatter (`grill: <slug>`).
+2. **Read the grill log first.** If `.do-it/grill/<task>.md` exists, factual items must be `confirmed` or `refuted`, and decision items must be `chosen`, `deferred`, or explicitly marked `needs_user_decision`. A `needs_user_decision` item blocks the plan only when it changes execution. Reference the slug in the plan card frontmatter (`grill: <slug>`).
 3. Inspect current truth: files, docs, tests, diffs, plans, issues, runtime state, and adjacent patterns.
 4. Separate facts from preferences. Ask only for preferences that affect the plan.
 5. Classify tier: `Light`, `Standard`, or `Heavy`; add task class
