@@ -7,12 +7,12 @@
   "author": "tdwhere123",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tdwhere123/codex-workflow.git"
+    "url": "git+https://github.com/tdwhere123/do-it.git"
   },
   "bugs": {
-    "url": "https://github.com/tdwhere123/codex-workflow/issues"
+    "url": "https://github.com/tdwhere123/do-it/issues"
   },
-  "homepage": "https://github.com/tdwhere123/codex-workflow#readme",
+  "homepage": "https://github.com/tdwhere123/do-it#readme",
   "keywords": [
     "agentic-workflow",
     "ai-agents",

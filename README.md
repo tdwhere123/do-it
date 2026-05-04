@@ -225,7 +225,7 @@ targets.
 `do-it` ships as a Claude Code plugin. Install via the plugin marketplace:
 
 ```text
-/plugin marketplace add tdwhere123/codex-workflow
+/plugin marketplace add tdwhere123/do-it
 /plugin install do-it
 ```
 
@@ -248,7 +248,7 @@ commands to remember.
 For a GitHub-hosted package:
 
 ```bash
-npm install -g github:OWNER/codex-workflow
+npm install -g github:OWNER/do-it
 do-it setup
 ```
 

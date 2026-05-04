@@ -34,7 +34,7 @@ stable:
 
 - use `npm install -g @tdwhere/do-it` followed by `do-it setup` as the public
   registry path
-- mention `npm install -g github:OWNER/codex-workflow` for GitHub-hosted pre-registry
+- mention `npm install -g github:OWNER/do-it` for GitHub-hosted pre-registry
   installs
 - use `npm exec --package . -- do-it setup` for checkout-local package examples
   when the package surface is present
@@ -167,7 +167,7 @@ targets use the same `manifest.json`, the same `skills/do-it/*/SKILL.md`, and
 the same `agents/*.toml` source-of-truth. The Claude target adds:
 
 - `.claude-plugin/plugin.json` and `marketplace.json` — plugin metadata for
-  `/plugin marketplace add tdwhere123/codex-workflow` then `/plugin install
+  `/plugin marketplace add tdwhere123/do-it` then `/plugin install
   do-it`.
 - `hooks/hooks.json` and four hook scripts (`router.sh`, `grill-prompt.sh`,
   `grill-pretool.sh`, `verification-gate.sh`) — wire UserPromptSubmit /

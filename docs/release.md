@@ -27,7 +27,7 @@ do-it setup
 From a GitHub repository before registry publication:
 
 ```bash
-npm install -g github:OWNER/codex-workflow
+npm install -g github:OWNER/do-it
 do-it setup
 ```
 
