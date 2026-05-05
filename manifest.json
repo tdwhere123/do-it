@@ -1,5 +1,5 @@
 {
-  "version": "0.6.0",
+  "version": "0.6.1",
   "migrations": [
     {
       "from": "0.4.x",
@@ -319,6 +319,11 @@
       "target": "agents/architect-reviewer.toml"
     },
     {
+      "name": "architecture-strategist",
+      "source": "agents/architecture-strategist.toml",
+      "target": "agents/architecture-strategist.toml"
+    },
+    {
       "name": "ceo-reviewer",
       "source": "agents/ceo-reviewer.toml",
       "target": "agents/ceo-reviewer.toml"
@@ -362,6 +367,11 @@
       "name": "plan-challenger",
       "source": "agents/plan-challenger.toml",
       "target": "agents/plan-challenger.toml"
+    },
+    {
+      "name": "product-strategist",
+      "source": "agents/product-strategist.toml",
+      "target": "agents/product-strategist.toml"
     },
     {
       "name": "react-specialist",

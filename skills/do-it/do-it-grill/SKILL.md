@@ -11,7 +11,7 @@ Use this to pressure-test reasoning before work hardens into code, docs, commits
 
 `do-it-review-loop` owns delivered diff review, QA intake, and multi-perspective findings. `do-it-grill` challenges whether that review is needed, sufficient, or honestly closed.
 
-`do-it-brainstorm` runs the divergent step — multiple read-only persona subagents (CEO / UX / end-user / Ops) widen the proposal before grill arrives. Grill then runs convergence on the open decisions those personas surfaced. Brainstorm never converges; grill never diverges. If both run, brainstorm runs first.
+`do-it-brainstorm` runs the divergent step — the product strategy and architecture strategy core lenses, plus any task-fit supplemental lenses, clarify the requirement shape, product boundary, architecture foundation, options, and tradeoffs before grill arrives. Grill then converges the `Must Resolve In Grill` items those lenses surfaced. Brainstorm never converges; grill never diverges. If both run, brainstorm runs first.
 
 ## How It Differs From a Q&A Template
 
@@ -76,22 +76,22 @@ Run this loop until every execution-blocking item is resolved: facts become `con
 
 ## Convergence After Brainstorm
 
-When `.do-it/brainstorm/<task>.md` exists with `status: open`, grill enters convergence mode for the same task. The four (or fewer) personas have already widened the lens; grill's job is to pick the load-bearing items off the brainstorm artifact and resolve them, not to re-run divergence.
+When `.do-it/brainstorm/<task>.md` exists with `status: open`, grill enters convergence mode for the same task. The selected brainstorm lenses have already widened the frame; grill's job is to pick the load-bearing items off the brainstorm artifact and resolve them, not to re-run divergence.
 
 Convergence flow:
 
-1. **Read the artifact.** Parse the "Open decisions for grill" section. Each entry is a candidate premise the brainstorm personas thought a human (or grill itself) had to settle.
-2. **Rank by route-impact.** Sort candidates by "if this is wrong, how many downstream choices change?" — same rule as the Iterative Loop. Cross-persona tensions usually outrank single-persona one-offs.
+1. **Read the artifact.** Parse `Requirement Shape`, `Product Boundary`, `Core Goal`, `Options`, `Architecture Foundation`, and `Grill Handoff`. Each `Must Resolve In Grill` entry is a candidate premise the brainstorm lenses thought a human, grill, or local verification had to settle.
+2. **Rank by route-impact.** Sort candidates by "if this is wrong, how many downstream choices change?" — same rule as the Iterative Loop. Cross-lens tensions usually outrank single-lens one-offs.
 3. **Resolve each candidate** via the existing loop (verify cheaply, ask one question if a user decision is needed, log the result in `.do-it/grill/<task>.md` per `do-it-grill-log`).
 4. **Reference the brainstorm slug** in the grill log frontmatter: add `brainstorm: <task-slug>` so `do-it-planning` and `do-it-verification-gate` can trace the lineage.
-5. **Flip brainstorm status.** Once every "Open decisions for grill" item has a resolution (`chosen` / `deferred` / `needs_user_decision` for decisions; `confirmed` / `refuted` for facts), edit the brainstorm artifact's frontmatter from `status: open` to `status: converged`. Do not delete the artifact; future sessions read it.
+5. **Flip brainstorm status.** Once every execution-blocking `Must Resolve In Grill` item has a resolution (`chosen` / `deferred` / `needs_user_decision` for decisions; `confirmed` / `refuted` for facts), edit the brainstorm artifact's frontmatter from `status: open` to `status: converged`. Do not delete the artifact; future sessions read it.
 
 Tier behavior:
 
 - **Light**: grill does **not** consume brainstorm. If brainstorm exists at Light tier, it was probably explicit; honor it by skimming the personas section briefly, but do the regular single-thread Light grill.
 - **Standard / Heavy**: grill **must** read the brainstorm artifact when it exists. Skipping it loses the point of running brainstorm at all.
 
-Convergence does not regenerate persona angles. If a persona's return looks thin or wrong, the answer is to re-dispatch that persona (re-run brainstorm with narrower scope), not to invent the missing angle inside grill.
+Convergence does not regenerate lens angles. If a lens return looks thin or wrong, the answer is to re-run that brainstorm lens with narrower scope, not to invent the missing angle inside grill.
 
 ## Anchoring Terms
 

@@ -76,7 +76,7 @@ npm pack
 ```
 
 Use the generated tarball with `npm install --global` or
-`npm exec --package ./tdwhere-do-it-0.5.1.tgz -- do-it setup` when testing a
+`npm exec --package ./tdwhere-do-it-0.6.1.tgz -- do-it setup` when testing a
 release artifact.
 
 ## Release Checklist
@@ -99,3 +99,6 @@ release artifact.
 13. Confirm no machine-local files were added to the package.
 14. Confirm the release instructions describe copy-based install behavior only,
    not symlink-based deployment.
+15. Confirm Codex-installed `agents/*.toml` do not contain Claude-only fields
+   such as `claude_model`, and that `npm run build:claude-agents` still
+   generates Claude agent frontmatter with the intended model values.

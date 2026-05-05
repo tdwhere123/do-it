@@ -15,6 +15,7 @@ runtime-specific assumptions do not leak into new Codex installs.
 | `do-it-planning` | durable plan or PRD handoff | Absorbs plan writing, PRD synthesis, non-goal capture, acceptance criteria, and test decision capture. |
 | `do-it-slicing` | vertical-slice breakdown | Absorbs tracer-bullet issue planning, dependency ordering, and HITL/AFK marking while keeping do-it local-first unless issue creation is explicitly requested. |
 | `do-it-grill` | plan, review-response, and closeout pressure test | Absorbs adversarial questioning, decision-tree challenge, zoom-out checks, review response skepticism, and closeout honesty. It challenges review-loop output rather than owning delivered diff review. |
+| `do-it-brainstorm` | requirement-shape discovery before grill | Absorbs multi-perspective divergence into a product + architecture core flow: product boundary, core goal, option tradeoffs, architecture foundation, extension modules, and explicit grill handoff. |
 | `do-it-architecture-scan` | architecture risk and opportunity scan | Absorbs codebase-improvement heuristics while keeping opportunities non-blocking unless correctness or delivery risk is real. |
 | `do-it-interface-drill` | interface and boundary design | Absorbs interface-design drills for APIs, schemas, CLIs, events, UI contracts, and agent handoffs. |
 | `do-it-domain-language` | canonical term and model alignment | Absorbs ubiquitous-language and domain-model discipline for overloaded terms, glossary updates, and contradictions between code/docs/user language. |
@@ -58,12 +59,17 @@ installers.
 | Agent | do-it Role | Notes |
 |---|---|---|
 | `architect-reviewer` | architecture scan | Reviews boundaries, dependency direction, rollout risk, and durable design tradeoffs. |
+| `architecture-strategist` | brainstorm architecture core | Maps foundation, extension modules, stage closure, boundaries, and verification route before grill convergence. |
+| `ceo-reviewer` | supplemental business brainstorm lens | Reviews board-level value, market window, revenue path, pivot cost, and opportunity cost only when task-fit. |
 | `code-mapper` | path map | Builds ownership, call-path, branch-point, and unknown maps before edits. |
 | `code-quality-cleaner` | maintainability review lens | Finds redundancy, dead paths, avoidable abstraction, brittle tests, and cleanup risk. |
 | `domain-language-reviewer` | domain review lens | Checks canonical terms, domain model contradictions, aliases, and naming drift. |
 | `documentation-engineer` | docs interface drill | Keeps docs faithful to tooling, install flow, adapters, and operator workflows. |
+| `end-user-advocate` | supplemental end-user brainstorm lens | Reviews real-use conditions, pain points, mental-model mismatch, workarounds, and recovery only when task-fit. |
 | `install-release-reviewer` | install/release review lens | Reviews package metadata, manifest inventory, installer/doctor behavior, and release docs. |
+| `ops-sre` | supplemental operations brainstorm lens | Reviews deploy, rollback, observability, migration, scale, and on-call implications only when task-fit. |
 | `plan-challenger` | plan grill | Challenges assumptions, scope, acceptance criteria, alternatives, and route sizing. |
+| `product-strategist` | brainstorm product core | Maps product boundary, core goal, requirement shape, and option tradeoffs before grill convergence. |
 | `react-specialist` | React interface drill | Handles component behavior, state flow, rendering, effects, and accessibility. |
 | `red-team-reviewer` | adversarial review lens | Reviews security, state, persistence, concurrency, replay, and failure modes. |
 | `reviewer` | correctness review lens | Performs PR-style correctness, regression, security, contract, and test review. |
@@ -73,6 +79,7 @@ installers.
 | `test-automator` | test drill | Adds or assesses durable regression coverage, fixtures, and harness behavior. |
 | `tdd-red-writer` | RED-only contract drill | Writes failing tests only, then stops before implementation. |
 | `typescript-pro` | TypeScript interface drill | Designs or edits types, APIs, package contracts, and compiler-driven fixes. |
+| `ux-designer` | supplemental UX brainstorm lens | Reviews flow, discoverability, accessibility, visual hierarchy, and copy only when task-fit. |
 
 ## Adapter Notes
 

@@ -2,7 +2,6 @@ name = "ux-designer"
 description = "Use during do-it-brainstorm for read-only UI/UX perspective on user flow, discoverability, accessibility, interaction consistency, and visual hierarchy."
 model = "gpt-5.5"
 model_reasoning_effort = "high"
-claude_model = "sonnet"
 sandbox_mode = "read-only"
 developer_instructions = """
 Operate as the do-it UI/UX design lens. Stay read-only.

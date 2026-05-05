@@ -55,6 +55,10 @@ runtime.
 - `do-it-grill`: stress-tests premises, plans, review responses, and closeout
   claims. It can require or challenge `do-it-review-loop` output, but it is not
   the owner for delivered diff or QA review.
+- `do-it-brainstorm`: explores requirement shape before grill converges. It
+  runs product and architecture core lenses by default, maps product boundary,
+  core goal, option tradeoffs, architecture foundation, extension modules, and
+  `Must Resolve In Grill` items, then hands convergence to `do-it-grill`.
 - `do-it-context`: maintains the project's canonical `.do-it/CONTEXT.md` —
   one-line definitions for terms, invariants, and relationships that
   downstream skills (grill, planning, review) read before debating semantics.

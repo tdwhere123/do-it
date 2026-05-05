@@ -1,107 +1,152 @@
 ---
 name: do-it-brainstorm
-description: "Problem: planning starts before the team has heard the proposal from anyone outside engineering, so product/UX/operability concerns surface as rework after merge. Fix: dispatch read-only persona subagents (CEO, UX, end-user, ops) in parallel before grill, capture their independent angles in one artifact, and hand the open decisions to grill for convergence."
+description: "Problem: planning narrows before the demand shape, product boundary, and foundation are clear. Fix: map options before grill converges."
 ---
 
 # Do-It Brainstorm
 
 ## Purpose
 
-Use this to widen the lens before grill narrows it. `do-it-grill` converges on the load-bearing premise; `do-it-brainstorm` first makes sure the team has actually *heard* the load-bearing premise from someone other than the implementer. Four read-only persona subagents (CEO / UX / end-user / Ops) run in parallel, each with a fixed lens, and each returns at most one decision question for grill to resolve.
+Use this to understand what the requirement is and what shape it could take before `do-it-grill` narrows it. Brainstorm is divergent, but it is not a fixed four-persona ritual. The default pass always includes two core read-only lenses:
 
-This is divergent thinking with a fixed shape and a fixed budget. Free-form brainstorm dumps were absorbed into grill in a prior version of this plugin and removed for a reason — they produced low-signal "what if we" lists. This skill exists because the *fixed-shape* version of multi-perspective input has held up.
+- `product-strategist`: requirement shape, product boundary, core goal, and option tradeoffs.
+- `architecture-strategist`: architecture foundation, extension modules, stage closure, boundaries, and verification route.
+
+Supplemental lenses are added only when the task needs them. Brainstorm surfaces possible shapes, product and architecture boundaries, option benefits/costs/risks, and the questions grill must converge. It does not settle the decision itself.
 
 ## How It Differs From Grill
 
 | | `do-it-brainstorm` | `do-it-grill` |
 |---|---|---|
-| Mode | Divergent — many lenses, no consensus | Convergent — falsify or decide |
-| Persona | Four named outside lenses (CEO/UX/end-user/Ops) | Single internal challenger |
-| Output | `.do-it/brainstorm/<task>.md` (per-persona section + cross-persona tensions + open decisions) | `.do-it/grill/<task>.md` (facts + decisions with status) |
-| Token budget | Each persona ≤ 150 lines, parallel ≤ 3 personas | Single sequential thread |
-| Stop condition | All assigned personas returned | No execution-blocking item remains |
-| Handoff | Hands open decisions to grill | Hands resolved decisions to planning |
+| Mode | Divergent: widen with product, architecture, and task-fit lenses | Convergent: falsify facts and settle load-bearing decisions |
+| Default lenses | Product core + architecture core | Single internal challenger loop |
+| Output | Discussion-first summary or `.do-it/brainstorm/<task>.md` | `.do-it/grill/<task>.md` |
+| Stop condition | Enough lens input to describe requirement shape, boundaries, options, and grill questions | No execution-blocking item remains |
+| Handoff | Hands `Must Resolve In Grill` to grill | Hands resolved decisions to planning or execution |
 
-Brainstorm never converges. Convergence is grill's job.
+Brainstorm never converges. It may compare options and name tradeoffs, but the final route is chosen by grill, planning, or the user.
 
 ## When To Use
 
 Trigger brainstorm when the proposal:
 
-- introduces a new user-visible surface (UI, command, API, page);
-- has a plausible product/business angle the engineer is not best placed to evaluate;
-- crosses an operational boundary (deploy, migration, scaling, on-call);
+- introduces a new user-visible or operator-visible surface;
+- has product, business, positioning, workflow, or opportunity-cost implications;
+- changes architecture shape, module boundaries, install/runtime policy, public commands, or verification strategy;
+- crosses operational, reliability, security, domain-language, or release boundaries;
+- lacks enough project context and the user wants to discover the requirement shape before artifacts;
 - the user explicitly asks to "脑暴" / "brainstorm" / "多视角看一下";
-- a `Heavy`-tier task lands without one.
+- a Heavy-tier task lands without an existing brainstorm or equivalent discussion.
 
 Skip brainstorm when:
 
-- the change is a tightly bounded mechanical edit (refactor, typo, dependency bump);
-- the work is purely internal infrastructure with no user surface and no operational delta;
-- a brainstorm artifact already exists for this task and the proposal has not materially changed.
+- the change is a tightly bounded mechanical edit;
+- the work is pure internal cleanup with no product, architecture, operator, or release tradeoff;
+- a current brainstorm artifact exists for the same proposal and the frame has not materially changed.
+
+## Lens Selection
+
+Always run the two core lenses unless the user explicitly requests a single named lens:
+
+- `product-strategist`
+- `architecture-strategist`
+
+Then add supplements only when the task calls for them:
+
+| Supplemental lens | Use when |
+|---|---|
+| `ux-designer` | UI, flow, discoverability, accessibility, visual hierarchy, or user-facing copy could change the requirement shape. |
+| `end-user-advocate` | Real-use conditions, recovery, stale state, interruption, or mental-model mismatch matters. |
+| `ops-sre` | Deployment, rollback, observability, migration, scale, on-call, or incident recovery matters. |
+| `ceo-reviewer` | Board-level business tradeoff, revenue path, market window, pricing, or competitive pressure matters. |
+| `red-team-reviewer` | Security, persistence, concurrency, replay, partial failure, or adversarial misuse might change the route. |
+| `domain-language-reviewer` | Terms, names, public concepts, or domain models are overloaded or contradictory. |
+| `plan-challenger` | Scope, acceptance criteria, sequencing, or route sizing is the main uncertainty. |
+
+Do not run every lens by default. If two supplemental lenses overlap, choose the one whose output can change the next implementation route.
 
 ## Tier Rules
 
 ### Light
 
-Triggered only by explicit user request at Light tier (router does not auto-trigger). Run **one** persona — the one with the highest expected leverage given the task. Mark `Cross-persona tensions: not run` and proceed.
+Use only when the user explicitly asks for brainstorm on a Light task.
+
+- Run `product-strategist` if the question is about demand, boundary, core goal, or option tradeoffs.
+- Run `architecture-strategist` if the question is about foundation, extension modules, boundary, stage closure, or verification.
+- If neither clearly dominates, run both cores.
+- Prefer an inline discussion summary over an artifact unless the user asks for a durable file.
 
 ### Standard
 
-Default for product/UX/release-adjacent Standard-tier work, or any explicit request at Standard.
+Default for normal product, UX, command, workflow, release-adjacent, or architecture-adjacent work.
 
-- Pick **two or three** personas with the highest expected leverage. The router-recommended dispatch order: scan the task for keywords (`pricing` / `customer` → CEO; `screen` / `flow` / `accessibility` / `UI` → UX; `error` / `retry` / `slow` / `confused` → end-user; `deploy` / `migrate` / `alert` / `scale` / `oncall` → Ops). If two keywords tie, prefer in this order: CEO, end-user, UX, Ops.
-- Dispatch in parallel.
-- Record `Cross-persona tensions` if any persona's recommendation contradicts another's.
+- Run both core lenses.
+- Add zero to two supplemental lenses based on the task frame and repo truth.
+- Produce either an inline decision stack or `.do-it/brainstorm/<task>.md` when the next session must read it.
 
 ### Heavy
 
-Parent-only unless explicitly assigned. Run **all four** personas in parallel. May additionally invoke existing review agents (`architect-reviewer`, `red-team-reviewer`, `plan-challenger`) when their lens is needed; those go to `.do-it/review/<task>.md` per `do-it-review-loop`, not into the brainstorm file.
+Parent-only unless explicitly assigned.
 
-## Personas
-
-| Agent | Lens | Hand to grill as |
-|---|---|---|
-| `ceo-reviewer` | Value claim, market window, revenue path, pivot cost, opportunity cost | One business decision question |
-| `ux-designer` | First-run discoverability, accessibility, interaction consistency, visual hierarchy, copy at decision moment | One design decision question |
-| `end-user-advocate` | Real-condition usage (slow network, stale tab, interrupted, recovery), mental-model mismatch | One experience decision question |
-| `ops-sre` | Deploy path, rollback, observability, failure modes, on-call burden, migration safety | One operational decision question |
-
-Each persona is read-only, runs at Sonnet (`claude_model = "sonnet"` in TOML), and returns ≤ 150 lines per the schema in its agent file.
+- Run both core lenses.
+- Add the minimum supplemental lenses needed for product, operator, security, domain, release, or scope risk.
+- For release/workflow/policy work, include at least one install/release or skill-quality review later in `do-it-review-loop`; review lenses are not substitutes for brainstorm lenses.
+- Write the artifact unless the user explicitly asked for discussion only.
 
 ## Dispatch Pattern
 
-For each persona selected by the tier rule, build a subagent prompt that follows `do-it-subagent-orchestration` exactly. Persona subagents always run at **Light** tier when the parent brainstorm is Light or Standard, and at **Standard** tier only when the parent brainstorm itself was assigned Heavy. Persona subagents never run at Heavy.
+Each selected lens is read-only and should receive the same frame plus the facts the parent already verified. Lenses may inspect current truth when needed, but they must not write.
 
-```
-tier: Light
+Use the `do-it-subagent-orchestration` contract when delegating:
+
+```text
+tier: Light or Standard
 scope: <one sentence>
 write ownership: read-only
-forbidden paths: src/**, packages/**, apps/**, .do-it/**, dist/**
-current truth: <facts the parent already verified>
-failure-mode forecast: <which classes the persona must explicitly cover>
-path map: not applicable
-readiness target: docs-truth-ready
-must-verify facts: <facts the persona must check itself>
-stop condition: NEEDS_CONTEXT if scope is unclear, BLOCKED if forbidden path required, otherwise return a single response
-return schema: see <persona> agent definition
-
-You are a Standard-tier subagent. Do not expand into parent-level Heavy flow, broad planning, branch closeout, manifest/docs edits, or unrelated cleanup.
+forbidden paths: src/**, packages/**, apps/**, .do-it/**, dist/**, agents/**, skills/**
+current truth: <facts the parent verified>
+failure-mode forecast: <classes this lens must cover>
+path map: not applicable, unless architecture-strategist needs a high-level boundary map
+must-verify facts: <facts the lens must check itself>
+stop condition: NEEDS_CONTEXT if the frame is too vague, BLOCKED if forbidden writes are required, otherwise return the schema
+return schema: see the selected agent definition
 ```
 
-Forbidden paths are wide on purpose — these personas should not write anywhere. They produce text the parent then composes into the brainstorm artifact.
+Run independent lenses in parallel when the host supports parallel subagents. If the host or task cannot support delegation, the parent may run a compact local version of the same lenses, but must label it as local and avoid pretending independent agents ran.
 
-Run dispatched personas in **parallel** (single message with multiple `Agent` tool uses), not sequentially. Two-to-four parallel calls is the design point. Sequential dispatch defeats the purpose and burns context on the parent's running summary.
+## Discussion-First Mode
+
+Use discussion-first mode when the project or task frame is too blank to justify an artifact:
+
+- no repo exists or the repo has no relevant product/architecture truth;
+- the user is exploring direction, not asking for a durable handoff;
+- selected lenses return `NEEDS_CONTEXT` because the goal, audience, or boundary is unknown.
+
+Return a concise stack:
+
+- `Requirement shape`: what the demand appears to be and what forms it could take.
+- `Product boundary`: what is in scope, what is out of scope, and which line matters.
+- `Core goal`: the success target for this stage.
+- `Options`: multiple viable paths with benefits, costs, risks, and when to choose each.
+- `Architecture foundation`: the core bottom layer and invariants.
+- `Extension modules`: later or optional modules and how they attach.
+- `Must resolve in grill`: decisions that change product direction, foundation, implementation route, or verification.
+- `Can decide during planning`: details that can be settled after direction is chosen.
+- `Context still needed`: only facts that cannot be read locally and would change execution.
+
+Do not force `.do-it/brainstorm/<task>.md` in discussion-first mode. Create an artifact only when there is enough context for future sessions to reuse.
 
 ## Output Artifact
 
-```
+When durable handoff is useful, write:
+
+```text
 .do-it/brainstorm/<task-slug>.md
 ```
 
-`<task-slug>` follows the same rule as `do-it-grill-log` (slug from user title, or short-hash, with optional session prefix). `<cwd>/.do-it/brainstorm/.gitkeep` should exist so the directory tracks in version control.
+`<task-slug>` follows the same rule as `do-it-grill-log`: slug from the user title or a short hash, with an optional session prefix. `<cwd>/.do-it/brainstorm/.gitkeep` should exist when the project tracks do-it artifacts.
 
-### File format
+### File Format
 
 ```markdown
 ---
@@ -109,80 +154,119 @@ task: <one-line title>
 session_id: <id>
 created: <YYYY-MM-DD>
 status: open
-personas_run: [ceo, ux, end-user, ops]
+lenses_run: [product-strategist, architecture-strategist, ...]
 tier: <light | standard | heavy>
+mode: <artifact | discussion-first>
 ---
 
 ## Frame
 
-<one-sentence problem statement the personas all received>
+<one-sentence problem statement all lenses received>
 
-## Personas
+## Core Lenses
 
-### CEO / Product
-<verbatim or distilled return from ceo-reviewer; cap ~30 lines>
+### Product Strategy
+<distilled requirement shape, product boundary, core goal, and option tradeoffs from product-strategist; cap ~30 lines>
 
-### UX Designer
-<verbatim or distilled return from ux-designer; cap ~30 lines>
+### Architecture Strategy
+<distilled foundation, extension modules, stage closure, and verification route from architecture-strategist; cap ~30 lines>
 
-### End-user Advocate
-<verbatim or distilled return from end-user-advocate; cap ~30 lines>
+## Supplemental Lenses
 
-### Ops / SRE
-<verbatim or distilled return from ops-sre; cap ~30 lines>
+### <Lens Name>
+<distilled return; cap ~30 lines>
 
-## Cross-persona tensions
+Or `none selected`.
 
-- <tension A: persona X says ..., persona Y says ..., conflict is ...>
-- <tension B: ...>
+## Requirement Shape
 
-(Or `not run` if Light tier; or `none surfaced` if Standard/Heavy and personas agreed.)
+<what the demand appears to be, including plausible forms it could take>
 
-## Open decisions for grill
+## Product Boundary
 
-- [ ] <decision 1, lifted from a persona's "one question for the human">
-- [ ] <decision 2, ...>
+- In scope: <what belongs to this product or feature>
+- Out of scope: <what does not belong here>
+- Boundary risk: <what breaks if this line is wrong>
+
+## Core Goal
+
+<the stage-defining success target>
+
+## Options
+
+### Option A: <name>
+
+- Benefits: <why it helps>
+- Costs: <what it consumes or complicates>
+- Risks: <how it can fail or mislead>
+- Choose when: <conditions where this path fits>
+
+### Option B: <name>
+
+- Benefits: <why it helps>
+- Costs: <what it consumes or complicates>
+- Risks: <how it can fail or mislead>
+- Choose when: <conditions where this path fits>
+
+## Architecture Foundation
+
+- Core bottom layer: <foundation pieces and invariants>
+- Ownership/contract: <stable boundaries others depend on>
+- Stage closure: <what should finish now unless there is a concrete reason not to>
+
+## Extension Modules
+
+- <module or capability that can attach later without reshaping the foundation>
+
+## Grill Handoff
+
+### Must Resolve In Grill
+
+- <decision or premise that changes product direction, foundation, implementation route, proof path, or operator behavior>
+
+### Can Decide During Planning
+
+- <detail that should not block requirement discovery or grill convergence>
+
+## Tensions
+
+- <lens A says ..., lens B says ..., conflict is ...>
+
+Or `none surfaced`.
 ```
 
-`status: open` means grill has not yet converged. Grill flips it to `converged` once the open decisions are resolved (`chosen` / `deferred` / `needs_user_decision`).
+`status: open` means grill has not converged on `Must Resolve In Grill`. Grill flips it to `converged` once every execution-blocking item is resolved or explicitly deferred.
 
-## Handoff to Grill
+## Handoff To Grill
 
-After writing the brainstorm artifact, the parent should:
+After discussion or artifact creation:
 
-1. Inspect the four returned messages for inflated scope, forbidden-path hits, or schema deviations. Reject and re-dispatch any persona that drifted.
-2. Compose the artifact at the path above. The "Personas" section is each return distilled to ≤ 30 lines; the parent owns this distillation.
-3. Lift the per-persona "one question" into "Open decisions for grill", deduplicated.
-4. Trigger `do-it-grill` (explicit or via the existing prompt hook). Grill detects `.do-it/brainstorm/<task>.md` with `status: open` and runs in convergence mode (see `do-it-grill` "Convergence after brainstorm").
-
-The parent does not converge inside brainstorm. If the parent feels the urge to pick a winner among the persona returns, that is grill territory.
+1. Inspect selected lens returns for forbidden-path hits, unsupported claims, and schema drift.
+2. Deduplicate `Must Resolve In Grill` and remove questions that local verification can answer immediately.
+3. Preserve the option tradeoffs; do not collapse them into one answer inside brainstorm.
+4. Trigger or recommend `do-it-grill` when any must-resolve item changes execution.
+5. If all must-resolve items can be verified locally and no user preference remains, the parent may proceed to planning/execution and record why grill is not needed.
 
 ## Token Discipline
 
-- Personas in parallel ≤ 3 (router-selected). Light tier ≤ 1.
-- Each persona return capped at ~150 lines per the agent definition; the artifact distills to ~30 lines per persona.
-- The parent does not summarize all four personas back to the user inline. The artifact is the deliverable; the user reads the file or asks for a section.
-- Do not re-run brainstorm if the artifact already exists for this task and the proposal has not materially changed. Append to "Open decisions for grill" instead.
+- Core lenses are default; supplemental lenses are justified by task risk.
+- Do not summarize every lens inline when an artifact exists; return the path plus requirement shape, options, and grill handoff summary.
+- Keep each distilled lens section to about 30 lines.
+- Do not re-run brainstorm if the existing artifact still matches the proposal; append only if the frame materially changed.
 
 ## Common Mistakes
 
-- Running personas sequentially because each persona's output "informs" the next. They are independent on purpose. Sequential dispatch is a slow grill, not a brainstorm.
-- Letting the parent rewrite a persona's return in the persona's voice. Distill, do not editorialize.
-- Inventing a fifth persona inline ("let me also be the lawyer for a moment"). Add a real agent or do not. The fixed shape is the value.
-- Treating `Cross-persona tensions` as a debate to settle inside brainstorm. Surface, hand to grill.
-- Skipping the artifact and only telling the user the result inline. The artifact is what the next session reads.
-
-## Red Flags
-
-- All four personas return effectively the same point. Either the prompt was too narrow (re-dispatch with more context) or the personas were not the right pick (revisit the tier rule).
-- One persona returns "BLOCKED: requires Heavy escalation". Stop and either escalate the brainstorm to Heavy or drop that persona for this task.
-- The parent's own context grows by more than a few hundred lines from the brainstorm. The parent is over-quoting; distill harder.
+- Treating `ceo-reviewer`, `ux-designer`, `end-user-advocate`, and `ops-sre` as the fixed default set. They are supplements now.
+- Calling `architect-reviewer` instead of `architecture-strategist` before implementation. The former reviews delivered or planned architecture risk; the latter explores system shape during brainstorm.
+- Forcing an artifact when the user is still exploring a blank product direction.
+- Letting brainstorm make the final decision. Brainstorm maps the requirement shape and options; convergence belongs to grill, planning, or the user.
+- Running many overlapping supplements when the two core lenses already identify the route.
 
 ## Related Skills
 
-- `do-it-router` — sets tier; brainstorm consumes tier to decide persona count.
-- `do-it-subagent-orchestration` — dispatch contract used for each persona call.
-- `do-it-grill` — receives the open decisions; runs convergence; flips brainstorm status to `converged`.
-- `do-it-grill-log` — `.do-it/grill/<task>.md` references the brainstorm slug.
-- `do-it-review-loop` — separate channel for review-grade lenses (architect, red-team, plan-challenger) that are review, not brainstorm.
-- `do-it-context` — sediments any term anchored during the persona returns.
+- `do-it-router` — sets tier and decides whether brainstorm is useful.
+- `do-it-subagent-orchestration` — dispatch contract for selected lenses.
+- `do-it-grill` — converges the must-discuss stack.
+- `do-it-grill-log` — records resolved facts and decisions.
+- `do-it-review-loop` — reviews delivered diff, skill quality, install readiness, and release risk after implementation.
+- `do-it-context` — sediments terms anchored during brainstorm or grill.

@@ -112,7 +112,7 @@ The Claude target installs to `~/.claude/` by default; override with
 
 ## What It Installs
 
-- do-it-native skills for routing, grill, **brainstorm (multi-persona
+- do-it-native skills for routing, grill, **brainstorm (multi-lens
   divergence)**, **handbook (project doc skeleton)**, context, planning,
   slicing, interface / architecture / domain drills, sub-agent orchestration,
   TDD, debugging, review, fix loops, verification, worktree isolation, branch
@@ -120,9 +120,10 @@ The Claude target installs to `~/.claude/` by default; override with
 - Portable Codex agent definitions for code mapping, plan challenge,
   correctness review, architecture review, red-team review, spec compliance,
   domain language, install/release review, documentation, testing,
-  language-specific drills, and **four product/UX/end-user/ops personas
-  (`ceo-reviewer`, `ux-designer`, `end-user-advocate`, `ops-sre`) that run at
-  Sonnet on the Claude path**.
+  language-specific drills, and **brainstorm lenses**: the required
+  `product-strategist` / `architecture-strategist` cores for product
+  boundary, core goal, foundation, and extension shape, plus optional product,
+  UX, end-user, ops, security, domain, and plan supplements.
 - Claude Code plugin assets, hooks, commands, and generated sub-agent
   definitions. Hooks include a **PostToolUse `code-map-refresh`** that marks
   `.do-it/handbook/code-map.md` stale on barrel / migration / route /
@@ -137,11 +138,11 @@ The Claude target installs to `~/.claude/` by default; override with
 ```mermaid
 flowchart TD
     P[UserPromptSubmit] --> R[do-it-router<br/>classify Light / Standard / Heavy]
-    R --> M{multi-persona<br/>angle needed?}
-    M -- yes --> BR[do-it-brainstorm<br/>CEO / UX / end-user / Ops<br/>in parallel, Sonnet, read-only]
+    R --> M{multi-lens<br/>angle needed?}
+    M -- yes --> BR[do-it-brainstorm<br/>product + architecture cores<br/>plus task-fit supplements]
     M -- no --> G
     BR --> G{premise stable?}
-    G -- no --> GR[do-it-grill<br/>truth-check; converges<br/>open brainstorm decisions]
+    G -- no --> GR[do-it-grill<br/>truth-check; converges<br/>Must Resolve items]
     G -- yes --> T{tier}
     GR --> T
     T -- Light --> L[execute]
@@ -160,13 +161,14 @@ flowchart TD
 In practice:
 
 1. `do-it-router` classifies the task and names the smallest useful workflow.
-2. `do-it-brainstorm` runs in parallel for product / UX / release-adjacent
-   work — four read-only personas (CEO, UX, end-user, Ops) widen the angle
-   before grill picks the load-bearing premise. Light tier skips it; Standard
-   runs the 2–3 most relevant personas; Heavy runs all four.
+2. `do-it-brainstorm` runs for product, architecture, workflow, and
+   release-adjacent work. It first clarifies the requirement shape, product
+   boundary, core goal, architecture foundation, extension modules, and option
+   tradeoffs, then adds only the task-fit supplements needed for UX, end-user,
+   ops, security, domain language, or plan-risk questions.
 3. `do-it-grill` fires when the premise needs pressure-testing. When a
-   brainstorm artifact exists, grill enters convergence mode and resolves the
-   open decisions instead of restarting divergence.
+   brainstorm artifact exists, grill enters convergence mode and resolves
+   `Must Resolve In Grill` instead of restarting divergence.
 4. `Light`, `Standard`, and `Heavy` use different flows, not the same flow at
    different intensities.
 5. Heavy or explicitly durable work can be blocked at the write boundary
@@ -190,7 +192,7 @@ For a packed local release artifact:
 
 ```bash
 npm pack
-npm install -g ./tdwhere-do-it-0.6.0.tgz
+npm install -g ./tdwhere-do-it-0.6.1.tgz
 do-it setup
 ```
 
@@ -250,25 +252,29 @@ package.json     npm package metadata and CLI scripts
 The private `.do-it/` directory is for local plans, notes, and scratch
 artifacts. It is ignored by Git and is not installed.
 
-## Upgrading to 0.6.0
+## Upgrading to 0.6.1
 
-`do-it 0.6.0` adds four pieces on top of 0.5.1, all opt-in by trigger word or
-tier — none of them disturb a Light-tier or already-grilled Standard workflow.
+`do-it 0.6.1` keeps the 0.6 workflow additions and fixes the Codex / Claude
+agent-schema split. Codex agent TOML no longer carries Claude-only model
+fields, while the Claude generator still emits `model: sonnet` for the
+brainstorm lenses and `code-mapper` that need it.
 
-**Brainstorm before grill.** A new `do-it-brainstorm` skill dispatches four
-read-only persona subagents in parallel: `ceo-reviewer` (product / business),
-`ux-designer` (UI / interaction), `end-user-advocate` (lived experience), and
-`ops-sre` (deploy / observability / rollback). Each runs at Sonnet on the
-Claude target, returns ≤ 150 lines per the agent contract, and feeds its "one
-question" into the brainstorm artifact at `.do-it/brainstorm/<task>.md`. The
-fixed shape (four named lenses, fixed token budget) is the value — it is not
-a free-form "what if" pad.
+**Brainstorm before grill.** `do-it-brainstorm` now uses two required core
+lenses: `product-strategist` for product boundary, core goal, requirement
+shape, and option tradeoffs; and `architecture-strategist` for foundation,
+extension modules, stage closure, boundaries, and verification route. It
+dynamically adds supplemental lenses such as `ux-designer`,
+`end-user-advocate`, `ops-sre`, `ceo-reviewer`, `red-team-reviewer`,
+`domain-language-reviewer`, or `plan-challenger` only when the task needs
+them. Output is grouped as `Requirement Shape`, `Product Boundary`,
+`Core Goal`, `Options`, `Architecture Foundation`, `Extension Modules`, and
+`Must Resolve In Grill`.
 
 **Grill converges instead of restarting.** When a brainstorm artifact exists
-with `status: open`, `do-it-grill` lifts the persona "one question" items
-into candidate premises, ranks them by route-impact, resolves each via the
-grill log, and flips brainstorm `status: open → converged`. Light tier still
-runs the original single-thread grill.
+with `status: open`, `do-it-grill` lifts `Must Resolve In Grill` into
+candidate premises, resolves each item via the grill log, and flips brainstorm
+`status: open → converged`. Light tier still runs the original single-thread
+grill unless the user explicitly asked for brainstorm.
 
 **Project handbook bootstrap.** `/do-it-handbook` (or the `do-it-handbook`
 skill) scaffolds `.do-it/handbook/` with twelve generalized templates —

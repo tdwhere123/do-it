@@ -11,6 +11,16 @@ const repoRoot = path.resolve(scriptDir, "..");
 const agentsDir = path.join(repoRoot, "agents");
 const outDir = path.join(repoRoot, "dist", "claude", "agents");
 
+const CLAUDE_MODEL_BY_AGENT = new Map([
+  ["architecture-strategist", "sonnet"],
+  ["ceo-reviewer", "sonnet"],
+  ["code-mapper", "sonnet"],
+  ["end-user-advocate", "sonnet"],
+  ["ops-sre", "sonnet"],
+  ["product-strategist", "sonnet"],
+  ["ux-designer", "sonnet"]
+]);
+
 function parseSimpleToml(source) {
   const result = {};
   let i = 0;
@@ -77,11 +87,14 @@ function escapeYamlDoubleQuoted(str) {
 function buildClaudeAgent(toml) {
   const data = parseSimpleToml(toml);
   if (!data.name) throw new Error("agent missing name");
+  if (Object.prototype.hasOwnProperty.call(data, "claude_model")) {
+    throw new Error(
+      "agent contains unsupported Codex TOML key claude_model; set Claude-only models in scripts/build-claude-agents.mjs"
+    );
+  }
   const description = data.description ?? "";
   const body = (data.developer_instructions ?? "").replace(/\s+$/g, "");
-  const claudeModel = data.claude_model && data.claude_model.trim().length > 0
-    ? data.claude_model.trim()
-    : "inherit";
+  const claudeModel = CLAUDE_MODEL_BY_AGENT.get(data.name) ?? "inherit";
   return [
     "---",
     `name: ${data.name}`,

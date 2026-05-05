@@ -1,18 +1,64 @@
 # Changelog
 
+## 0.6.1
+
+### Highlights
+
+- **Codex-compatible agent TOML.** Removed the Claude-only `claude_model`
+  field from Codex-installed `agents/*.toml`. `scripts/build-claude-agents.mjs`
+  now owns the Claude model map and still emits `model: sonnet` for the
+  brainstorm lenses and `code-mapper`.
+- **Brainstorm two-core redesign.** `do-it-brainstorm` now starts from
+  `product-strategist` and `architecture-strategist`, then dynamically adds
+  task-fit supplemental lenses. Product strategy clarifies product boundary,
+  core goal, requirement shape, and option tradeoffs. Architecture strategy
+  separates core foundation from extension modules and names what should close
+  in the current stage.
+- **Brainstorm discovers; grill converges.** Brainstorm output now centers on
+  `Requirement Shape`, `Product Boundary`, `Core Goal`, `Options`,
+  `Architecture Foundation`, `Extension Modules`, and `Must Resolve In Grill`.
+  Grill owns convergence; brainstorm does not collapse options into a final
+  answer.
+
+### Added
+
+- `agents/product-strategist.toml` — required product core brainstorm lens.
+- `agents/architecture-strategist.toml` — required architecture core
+  brainstorm lens.
+
+### Changed
+
+- `skills/do-it/do-it-brainstorm/SKILL.md` — replaces the fixed four-persona
+  flow with product + architecture cores, dynamic supplements, discussion-first
+  mode, and option tradeoff output.
+- `commands/do-it-brainstorm.md` — documents default dual cores, explicit
+  lens selection, and discussion-first usage.
+- `skills/do-it/do-it-grill/SKILL.md` — consumes `Must Resolve In Grill`
+  instead of the legacy per-lens question list.
+- README, README.zh-CN, release, and maintenance docs updated for the 0.6.1
+  compatibility and brainstorm contract.
+
+### Migration
+
+- Re-run `do-it setup` or `do-it install` to refresh live Codex agent TOML.
+  After upgrade, `rg -n "claude_model" ~/.codex/agents` should not match
+  do-it-managed Codex agent files.
+- No project artifact migration is required. Existing 0.6.0 brainstorm files
+  remain readable by humans, but new artifacts use the 0.6.1 section names.
+
 ## 0.6.0
 
 ### Highlights
 
-- **Brainstorm before grill.** New `do-it-brainstorm` skill runs four
-  read-only persona subagents in parallel (CEO / UX / end-user / Ops) and
-  writes one artifact per task at `.do-it/brainstorm/<task>.md`. Personas run
-  at Sonnet to bound token cost. Brainstorm only diverges; grill converges.
+- **Brainstorm before grill.** Initial `do-it-brainstorm` support wrote one
+  artifact per task at `.do-it/brainstorm/<task>.md`. The lens model and
+  section contract were replaced by the 0.6.1 product + architecture core
+  design above.
 - **Grill convergence mode.** `do-it-grill` reads the brainstorm artifact
-  when one is open, lifts persona "one question" items into candidate
-  premises, and flips brainstorm `status: open` → `converged` once each
-  decision is resolved in the grill log. Light tier still uses single-thread
-  grill; Standard / Heavy must consume the brainstorm.
+  when one is open, lifts execution-blocking items into candidate premises,
+  and flips brainstorm `status: open` → `converged` once each decision is
+  resolved in the grill log. Light tier still uses single-thread grill;
+  Standard / Heavy must consume the brainstorm.
 - **Project handbook bootstrap.** New `do-it-handbook` skill scaffolds
   `.do-it/handbook/` with twelve generalized templates (invariants,
   architecture, code-map, glossary, backlog, runtime-status, maintenance,
@@ -26,14 +72,13 @@
 
 ### Added
 
-- `skills/do-it/do-it-brainstorm/SKILL.md` — divergent persona pass with
-  tier-aware degradation (Light: 1 persona, Standard: 2-3, Heavy: 4 + optional
-  review agents).
+- `skills/do-it/do-it-brainstorm/SKILL.md` — initial divergent brainstorm pass
+  before grill convergence.
 - `skills/do-it/do-it-handbook/SKILL.md` plus twelve templates under
   `templates/` and `templates/workflow/`.
 - `agents/ceo-reviewer.toml`, `ux-designer.toml`, `end-user-advocate.toml`,
-  `ops-sre.toml` — four read-only persona agents pinned to Sonnet on the
-  Claude path via the new `claude_model` TOML field.
+  `ops-sre.toml` — supplemental read-only brainstorm lenses. Their Claude
+  model handling moved out of Codex TOML in 0.6.1.
 - `commands/do-it-brainstorm.md`, `commands/do-it-handbook.md`.
 - `hooks/code-map-refresh.sh` — PostToolUse marker that prepends
   `<!-- stale: true; reason: ... -->` to `.do-it/handbook/code-map.md` on
@@ -41,12 +86,10 @@
 
 ### Changed
 
-- `scripts/build-claude-agents.mjs` — honors a per-agent `claude_model` TOML
-  field; defaults to `model: inherit` when absent (no regression for the
-  other 16 agents).
-- `agents/code-mapper.toml` — adds `claude_model = "sonnet"` and a Handbook
-  Write Target / Claude Code Adapter section in `developer_instructions`.
-  Output target shifts from inline-only to
+- `scripts/build-claude-agents.mjs` — builds Claude agent Markdown from Codex
+  TOML. Claude-only model selection moved into the generator in 0.6.1.
+- `agents/code-mapper.toml` — adds a Handbook Write Target / Claude Code
+  Adapter section in `developer_instructions`. Output target shifts from inline-only to
   `.do-it/handbook/code-map.md` "Current Implementation Locations" when the
   handbook exists.
 - `skills/do-it/do-it-grill/SKILL.md` — adds "Convergence after brainstorm"
@@ -56,7 +99,7 @@
   pointer to the grill reminder.
 - `hooks/hooks.json` — registers PostToolUse for `code-map-refresh.sh`.
 - `manifest.json` — registers `do-it-brainstorm` and `do-it-handbook` skills,
-  plus the four new persona agents.
+  plus the initial brainstorm lens agents.
 
 ### Migration
 

@@ -187,6 +187,9 @@ the same `agents/*.toml` source-of-truth. The Claude target adds:
   reliable when hooks are bypassed.
 - **Agent change:** edit `agents/<name>.toml`. The next install (or
   `npm run build:claude-agents`) regenerates the Claude `.md` form.
+- **Claude-only model change:** keep Codex TOML schema-clean. Do not add
+  `claude_model` or other Claude-only keys to `agents/*.toml`; update the
+  model map in `scripts/build-claude-agents.mjs` instead.
 - **Hook keyword change:** edit `hooks/data/*.tsv` and keep
   `hooks/data/SCHEMA.md` aligned. End users override locally via
   `<cwd>/.do-it/keywords.local.sh` (sourced after defaults).
