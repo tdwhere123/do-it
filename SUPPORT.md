@@ -15,5 +15,6 @@ Before opening an issue, collect:
 For security issues, use [SECURITY.md](./SECURITY.md) instead of a public
 issue.
 
-For general discussion, compare notes in your own community or open a GitHub
-Discussion when this repository enables Discussions.
+For general discussion, use GitHub Discussions:
+
+https://github.com/tdwhere123/do-it/discussions
