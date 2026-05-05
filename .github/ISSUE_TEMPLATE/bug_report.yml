@@ -1,0 +1,79 @@
+name: Bug report
+description: Report a reproducible problem in do-it.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a real failure. Please include enough context for a maintainer to reproduce it.
+  - type: input
+    id: version
+    attributes:
+      label: do-it version
+      description: Run `do-it --version` if installed from npm, or name the commit if using a checkout.
+      placeholder: "0.5.1 / commit SHA"
+    validations:
+      required: true
+  - type: dropdown
+    id: host
+    attributes:
+      label: Host
+      multiple: true
+      options:
+        - Codex
+        - Claude Code
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: install-source
+    attributes:
+      label: Install source
+      options:
+        - npm registry
+        - GitHub package install
+        - local checkout
+        - packed tarball
+        - other
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Describe the command, prompt, hook, installer, or workflow step that failed.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction steps
+      description: Include commands, prompt text, transcript snippets, or a minimal fixture when possible.
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Verification evidence
+      description: Paste relevant output from `do-it doctor`, `npm test`, hook logs, or install commands.
+      render: shell
+    validations:
+      required: false
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, shell, Node version, Codex/Claude Code version, and anything unusual about your setup.
+    validations:
+      required: false

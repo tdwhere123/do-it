@@ -1,0 +1,101 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test (Node ${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [18.x, 20.x, 22.x, 24.x]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install system test tools
+        run: sudo apt-get update && sudo apt-get install -y jq shellcheck
+
+      - name: Check whitespace
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            git diff --check HEAD^1 HEAD
+          elif [ "${{ github.event_name }}" = "push" ] && [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
+            git diff --check "${{ github.event.before }}" "${{ github.sha }}"
+          elif git rev-parse HEAD^ >/dev/null 2>&1; then
+            git diff --check HEAD^ HEAD
+          else
+            git diff --check
+          fi
+
+      - name: Run hook tests
+        run: npm test
+
+      - name: Build Claude agents
+        run: npm run build:claude-agents
+
+      - name: Ensure generated Claude agents are committed
+        run: git diff --exit-code -- dist/claude
+
+  package-smoke:
+    name: Package smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.x
+
+      - name: Install system test tools
+        run: sudo apt-get update && sudo apt-get install -y jq shellcheck
+
+      - name: Validate package metadata
+        run: node -e "JSON.parse(require('fs').readFileSync('package.json', 'utf8'))"
+
+      - name: Build Claude agents
+        run: npm run build:claude-agents
+
+      - name: Smoke test Codex install target
+        env:
+          CODEX_HOME: ${{ runner.temp }}/do-it-codex
+          NPM_CONFIG_CACHE: ${{ runner.temp }}/npm-cache
+        run: npm exec --package . -- do-it setup
+
+      - name: Smoke test Claude Code install target
+        env:
+          CLAUDE_PLUGIN_ROOT_OVERRIDE: ${{ runner.temp }}/do-it-claude
+          NPM_CONFIG_CACHE: ${{ runner.temp }}/npm-cache
+        run: npm exec --package . -- do-it setup --target=claude
+
+      - name: Inspect package tarball
+        env:
+          NPM_CONFIG_CACHE: ${{ runner.temp }}/npm-cache
+        run: npm pack --dry-run --json

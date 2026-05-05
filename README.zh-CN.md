@@ -3,6 +3,8 @@
 [English](./README.md) | [中文](./README.zh-CN.md)
 
 [![npm version](https://img.shields.io/npm/v/@tdwhere/do-it.svg)](https://www.npmjs.com/package/@tdwhere/do-it)
+[![CI](https://github.com/tdwhere123/do-it/actions/workflows/ci.yml/badge.svg)](https://github.com/tdwhere123/do-it/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/tdwhere123/do-it/actions/workflows/codeql.yml/badge.svg)](https://github.com/tdwhere123/do-it/actions/workflows/codeql.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 > 不要再要求 AI agent 记住流程。把流程装进去。
@@ -194,7 +196,8 @@ npm run do-it -- doctor
 
 修改 hook 之前提交 review 前，运行 `npm run lint`（通过 `scripts/lint-hooks.sh`
 跑 shellcheck）。`npm test` 会跑 hook lint 加 `scripts/test-hooks.sh` 里的
-hook 回归测试。CI 在 push / PR 上跑 lint 脚本。
+hook 回归测试。CI 会在 push / PR 上跑 Node 矩阵、生成 agent 检查、Codex 和
+Claude 安装 smoke test，以及 package dry run。
 
 ## 仓库结构
 
@@ -247,6 +250,9 @@ skill/policy quality 和 install/release readiness。
 
 `do-it` 是我自己对同一类问题的解法，来自这些项目给我的启发，也来自我每天在
 真实项目里的使用。
+
+也感谢 [Linux.do](https://linux.do) 社区。那里的讨论持续给我提供了很多实际的
+agent 工作流反馈和想法。
 
 ## 维护说明
 

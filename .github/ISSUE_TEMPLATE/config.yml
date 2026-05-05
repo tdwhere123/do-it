@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security issue
+    url: https://github.com/tdwhere123/do-it/security/advisories/new
+    about: Please do not report vulnerabilities in public issues.

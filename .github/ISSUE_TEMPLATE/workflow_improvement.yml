@@ -1,0 +1,44 @@
+name: Workflow improvement
+description: Propose a do-it change that came from real use.
+title: "[Workflow]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        do-it changes should come from real use. Please describe the project and the workflow failure that triggered the proposal.
+  - type: textarea
+    id: project
+    attributes:
+      label: Your project
+      description: Link the project if public, or give an anonymized description with language, scale, and AI-collaboration scenario.
+    validations:
+      required: true
+  - type: textarea
+    id: real-problem
+    attributes:
+      label: The real problem that triggered this
+      description: Which skill, hook, review step, install step, or sub-agent contract was not good enough?
+    validations:
+      required: true
+  - type: textarea
+    id: proposed-change
+    attributes:
+      label: Proposed change
+      description: Explain what should change and why it belongs in do-it instead of only your fork.
+    validations:
+      required: true
+  - type: textarea
+    id: retest
+    attributes:
+      label: Retest or dogfood evidence
+      description: How did you test the new behavior in your own workflow?
+    validations:
+      required: false
+  - type: checkboxes
+    id: contribution-policy
+    attributes:
+      label: Contribution policy
+      options:
+        - label: I have read CONTRIBUTING.md and understand the Issue-first rule for non-exception changes.
+          required: true

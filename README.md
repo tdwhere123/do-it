@@ -3,6 +3,8 @@
 [English](./README.md) | [中文](./README.zh-CN.md)
 
 [![npm version](https://img.shields.io/npm/v/@tdwhere/do-it.svg)](https://www.npmjs.com/package/@tdwhere/do-it)
+[![CI](https://github.com/tdwhere123/do-it/actions/workflows/ci.yml/badge.svg)](https://github.com/tdwhere123/do-it/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/tdwhere123/do-it/actions/workflows/codeql.yml/badge.svg)](https://github.com/tdwhere123/do-it/actions/workflows/codeql.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 > Stop asking AI agents to remember process. Install it.
@@ -217,7 +219,9 @@ Installation into Codex happens only when the operator runs `do-it setup` or
 
 Before sending hook changes for review, run `npm run lint` (shellcheck via
 `scripts/lint-hooks.sh`). `npm test` runs hook lint plus the hook regression
-suite in `scripts/test-hooks.sh`. CI runs the lint script on push / PR.
+suite in `scripts/test-hooks.sh`. CI runs the Node matrix, generated-agent
+build check, Codex and Claude install smoke tests, and package dry run on push
+and PR.
 
 ## Repository Layout
 
@@ -275,6 +279,9 @@ high-quality projects already proved out:
 
 `do-it` is my own take on the same problem space, shaped by what I learned from
 those projects and from daily use on real work.
+
+Thanks also to the [Linux.do](https://linux.do) community. The conversations
+there are a steady source of practical agent-workflow feedback and ideas.
 
 ## Maintenance
 
