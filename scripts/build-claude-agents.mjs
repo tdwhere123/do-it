@@ -79,11 +79,14 @@ function buildClaudeAgent(toml) {
   if (!data.name) throw new Error("agent missing name");
   const description = data.description ?? "";
   const body = (data.developer_instructions ?? "").replace(/\s+$/g, "");
+  const claudeModel = data.claude_model && data.claude_model.trim().length > 0
+    ? data.claude_model.trim()
+    : "inherit";
   return [
     "---",
     `name: ${data.name}`,
     `description: ${escapeYamlDoubleQuoted(description)}`,
-    "model: inherit",
+    `model: ${claudeModel}`,
     "---",
     "",
     body,

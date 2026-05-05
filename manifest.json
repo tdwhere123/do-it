@@ -1,8 +1,12 @@
 {
-  "version": "0.5.1",
+  "version": "0.6.0",
   "migrations": [
     {
       "from": "0.4.x",
+      "actions": []
+    },
+    {
+      "from": "0.5.x",
       "actions": []
     }
   ],
@@ -217,6 +221,12 @@
       "origin": "do-it"
     },
     {
+      "name": "do-it-brainstorm",
+      "source": "skills/do-it/do-it-brainstorm",
+      "target": "skills/do-it-brainstorm",
+      "origin": "do-it"
+    },
+    {
       "name": "do-it-architecture-scan",
       "source": "skills/do-it/do-it-architecture-scan",
       "target": "skills/do-it-architecture-scan",
@@ -294,6 +304,12 @@
       "source": "skills/do-it/do-it-skill-authoring",
       "target": "skills/do-it-skill-authoring",
       "origin": "do-it"
+    },
+    {
+      "name": "do-it-handbook",
+      "source": "skills/do-it/do-it-handbook",
+      "target": "skills/do-it-handbook",
+      "origin": "do-it"
     }
   ],
   "agents": [
@@ -301,6 +317,11 @@
       "name": "architect-reviewer",
       "source": "agents/architect-reviewer.toml",
       "target": "agents/architect-reviewer.toml"
+    },
+    {
+      "name": "ceo-reviewer",
+      "source": "agents/ceo-reviewer.toml",
+      "target": "agents/ceo-reviewer.toml"
     },
     {
       "name": "code-mapper",
@@ -323,9 +344,19 @@
       "target": "agents/documentation-engineer.toml"
     },
     {
+      "name": "end-user-advocate",
+      "source": "agents/end-user-advocate.toml",
+      "target": "agents/end-user-advocate.toml"
+    },
+    {
       "name": "install-release-reviewer",
       "source": "agents/install-release-reviewer.toml",
       "target": "agents/install-release-reviewer.toml"
+    },
+    {
+      "name": "ops-sre",
+      "source": "agents/ops-sre.toml",
+      "target": "agents/ops-sre.toml"
     },
     {
       "name": "plan-challenger",
@@ -376,6 +407,11 @@
       "name": "typescript-pro",
       "source": "agents/typescript-pro.toml",
       "target": "agents/typescript-pro.toml"
+    },
+    {
+      "name": "ux-designer",
+      "source": "agents/ux-designer.toml",
+      "target": "agents/ux-designer.toml"
     }
   ]
 }

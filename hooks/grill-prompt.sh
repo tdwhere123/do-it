@@ -119,6 +119,17 @@ fi
 
 # Heavy-tier turns get a fuller fact-first reminder; everyone else gets the
 # pointer-mode compressed reminder.
+#
+# When .do-it/brainstorm/<task>.md exists with `status: open` for the current
+# project, append a convergence-mode pointer so grill consumes that artifact
+# instead of restarting divergence. Light tier ignores brainstorm by design.
+
+BRAINSTORM_OPEN=0
+if [[ "$TIER" != "Light" && -d "${CWD}/.do-it/brainstorm" ]]; then
+  if grep -lZ -E '^status:[[:space:]]*open[[:space:]]*$' "${CWD}/.do-it/brainstorm"/*.md >/dev/null 2>&1; then
+    BRAINSTORM_OPEN=1
+  fi
+fi
 
 if [[ "$TIER" == "Heavy" ]]; then
   MSG="<system-reminder>
@@ -129,6 +140,12 @@ Skip grill only if: prompt contains 'yolo', '直接做', '我已经想清楚', '
 else
   MSG="<system-reminder>
 do-it grill (trigger: ${TRIGGER}). Verify facts first; ask one focused question only if the next action depends on a user decision. Full flow: load skill do-it-grill. Skip: yolo / /do-it-skip.
+</system-reminder>"
+fi
+
+if [[ "$BRAINSTORM_OPEN" -eq 1 ]]; then
+  MSG="${MSG}<system-reminder>
+do-it grill convergence: .do-it/brainstorm/ has at least one task with status: open. Read its 'Open decisions for grill' section, rank by route-impact, resolve each via the grill log, then flip brainstorm status to converged. See do-it-grill 'Convergence after brainstorm'.
 </system-reminder>"
 fi
 

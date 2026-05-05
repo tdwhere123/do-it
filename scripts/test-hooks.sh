@@ -44,6 +44,16 @@ json_stop() {
     '{session_id: $sid, transcript_path: $transcript, stop_hook_active: "false"}'
 }
 
+json_posttool() {
+  local session_id="$1" cwd="$2" tool_name="$3" file_path="$4"
+  jq -nc \
+    --arg sid "$session_id" \
+    --arg cwd "$cwd" \
+    --arg tool "$tool_name" \
+    --arg file_path "$file_path" \
+    '{session_id: $sid, cwd: $cwd, tool_name: $tool, tool_input: {file_path: $file_path}}'
+}
+
 run_router() {
   local session_id="$1" prompt="$2" cwd="${3:-$REPO_ROOT}"
   json_prompt "$session_id" "$prompt" "$cwd" | bash hooks/router.sh >/dev/null
@@ -62,6 +72,12 @@ run_pretool() {
 run_stop() {
   local session_id="$1" transcript_path="$2"
   json_stop "$session_id" "$transcript_path" | bash hooks/verification-gate.sh
+}
+
+run_code_map_refresh() {
+  local session_id="$1" cwd="$2" tool_name="$3" file_path="$4"
+  json_posttool "$session_id" "$cwd" "$tool_name" "$file_path" \
+    | bash hooks/code-map-refresh.sh
 }
 
 state_value() {
@@ -173,5 +189,47 @@ existing_plan_session="existing-plan"
 run_router "$existing_plan_session" "Prepare the release schema migration" "$plan_project"
 run_pretool "$existing_plan_session" "$plan_project" "Edit" "$existing_plan" "local note without heading" \
   || fail "Existing plan partial edit should not require repeating ## Grill"
+
+# code-map-refresh: structural barrel edit marks code-map.md stale; non-structural
+# edit leaves it untouched; second structural edit replaces (does not stack) the
+# stale marker line.
+codemap_project="$TMP_ROOT/codemap-project"
+mkdir -p "$codemap_project/.do-it/handbook"
+codemap_file="$codemap_project/.do-it/handbook/code-map.md"
+cat > "$codemap_file" <<'MARKDOWN'
+# Code Map
+
+(placeholder)
+MARKDOWN
+
+codemap_session="codemap-refresh"
+
+run_code_map_refresh "$codemap_session" "$codemap_project" "Edit" \
+  "$codemap_project/packages/foo/src/index.ts"
+first_line="$(head -n 1 "$codemap_file")"
+[[ "$first_line" == "<!-- stale: true; reason: package barrel changed: packages/foo/src/index.ts -->" ]] \
+  || fail "code-map-refresh: barrel edit should prepend stale marker, got: $first_line"
+
+run_code_map_refresh "$codemap_session" "$codemap_project" "Edit" \
+  "$codemap_project/packages/foo/src/utils.ts"
+unchanged_first="$(head -n 1 "$codemap_file")"
+[[ "$unchanged_first" == "<!-- stale: true; reason: package barrel changed: packages/foo/src/index.ts -->" ]] \
+  || fail "code-map-refresh: non-structural edit should not touch existing marker, got: $unchanged_first"
+
+run_code_map_refresh "$codemap_session" "$codemap_project" "Edit" \
+  "$codemap_project/packages/bar/src/index.ts"
+replaced_first="$(head -n 1 "$codemap_file")"
+[[ "$replaced_first" == "<!-- stale: true; reason: package barrel changed: packages/bar/src/index.ts -->" ]] \
+  || fail "code-map-refresh: second barrel edit should replace marker, got: $replaced_first"
+stale_count="$(grep -c '<!-- stale: ' "$codemap_file" || true)"
+[[ "$stale_count" == "1" ]] \
+  || fail "code-map-refresh: stale marker should not stack, count was $stale_count"
+
+# Confirm hook is a no-op when the handbook does not exist.
+no_handbook_project="$TMP_ROOT/codemap-no-handbook"
+mkdir -p "$no_handbook_project"
+run_code_map_refresh "$codemap_session" "$no_handbook_project" "Edit" \
+  "$no_handbook_project/packages/foo/src/index.ts" \
+  || fail "code-map-refresh should exit 0 when handbook is missing"
 
 echo "[test-hooks] ok"

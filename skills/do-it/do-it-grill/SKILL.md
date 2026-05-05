@@ -11,6 +11,8 @@ Use this to pressure-test reasoning before work hardens into code, docs, commits
 
 `do-it-review-loop` owns delivered diff review, QA intake, and multi-perspective findings. `do-it-grill` challenges whether that review is needed, sufficient, or honestly closed.
 
+`do-it-brainstorm` runs the divergent step — multiple read-only persona subagents (CEO / UX / end-user / Ops) widen the proposal before grill arrives. Grill then runs convergence on the open decisions those personas surfaced. Brainstorm never converges; grill never diverges. If both run, brainstorm runs first.
+
 ## How It Differs From a Q&A Template
 
 A common failure is to dump a 5-question template at the user and call it grilling. That gets shallow, scattered answers. Instead:
@@ -71,6 +73,25 @@ Run this loop until every execution-blocking item is resolved: facts become `con
 3. **Ask one focused question** only when the remaining unknown is a user decision. Recommend a default option so the user has something to push back on.
 4. **Record the outcome** in `.do-it/grill/<task>.md` (see `do-it-grill-log`). Use `kind: fact` with `confirmed/refuted` for evidence, or `kind: decision` with `chosen/deferred/needs_user_decision` for user preferences.
 5. **Repeat** with the next-most-load-bearing premise, until the remaining unknowns no longer change the route.
+
+## Convergence After Brainstorm
+
+When `.do-it/brainstorm/<task>.md` exists with `status: open`, grill enters convergence mode for the same task. The four (or fewer) personas have already widened the lens; grill's job is to pick the load-bearing items off the brainstorm artifact and resolve them, not to re-run divergence.
+
+Convergence flow:
+
+1. **Read the artifact.** Parse the "Open decisions for grill" section. Each entry is a candidate premise the brainstorm personas thought a human (or grill itself) had to settle.
+2. **Rank by route-impact.** Sort candidates by "if this is wrong, how many downstream choices change?" — same rule as the Iterative Loop. Cross-persona tensions usually outrank single-persona one-offs.
+3. **Resolve each candidate** via the existing loop (verify cheaply, ask one question if a user decision is needed, log the result in `.do-it/grill/<task>.md` per `do-it-grill-log`).
+4. **Reference the brainstorm slug** in the grill log frontmatter: add `brainstorm: <task-slug>` so `do-it-planning` and `do-it-verification-gate` can trace the lineage.
+5. **Flip brainstorm status.** Once every "Open decisions for grill" item has a resolution (`chosen` / `deferred` / `needs_user_decision` for decisions; `confirmed` / `refuted` for facts), edit the brainstorm artifact's frontmatter from `status: open` to `status: converged`. Do not delete the artifact; future sessions read it.
+
+Tier behavior:
+
+- **Light**: grill does **not** consume brainstorm. If brainstorm exists at Light tier, it was probably explicit; honor it by skimming the personas section briefly, but do the regular single-thread Light grill.
+- **Standard / Heavy**: grill **must** read the brainstorm artifact when it exists. Skipping it loses the point of running brainstorm at all.
+
+Convergence does not regenerate persona angles. If a persona's return looks thin or wrong, the answer is to re-dispatch that persona (re-run brainstorm with narrower scope), not to invent the missing angle inside grill.
 
 ## Anchoring Terms
 
@@ -186,5 +207,6 @@ For a heavy grill:
 
 - `do-it-context` — set up and maintain `.do-it/CONTEXT.md` with project terms and invariants.
 - `do-it-grill-log` — write per-task `.do-it/grill/<task>.md` artifacts (`kind`, falsifier, status, evidence).
+- `do-it-brainstorm` — divergent persona pass that runs before grill; produces the open decisions grill converges on.
 - `do-it-planning` — consume the grill outcome into a plan card under `.do-it/plans/<task>.md`.
 - `do-it-review-loop` — apply pressure to the delivered diff after grilling has set the bar.

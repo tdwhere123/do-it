@@ -1,6 +1,6 @@
 {
   "name": "@tdwhere/do-it",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "description": "Installable AI coding workflow for Codex and Claude Code with risk-based routing, scoped sub-agents, and evidence-backed completion.",
   "type": "module",
   "license": "MIT",
@@ -44,7 +44,7 @@
     "skills/do-it/"
   ],
   "bin": {
-    "do-it": "./bin/do-it.mjs"
+    "do-it": "bin/do-it.mjs"
   },
   "scripts": {
     "setup": "node bin/do-it.mjs setup",

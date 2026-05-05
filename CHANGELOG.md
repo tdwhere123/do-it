@@ -1,5 +1,73 @@
 # Changelog
 
+## 0.6.0
+
+### Highlights
+
+- **Brainstorm before grill.** New `do-it-brainstorm` skill runs four
+  read-only persona subagents in parallel (CEO / UX / end-user / Ops) and
+  writes one artifact per task at `.do-it/brainstorm/<task>.md`. Personas run
+  at Sonnet to bound token cost. Brainstorm only diverges; grill converges.
+- **Grill convergence mode.** `do-it-grill` reads the brainstorm artifact
+  when one is open, lifts persona "one question" items into candidate
+  premises, and flips brainstorm `status: open` → `converged` once each
+  decision is resolved in the grill log. Light tier still uses single-thread
+  grill; Standard / Heavy must consume the brainstorm.
+- **Project handbook bootstrap.** New `do-it-handbook` skill scaffolds
+  `.do-it/handbook/` with twelve generalized templates (invariants,
+  architecture, code-map, glossary, backlog, runtime-status, maintenance,
+  task-card-template, plus three workflow files). Templates are skeletons
+  with placeholders; the bootstrap is additive and never overwrites.
+- **Persistent code map.** `code-mapper` now writes the
+  "Current Implementation Locations" section of `.do-it/handbook/code-map.md`
+  when the handbook exists, so future sessions read instead of re-derive. A
+  new `code-map-refresh` hook marks that section stale on barrel / migration
+  / route / workspace-manifest edits.
+
+### Added
+
+- `skills/do-it/do-it-brainstorm/SKILL.md` — divergent persona pass with
+  tier-aware degradation (Light: 1 persona, Standard: 2-3, Heavy: 4 + optional
+  review agents).
+- `skills/do-it/do-it-handbook/SKILL.md` plus twelve templates under
+  `templates/` and `templates/workflow/`.
+- `agents/ceo-reviewer.toml`, `ux-designer.toml`, `end-user-advocate.toml`,
+  `ops-sre.toml` — four read-only persona agents pinned to Sonnet on the
+  Claude path via the new `claude_model` TOML field.
+- `commands/do-it-brainstorm.md`, `commands/do-it-handbook.md`.
+- `hooks/code-map-refresh.sh` — PostToolUse marker that prepends
+  `<!-- stale: true; reason: ... -->` to `.do-it/handbook/code-map.md` on
+  structural-file edits. Idempotent (replaces, does not stack).
+
+### Changed
+
+- `scripts/build-claude-agents.mjs` — honors a per-agent `claude_model` TOML
+  field; defaults to `model: inherit` when absent (no regression for the
+  other 16 agents).
+- `agents/code-mapper.toml` — adds `claude_model = "sonnet"` and a Handbook
+  Write Target / Claude Code Adapter section in `developer_instructions`.
+  Output target shifts from inline-only to
+  `.do-it/handbook/code-map.md` "Current Implementation Locations" when the
+  handbook exists.
+- `skills/do-it/do-it-grill/SKILL.md` — adds "Convergence after brainstorm"
+  section and Light / Standard / Heavy consumption rules.
+- `hooks/grill-prompt.sh` — when `.do-it/brainstorm/*.md` has any file with
+  `status: open` and tier is Standard / Heavy, appends a convergence-mode
+  pointer to the grill reminder.
+- `hooks/hooks.json` — registers PostToolUse for `code-map-refresh.sh`.
+- `manifest.json` — registers `do-it-brainstorm` and `do-it-handbook` skills,
+  plus the four new persona agents.
+
+### Migration
+
+- No breaking changes for 0.5.x users. Existing `.do-it/grill/`,
+  `.do-it/plans/`, and `.do-it/CONTEXT.md` paths are unchanged.
+- The new `.do-it/brainstorm/` directory is additive; grill ignores it on
+  Light tier and works as before when no brainstorm artifact exists.
+- The new code-map refresh hook only acts when
+  `.do-it/handbook/code-map.md` already exists; projects that have not run
+  `/do-it-handbook` are unaffected.
+
 ## 0.5.1
 
 ### Highlights
