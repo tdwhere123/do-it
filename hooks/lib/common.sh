@@ -37,13 +37,17 @@ do_it_json_get_nested() {
 }
 
 # Compute a session-scoped data dir. Caller is responsible for mkdir.
-# Prefers ${CLAUDE_PLUGIN_DATA}/sessions/<id>; falls back to /tmp.
+# Prefers host-provided plugin data, then Codex global hook data, then /tmp.
 do_it_session_dir() {
   local session_id="${1:-anon}"
   if [[ -z "$session_id" ]]; then session_id="anon"; fi
   local base
-  if [[ -n "${CLAUDE_PLUGIN_DATA:-}" ]]; then
+  if [[ -n "${DO_IT_HOOK_DATA:-}" ]]; then
+    base="${DO_IT_HOOK_DATA%/}/sessions"
+  elif [[ -n "${CLAUDE_PLUGIN_DATA:-}" ]]; then
     base="${CLAUDE_PLUGIN_DATA%/}/sessions"
+  elif [[ -n "${CODEX_HOME:-}" ]]; then
+    base="${CODEX_HOME%/}/do-it-data/sessions"
   else
     base="${TMPDIR:-/tmp}/do-it-sessions"
   fi

@@ -59,7 +59,10 @@ fresh verification output before it can claim the task is complete.
 That keeps the closeout tied to the repository's actual state, not the agent's
 confidence.
 
-## Install From GitHub
+## Codex Global Setup
+
+Recommended when you want the full automatic workflow in Codex: skills,
+agents, global hooks, and `doctor` managed from one explicit command.
 
 Install the CLI globally from this GitHub repository, then run setup:
 
@@ -73,10 +76,13 @@ GitHub's source tarball rather than the npm registry.
 
 `do-it setup` runs `do-it install` followed by `do-it doctor`.
 
-- `do-it install` copies the managed skills and agents into the target host.
+- `do-it install` copies managed skills, agents, hook scripts, and Codex root
+  `hooks.json` into the target host.
 - `do-it doctor` checks that installed files and install state match
   `manifest.json`.
 - Codex installs to `CODEX_HOME`, which defaults to `~/.codex`.
+- Codex global hooks use `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, and
+  `Stop` to route, pressure-test, refresh code maps, and require verification.
 
 Use a temporary Codex home when testing an install:
 
@@ -88,6 +94,31 @@ The installer will not silently replace user-owned skill or agent files. If it
 finds a target that is not already marked as do-it-managed, it stops. Set
 `DO_IT_FORCE=1` only when you intentionally want the package to replace those
 targets.
+
+## Codex Plugin Marketplace
+
+`do-it` also publishes a Codex plugin marketplace shape for first-class
+discovery of its skills and agents:
+
+```bash
+codex plugin marketplace add tdwhere123/do-it
+```
+
+For a local checkout smoke test, use the checkout path as the marketplace
+source with a temporary `CODEX_HOME`:
+
+```bash
+CODEX_HOME=/tmp/do-it-plugin-test codex plugin marketplace add /path/to/do-it
+```
+
+The Codex plugin bundle lives at `plugins/do-it/` and is generated from
+`manifest.json`. It includes 21 skills and 22 agents, including optional
+`do-it-visual-planning`.
+
+For v1, pair plugin installation with `do-it setup` when you need enforced
+automatic hooks. Local `codex features list` currently reports
+`codex_hooks=true`, `plugins=true`, and `plugin_hooks=false`, so plugin-local
+hooks are not the enforcement substrate.
 
 ## Claude Code
 
@@ -124,14 +155,17 @@ The Claude target installs to `~/.claude/` by default; override with
   `product-strategist` / `architecture-strategist` cores for product
   boundary, core goal, foundation, and extension shape, plus optional product,
   UX, end-user, ops, security, domain, and plan supplements.
-- Claude Code plugin assets, hooks, commands, and generated sub-agent
-  definitions. Hooks include a **PostToolUse `code-map-refresh`** that marks
+- Codex global hook assets and root `hooks.json` installed by `do-it setup`.
+  Hooks include a **PostToolUse `code-map-refresh`** that marks
   `.do-it/handbook/code-map.md` stale on barrel / migration / route /
   workspace-manifest edits.
+- Claude Code plugin assets, hooks, commands, and generated sub-agent
+  definitions.
 - Copy-based installer and `doctor` commands that validate managed host files
   against `manifest.json`.
 - A release surface that works from a local checkout, a packed tarball, a
-  GitHub repository, or a GitHub-backed terminal install.
+  GitHub repository, a GitHub-backed terminal install, or a Codex plugin
+  marketplace.
 
 ## The Flow
 
@@ -179,8 +213,9 @@ Full routing policy: [`docs/routing-matrix.md`](./docs/routing-matrix.md).
 
 ## What You Do Not Need To Remember
 
-- No slash command vocabulary. Hooks fire skills at the host lifecycle points
-  where they matter.
+- No slash command vocabulary for the automatic path. Codex global setup and
+  the Claude Code plugin install hooks at the host lifecycle points where they
+  matter.
 - No external orchestration runtime. Sub-agent control lives in
   `do-it-subagent-orchestration`, which is just a skill.
 - One-turn bypass. Include `yolo`, `直接做`, `skip grill`, or `/do-it-skip` in
@@ -237,12 +272,14 @@ and PR.
 
 ```text
 agents/          Portable Codex agent TOML definitions
+.agents/plugins/ Codex marketplace metadata
 bin/             The global do-it CLI entrypoint
 commands/        Claude Code command surface
 dist/claude/     Generated Claude Code agent definitions
 docs/            Routing, maintenance, origin map, and release notes
 hooks/           Host hook scripts
 install/         Installer, doctor, and shell wrapper entrypoints
+plugins/do-it/   Generated Codex plugin bundle
 skills/custom/   Local skill examples that are not installed by default
 skills/do-it/    Installed do-it-native skill directories
 manifest.json    Install inventory and target paths
@@ -334,8 +371,10 @@ Useful release checks:
 git diff --check
 npm test
 npm run build:claude-agents
+npm run build:codex-plugin
 CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it setup
 CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it doctor
+CODEX_HOME=/tmp/do-it-plugin-test codex plugin marketplace add /path/to/do-it
 CLAUDE_PLUGIN_ROOT_OVERRIDE=/tmp/do-it-claude-test npm exec --package . -- do-it setup --target=claude
 npm pack --dry-run --json
 ```

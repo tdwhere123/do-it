@@ -18,7 +18,20 @@
       "agentSourceFrom": "agents",
       "agentSourceExt": ".toml",
       "agentTargetExt": ".toml",
-      "extras": [],
+      "extras": [
+        {
+          "name": "codex-hooks",
+          "kind": "directory",
+          "source": "hooks",
+          "target": "hooks"
+        },
+        {
+          "name": "codex-hooks-json",
+          "kind": "file",
+          "source": "install/codex-hooks.json",
+          "target": "hooks.json"
+        }
+      ],
       "preInstall": []
     },
     "claude": {

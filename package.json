@@ -29,6 +29,7 @@
     "access": "public"
   },
   "files": [
+    ".agents/plugins/",
     ".claude-plugin/",
     "agents/",
     "bin/",
@@ -38,6 +39,7 @@
     "hooks/",
     "install/",
     "manifest.json",
+    "plugins/do-it/",
     "README.zh-CN.md",
     "scripts/",
     "skills/custom/README.md",
@@ -53,7 +55,8 @@
     "doctor": "node install/manage.mjs doctor",
     "doctor:claude": "node install/manage.mjs doctor --target=claude",
     "build:claude-agents": "node scripts/build-claude-agents.mjs",
-    "prepack": "node scripts/build-claude-agents.mjs",
+    "build:codex-plugin": "node scripts/build-codex-plugin.mjs",
+    "prepack": "node scripts/build-claude-agents.mjs && node scripts/build-codex-plugin.mjs",
     "do-it": "node bin/do-it.mjs",
     "lint": "bash scripts/lint-hooks.sh",
     "lint-hooks": "bash scripts/lint-hooks.sh",

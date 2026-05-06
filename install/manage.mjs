@@ -758,8 +758,14 @@ function doctor() {
 }
 
 function sessionsBaseDir() {
+  if (process.env.DO_IT_HOOK_DATA) {
+    return path.join(process.env.DO_IT_HOOK_DATA, "sessions");
+  }
   if (process.env.CLAUDE_PLUGIN_DATA) {
     return path.join(process.env.CLAUDE_PLUGIN_DATA, "sessions");
+  }
+  if (process.env.CODEX_HOME) {
+    return path.join(process.env.CODEX_HOME, "do-it-data", "sessions");
   }
   return path.join(process.env.TMPDIR || "/tmp", "do-it-sessions");
 }

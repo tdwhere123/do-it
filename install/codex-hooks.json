@@ -1,0 +1,55 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "DO_IT_HOOK_DATA=\"${CODEX_HOME:-$HOME/.codex}/do-it-data\" \"${CODEX_HOME:-$HOME/.codex}/hooks/router.sh\"",
+            "timeout": 25
+          },
+          {
+            "type": "command",
+            "command": "DO_IT_HOOK_DATA=\"${CODEX_HOME:-$HOME/.codex}/do-it-data\" \"${CODEX_HOME:-$HOME/.codex}/hooks/grill-prompt.sh\"",
+            "timeout": 25
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "DO_IT_HOOK_DATA=\"${CODEX_HOME:-$HOME/.codex}/do-it-data\" \"${CODEX_HOME:-$HOME/.codex}/hooks/grill-pretool.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "DO_IT_HOOK_DATA=\"${CODEX_HOME:-$HOME/.codex}/do-it-data\" \"${CODEX_HOME:-$HOME/.codex}/hooks/code-map-refresh.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "DO_IT_HOOK_DATA=\"${CODEX_HOME:-$HOME/.codex}/do-it-data\" \"${CODEX_HOME:-$HOME/.codex}/hooks/verification-gate.sh\"",
+            "timeout": 25
+          }
+        ]
+      }
+    ]
+  }
+}

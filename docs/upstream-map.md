@@ -83,10 +83,12 @@ installers.
 
 ## Adapter Notes
 
-- Codex and Claude Code are first-class install targets as of 0.4.0; other
-  agent runtimes (Cursor, OpenCode, Copilot CLI, Gemini) can be added via a
-  new `manifest.targets.<name>` block. See `docs/maintenance.md` →
-  "Claude Code Target" → "Adding a target".
+- Codex global setup and Claude Code are first-class install targets; Codex
+  plugin marketplace discovery is generated under `plugins/do-it/` and should
+  be paired with global setup when enforced hooks are required. Other agent
+  runtimes (Cursor, OpenCode, Copilot CLI, Gemini) can be added via a new
+  `manifest.targets.<name>` block. See `docs/maintenance.md` for target and
+  plugin maintenance rules.
 - Each host should reuse the same do-it roles and translate only mechanics:
   skill invocation (Claude uses hooks instead of slash commands), subagent
   dispatch, file tools, sandbox controls, and verification commands.

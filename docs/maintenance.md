@@ -28,18 +28,20 @@ proven so documentation follows current truth.
 
 ## Package And CLI Coordination
 
-The durable public concept is global npm installation through the `do-it` CLI.
-Current package work exposes a `do-it` bin and local package scripts. Keep docs
-stable:
+The durable public concept is explicit installation through the `do-it` CLI,
+plus optional plugin marketplace discovery where the host supports it. Current
+package work exposes a `do-it` bin and local package scripts. Keep docs stable:
 
-- use `npm install -g @tdwhere/do-it` followed by `do-it setup` as the public
-  registry path
-- mention `npm install -g github:OWNER/do-it` for GitHub-hosted pre-registry
-  installs
+- use the GitHub tarball install followed by `do-it setup` as the currently
+  verified public terminal path
+- mention `npm install -g @tdwhere/do-it` only as the registry path after
+  registry publication is verified
 - use `npm exec --package . -- do-it setup` for checkout-local package examples
   when the package surface is present
 - keep `do-it install` and `do-it doctor` documented as the underlying split
   commands for CI, debugging, or partial checks
+- keep Codex plugin marketplace instructions paired with global setup when
+  the user needs enforced automatic hooks
 - do not invent package.json scripts or release coordinates that are not present
 - make future package commands delegate to the same installer and doctor logic
 
@@ -48,14 +50,18 @@ Current validation commands:
 ```bash
 npm test
 npm run build:claude-agents
+npm run build:codex-plugin
 npm exec --package . -- do-it setup
 npm exec --package . -- do-it install
 npm exec --package . -- do-it doctor
+CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it setup
+CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it doctor
 CLAUDE_PLUGIN_ROOT_OVERRIDE=/tmp/do-it-claude-test npm exec --package . -- do-it setup --target=claude
 ./install/install.sh
 ./install/doctor.sh
 CODEX_HOME=/tmp/do-it-codex-test ./install/install.sh
 CODEX_HOME=/tmp/do-it-codex-test ./install/doctor.sh
+CODEX_HOME=/tmp/do-it-plugin-test codex plugin marketplace add /path/to/do-it
 ```
 
 After registry publication, also validate the public global path:
@@ -80,6 +86,14 @@ previous live target.
 `doctor` treats a missing, malformed, version-mismatched, or stale install
 state file as drift. A clean file copy is not enough when the state marker that
 protects future upgrades is missing.
+
+## Host Capability Matrix
+
+| Host surface | Skills | Agents | Commands | Hooks | Doctor | Verification command |
+|---|---|---|---|---|---|---|
+| Codex global setup | Managed from `manifest.json` | TOML from `agents/` | CLI `do-it` | Enforced through root `hooks.json` and `hooks/` | Default target | `CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it setup` |
+| Codex plugin marketplace | Generated under `plugins/do-it/skills/` | Generated under `plugins/do-it/agents/` | None | Do not rely on plugin hooks while `plugin_hooks=false` | None; use global setup for doctor | `npm run build:codex-plugin` and `CODEX_HOME=/tmp/do-it-plugin-test codex plugin marketplace add /path/to/do-it` |
+| Claude Code plugin | Same maintained `skills/do-it/` source | Generated Markdown under `dist/claude/agents/` | `commands/` | Plugin `hooks/hooks.json` | `--target=claude` | `CLAUDE_PLUGIN_ROOT_OVERRIDE=/tmp/do-it-claude-test npm exec --package . -- do-it setup --target=claude` |
 
 Deprecated legacy skill targets use the same safety rule: install removes them
 only when they are marked as do-it-managed in the state file or when
@@ -182,9 +196,10 @@ the same `agents/*.toml` source-of-truth. The Claude target adds:
 ### Maintaining the Claude Target
 
 - **Skill change:** edit `skills/do-it/<name>/SKILL.md`. Both targets pick up
-  the change. The frontmatter `description` should follow the
-  `Problem: ...; Fix: ...` shape so Claude's implicit-summon path stays
-  reliable when hooks are bypassed.
+  the change. The frontmatter `description` should start with trigger-first
+  `Use when...` wording so Codex plugin discovery and Claude implicit-summon
+  both see the activation condition. Keep the existing Problem/Fix body content
+  below the frontmatter when it is still useful.
 - **Agent change:** edit `agents/<name>.toml`. The next install (or
   `npm run build:claude-agents`) regenerates the Claude `.md` form.
 - **Claude-only model change:** keep Codex TOML schema-clean. Do not add
@@ -195,6 +210,36 @@ the same `agents/*.toml` source-of-truth. The Claude target adds:
   `<cwd>/.do-it/keywords.local.sh` (sourced after defaults).
 - **Hook behavior change:** edit the relevant `hooks/*.sh`. Hook scripts must
   remain bash, jq-only, and degrade silently (exit 0) on unexpected input.
+
+## Codex Plugin Target
+
+As of the Codex plugin v1 line, the repo also exposes a Codex marketplace
+surface generated from the same maintained manifest:
+
+- `.agents/plugins/marketplace.json` — repo-local marketplace entry pointing
+  `do-it` at `./plugins/do-it`.
+- `plugins/do-it/.codex-plugin/plugin.json` — plugin metadata with version
+  parity to `package.json`.
+- `plugins/do-it/skills/` — generated from every `manifest.skills[]` entry,
+  including optional `do-it-visual-planning`.
+- `plugins/do-it/agents/` — generated from every `manifest.agents[]` entry.
+- `scripts/build-codex-plugin.mjs` — the only supported way to refresh the
+  generated plugin bundle.
+
+### Maintaining The Codex Plugin Target
+
+- **Inventory change:** update `manifest.json`, then run
+  `npm run build:codex-plugin` and commit the generated marketplace/plugin
+  changes.
+- **Version change:** update `package.json` and `manifest.json` together; the
+  Codex plugin build fails if they drift.
+- **Skill wording change:** edit source skills under `skills/do-it/`, then
+  regenerate. Do not edit `plugins/do-it/skills/` directly.
+- **Agent change:** edit `agents/*.toml`, then regenerate. Do not merge Claude
+  `.md` generation into the Codex plugin build.
+- **Hook change:** keep Codex global hook enforcement in the CLI setup path.
+  Plugin-local hooks are not a v1 enforcement promise while
+  `plugin_hooks=false`.
 
 ### Adding a target
 
@@ -259,8 +304,10 @@ Recommended checks before committing workflow changes. For live-first rebaseline
 git diff --check
 npm test
 npm run build:claude-agents
+npm run build:codex-plugin
 CODEX_HOME=/tmp/do-it-codex-test ./install/install.sh
 CODEX_HOME=/tmp/do-it-codex-test ./install/doctor.sh
+CODEX_HOME=/tmp/do-it-plugin-test codex plugin marketplace add /path/to/do-it
 CLAUDE_PLUGIN_ROOT_OVERRIDE=/tmp/do-it-claude-test npm exec --package . -- do-it setup --target=claude
 npm pack --dry-run --json
 ```

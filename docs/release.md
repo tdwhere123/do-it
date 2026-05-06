@@ -1,7 +1,11 @@
 # Release Notes
 
-This workflow bundle is designed to ship as a global npm CLI. The public path is
-`npm install -g ...`, then `do-it setup`.
+This workflow bundle ships through three surfaces:
+
+1. Codex global setup for full automatic hooks and doctor-managed install.
+2. Codex plugin marketplace for first-class skills and agents discovery.
+3. Claude Code plugin marketplace for Claude-native hooks, commands, and
+   generated agents.
 
 ## Baseline
 
@@ -17,22 +21,56 @@ This workflow bundle is designed to ship as a global npm CLI. The public path is
 
 ## Global Install Surface
 
-From the npm registry:
+Current verified terminal install from GitHub:
+
+```bash
+npm install -g https://github.com/tdwhere123/do-it/archive/refs/heads/main.tar.gz
+do-it setup
+```
+
+After npm registry publication, the registry path may also be used:
 
 ```bash
 npm install -g @tdwhere/do-it
 do-it setup
 ```
 
-From a GitHub repository before registry publication:
+`do-it setup` delegates to the same installer and doctor logic as the local
+scripts. It does not run from npm lifecycle hooks. For Codex, setup installs
+skills, agents, `hooks/`, and root `hooks.json`.
+
+## Codex Plugin Surface
+
+The Codex plugin marketplace files follow the repo-local marketplace shape:
+
+- `.agents/plugins/marketplace.json`
+- `plugins/do-it/.codex-plugin/plugin.json`
+- `plugins/do-it/skills/`
+- `plugins/do-it/agents/`
+
+Regenerate the bundle from `manifest.json`:
 
 ```bash
-npm install -g github:OWNER/do-it
-do-it setup
+npm run build:codex-plugin
 ```
 
-`do-it setup` delegates to the same installer and doctor logic as the local
-scripts. It does not run from npm lifecycle hooks.
+Register the marketplace from a checkout:
+
+```bash
+CODEX_HOME=/tmp/do-it-plugin-test codex plugin marketplace add /path/to/do-it
+```
+
+Do not treat plugin-local hooks as the v1 enforcement path. Local capability
+checks currently show `codex_hooks=true`, `plugins=true`, and
+`plugin_hooks=false`, so enforced hooks come from Codex global setup.
+
+## Host Capability Matrix
+
+| Host surface | Skills | Agents | Commands | Hooks | Doctor | Verification command |
+|---|---|---|---|---|---|---|
+| Codex global setup | Yes, from `manifest.json` | Yes, TOML from `agents/` | CLI `do-it` only | Yes, root `hooks.json` plus `hooks/` | Yes, default target | `CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it setup` |
+| Codex plugin marketplace | Yes, generated under `plugins/do-it/skills/` | Yes, generated under `plugins/do-it/agents/` | No slash command surface | Not relied on while `plugin_hooks=false` | No direct doctor; pair with global setup for hooks | `npm run build:codex-plugin` then `CODEX_HOME=/tmp/do-it-plugin-test codex plugin marketplace add /path/to/do-it` |
+| Claude Code plugin | Yes, from `skills/do-it/` | Yes, generated Markdown under `dist/claude/agents/` | Yes, `commands/` | Yes, plugin `hooks/hooks.json` | Yes, `--target=claude` | `CLAUDE_PLUGIN_ROOT_OVERRIDE=/tmp/do-it-claude-test npm exec --package . -- do-it setup --target=claude` |
 
 ## Local Checkout Surface
 
@@ -84,21 +122,29 @@ release artifact.
 1. Run `git diff --check`.
 2. Run `npm test`.
 3. Run `npm run build:claude-agents`.
-4. Run `CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it setup`.
-5. Run `CLAUDE_PLUGIN_ROOT_OVERRIDE=/tmp/do-it-claude-test npm exec --package . -- do-it setup --target=claude`.
-6. Run `npm pack --dry-run --json`.
-7. Confirm `docs/upstream-map.md` reflects the latest imports.
-8. Confirm `manifest.json` matches the on-disk inventory.
-9. Confirm the temporary/source-only rewrite material is not included in the
+4. Run `npm run build:codex-plugin`.
+5. Run `CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it setup`.
+6. Run `CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it doctor`.
+7. Smoke the installed Codex hook commands for `UserPromptSubmit`,
+   `PreToolUse`, `PostToolUse`, and `Stop` against the temporary `CODEX_HOME`.
+8. Run `CODEX_HOME=/tmp/do-it-plugin-test codex plugin marketplace add /path/to/do-it`
+   or inspect the local marketplace registration manually.
+9. Run `CLAUDE_PLUGIN_ROOT_OVERRIDE=/tmp/do-it-claude-test npm exec --package . -- do-it setup --target=claude`.
+10. Run `npm pack --dry-run --json`.
+11. Confirm `docs/upstream-map.md` reflects the latest imports.
+12. Confirm `manifest.json` matches the on-disk inventory.
+13. Confirm `.agents/plugins/marketplace.json`, `plugins/do-it/`, and
+   `install/codex-hooks.json` are included in the package.
+14. Confirm the temporary/source-only rewrite material is not included in the
    package.
-10. Confirm a simulated legacy upgrade can remove unmodified deprecated targets
+15. Confirm a simulated legacy upgrade can remove unmodified deprecated targets
    without `DO_IT_FORCE=1`.
-11. Confirm a simulated replacement failure preserves both current managed
+16. Confirm a simulated replacement failure preserves both current managed
    targets and deprecated legacy targets.
-12. Confirm `doctor` fails when `.do-it-install-state.json` is missing or stale.
-13. Confirm no machine-local files were added to the package.
-14. Confirm the release instructions describe copy-based install behavior only,
+17. Confirm `doctor` fails when `.do-it-install-state.json` is missing or stale.
+18. Confirm no machine-local files were added to the package.
+19. Confirm the release instructions describe copy-based install behavior only,
    not symlink-based deployment.
-15. Confirm Codex-installed `agents/*.toml` do not contain Claude-only fields
+20. Confirm Codex-installed `agents/*.toml` do not contain Claude-only fields
    such as `claude_model`, and that `npm run build:claude-agents` still
    generates Claude agent frontmatter with the intended model values.

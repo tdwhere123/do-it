@@ -132,6 +132,14 @@ run_router "$intent_session" "Implement the logging cleanup"
 intent_grill="$(run_grill "$intent_session" "Implement the logging cleanup")"
 assert_empty "$intent_grill" "intent-only Standard should not grill"
 
+brainstorm_session="brainstorm-is-not-escape"
+run_router "$brainstorm_session" "brainstorm the Codex plugin distribution"
+if [[ -f "$CLAUDE_PLUGIN_DATA/sessions/$brainstorm_session/skip-router" ]] \
+  || [[ -f "$CLAUDE_PLUGIN_DATA/sessions/$brainstorm_session/skip-grill" ]] \
+  || [[ -f "$CLAUDE_PLUGIN_DATA/sessions/$brainstorm_session/skip-gate" ]]; then
+  fail "brainstorm should not set escape skip flags"
+fi
+
 single_heavy_signal_session="single-heavy-signal"
 run_router "$single_heavy_signal_session" "across packages refactor"
 [[ "$(state_value "$single_heavy_signal_session" tier)" == "Standard" ]] \
