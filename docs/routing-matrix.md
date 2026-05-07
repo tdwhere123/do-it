@@ -7,6 +7,64 @@ The default environment is Codex. In Claude Code or another agent runtime, keep
 the same roles and gates, then adapt tool names and delegation mechanics to that
 runtime.
 
+## 0.7.x Orthogonal Dimensions
+
+In addition to the single-axis tier label (`Light` / `Standard` / `Heavy`),
+the router now writes five independent boolean dimensions to session state.
+The tier value remains the canonical input every existing skill keys off.
+Dimensions are **additive signals**: downstream skills MAY read them to
+specialize triggers, but the router never coerces tier from them.
+
+| Dimension | Hits when | Used by |
+|---|---|---|
+| `dim_touches_code` | prompt names a file path, extension, fenced snippet, or curated technical noun | discriminate "discuss vs. modify" before grill / TDD fires |
+| `dim_crosses_packages` | ≥ 2 distinct top-level path segments named in the prompt | architecture-scan trigger judgement |
+| `dim_breaks_interface` | prompt mentions breaking change, schema rewrite, API rewrite, endpoint rename / delete / deprecate, or interface contract change | interface-drill trigger judgement; auto-escalates `dim_needs_review_loop` |
+| `dim_needs_tdd` | prompt names behaviour-modifying intent (`implement`, `实现`, `add feature`, `fix bug`, `修复 bug`, `添加功能`) | TDD trigger judgement |
+| `dim_needs_review_loop` | tier is Heavy OR `dim_breaks_interface=1` | review-loop trigger judgement |
+
+Compatibility: tier is preserved (Light / Standard / Heavy) as the derived
+classifier; all existing skill triggers continue to key off it. Light
+classifications skip dimension evaluation entirely (every dim stays 0) so the
+discussion / mechanical-edit fast path keeps zero overhead.
+
+Dimensions live under per-session state at `<session_dir>/state.json` (jq
+present) or `state.kv` (jq absent). DEBUG mode (`DO_IT_DEBUG=1`) appends them
+to the system-reminder trailer:
+`<!-- triggered by: tier=Standard, ..., dims={touches:1, packages:0,
+interface:0, tdd:1, review:0} -->`.
+
+### Skill Combinations By Dimension (Reference Only)
+
+The router does NOT prescribe a fixed combination — these are illustrative
+expectations downstream skills may satisfy independently:
+
+- `tier=Light`: silent banner, no skill recommendation
+- `tier=Standard, touches_code=1, needs_tdd=0`: grill (only on uncertainty / explicit / long) + one focused review
+- `tier=Standard, needs_tdd=1`: grill + planning (light) + tdd + targeted review
+- `tier=Heavy, breaks_interface=1`: grill + planning + interface-drill + adversarial review-loop
+- `tier=Heavy, crosses_packages=1`: grill + planning + architecture-scan + adversarial review-loop
+
+These combinations are not enforced in code. Each skill's own `description`
+and decision-tree owns the actual trigger semantics; dimensions just give
+those triggers a cheaper-than-keyword input.
+
+## 0.7.x Lazy Skill Loading
+
+The router system-reminder no longer enumerates the skill catalogue inline.
+Standard / Heavy banners point the agent at `skills/_index.md`, a compact
+bucketed map (~3 KB) of every installed do-it skill grouped into:
+
+- 主线 (router 推荐) — front-line skills routed by tier
+- 按需触发 — domain / risk-specific skills loaded only when needed
+- Handbook & 维护 — durable infrastructure skills
+
+The agent loads the index on-demand via the Skill tool when it actually
+needs to pick a skill, instead of paying the catalogue cost on every prompt.
+The index is a generated artifact: `node scripts/build-skills-index.mjs`
+rebuilds it from each `skills/do-it/<name>/SKILL.md` frontmatter and
+`manifest.json`.
+
 ## 0.5.1 Routing Changes
 
 - **Heavy promotion still requires ≥2 heavy signals.** A single mention of
@@ -90,6 +148,8 @@ evidence-first closeout. The installed names and public routing are
 do-it-native.
 
 ## Three Tiers
+
+> **0.7.x note**: Tier is one axis. The router also writes 5 orthogonal `dim_*` flags into session state (see [0.7.x Orthogonal Dimensions](#07x-orthogonal-dimensions) above) — downstream skills may read either tier, dimensions, or both. Tier remains authoritative for the default flows below; dimensions narrow the *intensity* (e.g. review-quick vs review-adversarial — see `do-it-review-loop`).
 
 | Tier | Use When | Default Skill Flow | Subagent Behavior | Closeout |
 |---|---|---|---|---|

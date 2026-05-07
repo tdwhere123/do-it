@@ -40,6 +40,7 @@ entry_points=(
   hooks/grill-pretool.sh
   hooks/verification-gate.sh
   hooks/code-map-refresh.sh
+  hooks/comments-lint.sh
 )
 
 # `-x` lets shellcheck follow `# shellcheck source=...` lines so the lib files

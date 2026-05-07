@@ -13,6 +13,7 @@ const outDir = path.join(repoRoot, "dist", "claude", "agents");
 
 const CLAUDE_MODEL_BY_AGENT = new Map([
   ["architecture-strategist", "sonnet"],
+  ["architecture-taste-reviewer", "sonnet"],
   ["ceo-reviewer", "sonnet"],
   ["code-mapper", "sonnet"],
   ["end-user-advocate", "sonnet"],

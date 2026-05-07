@@ -13,6 +13,17 @@
 #     (state.last_prompt_kind == question).
 #   - Evidence pattern expanded: pytest, mypy, tsc, eslint, ruff, biome,
 #     cargo (run|build|check), go (run|build|vet).
+#
+# 0.7.x behavior (Phase 7, review-quick inline review for Light):
+#   - Light tier + edits in this session → inject inline-review reminder
+#     before the fresh-evidence check. Agent must produce an
+#     `inline-review: clean` (or `inline-review: <finding>`) marker in the
+#     transcript before claiming done. The inline-review marker can be in any
+#     recent assistant text; once seen we pass through and the regular
+#     fresh-evidence rule still applies.
+#   - The inline-review reminder and the fresh-evidence reminder are
+#     orthogonal: inline-review checks code-level correctness/comment
+#     discipline; fresh-evidence checks that a verification command was run.
 
 set -uo pipefail
 
@@ -89,6 +100,47 @@ EDIT_TOOL_PATTERN='"name"[[:space:]]*:[[:space:]]*"(Edit|Write|MultiEdit|Noteboo
 if ! printf '%s' "$TAIL_BUF" | grep -qiE "$EDIT_TOOL_PATTERN"; then
   do_it_debug verification-gate "decision=no-edits"
   exit 0
+fi
+
+# review-quick inline-review for Light tier: when the router classified this
+# session as Light AND the recent tail shows an Edit/Write/MultiEdit tool_use
+# (heuristic for "this session touched code"), require an inline-review
+# marker in the transcript before letting "done" through. The marker is any
+# of `inline-review: clean`, `inline-review-clean: yes`, or
+# `inline-review: <finding>` — produced by the agent after running the
+# self-review prompt described in skills/do-it/do-it-review-loop/SKILL.md.
+#
+# This is orthogonal to the fresh-evidence check below: inline-review covers
+# code-level correctness + comment discipline; fresh-evidence covers
+# verification-command output. The agent may need to address both.
+TIER="$(do_it_session_state_get "$SESSION_ID" tier)"
+if [[ "$TIER" == "Light" ]]; then
+  # Match only at the start of a line in the LAST assistant text. This avoids
+  # two failure modes:
+  #   1. The gate's own block reason gets replayed back into the transcript;
+  #      if the reason itself contained an unwrapped `inline-review:` token
+  #      anywhere, the next gate invocation would self-satisfy. We require a
+  #      line-anchored marker and we shape the block reason below so its
+  #      `inline-review` mention sits mid-line behind a backtick.
+  #   2. Free-prose mentions of `inline-review` mid-sentence would falsely
+  #      satisfy the gate. The line anchor forces the agent to emit the
+  #      marker as its own line, the way the SKILL prompt instructs.
+  # Accepted shapes (anywhere after the leading whitespace + `inline-review`):
+  #   inline-review: clean
+  #   inline-review: <any non-empty finding>
+  #   inline-review-clean: yes
+  INLINE_REVIEW_PATTERN='^[[:space:]]*inline-review[-:]'
+  if ! printf '%s' "$LAST_ASSISTANT_TEXT" | grep -qE "$INLINE_REVIEW_PATTERN"; then
+    # Build the block reason carefully: no bare `inline-review:` token at the
+    # start of any line, so a transcript replay of this reason cannot
+    # self-satisfy the regex above. The example token is wrapped in backticks
+    # and embedded mid-sentence.
+    INLINE_REASON="do-it review-quick (Light tier): this session edited code and the latest response declares completion, but no inline self-review marker is present on its own line in the recent transcript. Before claiming done, run an inline self-review of the diff and check: (a) any obvious correctness regression; (b) missing tests if behavior changed; (c) error handling at boundaries; (d) comment-discipline violations (only @anchor: / see also: / invariant: / type annotations / tool directives are allowed — flag narrative or task-reference comments). Then output a single line that begins with the marker prefix \`inline-review:\` (clean, or a finding) — for example a line whose content is the literal phrase \`inline-review\` followed by a colon then \`clean\`. To bypass: include 'skip gate' / 'yolo' in the next message, or run /do-it-skip gate."
+    do_it_debug verification-gate "decision=block reason=no-inline-review tier=Light"
+    do_it_emit_block "$INLINE_REASON"
+    exit 0
+  fi
+  do_it_debug verification-gate "decision=have-inline-review tier=Light"
 fi
 
 # Detect verification evidence: Bash tool use or any of the known test / type /

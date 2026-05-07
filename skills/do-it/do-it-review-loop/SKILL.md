@@ -54,6 +54,96 @@ multi-agent integration review. Heavy is parent-only unless explicitly assigned.
 - Synthesize duplicates and push back on unsupported reviewer claims.
 - Close only after re-review confirms fix-loop closure.
 
+### Comments lens
+
+Triggered when the diff contains added/modified comments. Available at
+Standard tier (optional) and Heavy tier (default when comment changes are
+present). Loads `do-it-comments-discipline`. Returns findings in the standard
+finding shape (severity / location / cause class / required fix), where cause
+class is one of the comments-discipline categories (`what` / `history` /
+`task-ref` / `tombstone` / `orphan-todo` / `fix-narrative` /
+`stale-invariant` / `broken-reference`). The `comments-lint.sh` PostToolUse
+hook offers an advisory pre-filter; the lens is the source of truth.
+
+### Research-first lens
+
+Triggered at Heavy tier when the plan or diff introduces a new dependency,
+datastore, framework, runtime, or protocol. Loads
+`architecture-taste-reviewer` (audits the research trail, alternatives count,
+and user confirmation step). Returns findings in the standard shape; a
+memory-pick without a fresh search is `Blocking`.
+
+## Review intensity (graduated)
+
+Review intensity is the canonical axis 0.7.x and later use to describe how
+much review effort to spend; it subsumes the older free-form descriptions
+under the per-tier sections above. Concretely:
+
+- review-quick subsumes the older "Light tier review (parent-local)" wording.
+- review-deep subsumes the older "Standard tier review (one focused
+  reviewer)" wording. When the older Standard text says "parent performs
+  local review" it means review-quick; when it says "one focused reviewer"
+  it means review-deep.
+- review-adversarial subsumes the older "Heavy tier review (multi-lens)"
+  wording.
+
+If the per-tier text and an intensity description ever appear to disagree,
+the intensity description below is authoritative.
+
+Review intensity is orthogonal to the tier:
+
+- **review-quick** (Light + touches_code, or Standard + low risk): no subagent.
+  Parent agent runs an inline self-review prompt over the diff. Fast, no
+  context-handoff overhead. Use when:
+  - Light tier with code edits (verification-gate auto-fires)
+  - Standard tier modification map with no new dependency / interface change
+
+- **review-deep** (Standard default, or Heavy + low risk): one reviewer
+  subagent (`reviewer`). Standard finding shape. Use when:
+  - Standard tier with breaking-interface / new module / cross-package signal
+  - Heavy tier without high-risk lenses
+
+- **review-adversarial** (Heavy default for high-risk surface): parallel
+  multi-lens — `reviewer` + `red-team-reviewer` + `spec-compliance-reviewer`
+  (and `architecture-taste-reviewer` if research-first lens triggers,
+  `do-it-comments-discipline` lens if comments changed). Use when:
+  - Heavy tier with breaks_interface, crosses_packages, security-sensitive
+    code, or migrations
+  - Any tier when explicitly requested
+
+### Picking intensity
+
+Default by tier + dimensions:
+
+- tier=Light, touches_code=1 → review-quick (inline self-review at
+  verification-gate)
+- tier=Standard → review-deep
+- tier=Heavy + (breaks_interface=1 OR crosses_packages=1 OR
+  security/migration tag) → review-adversarial
+- tier=Heavy other → review-deep + comments-lens
+
+### Inline self-review prompt (review-quick)
+
+Parent agent runs this prompt internally without spawning a subagent:
+
+> Review the diff above for: (a) any obvious correctness regression, (b)
+> missing tests if behavior changed, (c) error handling at boundaries, (d)
+> comment discipline violations (5 allowed categories: type annotations /
+> @anchor: / see also: / invariant: / tool directives — flag any narrative or
+> task-reference comments). Output: any Blocking findings only (skip
+> Important / Nice). Then emit the marker on **its own line, line-anchored**
+> (no leading prose on the same line) so the verification-gate can see it:
+> use `inline-review: clean` when no findings, or
+> `inline-review: <one-line finding>` to flag a single Blocking issue.
+> The legacy form `inline-review-clean: yes` is also accepted.
+
+The `verification-gate` Stop hook only honors the marker when it appears at
+the start of a line in the latest assistant text — embedding the token in
+running prose will not pass the gate.
+
+If the parent agent has < 5KB diff context, inline self-review fits
+comfortably; for larger diffs, escalate to review-deep.
+
 ## Severity
 
 - `Blocking`: can make behavior wrong, unsafe, unverifiable, or out of scope.

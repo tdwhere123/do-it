@@ -13,10 +13,20 @@ source "${SCRIPT_DIR}/lib/keywords.sh"
 # shellcheck source=lib/debug.sh
 source "${SCRIPT_DIR}/lib/debug.sh"
 
+# Read stdin first so the subagent check can use the JSON-supplied
+# transcript_path (the host delivers it on stdin, not as an env var).
 RAW_INPUT="$(do_it_read_stdin)"
 PROMPT="$(do_it_json_get "$RAW_INPUT" prompt)"
 SESSION_ID="$(do_it_json_get "$RAW_INPUT" session_id)"
 CWD="$(do_it_json_get "$RAW_INPUT" cwd)"
+TRANSCRIPT_PATH="$(do_it_json_get "$RAW_INPUT" transcript_path)"
+
+# Subagent contexts inherit tier from the parent — re-injecting another
+# system-reminder just burns tokens, so bail before doing any work.
+if do_it_in_subagent_context "$TRANSCRIPT_PATH"; then
+  do_it_debug router "decision=subagent-skip"
+  exit 0
+fi
 
 do_it_source_local_keywords "$CWD"
 do_it_session_state_inc "$SESSION_ID" hook_invocations router
@@ -87,7 +97,12 @@ if [[ -z "$TIER" ]]; then
     TIER="Light"
   elif [[ "$heavy_count" -ge 1 ]]; then
     TIER="Standard"
-  elif do_it_prompt_has_any "$PROMPT" DO_IT_INTENT_VERBS; then
+  elif do_it_prompt_has_any "$PROMPT" DO_IT_INTENT_VERBS \
+       && do_it_prompt_has_code_object "$PROMPT"; then
+    # Intent verb only counts as Standard when it points at a concrete code
+    # object (file, path, fenced snippet, or technical noun). A bare verb
+    # like "修改" with no object stays Light to avoid pulling Standard
+    # ceremony into casual chat.
     TIER="Standard"
   else
     TIER="Light"
@@ -103,25 +118,177 @@ if [[ "$TIER" == "Heavy" ]] || do_it_prompt_requires_durable_plan "$PROMPT"; the
 fi
 do_it_session_state_set "$SESSION_ID" durable_plan_required "$durable_plan_required"
 
-do_it_debug router "tier=$TIER heavy_count=$heavy_count prompt_len=$PROMPT_LEN"
+# 0.7.x Phase 6: orthogonal dimensions. Tier stays as the single derived label
+# all existing skills already key off; these bools are NEW additive signals
+# downstream skills MAY read but are not required to. Light skips dimension
+# evaluation entirely — discussion / mechanical turns gain nothing from it
+# and we want to keep that path cheap.
+DIM_TOUCHES_CODE=0
+DIM_CROSSES_PACKAGES=0
+DIM_BREAKS_INTERFACE=0
+DIM_NEEDS_TDD=0
+DIM_NEEDS_REVIEW_LOOP=0
 
+if [[ "$TIER" != "Light" ]]; then
+  # PROMPT_LC may be unset if Light short-circuited above; recompute defensively.
+  if [[ -z "${PROMPT_LC:-}" ]]; then
+    PROMPT_LC="$(do_it_lc "$PROMPT")"
+  fi
+
+  if do_it_prompt_has_code_object "$PROMPT"; then
+    DIM_TOUCHES_CODE=1
+  fi
+
+  # breaks_interface: explicit interface / contract / schema mutations.
+  #
+  # The keyword set targets *action* phrases, not topical mentions. Discussion
+  # turns ("我想讨论 endpoint 改造的设计") would otherwise false-trigger via
+  # patterns like `*"endpoint"*"改"*`. Question turns are already short-
+  # circuited to Light upstream and never reach this block; what we still need
+  # to guard against is a Standard/Heavy *statement* turn that merely names
+  # the surface without intending a change.
+  #
+  # Heuristic: require an action verb adjacent to the contract noun. Bare
+  # mentions of `api` / `schema` / `endpoint` no longer pull this flag on
+  # their own.
+  case "$PROMPT_LC" in
+    # Generic breaking-change banners.
+    *"breaking change"*|*"breaking-change"*|*"break api"*|*"breaking api"*|\
+    *"api breaking"*|*"break interface"*|*"break the api"*|*"break the schema"*|\
+    *"break the contract"*|*"break "*"interface"*|*"接口变更"*|*"interface change"*|\
+    *"破坏"*"接口"*|*"破坏"*"契约"*)
+      DIM_BREAKS_INTERFACE=1 ;;
+    # Endpoint / API removal or rename — explicit verb required.
+    *"删 endpoint"*|*"remove endpoint"*|*"delete endpoint"*|*"drop endpoint"*|\
+    *"rename endpoint"*|*"重命名 endpoint"*|*"重命名"*"endpoint"*|\
+    *"rename "*"endpoint"*|*"endpoint"*"删"*|*"endpoint"*"重命名"*|\
+    *"deprecate endpoint"*|*"deprecate "*"endpoint"*|\
+    *"rename api"*|*"重命名 api"*|*"重命名"*"api"*|\
+    *"rename "*"api"*|*"deprecate api"*|*"deprecate "*"api"*|\
+    *"remove api"*|*"delete api"*|*"drop api"*|\
+    *"rewrite api"*|*"api 重写"*|*"重写 api"*)
+      DIM_BREAKS_INTERFACE=1 ;;
+    # Schema / table mutations — explicit verb required.
+    *"改 schema"*|*"alter schema"*|*"migrate schema"*|*"rewrite schema"*|\
+    *"schema 重写"*|*"重写 schema"*|*"schema 迁移"*|\
+    *"alter table"*|*"drop table"*|*"drop column"*|*"add column"*|\
+    *"rename column"*|*"rename table"*)
+      DIM_BREAKS_INTERFACE=1 ;;
+  esac
+
+  # needs_tdd: behaviour-modifying intent. Bare "fix" / "修复" without a code
+  # object stays at 0 because TIER would already be Light or Standard-discussion.
+  #
+  # ASCII verbs use word-boundary matching so `implement` doesn't match
+  # `implementation` or `non-implementation`. CJK has no word boundaries, so
+  # those phrases fall back to substring matching via the case below.
+  if do_it_prompt_has_word "$PROMPT_LC" "implement" \
+     || do_it_prompt_has_word "$PROMPT_LC" "bugfix" \
+     || do_it_prompt_has_word "$PROMPT_LC" "fix"; then
+    DIM_NEEDS_TDD=1
+  fi
+  case "$PROMPT_LC" in
+    *"实现"*|*"添加"*"功能"*|*"新增"*"功能"*|*"new feature"*|\
+    *"修复"*"bug"*|*"fix"*"bug"*|*"bug fix"*|\
+    *"add feature"*|*"build feature"*)
+      DIM_NEEDS_TDD=1 ;;
+  esac
+
+  # crosses_packages: count distinct **top-level** path segments mentioned in
+  # the raw (case-preserving) prompt. A "top-level segment" is `name/` whose
+  # left side is a token boundary (start of the prompt, whitespace, or a
+  # backtick) — that excludes inner segments of a deeper path. So
+  # `fix src/lib/foo.ts` yields one match (`src/`), not three; while
+  # `重写跨 frontend/ backend/` yields two. URLs like `https://x.com/y` only
+  # contribute one top-level token (`https:/` is filtered out by the leading
+  # alpha-or-underscore class — `https:` has a colon — and the path tail
+  # `x.com/` does not have a token-boundary left side because `://` precedes
+  # it).
+  #
+  # We tokenize the prompt by replacing every character that is not
+  # alphanumeric, `_`, `.`, `-`, `/`, or a space/backtick with a newline, then
+  # split on whitespace. After that, only tokens that look like
+  # `<name>/<rest>` count, and we take the first segment as the package id.
+  cross_count=0
+  if command -v grep >/dev/null 2>&1; then
+    # Step 1: drop characters that can't be part of a path token. Keep
+    # alpha-num, `_`, `.`, `-`, `/`, and whitespace + backtick as separators.
+    # Step 2: turn each whitespace-or-backtick run into a newline so each
+    # token sits on its own line.
+    # Step 3: keep only tokens that start with [a-zA-Z_], have a `/` somewhere
+    # after the head, and capture the head as a top-level package id.
+    # Step 4: dedupe + count.
+    cross_count=$(
+      printf '%s' "$PROMPT" \
+        | tr -c '[:alnum:][:space:]/`._-' '\n' \
+        | tr '[:space:]`' '\n' \
+        | grep -oE '^[a-zA-Z_][a-zA-Z0-9_.-]{0,40}/' 2>/dev/null \
+        | head -n 20 \
+        | sort -u \
+        | wc -l \
+        | tr -d ' '
+    )
+    cross_count="${cross_count:-0}"
+  fi
+  if [[ "$cross_count" -ge 2 ]]; then
+    DIM_CROSSES_PACKAGES=1
+  fi
+
+  # needs_review_loop: Heavy auto-true. Standard escalates only when the diff
+  # is going to break a published contract.
+  if [[ "$TIER" == "Heavy" ]] || [[ "$DIM_BREAKS_INTERFACE" == 1 ]]; then
+    DIM_NEEDS_REVIEW_LOOP=1
+  fi
+fi
+
+do_it_session_state_set_many "$SESSION_ID" \
+  dim_touches_code "$DIM_TOUCHES_CODE" \
+  dim_crosses_packages "$DIM_CROSSES_PACKAGES" \
+  dim_breaks_interface "$DIM_BREAKS_INTERFACE" \
+  dim_needs_tdd "$DIM_NEEDS_TDD" \
+  dim_needs_review_loop "$DIM_NEEDS_REVIEW_LOOP"
+
+do_it_debug router "tier=$TIER heavy_count=$heavy_count prompt_len=$PROMPT_LEN dims=touch:${DIM_TOUCHES_CODE},pkg:${DIM_CROSSES_PACKAGES},iface:${DIM_BREAKS_INTERFACE},tdd:${DIM_NEEDS_TDD},review:${DIM_NEEDS_REVIEW_LOOP}"
+
+MSG=""
 case "$TIER" in
   Heavy)
+    # 0.7.x Phase 5: lazy skill loading. The banner no longer enumerates the
+    # skill catalogue inline; instead the agent loads `skills/_index.md` only
+    # when a skill is actually needed. Keeps the per-prompt token cost flat
+    # regardless of how many skills exist.
     MSG="<system-reminder>
-do-it tier: Heavy. Multi-signal change. Run do-it-router skill, verify facts before asking, use durable planning, and budget review by release/interface risk. Bypass: yolo / 直接做 / /do-it-skip.
+do-it tier: Heavy. Multi-signal. Verify facts before asking, durable plan, budget review by release/interface risk. Skills: use the Skill tool to load any skill by name; the index of available skills is shipped as \`skills/_index.md\` under the plugin root. Bypass: yolo / 直接做 / /do-it-skip.
 </system-reminder>"
     ;;
   Standard)
     MSG="<system-reminder>
-do-it tier: Standard. Use an inline modification map. Add grill only for uncertainty, explicit request, or long plan-like input; choose review by risk. Bypass: yolo / /do-it-skip.
+do-it tier: Standard. Inline modification map; grill only on uncertainty/explicit/long; review by risk. Skills: use the Skill tool to load any skill by name; the index of available skills is shipped as \`skills/_index.md\` under the plugin root. Bypass: yolo / /do-it-skip.
 </system-reminder>"
     ;;
   Light)
-    MSG="<system-reminder>
-do-it tier: Light. Mechanical or discussion. Skip planning artifacts. Verification gate still applies if you actually edit code.
-</system-reminder>"
+    # 0.7.x: Light tier is fully silent. Mechanical / discussion turns get
+    # zero injection — verification-gate still fires if code is actually
+    # edited, but the prompt path stays clean.
+    MSG=""
     ;;
 esac
 
-do_it_emit_context UserPromptSubmit "$MSG"
+# Debug-only: append the trigger reason inside an HTML comment so it travels
+# with the system-reminder when DO_IT_DEBUG is on. Phase 6 also surfaces the
+# orthogonal dimensions here so the debug trace shows what downstream skills
+# can read from session state.
+case "${DO_IT_DEBUG:-0}" in
+  ''|0|false|FALSE|off|OFF) ;;
+  *)
+    if [[ -n "$MSG" ]]; then
+      MSG="${MSG}
+<!-- triggered by: tier=${TIER}, heavy_count=${heavy_count}, prompt_len=${PROMPT_LEN}, dims={touches:${DIM_TOUCHES_CODE}, packages:${DIM_CROSSES_PACKAGES}, interface:${DIM_BREAKS_INTERFACE}, tdd:${DIM_NEEDS_TDD}, review:${DIM_NEEDS_REVIEW_LOOP}} -->"
+    fi
+    ;;
+esac
+
+if [[ -n "$MSG" ]]; then
+  do_it_emit_context UserPromptSubmit "$MSG"
+fi
 exit 0

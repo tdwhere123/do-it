@@ -23,10 +23,20 @@ source "${SCRIPT_DIR}/lib/keywords.sh"
 # shellcheck source=lib/debug.sh
 source "${SCRIPT_DIR}/lib/debug.sh"
 
+# Read stdin first so the subagent check can use the JSON-supplied
+# transcript_path (the host delivers it on stdin, not as an env var).
 RAW_INPUT="$(do_it_read_stdin)"
 PROMPT="$(do_it_json_get "$RAW_INPUT" prompt)"
 SESSION_ID="$(do_it_json_get "$RAW_INPUT" session_id)"
 CWD="$(do_it_json_get "$RAW_INPUT" cwd)"
+TRANSCRIPT_PATH="$(do_it_json_get "$RAW_INPUT" transcript_path)"
+
+# Subagent contexts inherit grill from the parent — re-injecting the grill
+# reminder again would just burn tokens, so bail before doing any work.
+if do_it_in_subagent_context "$TRANSCRIPT_PATH"; then
+  do_it_debug grill-prompt "decision=subagent-skip"
+  exit 0
+fi
 
 do_it_source_local_keywords "$CWD"
 do_it_session_state_inc "$SESSION_ID" hook_invocations grill_prompt
@@ -151,5 +161,15 @@ fi
 
 do_it_session_state_set "$SESSION_ID" grilled 1
 do_it_debug grill-prompt "decision=emit tier=$TIER trigger=$TRIGGER mode=$([ "$TIER" = "Heavy" ] && echo full || echo pointer)"
+
+# Debug-only: append trigger reason inside an HTML comment.
+case "${DO_IT_DEBUG:-0}" in
+  ''|0|false|FALSE|off|OFF) ;;
+  *)
+    MSG="${MSG}
+<!-- triggered by: tier=${TIER}, trigger=${TRIGGER} -->"
+    ;;
+esac
+
 do_it_emit_context UserPromptSubmit "$MSG"
 exit 0

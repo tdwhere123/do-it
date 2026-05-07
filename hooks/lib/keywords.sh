@@ -67,6 +67,7 @@ _do_it_load_tsv DO_IT_LIGHT_SIGNALS      "${_DO_IT_KEYWORDS_DATA_DIR}/light-sign
 _do_it_load_tsv DO_IT_ESCAPE_WORDS       "${_DO_IT_KEYWORDS_DATA_DIR}/escape-words.tsv"
 _do_it_load_tsv DO_IT_LONG_INPUT_HINTS   "${_DO_IT_KEYWORDS_DATA_DIR}/long-input-hints.tsv"
 _do_it_load_tsv DO_IT_QUESTION_HINTS     "${_DO_IT_KEYWORDS_DATA_DIR}/question-hints.tsv"
+_do_it_load_tsv DO_IT_INTENT_OBJECTS     "${_DO_IT_KEYWORDS_DATA_DIR}/intent-objects.tsv"
 
 # Long-input grill threshold (character count). Kept here because it's a tunable
 # scalar, not a list — would feel forced as a tsv.

@@ -32,7 +32,9 @@
           "target": "hooks.json"
         }
       ],
-      "preInstall": []
+      "preInstall": [
+        "scripts/build-skills-index.mjs"
+      ]
     },
     "claude": {
       "rootEnv": "CLAUDE_PLUGIN_ROOT_OVERRIDE",
@@ -62,7 +64,8 @@
         }
       ],
       "preInstall": [
-        "scripts/build-claude-agents.mjs"
+        "scripts/build-claude-agents.mjs",
+        "scripts/build-skills-index.mjs"
       ]
     }
   },
@@ -198,6 +201,12 @@
   ],
   "skills": [
     {
+      "name": "do-it-skills-index",
+      "source": "dist/claude/skills/_index.md",
+      "target": "skills/_index.md",
+      "origin": "do-it"
+    },
+    {
       "name": "do-it-router",
       "source": "skills/do-it/do-it-router",
       "target": "skills/do-it-router",
@@ -323,6 +332,12 @@
       "source": "skills/do-it/do-it-handbook",
       "target": "skills/do-it-handbook",
       "origin": "do-it"
+    },
+    {
+      "name": "do-it-comments-discipline",
+      "source": "skills/do-it/do-it-comments-discipline",
+      "target": "skills/do-it-comments-discipline",
+      "origin": "do-it"
     }
   ],
   "agents": [
@@ -335,6 +350,11 @@
       "name": "architecture-strategist",
       "source": "agents/architecture-strategist.toml",
       "target": "agents/architecture-strategist.toml"
+    },
+    {
+      "name": "architecture-taste-reviewer",
+      "source": "agents/architecture-taste-reviewer.toml",
+      "target": "agents/architecture-taste-reviewer.toml"
     },
     {
       "name": "ceo-reviewer",

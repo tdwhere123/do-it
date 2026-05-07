@@ -36,22 +36,122 @@ do_it_json_get_nested() {
   fi
 }
 
+# Internal: drop a self-contained `.gitignore` inside the runtime dir itself
+# instead of editing the repo's top-level `.gitignore`. This keeps worktrees
+# clean (no spurious modification of `.gitignore`) and makes the ignore rule
+# survive even when the parent repo has no `.gitignore`. The runtime dir is
+# `<repo>/.do-it/runtime/`; placing `.gitignore` with body `*` at that path
+# tells git to ignore everything inside it.
+#
+# Args: <runtime_dir> (e.g. `<repo_root>/.do-it/runtime`).
+# Idempotent and best-effort; failures stay silent.
+_do_it_ensure_runtime_gitignore() {
+  local runtime_dir="$1"
+  [[ -z "$runtime_dir" || ! -d "$runtime_dir" ]] && return 0
+  local marker="${runtime_dir}/.gitignore"
+  # Memoize: once written, do not re-stat / re-write on every hook call.
+  [[ -f "$marker" ]] && return 0
+  printf '%s\n' '*' '!.gitignore' > "$marker" 2>/dev/null || return 0
+}
+
 # Compute a session-scoped data dir. Caller is responsible for mkdir.
-# Prefers host-provided plugin data, then Codex global hook data, then /tmp.
+# Resolution order:
+#   1. $CLAUDE_PLUGIN_DATA/sessions   (host-provided plugin data)
+#   2. $DO_IT_HOOK_DATA/sessions      (legacy override)
+#   3. $CODEX_HOME/do-it-data/sessions
+#   4. <git repo root>/.do-it/runtime/sessions
+#   5. ${TMPDIR:-/tmp}/do-it-sessions
+# A writable check guards (1)/(2)/(3) so an unwritable mount silently falls
+# through. The repo-root path also ensures `.do-it/runtime/` is gitignored.
 do_it_session_dir() {
-  local session_id="${1:-anon}"
-  if [[ -z "$session_id" ]]; then session_id="anon"; fi
-  local base
-  if [[ -n "${DO_IT_HOOK_DATA:-}" ]]; then
-    base="${DO_IT_HOOK_DATA%/}/sessions"
-  elif [[ -n "${CLAUDE_PLUGIN_DATA:-}" ]]; then
-    base="${CLAUDE_PLUGIN_DATA%/}/sessions"
-  elif [[ -n "${CODEX_HOME:-}" ]]; then
-    base="${CODEX_HOME%/}/do-it-data/sessions"
+  local session_id_in="${1:-}"
+  local key
+  if [[ -n "$session_id_in" ]]; then
+    # Path-injection guard: reject any session id containing a path separator,
+    # a parent-dir token, a bare current-dir token, NUL, or any control
+    # character (including LF/CR/TAB, which `grep` would treat as line
+    # separators and miss). Such ids would let a caller escape the per-session
+    # sandbox (e.g. `do_it_session_dir "../foo"` would write under
+    # `<base>/../foo/state.json`, and a literal `.` would resolve to the bare
+    # base dir). Hooks must never block the user, so degrade gracefully by
+    # hashing the offending id and using the hash as the key — same shape as
+    # the empty-id fallback below.
+    local _hazard=0
+    case "$session_id_in" in
+      .|..) _hazard=1 ;;
+      */*|*..*) _hazard=1 ;;
+      *$'\n'*|*$'\r'*|*$'\t'*) _hazard=1 ;;
+    esac
+    # Catch any remaining non-printable bytes (NUL, control chars beyond
+    # LF/CR/TAB). `tr -d '[:print:]'` strips printable+space; a non-zero
+    # remainder means the id contains something the case branches missed.
+    if [[ "$_hazard" -eq 0 ]]; then
+      local _np
+      _np="$(printf '%s' "$session_id_in" | LC_ALL=C tr -d '[:print:][:space:]' | wc -c | tr -d ' ')"
+      if [[ "${_np:-0}" -ne 0 ]]; then
+        _hazard=1
+      fi
+    fi
+    if [[ "$_hazard" -eq 1 ]]; then
+      key="$(printf '%s' "$session_id_in" | sha1sum 2>/dev/null | cut -c1-12)"
+      if [[ -z "$key" ]]; then key="nosession"; fi
+    else
+      key="$session_id_in"
+    fi
   else
+    local repo_root
+    repo_root="$(git rev-parse --show-toplevel 2>/dev/null)"
+    if [[ -n "$repo_root" ]]; then
+      key="$(printf '%s' "$repo_root" | sha1sum 2>/dev/null | cut -c1-12)"
+      if [[ -z "$key" ]]; then key="nosession"; fi
+    else
+      # Non-git, no session id: hash the cwd so each project gets its own
+      # bucket instead of all of them sharing a global `nosession` dir.
+      key="$(printf '%s' "$(pwd 2>/dev/null)" | sha1sum 2>/dev/null | cut -c1-12)"
+      if [[ -z "$key" ]]; then key="nosession"; fi
+    fi
+  fi
+
+  local base=""
+  local candidate
+
+  # Each branch: set base only if the parent dir is writable.
+  if [[ -n "${CLAUDE_PLUGIN_DATA:-}" ]]; then
+    candidate="${CLAUDE_PLUGIN_DATA%/}/sessions"
+    if mkdir -p "$candidate" 2>/dev/null && [[ -w "$candidate" ]]; then
+      base="$candidate"
+    fi
+  fi
+  if [[ -z "$base" && -n "${DO_IT_HOOK_DATA:-}" ]]; then
+    candidate="${DO_IT_HOOK_DATA%/}/sessions"
+    if mkdir -p "$candidate" 2>/dev/null && [[ -w "$candidate" ]]; then
+      base="$candidate"
+    fi
+  fi
+  if [[ -z "$base" && -n "${CODEX_HOME:-}" ]]; then
+    candidate="${CODEX_HOME%/}/do-it-data/sessions"
+    if mkdir -p "$candidate" 2>/dev/null && [[ -w "$candidate" ]]; then
+      base="$candidate"
+    fi
+  fi
+  if [[ -z "$base" ]]; then
+    local repo_root
+    repo_root="$(git rev-parse --show-toplevel 2>/dev/null)"
+    if [[ -n "$repo_root" && -d "$repo_root" ]]; then
+      candidate="${repo_root}/.do-it/runtime/sessions"
+      if mkdir -p "$candidate" 2>/dev/null && [[ -w "$candidate" ]]; then
+        base="$candidate"
+        # Drop a self-contained .gitignore inside the runtime dir (never
+        # touches the repo's top-level .gitignore, so worktrees stay clean).
+        _do_it_ensure_runtime_gitignore "${repo_root}/.do-it/runtime"
+      fi
+    fi
+  fi
+  if [[ -z "$base" ]]; then
     base="${TMPDIR:-/tmp}/do-it-sessions"
   fi
-  printf '%s/%s' "$base" "$session_id"
+
+  printf '%s/%s' "$base" "$key"
 }
 
 # Path of a skip flag for given hook. Args: <session_id> <flag>.
@@ -60,15 +160,49 @@ do_it_skip_flag_path() {
   printf '%s/skip-%s' "$(do_it_session_dir "$session_id")" "$flag"
 }
 
-# Test if skip flag is set. 0 = present, 1 = absent.
+# Skip-flag TTL in seconds. Flags written as a unix timestamp expire after
+# this many seconds; legacy empty flags are treated as no-TTL (always valid)
+# so older session dirs do not break.
+DO_IT_SKIP_TTL_SECONDS="${DO_IT_SKIP_TTL_SECONDS:-300}"
+
+# Test if skip flag is set. 0 = present (and not expired), 1 = absent.
+# Empty flag files are honored as legacy "no-TTL, always valid". Flag files
+# whose body is a unix timestamp older than DO_IT_SKIP_TTL_SECONDS are deleted
+# and treated as absent.
 do_it_check_skip() {
   local session_id="$1" flag="$2"
   local p
   p="$(do_it_skip_flag_path "$session_id" "$flag")"
-  [[ -f "$p" ]]
+  [[ -f "$p" ]] || return 1
+  # Empty file → legacy behavior: always valid.
+  if [[ ! -s "$p" ]]; then
+    return 0
+  fi
+  local ts now age
+  ts="$(head -n1 "$p" 2>/dev/null | tr -dc '0-9')"
+  if [[ -z "$ts" ]]; then
+    # Unparseable content; treat as legacy.
+    return 0
+  fi
+  now=$(date +%s 2>/dev/null)
+  if [[ -z "$now" ]]; then
+    return 0
+  fi
+  age=$((now - ts))
+  if (( age < 0 )); then
+    # Clock went backwards — be conservative and honor the flag.
+    return 0
+  fi
+  if (( age > DO_IT_SKIP_TTL_SECONDS )); then
+    rm -f "$p" 2>/dev/null || true
+    return 1
+  fi
+  return 0
 }
 
 # Write skip flag(s). Args: <session_id> [flag1 flag2 ...]. Default: all three.
+# Each flag file contains the current unix timestamp so do_it_check_skip can
+# expire it after DO_IT_SKIP_TTL_SECONDS.
 do_it_write_skip() {
   local session_id="$1"; shift
   local dir
@@ -77,8 +211,14 @@ do_it_write_skip() {
   if [[ $# -eq 0 ]]; then
     set -- router grill gate
   fi
+  local now
+  now=$(date +%s 2>/dev/null)
   for flag in "$@"; do
-    : > "$dir/skip-${flag}"
+    if [[ -n "$now" ]]; then
+      printf '%s\n' "$now" > "$dir/skip-${flag}" 2>/dev/null || true
+    else
+      : > "$dir/skip-${flag}" 2>/dev/null || true
+    fi
   done
 }
 
@@ -131,6 +271,88 @@ do_it_prompt_has_escape() {
   do_it_prompt_has_any "$1" DO_IT_ESCAPE_WORDS
 }
 
+# Detect whether the hook is running inside a subagent / delegated agent
+# context. When true the caller should NOT inject another tier banner —
+# subagents inherit context from the parent and re-injection just burns
+# tokens. Returns 0 when in a subagent context, 1 otherwise.
+#
+# Signal sources (any one is sufficient):
+#   - CLAUDE_AGENT_CONTEXT non-empty
+#   - CLAUDE_SUBAGENT non-empty
+#   - explicit transcript_path argument contains an `/agents/` segment
+#     (the host actually delivers transcript_path on stdin JSON, not as an
+#     env var; callers should read it from the JSON payload and pass it
+#     here)
+#   - $transcript_path env var contains `/agents/` (best-effort, NOT
+#     guaranteed by the host — kept only as a last-resort signal for
+#     environments that happen to export it)
+#
+# Args: [transcript_path] (optional). When omitted, only env signals fire.
+do_it_in_subagent_context() {
+  local tp_arg="${1:-}"
+  if [[ -n "${CLAUDE_AGENT_CONTEXT:-}" ]]; then
+    return 0
+  fi
+  if [[ -n "${CLAUDE_SUBAGENT:-}" ]]; then
+    return 0
+  fi
+  if [[ -n "$tp_arg" && "$tp_arg" == *"/agents/"* ]]; then
+    return 0
+  fi
+  # Best-effort env fallback. Host is not contractually required to export
+  # transcript_path; this branch only fires if the surrounding shell
+  # happened to set it.
+  if [[ -n "${transcript_path:-}" && "${transcript_path}" == *"/agents/"* ]]; then
+    return 0
+  fi
+  return 1
+}
+
+# Detect whether the prompt names a "code object" — a concrete file, path,
+# fenced snippet, or technical noun like `function`/`schema`/`组件`.
+# Used by router.sh to distinguish "实施 + 代码对象" (Standard) from a bare
+# intent verb like "修改" with no object (Light fallback).
+#
+# Match sources:
+#   - file extensions (.ts/.tsx/.py/.go/.rs/...)
+#   - path-like substring with `/`
+#   - fenced/inline backticks
+#   - any term in DO_IT_INTENT_OBJECTS (loaded from intent-objects.tsv)
+# Returns 0 on hit, 1 otherwise.
+do_it_prompt_has_code_object() {
+  local prompt="$1"
+  [[ -z "$prompt" ]] && return 1
+  local lc
+  lc="$(do_it_lc "$prompt")"
+
+  # File extension on a word boundary.
+  if printf '%s' "$lc" \
+       | grep -Eq '\.(ts|tsx|js|jsx|py|go|rs|java|rb|cpp|c|h|md|json|yaml|yml|toml|sh)([[:space:]]|$|[^[:alnum:]_])'; then
+    return 0
+  fi
+
+  # Path-like: a `/` with a non-whitespace neighbour on each side. The
+  # `[^[:space:]]/[^[:space:]]` test guards against bare slashes used as
+  # punctuation ("a / b").
+  if printf '%s' "$prompt" | grep -Eq '[^[:space:]]/[^[:space:]]'; then
+    return 0
+  fi
+
+  # Backtick / fenced code marker.
+  case "$prompt" in
+    *'`'*) return 0 ;;
+  esac
+
+  # Curated technical noun list, if loaded.
+  if declare -p DO_IT_INTENT_OBJECTS >/dev/null 2>&1; then
+    if do_it_prompt_has_any "$prompt" DO_IT_INTENT_OBJECTS; then
+      return 0
+    fi
+  fi
+
+  return 1
+}
+
 # Detect whether the current turn is a question / discussion (router caps at
 # Light, grill hook suppressed). Triggered by:
 #   - any term in DO_IT_QUESTION_HINTS
@@ -151,15 +373,41 @@ do_it_prompt_is_question() {
 
 # Internal: run a block under a per-session advisory lock so that concurrent
 # UserPromptSubmit hooks (router + grill-prompt) do not clobber each other's
-# state.json writes. flock is required for the lock; if missing we fall back
-# to a non-locked write (last-writer-wins) and accept the risk on legacy
-# systems. Args: <lock-path> <command...>
+# state.json writes.
+#
+# Locking strategy:
+#   - flock available (the common case): hold an exclusive fd-9 lock around
+#     the callee, so writers serialize on `state.json` and tmp-file naming
+#     does not need to be unique.
+#   - flock unavailable (legacy/minimal hosts, or when the test harness stubs
+#     `command -v`): fall back to running the callee directly. The callee
+#     functions (`_do_it_session_state_set_locked` /
+#     `_do_it_session_state_inc_locked`) write through a PID-scoped tmp file
+#     and `mv -f`, which is atomic on POSIX, so concurrent writers no longer
+#     stomp each other's tmp file. Last-writer-wins on the final mv, but no
+#     more `state.json` evaporation.
+#
+# Args: <lock-path> <command...>
 _do_it_with_state_lock() {
   local lock="$1"; shift
   if command -v flock >/dev/null 2>&1; then
     ( flock 9; "$@" ) 9>"$lock"
   else
     "$@"
+  fi
+}
+
+# Internal: emit a one-shot stderr warning when an atomic state-file rename
+# fails. A marker file inside the session dir suppresses repeats so we never
+# spam the user's terminal. Args: <state-path> <message>.
+_do_it_warn_state_corruption() {
+  local state="$1" msg="$2"
+  local dir
+  dir="$(dirname -- "$state")"
+  local marker="${dir}/.state-warn"
+  if [[ ! -f "$marker" ]]; then
+    : > "$marker" 2>/dev/null || true
+    printf 'do-it: %s (state=%s)\n' "$msg" "$state" >&2
   fi
 }
 
@@ -180,14 +428,34 @@ do_it_session_state_get() {
   fi
 }
 
-# Internal: jq-backed set without locking (caller already holds the lock).
+# Internal: jq-backed set. Uses a PID-scoped tmp file so concurrent writers
+# without flock do not clobber each other's tmp file. Caller already holds the
+# lock when flock is available. Args: <state-path> <key> <value>.
 _do_it_session_state_set_locked() {
   local state="$1" key="$2" value="$3"
+  local tmp="${state}.${BASHPID:-$$}.$RANDOM.tmp"
   if [[ -f "$state" ]]; then
-    jq -c --arg k "$key" --arg v "$value" '. + {($k): $v}' "$state" > "$state.tmp" 2>/dev/null \
-      && mv "$state.tmp" "$state"
+    if ! jq -c --arg k "$key" --arg v "$value" '. + {($k): $v}' "$state" > "$tmp" 2>/dev/null; then
+      rm -f "$tmp" 2>/dev/null || true
+      _do_it_warn_state_corruption "$state" "session state set: jq update failed"
+      return 1
+    fi
+    if ! mv -f "$tmp" "$state" 2>/dev/null; then
+      rm -f "$tmp" 2>/dev/null || true
+      _do_it_warn_state_corruption "$state" "session state set: atomic rename failed"
+      return 1
+    fi
   else
-    jq -nc --arg k "$key" --arg v "$value" '{($k): $v}' > "$state" 2>/dev/null
+    if ! jq -nc --arg k "$key" --arg v "$value" '{($k): $v}' > "$tmp" 2>/dev/null; then
+      rm -f "$tmp" 2>/dev/null || true
+      _do_it_warn_state_corruption "$state" "session state set: jq init failed"
+      return 1
+    fi
+    if ! mv -f "$tmp" "$state" 2>/dev/null; then
+      rm -f "$tmp" 2>/dev/null || true
+      _do_it_warn_state_corruption "$state" "session state set: atomic rename failed (init)"
+      return 1
+    fi
   fi
 }
 
@@ -206,15 +474,95 @@ do_it_session_state_set() {
   printf '%s=%s\n' "$key" "$value" >> "$dir/state.kv"
 }
 
-# Internal: jq-backed inc without locking (caller already holds the lock).
+# Internal: jq-backed batched set. Args: <state-path> <k1> <v1> [<k2> <v2> ...].
+# Single jq invocation + single atomic rename for N key/value pairs. Caller
+# already holds the lock when flock is available.
+_do_it_session_state_set_many_locked() {
+  local state="$1"; shift
+  local tmp="${state}.${BASHPID:-$$}.$RANDOM.tmp"
+  local jq_args=() kv_parts=()
+  local i=0 k v
+  while (( $# >= 2 )); do
+    k="$1"; v="$2"; shift 2
+    jq_args+=(--arg "k$i" "$k" --arg "v$i" "$v")
+    kv_parts+=("(\$k$i): \$v$i")
+    i=$((i + 1))
+  done
+  local kv_obj
+  kv_obj=$(IFS=','; printf '%s' "${kv_parts[*]}")
+  local jq_filter=". // {} | . + {${kv_obj}}"
+  if [[ -f "$state" ]]; then
+    if ! jq -c "${jq_args[@]}" "$jq_filter" "$state" > "$tmp" 2>/dev/null; then
+      rm -f "$tmp" 2>/dev/null || true
+      _do_it_warn_state_corruption "$state" "session state set-many: jq update failed"
+      return 1
+    fi
+  else
+    if ! jq -nc "${jq_args[@]}" "$jq_filter" > "$tmp" 2>/dev/null; then
+      rm -f "$tmp" 2>/dev/null || true
+      _do_it_warn_state_corruption "$state" "session state set-many: jq init failed"
+      return 1
+    fi
+  fi
+  if ! mv -f "$tmp" "$state" 2>/dev/null; then
+    rm -f "$tmp" 2>/dev/null || true
+    _do_it_warn_state_corruption "$state" "session state set-many: atomic rename failed"
+    return 1
+  fi
+}
+
+# Batched write: one flock + one jq + one atomic rename for many keys.
+# Args: <session_id> <k1> <v1> [<k2> <v2> ...].
+do_it_session_state_set_many() {
+  local session_id="$1"; shift
+  if (( $# == 0 )) || (( $# % 2 != 0 )); then
+    return 1
+  fi
+  local dir state
+  dir="$(do_it_session_dir "$session_id")"
+  mkdir -p "$dir" 2>/dev/null || return 0
+  state="$dir/state.json"
+  if [[ "$DO_IT_HAVE_JQ" == "1" ]]; then
+    _do_it_with_state_lock "$dir/.state.lock" \
+      _do_it_session_state_set_many_locked "$state" "$@"
+    return 0
+  fi
+  while (( $# >= 2 )); do
+    printf '%s=%s\n' "$1" "$2" >> "$dir/state.kv"
+    shift 2
+  done
+}
+
+# Internal: jq-backed inc. PID-scoped tmp file + atomic mv (see set-locked).
+# Caller already holds the lock when flock is available.
+# Args: <state-path> <bucket> <counter-name>.
 _do_it_session_state_inc_locked() {
   local state="$1" bucket="$2" name="$3"
+  local tmp="${state}.${BASHPID:-$$}.$RANDOM.tmp"
   if [[ -f "$state" ]]; then
-    jq -c --arg b "$bucket" --arg n "$name" \
-      '.[$b] = ((.[$b] // {}) | (.[$n] = ((.[$n] // 0) | tonumber + 1)))' \
-      "$state" > "$state.tmp" 2>/dev/null && mv "$state.tmp" "$state"
+    if ! jq -c --arg b "$bucket" --arg n "$name" \
+         '.[$b] = ((.[$b] // {}) | (.[$n] = ((.[$n] // 0) | tonumber + 1)))' \
+         "$state" > "$tmp" 2>/dev/null; then
+      rm -f "$tmp" 2>/dev/null || true
+      _do_it_warn_state_corruption "$state" "session state inc: jq update failed"
+      return 1
+    fi
+    if ! mv -f "$tmp" "$state" 2>/dev/null; then
+      rm -f "$tmp" 2>/dev/null || true
+      _do_it_warn_state_corruption "$state" "session state inc: atomic rename failed"
+      return 1
+    fi
   else
-    jq -nc --arg b "$bucket" --arg n "$name" '{($b): {($n): 1}}' > "$state" 2>/dev/null
+    if ! jq -nc --arg b "$bucket" --arg n "$name" '{($b): {($n): 1}}' > "$tmp" 2>/dev/null; then
+      rm -f "$tmp" 2>/dev/null || true
+      _do_it_warn_state_corruption "$state" "session state inc: jq init failed"
+      return 1
+    fi
+    if ! mv -f "$tmp" "$state" 2>/dev/null; then
+      rm -f "$tmp" 2>/dev/null || true
+      _do_it_warn_state_corruption "$state" "session state inc: atomic rename failed (init)"
+      return 1
+    fi
   fi
 }
 

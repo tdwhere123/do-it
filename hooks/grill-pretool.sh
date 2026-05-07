@@ -19,7 +19,17 @@ RAW_INPUT="$(do_it_read_stdin)"
 SESSION_ID="$(do_it_json_get "$RAW_INPUT" session_id)"
 CWD="$(do_it_json_get "$RAW_INPUT" cwd)"
 TOOL_NAME="$(do_it_json_get "$RAW_INPUT" tool_name)"
+TRANSCRIPT_PATH="$(do_it_json_get "$RAW_INPUT" transcript_path)"
 FILE_PATH="$(do_it_json_get_nested "$RAW_INPUT" tool_input.file_path)"
+
+# Subagent context: bail before any state mutation. Subagents in a Heavy
+# parent session are running their own delegated slice and must not be
+# blocked by the parent's plan-gate. Mirrors the same skip used in router.sh
+# and comments-lint.sh.
+if do_it_in_subagent_context "$TRANSCRIPT_PATH"; then
+  do_it_debug grill-pretool "decision=skip reason=subagent-context"
+  exit 0
+fi
 
 do_it_session_state_inc "$SESSION_ID" hook_invocations grill_pretool
 

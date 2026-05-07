@@ -1,4 +1,5 @@
 .do-it/
+.do-it/runtime/
 .codex
 .codex/
 dist/
