@@ -22,6 +22,15 @@ const CLAUDE_MODEL_BY_AGENT = new Map([
   ["ux-designer", "sonnet"]
 ]);
 
+const CODEX_AGENT_KEYS = new Set([
+  "name",
+  "description",
+  "model",
+  "model_reasoning_effort",
+  "sandbox_mode",
+  "developer_instructions"
+]);
+
 function parseSimpleToml(source) {
   const result = {};
   let i = 0;
@@ -88,10 +97,12 @@ function escapeYamlDoubleQuoted(str) {
 function buildClaudeAgent(toml) {
   const data = parseSimpleToml(toml);
   if (!data.name) throw new Error("agent missing name");
-  if (Object.prototype.hasOwnProperty.call(data, "claude_model")) {
-    throw new Error(
-      "agent contains unsupported Codex TOML key claude_model; set Claude-only models in scripts/build-claude-agents.mjs"
-    );
+  for (const key of Object.keys(data)) {
+    if (!CODEX_AGENT_KEYS.has(key)) {
+      throw new Error(
+        `agent contains unsupported Codex TOML key ${key}; keep host-private policy out of agents/*.toml`
+      );
+    }
   }
   const description = data.description ?? "";
   const body = (data.developer_instructions ?? "").replace(/\s+$/g, "");

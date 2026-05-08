@@ -53,13 +53,74 @@ Every subagent prompt must include:
 - `readiness target`: fixture-ready, live-event-ready, operator-ready, docs-truth-ready, or install-ready.
 - `must-verify facts`: facts the child must check itself before acting or reporting.
 - `stop condition`: when to return `NEEDS_CONTEXT`, `BLOCKED`, or `STILL_OPEN` instead of improvising.
+- `output_budget`: token cap for the structured response, selected from the default budget table below.
 - `return schema`: the exact shape the parent needs.
 
 Include this guardrail unless Heavy is explicitly assigned:
 
 `You are a Standard-tier subagent. Do not expand into parent-level Heavy flow, broad planning, branch closeout, manifest/docs edits, or unrelated cleanup.`
 
+## Token Budget
+
+Free-form subagent output is the most common way the parent's context gets
+polluted. do-it keeps response budgets in this skill instead of in
+`agents/*.toml`, because Codex agent TOML only accepts the host-supported schema
+keys. The orchestrator must choose the matching budget below, propagate that cap
+into the child prompt, and enforce it on return.
+
+### Caller responsibility
+
+When dispatching a subagent, the parent must:
+
+- Select `output_budget` from the default budget table by exact agent name or
+  class. If no class matches, use 1500 tokens.
+- Insert this line into the prompt verbatim, with N filled in:
+  `Your structured response must fit within ~N tokens. If you approach budget,
+  switch to a summarized return: keep status, blocking findings, and evidence
+  pointers; mark truncated sections explicitly; do not pad.`
+- Treat the budget as a hard ceiling on the structured return, not a target.
+  Tool calls, internal reasoning, and file reads do not count.
+
+### Default budgets
+
+| Agent class | Budget |
+|---|---|
+| reviewer / red-team / spec-compliance / skill-quality / code-quality / domain-language / install-release / architect / architecture-taste-reviewer / ceo lenses | 1500 |
+| product-strategist / ux-designer / end-user-advocate / ops-sre / plan-challenger / architecture-strategist | 2000 |
+| react-specialist / typescript-pro / sql-pro / test-automator / tdd-red-writer / documentation-engineer | 2500 |
+| code-mapper | 3000 |
+
+### Subagent self-check
+
+Subagents must estimate their own response size before finalizing:
+
+- At ~80% of budget, switch to summary mode: keep status, severity-ordered
+  findings, evidence pointers (file:line), and residual risk. Drop restated
+  context, repeated reasoning, and verbose framing.
+- If the structured return cannot fit even in summary mode, return status
+  `BLOCKED: output exceeds budget` with the smallest evidence the parent needs
+  to re-scope, instead of silently truncating.
+
+### Caller post-check
+
+After receiving the response, the parent verifies budget compliance:
+
+- If the response is clearly larger than the assigned `output_budget`, mark the
+  affected sections `[TRUNCATION SUSPECTED]` in the parent's record and note
+  it in the integration writeup or fix-loop input.
+- A budget overrun is itself a finding: the parent may re-dispatch with a
+  tighter scope rather than absorbing the bloated context.
+
 ## Return Schema
+
+The return schema template should declare its budget at the top so the
+subagent and any reviewer can spot truncation:
+
+```
+<!-- output_budget: <N> tokens; summarize past 80% -->
+status: ...
+... (rest of schema)
+```
 
 Implementation/debugging workers return:
 

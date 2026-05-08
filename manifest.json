@@ -1,5 +1,5 @@
 {
-  "version": "0.6.1",
+  "version": "0.7.0",
   "migrations": [
     {
       "from": "0.4.x",
@@ -7,6 +7,10 @@
     },
     {
       "from": "0.5.x",
+      "actions": []
+    },
+    {
+      "from": "0.6.x",
       "actions": []
     }
   ],

@@ -237,6 +237,14 @@ Or `none surfaced`.
 
 `status: open` means grill has not converged on `Must Resolve In Grill`. Grill flips it to `converged` once every execution-blocking item is resolved or explicitly deferred.
 
+## Research handoff (Heavy or new architectural surface)
+
+When brainstorm produces options that involve a new architectural surface (new dependency / datastore / framework / protocol), do NOT batch-ask the user three generic questions here. Instead, hand specific candidate-choice questions to grill as `Must Resolve` items.
+
+Grill follows the "ask one focused question" rule (see `do-it-grill`). The brainstorm artifact lists the architectural-surface decisions that grill must drive; grill picks the highest-leverage one and asks. This preserves the question-budget discipline.
+
+Out of scope here: bug fixes, refactors of existing code, incremental changes within an existing module.
+
 ## Handoff To Grill
 
 After discussion or artifact creation:

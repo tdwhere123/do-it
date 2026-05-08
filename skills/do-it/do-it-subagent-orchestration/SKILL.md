@@ -53,7 +53,7 @@ Every subagent prompt must include:
 - `readiness target`: fixture-ready, live-event-ready, operator-ready, docs-truth-ready, or install-ready.
 - `must-verify facts`: facts the child must check itself before acting or reporting.
 - `stop condition`: when to return `NEEDS_CONTEXT`, `BLOCKED`, or `STILL_OPEN` instead of improvising.
-- `output_budget`: token cap for the structured response, sourced from the agent's `output_budget` field (see "Token Budget" below).
+- `output_budget`: token cap for the structured response, selected from the default budget table below.
 - `return schema`: the exact shape the parent needs.
 
 Include this guardrail unless Heavy is explicitly assigned:
@@ -63,16 +63,17 @@ Include this guardrail unless Heavy is explicitly assigned:
 ## Token Budget
 
 Free-form subagent output is the most common way the parent's context gets
-polluted. Every agent has an `output_budget` (token cap for the structured
-response) declared in its `agents/<name>.toml`. The orchestrator must propagate
-that cap into the child prompt and enforce it on return.
+polluted. do-it keeps response budgets in this skill instead of in
+`agents/*.toml`, because Codex agent TOML only accepts the host-supported schema
+keys. The orchestrator must choose the matching budget below, propagate that cap
+into the child prompt, and enforce it on return.
 
 ### Caller responsibility
 
 When dispatching a subagent, the parent must:
 
-- Read `output_budget` from the agent config (or use the default below if the
-  agent does not declare one).
+- Select `output_budget` from the default budget table by exact agent name or
+  class. If no class matches, use 1500 tokens.
 - Insert this line into the prompt verbatim, with N filled in:
   `Your structured response must fit within ~N tokens. If you approach budget,
   switch to a summarized return: keep status, blocking findings, and evidence
@@ -80,7 +81,7 @@ When dispatching a subagent, the parent must:
 - Treat the budget as a hard ceiling on the structured return, not a target.
   Tool calls, internal reasoning, and file reads do not count.
 
-### Default budgets (fallback when an agent has no `output_budget`)
+### Default budgets
 
 | Agent class | Budget |
 |---|---|
@@ -104,7 +105,7 @@ Subagents must estimate their own response size before finalizing:
 
 After receiving the response, the parent verifies budget compliance:
 
-- If the response is clearly larger than the agent's `output_budget`, mark the
+- If the response is clearly larger than the assigned `output_budget`, mark the
   affected sections `[TRUNCATION SUSPECTED]` in the parent's record and note
   it in the integration writeup or fix-loop input.
 - A budget overrun is itself a finding: the parent may re-dispatch with a

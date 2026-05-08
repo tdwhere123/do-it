@@ -1,6 +1,6 @@
 {
   "name": "@tdwhere/do-it",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "description": "Installable AI coding workflow for Codex and Claude Code with risk-based routing, scoped sub-agents, and evidence-backed completion.",
   "type": "module",
   "license": "MIT",
@@ -54,14 +54,15 @@
     "install:claude": "node install/manage.mjs install --target=claude",
     "doctor": "node install/manage.mjs doctor",
     "doctor:claude": "node install/manage.mjs doctor --target=claude",
-    "build:claude-agents": "node scripts/build-claude-agents.mjs",
-    "build:codex-plugin": "node scripts/build-codex-plugin.mjs",
-    "prepack": "node scripts/build-claude-agents.mjs && node scripts/build-codex-plugin.mjs",
+    "validate:agents": "node scripts/validate-agent-bundle.mjs",
+    "build:claude-agents": "node scripts/build-claude-agents.mjs && node scripts/validate-agent-bundle.mjs",
+    "build:codex-plugin": "node scripts/build-codex-plugin.mjs && node scripts/validate-agent-bundle.mjs",
+    "prepack": "node scripts/build-claude-agents.mjs && node scripts/build-codex-plugin.mjs && node scripts/validate-agent-bundle.mjs",
     "do-it": "node bin/do-it.mjs",
     "lint": "bash scripts/lint-hooks.sh",
     "lint-hooks": "bash scripts/lint-hooks.sh",
     "test-hooks": "bash scripts/test-hooks.sh",
-    "test": "npm run lint-hooks && npm run test-hooks"
+    "test": "npm run validate:agents && npm run lint-hooks && npm run test-hooks"
   },
   "engines": {
     "node": ">=18"

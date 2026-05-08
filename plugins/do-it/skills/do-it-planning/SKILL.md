@@ -94,6 +94,27 @@ Use this when a choice is material:
 
 Recommend one option. Do not present options as neutral if the codebase evidence points to a clear path.
 
+### Research-First Comparison (mandatory when introducing new dependency / datastore / framework / runtime / protocol)
+
+Triggered when the plan would:
+
+- add a new npm/pip/cargo/gem dependency
+- introduce a new datastore / queue / cache
+- adopt a new framework / runtime / build tool / package manager
+- choose a new protocol (auth / API style / transport / serialization)
+
+NOT triggered when: the plan modifies an existing module, fixes a bug, or extends a feature without changing its architectural surface.
+
+When triggered, the plan MUST include a `Research` block with:
+
+1. **Search trail** — at least one explicit search action (WebSearch / docs lookup / GitHub exploration / npm trends), with one-line summary of what was found. "I remember X" is NOT a search.
+2. **Candidates** — ≥ 2 alternatives, each with: name, latest version, license, last release date or activity signal, one-line tradeoff.
+3. **User confirmation** — either a `Must Resolve in grill` item naming the candidates and asking the user to pick, OR an explicit user reply quoted in the plan. If the user has not picked yet, planning may proceed only with `chosen: PENDING USER CONFIRMATION` markers; implementation cannot start until the user picks.
+
+If the trigger does not fire, this section is omitted (do not pad with "N/A").
+
+Why this exists: training data is months stale and biases toward libraries that were popular 1-2 years ago. Without explicit search, the agent picks from memory and locks the project into outdated choices that the user might not have wanted. The user must be the one to choose architectural-surface introductions.
+
 ## PRD Handoff Mode
 
 Use this mode when the user asks to turn current context into a PRD, product

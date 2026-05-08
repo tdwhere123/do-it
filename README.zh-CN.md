@@ -102,7 +102,7 @@ CODEX_HOME=/tmp/do-it-plugin-test codex plugin marketplace add /path/to/do-it
 ```
 
 Codex plugin bundle 位于 `plugins/do-it/`，由 `manifest.json` 生成。
-它包含 21 个 skill 和 22 个 agent，包括可选的 `do-it-visual-planning`。
+它包含 23 个 skill 和 23 个 agent，包括可选的 `do-it-visual-planning`。
 
 v1 阶段，如果你需要强制自动 hooks，请把 plugin 安装和 `do-it setup` 配套使用。
 当前本机 `codex features list` 显示 `codex_hooks=true`、`plugins=true`、
@@ -203,7 +203,7 @@ flowchart TD
 
 ```bash
 npm pack
-npm install -g ./tdwhere-do-it-0.6.1.tgz
+npm install -g ./tdwhere-do-it-0.7.0.tgz
 do-it setup
 ```
 
@@ -237,9 +237,10 @@ npm run do-it -- doctor
 运行 `do-it setup` 或 `do-it install` 时，才会安装到 Codex。
 
 修改 hook 之前提交 review 前，运行 `npm run lint`（通过 `scripts/lint-hooks.sh`
-跑 shellcheck）。`npm test` 会跑 hook lint 加 `scripts/test-hooks.sh` 里的
-hook 回归测试。CI 会在 push / PR 上跑 Node 矩阵、生成 agent 检查、Codex 和
-Claude 安装 smoke test，以及 package dry run。
+跑 shellcheck）。`npm test` 会跑 agent schema / generated-inventory 校验、
+hook lint，以及 `scripts/test-hooks.sh` 里的 hook 回归测试。CI 会在 push /
+PR 上跑 Node 矩阵、生成 agent 检查、Codex 和 Claude 安装 smoke test，以及
+package dry run。
 
 ## 仓库结构
 
@@ -261,43 +262,45 @@ package.json     npm 包元数据和 CLI scripts
 
 私有 `.do-it/` 目录用于本地计划、笔记和临时材料。它被 Git 忽略，也不会被安装。
 
-## 升级到 0.6.1
+## 升级到 0.7.0
 
-`do-it 0.6.1` 保留 0.6 的工作流升级，同时修复 Codex / Claude agent schema
-拆分问题。Codex agent TOML 不再携带 Claude 专用 model 字段；Claude 生成器仍
-会给需要的 brainstorm 视角和 `code-mapper` 生成 `model: sonnet`。
+运行 `do-it install` 即可完成升级，无需项目侧迁移。
 
-**grill 之前先 brainstorm。** `do-it-brainstorm` 现在默认是双核心：
-`product-strategist` 负责产品边界、核心目标、需求形态和多个选项的好处 / 坏处 /
-风险；`architecture-strategist` 负责核心底层、扩展模块、阶段闭环、边界和验证
-路线。然后再按任务动态补充 `ux-designer`、`end-user-advocate`、`ops-sre`、
-`ceo-reviewer`、`red-team-reviewer`、`domain-language-reviewer` 或
-`plan-challenger`。输出按 `Requirement Shape`、`Product Boundary`、
-`Core Goal`、`Options`、`Architecture Foundation`、`Extension Modules` 和
-`Must Resolve In Grill` 分层，而不是固定四角色各问一个问题。
+**Hook 降噪。** Light tier 完全静默。Standard tier 需要同时匹配 intent-verb
+和 code-object 才注入工作流引导。子 agent 不再触发嵌套注入。SESSION_ID
+校验会拒绝含 LF 或控制字符的 session。
 
-**grill 改成做收敛而不是重新发散。** 当 brainstorm 文件存在且 `status: open`
-时，`do-it-grill` 会把 `Must Resolve In Grill` 拉成候选前提，逐项核验或留作
-user decision，最后把 brainstorm 的 `status: open` 翻成 `converged`。
-Light tier 仍然走原来的单线程 grill，除非用户显式要求 brainstorm。
+**Session 持久化。** Session 状态从 `/tmp` 迁移到 `.do-it/runtime/`。skip
+token 有效期为 5 分钟。安装时自动写入自包含的 `.gitignore`。`flock` 不可用
+时，使用 PID-tagged 临时文件加原子 `mv` 防止状态损坏。
 
-**handbook 项目骨架一键初始化。** `/do-it-handbook`（或 `do-it-handbook`
-skill）会在 `.do-it/handbook/` 下铺出 12 个通用化的模板——invariants、
-architecture、code-map、glossary、backlog、runtime-status、maintenance、
-task-card-template，再加三个 workflow 文件（agent-workflow、review-protocol、
-subagent-dispatch）。模板都是占位骨架，bootstrap 是增量式，永远不会覆盖
-已有文件。`code-map.md` 的「Current Implementation Locations」段由
-`code-mapper` 子代理维护。
+**Research-first 架构决策。** `architecture-strategist` 现在必须先搜索、
+提供至少两个具体候选方案，再给出推荐。新增的 `architecture-taste-reviewer`
+agent 审查 brainstorm 输出是否符合 research-first 规范。搜索结果被视为
+不可信边界，防止 prompt injection。
 
-**code-map 持久化 + stale 跟踪。** 新的 `code-map-refresh` PostToolUse hook
-在 barrel / 迁移 / 路由 / workspace manifest 文件被编辑时，给
-`.do-it/handbook/code-map.md` 顶部打上 `<!-- stale: true; reason: ... -->`。
-标记是幂等的——再次结构性编辑会**替换**，而不是堆叠。
+**注释纪律。** 五类允许的注释：类型标注、`@anchor`、`see also`、不变式、
+工具指令。六类禁止的注释：叙述性、历史、任务引用、墓碑、孤立 TODO、
+what-注释。新的 `comments-lint` PostToolUse hook 强制执行此规则。
+`review-loop` 新增注释审查视角。
 
-0.5.x 老用户无需特殊操作：`do-it install` 会静默迁移。新增的
-`.do-it/brainstorm/` 目录是叠加式的；没有 brainstorm 产物时，grill 行为
-和之前完全一致。新的 code-map 刷新 hook 仅在
-`.do-it/handbook/code-map.md` 已经存在时才触发。
+**Router 维度正交化。** 每个任务写入五个 `dim_*` 布尔值（`touches_code`、
+`crosses_packages`、`breaks_interface`、`needs_tdd`、`needs_review_loop`）
+到 session state。Tier 分类不变；布尔值决定哪些工作流步骤触发。
+
+**Graduated review 三档。** `review-quick` / `review-deep` /
+`review-adversarial` 三档审查深度。verification-gate 在 Light tier 有编辑
+时生成 inline-review 标记，防止 replay 自满足宣布完成。
+
+**Lazy skill loading。** 生成的 `dist/claude/skills/_index.md`（约 720
+tokens）取代 router 原先注入的大段 skill 目录，skill 按需加载。
+
+**Subagent token budget。** Codex agent TOML 保持 schema-clean：不再携带
+`output_budget`、`claude_model` 或其它 host 私有字段。返回预算放在
+`do-it-subagent-orchestration` skill 中，由父 agent 写进子 agent prompt。
+
+**测试覆盖。** `tests/hooks/` 下 42 个回归用例，覆盖 `common`、`router`、
+`verification-gate` 和 `comments-lint`，全部通过。
 
 调试钩子：`DO_IT_DEBUG=1` 让每个 hook 在 stderr 上输出一行决策跟踪
 （escape / skip / question / tier / trigger / evidence）。用
@@ -335,6 +338,7 @@ agent 工作流反馈和想法。
 ```bash
 git diff --check
 npm test
+npm run validate:agents
 npm run build:claude-agents
 npm run build:codex-plugin
 CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it setup

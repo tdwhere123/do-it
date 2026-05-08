@@ -49,6 +49,7 @@ Current validation commands:
 
 ```bash
 npm test
+npm run validate:agents
 npm run build:claude-agents
 npm run build:codex-plugin
 npm exec --package . -- do-it setup
@@ -155,7 +156,11 @@ has been verified.
    review stack, and explicit stop conditions.
 5. Verify the agent file does not include machine-specific paths, secrets, or
    runtime-only assumptions.
-6. Update `docs/routing-matrix.md` if the agent changes default planning,
+6. Keep Codex TOML schema-clean. Supported top-level keys are `name`,
+   `description`, `model`, `model_reasoning_effort`, `sandbox_mode`, and
+   `developer_instructions`; do not add `output_budget`, `claude_model`, or
+   other host-private fields.
+7. Update `docs/routing-matrix.md` if the agent changes default planning,
    implementation, review, or closeout flow.
 
 Review coverage should stay explicit and risk-budgeted. Keep dedicated
@@ -203,8 +208,9 @@ the same `agents/*.toml` source-of-truth. The Claude target adds:
 - **Agent change:** edit `agents/<name>.toml`. The next install (or
   `npm run build:claude-agents`) regenerates the Claude `.md` form.
 - **Claude-only model change:** keep Codex TOML schema-clean. Do not add
-  `claude_model` or other Claude-only keys to `agents/*.toml`; update the
-  model map in `scripts/build-claude-agents.mjs` instead.
+  `claude_model`, `output_budget`, or other host-private keys to
+  `agents/*.toml`; update the model map in `scripts/build-claude-agents.mjs`
+  or the budget table in `do-it-subagent-orchestration` instead.
 - **Hook keyword change:** edit `hooks/data/*.tsv` and keep
   `hooks/data/SCHEMA.md` aligned. End users override locally via
   `<cwd>/.do-it/keywords.local.sh` (sourced after defaults).
@@ -229,8 +235,8 @@ surface generated from the same maintained manifest:
 ### Maintaining The Codex Plugin Target
 
 - **Inventory change:** update `manifest.json`, then run
-  `npm run build:codex-plugin` and commit the generated marketplace/plugin
-  changes.
+  `npm run build:codex-plugin` and `npm run validate:agents`, then commit the
+  generated marketplace/plugin changes.
 - **Version change:** update `package.json` and `manifest.json` together; the
   Codex plugin build fails if they drift.
 - **Skill wording change:** edit source skills under `skills/do-it/`, then
@@ -256,6 +262,7 @@ surface generated from the same maintained manifest:
 ```bash
 git diff --check
 npm test
+npm run validate:agents
 npm run build:claude-agents
 # Codex (default): byte-equal with prior versions except for deprecated/optional skills
 CODEX_HOME=/tmp/cx do-it install
@@ -303,6 +310,7 @@ Recommended checks before committing workflow changes. For live-first rebaseline
 ```bash
 git diff --check
 npm test
+npm run validate:agents
 npm run build:claude-agents
 npm run build:codex-plugin
 CODEX_HOME=/tmp/do-it-codex-test ./install/install.sh

@@ -3,8 +3,6 @@ description = "Use for do-it documentation delivery when docs must match current
 model = "gpt-5.3-codex"
 model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
-# output_budget: structured-response token cap; orchestrator passes this to the agent prompt and asks for summarized output if approaching budget
-output_budget = 2500
 developer_instructions = """
 Operate as the do-it documentation engineer. Edit only the files delegated by the parent.
 

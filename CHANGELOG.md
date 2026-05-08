@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+- No unreleased changes.
+
+## 0.7.0
+
+### Highlights
+
+- **Codex agent schema repair.** Removed the unsupported `output_budget`
+  top-level field from Codex-installed `agents/*.toml`; subagent response
+  budgets now live in `do-it-subagent-orchestration`.
+- **Agent bundle validation.** Added `scripts/validate-agent-bundle.mjs` and
+  wired it into `npm test`, `build:claude-agents`, `build:codex-plugin`, and
+  `prepack` so source agents, manifest inventory, Claude output, and the Codex
+  plugin bundle cannot drift silently.
+- **0.7.0 release metadata.** Package, manifest, plugin metadata, release
+  docs, and README upgrade notes now describe the 23-skill / 23-agent surface.
+
 ### Added
 
 - Codex plugin marketplace distribution under `.agents/plugins/marketplace.json`

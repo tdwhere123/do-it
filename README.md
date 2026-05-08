@@ -112,7 +112,7 @@ CODEX_HOME=/tmp/do-it-plugin-test codex plugin marketplace add /path/to/do-it
 ```
 
 The Codex plugin bundle lives at `plugins/do-it/` and is generated from
-`manifest.json`. It includes 21 skills and 22 agents, including optional
+`manifest.json`. It includes 23 skills and 23 agents, including optional
 `do-it-visual-planning`.
 
 For v1, pair plugin installation with `do-it setup` when you need enforced
@@ -227,7 +227,7 @@ For a packed local release artifact:
 
 ```bash
 npm pack
-npm install -g ./tdwhere-do-it-0.6.1.tgz
+npm install -g ./tdwhere-do-it-0.7.0.tgz
 do-it setup
 ```
 
@@ -263,10 +263,10 @@ Installation into Codex happens only when the operator runs `do-it setup` or
 `do-it install`.
 
 Before sending hook changes for review, run `npm run lint` (shellcheck via
-`scripts/lint-hooks.sh`). `npm test` runs hook lint plus the hook regression
-suite in `scripts/test-hooks.sh`. CI runs the Node matrix, generated-agent
-build check, Codex and Claude install smoke tests, and package dry run on push
-and PR.
+`scripts/lint-hooks.sh`). `npm test` runs agent schema / generated-inventory
+validation, hook lint, and the hook regression suite in `scripts/test-hooks.sh`.
+CI runs the Node matrix, generated-agent build check, Codex and Claude install
+smoke tests, and package dry run on push and PR.
 
 ## Repository Layout
 
@@ -289,49 +289,52 @@ package.json     npm package metadata and CLI scripts
 The private `.do-it/` directory is for local plans, notes, and scratch
 artifacts. It is ignored by Git and is not installed.
 
-## Upgrading to 0.6.1
+## Upgrading to 0.7.0
 
-`do-it 0.6.1` keeps the 0.6 workflow additions and fixes the Codex / Claude
-agent-schema split. Codex agent TOML no longer carries Claude-only model
-fields, while the Claude generator still emits `model: sonnet` for the
-brainstorm lenses and `code-mapper` that need it.
+`do-it install` handles the full upgrade. No project-level migration is
+required.
 
-**Brainstorm before grill.** `do-it-brainstorm` now uses two required core
-lenses: `product-strategist` for product boundary, core goal, requirement
-shape, and option tradeoffs; and `architecture-strategist` for foundation,
-extension modules, stage closure, boundaries, and verification route. It
-dynamically adds supplemental lenses such as `ux-designer`,
-`end-user-advocate`, `ops-sre`, `ceo-reviewer`, `red-team-reviewer`,
-`domain-language-reviewer`, or `plan-challenger` only when the task needs
-them. Output is grouped as `Requirement Shape`, `Product Boundary`,
-`Core Goal`, `Options`, `Architecture Foundation`, `Extension Modules`, and
-`Must Resolve In Grill`.
+**Hook noise reduction.** Light tier is now fully silent. Standard tier
+requires both an intent-verb and a code-object match before injecting workflow
+guidance. Subagents do not receive nested hook injection. SESSION_ID
+validation rejects LF and control characters at the session boundary.
 
-**Grill converges instead of restarting.** When a brainstorm artifact exists
-with `status: open`, `do-it-grill` lifts `Must Resolve In Grill` into
-candidate premises, resolves each item via the grill log, and flips brainstorm
-`status: open → converged`. Light tier still runs the original single-thread
-grill unless the user explicitly asked for brainstorm.
+**Session persistence.** Session state moves from `/tmp` to
+`.do-it/runtime/`. Skip tokens have a 5-minute TTL. A self-contained
+`.gitignore` is written at install time. When `flock` is unavailable, PID-
+tagged temp files and atomic `mv` prevent state corruption.
 
-**Project handbook bootstrap.** `/do-it-handbook` (or the `do-it-handbook`
-skill) scaffolds `.do-it/handbook/` with twelve generalized templates —
-invariants, architecture, code-map, glossary, backlog, runtime-status,
-maintenance, task-card-template, plus three workflow files (agent-workflow,
-review-protocol, subagent-dispatch). Templates are skeletons; the bootstrap
-is additive and never overwrites. `code-map.md`'s "Current Implementation
-Locations" section is owned by the `code-mapper` agent.
+**Research-first architecture decisions.** `architecture-strategist` now
+requires a live search and at least two concrete candidates before
+recommending. A new `architecture-taste-reviewer` agent audits brainstorm
+output for research compliance. Search results are treated as an untrusted
+boundary to prevent prompt injection.
 
-**Persistent code map with stale tracking.** A new `code-map-refresh`
-PostToolUse hook prepends `<!-- stale: true; reason: ... -->` to
-`.do-it/handbook/code-map.md` when an edit touches a structural file
-(package barrel, migration, route table, workspace manifest). The marker is
-idempotent — a second structural edit replaces the line, it does not stack.
+**Comments discipline.** Five comment types are allowed — type annotation,
+`@anchor`, `see also`, invariant, tool directive — and six are forbidden —
+narrative, history, task-reference, tombstone, orphan-TODO, what-comment. A
+new `comments-lint` PostToolUse hook enforces this. The `review-loop` adds a
+comments lens.
 
-Existing 0.5.x users do nothing special: `do-it install` migrates silently.
-The new `.do-it/brainstorm/` directory is additive; grill ignores it on
-Light tier and behaves as before when no brainstorm artifact exists. The
-new code-map refresh hook only acts when `.do-it/handbook/code-map.md`
-already exists.
+**Router dimension orthogonality.** Five `dim_*` booleans (`touches_code`,
+`crosses_packages`, `breaks_interface`, `needs_tdd`, `needs_review_loop`) are
+written to session state per task. Tier classification is unchanged; the
+booleans drive which workflow steps fire.
+
+**Graduated review.** Three review depths: `review-quick`, `review-deep`,
+`review-adversarial`. The verification gate on Light tier with edits now emits
+an inline-review marker to prevent a self-satisfying replay claim.
+
+**Lazy skill loading.** A generated `dist/claude/skills/_index.md` (~720
+tokens) replaces the large skill catalogue previously injected by the router.
+Skills load on demand.
+
+**Subagent token budgets.** Codex agent TOML stays schema-clean: no
+`output_budget`, `claude_model`, or other host-private keys. Response budgets
+live in `do-it-subagent-orchestration` and must be passed in the parent prompt.
+
+**Test coverage.** 42 regression cases in `tests/hooks/` cover `common`,
+`router`, `verification-gate`, and `comments-lint`.
 
 Debugging hooks: `DO_IT_DEBUG=1` makes each hook emit one stderr line per
 decision (escape / skip / question / tier / trigger / evidence). Inspect
@@ -370,6 +373,7 @@ Useful release checks:
 ```bash
 git diff --check
 npm test
+npm run validate:agents
 npm run build:claude-agents
 npm run build:codex-plugin
 CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it setup

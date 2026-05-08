@@ -3,8 +3,6 @@ description = "Use during do-it-review-loop for read-only review of Codex skill 
 model = "gpt-5.5"
 model_reasoning_effort = "high"
 sandbox_mode = "read-only"
-# output_budget: structured-response token cap; orchestrator passes this to the agent prompt and asks for summarized output if approaching budget
-output_budget = 1500
 developer_instructions = """
 Operate as the do-it skill-quality review lens. Stay read-only.
 

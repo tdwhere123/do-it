@@ -114,37 +114,39 @@ npm pack
 ```
 
 Use the generated tarball with `npm install --global` or
-`npm exec --package ./tdwhere-do-it-0.6.1.tgz -- do-it setup` when testing a
+`npm exec --package ./tdwhere-do-it-0.7.0.tgz -- do-it setup` when testing a
 release artifact.
 
 ## Release Checklist
 
 1. Run `git diff --check`.
 2. Run `npm test`.
-3. Run `npm run build:claude-agents`.
-4. Run `npm run build:codex-plugin`.
-5. Run `CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it setup`.
-6. Run `CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it doctor`.
-7. Smoke the installed Codex hook commands for `UserPromptSubmit`,
+3. Run `npm run validate:agents`.
+4. Run `npm run build:claude-agents`.
+5. Run `npm run build:codex-plugin`.
+6. Run `CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it setup`.
+7. Run `CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it doctor`.
+8. Smoke the installed Codex hook commands for `UserPromptSubmit`,
    `PreToolUse`, `PostToolUse`, and `Stop` against the temporary `CODEX_HOME`.
-8. Run `CODEX_HOME=/tmp/do-it-plugin-test codex plugin marketplace add /path/to/do-it`
+9. Run `CODEX_HOME=/tmp/do-it-plugin-test codex plugin marketplace add /path/to/do-it`
    or inspect the local marketplace registration manually.
-9. Run `CLAUDE_PLUGIN_ROOT_OVERRIDE=/tmp/do-it-claude-test npm exec --package . -- do-it setup --target=claude`.
-10. Run `npm pack --dry-run --json`.
-11. Confirm `docs/upstream-map.md` reflects the latest imports.
-12. Confirm `manifest.json` matches the on-disk inventory.
-13. Confirm `.agents/plugins/marketplace.json`, `plugins/do-it/`, and
+10. Run `CLAUDE_PLUGIN_ROOT_OVERRIDE=/tmp/do-it-claude-test npm exec --package . -- do-it setup --target=claude`.
+11. Run `npm pack --dry-run --json`.
+12. Confirm `docs/upstream-map.md` reflects the latest imports.
+13. Confirm `manifest.json` matches the on-disk inventory.
+14. Confirm `.agents/plugins/marketplace.json`, `plugins/do-it/`, and
    `install/codex-hooks.json` are included in the package.
-14. Confirm the temporary/source-only rewrite material is not included in the
+15. Confirm the temporary/source-only rewrite material is not included in the
    package.
-15. Confirm a simulated legacy upgrade can remove unmodified deprecated targets
+16. Confirm a simulated legacy upgrade can remove unmodified deprecated targets
    without `DO_IT_FORCE=1`.
-16. Confirm a simulated replacement failure preserves both current managed
+17. Confirm a simulated replacement failure preserves both current managed
    targets and deprecated legacy targets.
-17. Confirm `doctor` fails when `.do-it-install-state.json` is missing or stale.
-18. Confirm no machine-local files were added to the package.
-19. Confirm the release instructions describe copy-based install behavior only,
+18. Confirm `doctor` fails when `.do-it-install-state.json` is missing or stale.
+19. Confirm no machine-local files were added to the package.
+20. Confirm the release instructions describe copy-based install behavior only,
    not symlink-based deployment.
-20. Confirm Codex-installed `agents/*.toml` do not contain Claude-only fields
-   such as `claude_model`, and that `npm run build:claude-agents` still
-   generates Claude agent frontmatter with the intended model values.
+21. Confirm Codex-installed `agents/*.toml` do not contain unsupported fields
+   such as `claude_model` or `output_budget`, and that
+   `npm run build:claude-agents` still generates Claude agent frontmatter with
+   the intended model values.
