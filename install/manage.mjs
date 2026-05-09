@@ -165,15 +165,32 @@ function assertManagedTargetShape(entry) {
   }
 
   const skillPattern = /^skills\/[^/]+$/;
-  const agentExtRaw = targetConfig.agentTargetExt ?? ".toml";
-  const agentExtEscaped = agentExtRaw.replace(/\./g, "\\.");
-  const agentPattern = new RegExp(`^agents/[^/]+${agentExtEscaped}$`);
-  const pattern = entry.kind === "agent" ? agentPattern : skillPattern;
+  const agentExt = targetConfig.agentTargetExt ?? ".toml";
+  const hasSafeAgentExt =
+    typeof agentExt === "string" &&
+    agentExt.startsWith(".") &&
+    !agentExt.includes("/") &&
+    !agentExt.includes("\\") &&
+    !agentExt.includes("..");
+  const agentPrefix = "agents/";
+  const agentFileName = entry.target.startsWith(agentPrefix)
+    ? entry.target.slice(agentPrefix.length)
+    : "";
+  const agentBaseName = hasSafeAgentExt && agentFileName.endsWith(agentExt)
+    ? agentFileName.slice(0, -agentExt.length)
+    : "";
+  const agentTargetSafe =
+    hasSafeAgentExt &&
+    entry.target.startsWith(agentPrefix) &&
+    agentFileName.length > agentExt.length &&
+    !agentFileName.includes("/") &&
+    /^[A-Za-z0-9_-]+$/.test(agentBaseName);
+  const targetSafe = entry.kind === "agent" ? agentTargetSafe : skillPattern.test(entry.target);
 
-  if (!pattern.test(entry.target)) {
+  if (!targetSafe) {
     throw new Error(
       `Unsafe ${entry.kind} target for ${entry.name}: ${entry.target}. ` +
-        `Expected skills/<name> or agents/<name>${agentExtRaw}.`
+        `Expected skills/<name> or agents/<name>${agentExt}.`
     );
   }
 }

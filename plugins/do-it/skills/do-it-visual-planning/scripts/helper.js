@@ -32,6 +32,16 @@
     }
   }
 
+  function setSelectedIndicator(indicator, value) {
+    const selectedText = document.createElement('span');
+    selectedText.className = 'selected-text';
+    selectedText.textContent = value + ' selected';
+
+    indicator.textContent = '';
+    indicator.appendChild(selectedText);
+    indicator.appendChild(document.createTextNode(' - return to terminal to continue'));
+  }
+
   // Capture clicks on choice elements
   document.addEventListener('click', (e) => {
     const target = e.target.closest('[data-choice]');
@@ -53,10 +63,10 @@
       if (selected.length === 0) {
         indicator.textContent = 'Click an option above, then return to the terminal';
       } else if (selected.length === 1) {
-        const label = selected[0].querySelector('h3, .content h3, .card-body h3')?.textContent?.trim() || selected[0].dataset.choice;
-        indicator.innerHTML = '<span class="selected-text">' + label + ' selected</span> — return to terminal to continue';
+        const label = selected[0].querySelector('h3, .content h3, .card-body h3')?.textContent?.trim() || selected[0].dataset.choice || '';
+        setSelectedIndicator(indicator, label);
       } else {
-        indicator.innerHTML = '<span class="selected-text">' + selected.length + ' selected</span> — return to terminal to continue';
+        setSelectedIndicator(indicator, selected.length);
       }
     }, 0);
   });
