@@ -54,6 +54,23 @@ future do-it skill explicitly needs them: article editing, exercise scaffolds,
 Obsidian vault helpers, pre-commit setup, and runtime-specific guardrail
 installers.
 
+Useful ideas from `addyosmani/agent-skills` are absorbed as method rewrites,
+not as installed skill names or vendored text:
+
+| Source Idea | do-it Destination | Absorbed Shape |
+|---|---|---|
+| Skill anatomy: frontmatter, overview, trigger, workflow, rationalizations, red flags, verification | `do-it-skill-authoring` | Minimum skill anatomy for do-it-native skills, with trigger-first descriptions, tiers/process, stop conditions, anti-skip checks, red flags, and evidence. |
+| Process over prose and progressive disclosure | All `skills/do-it/*/SKILL.md` | Skills stay operational and token-conscious; heavy references remain outside the main entry point only when needed. |
+| Anti-rationalization tables | Core workflow skills | Common excuses are rewritten as do-it-native rationalizations, red flags, or review/failure-handling rules. |
+| Evidence over assumption | `do-it-verification-gate`, `do-it-review-loop`, `do-it-planning` | Fresh current-worktree evidence, verification-of-verification, assumption tracking, and explicit `NOT_VERIFIED` closeout language. |
+| Planning and task breakdown: assumptions, small tasks, dependencies | `do-it-planning`, `do-it-slicing` | Assumption/evidence split, Always/Ask/Never boundaries, dependency graph, checkpoint, HITL/AFK, and task sizing. |
+| Incremental implementation and test-led thin slices | `do-it-tdd`, `do-it-debugging`, `do-it-slicing` | Tracer-bullet slices, RED/GREEN per behavior, reproduce-localize-reduce-fix-guard loop, and per-slice verification. |
+| API/interface design: contract-first, Hyrum's Law, error semantics, boundary validation | `do-it-interface-drill` | Producer/consumer/compatibility owner, additive change preference, consistent errors, boundary validation, and migration proof. |
+| Code review quality gates and change sizing | `do-it-review-loop` | Five-axis review, change-size split, dependency/dead-code checks, generated-output checks, and proof-quality review. |
+| Code simplification and deprecation mindset | `do-it-architecture-scan` | Simplicity check, code-as-liability check, removal/deprecation proof, and failure-isolation review. |
+| Source-driven context and security posture | `do-it-planning`, `do-it-context`, `do-it-review-loop` | Research-first comparison for new surfaces, context hierarchy, untrusted external-context boundary, and current-source evidence for dependency/protocol choices. |
+| Performance and release proof discipline | `do-it-architecture-scan`, `do-it-verification-gate`, `docs/maintenance.md` | Measure/verify before claiming readiness; package/install claims require temp-home, doctor, build, or pack evidence. |
+
 ## Installed Agents
 
 | Agent | do-it Role | Notes |

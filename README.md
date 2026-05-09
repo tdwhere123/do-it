@@ -227,7 +227,7 @@ For a packed local release artifact:
 
 ```bash
 npm pack
-npm install -g ./tdwhere-do-it-0.7.0.tgz
+npm install -g ./tdwhere-do-it-0.7.1.tgz
 do-it setup
 ```
 
@@ -289,7 +289,7 @@ package.json     npm package metadata and CLI scripts
 The private `.do-it/` directory is for local plans, notes, and scratch
 artifacts. It is ignored by Git and is not installed.
 
-## Upgrading to 0.7.0
+## Upgrading to 0.7.1
 
 `do-it install` handles the full upgrade. No project-level migration is
 required.
@@ -349,9 +349,14 @@ high-quality projects already proved out:
   collaboration model.
 - [`mattpocock/skills`](https://github.com/mattpocock/skills): skill packaging
   and discovery.
+- [`addyosmani/agent-skills`](https://github.com/addyosmani/agent-skills):
+  production-skill anatomy, anti-rationalization, and evidence-first method
+  discipline.
 
 `do-it` is my own take on the same problem space, shaped by what I learned from
-those projects and from daily use on real work.
+those projects and from daily use on real work. It rewrites methods into
+do-it-native Router / Tier / Skill language; it does not vendor upstream skill
+text or install upstream skill names.
 
 Thanks also to the [Linux.do](https://linux.do) community. The conversations
 there are a steady source of practical agent-workflow feedback and ideas.

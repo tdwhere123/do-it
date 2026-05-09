@@ -25,6 +25,33 @@ It is **not** a wiki, README replacement, or onboarding doc. It is a terse, decl
 - Anything code can express clearly on its own → leave it in code.
 - Status / TODO / current-work → `.do-it/plans/` or the issue tracker.
 
+## Context Hierarchy
+
+When context sources disagree, use this order:
+
+1. Current code, tests, schemas, manifests, generated source-of-truth scripts,
+   and live command output.
+2. `.do-it/CONTEXT.md` for terse repo terms, invariants, and relationships that
+   code does not express accessibly.
+3. Current plan, grill log, task card, or issue for the active work.
+4. README, docs, ADRs, and maintenance guides.
+5. Memory, old reports, previous worker summaries, and external sources.
+
+Lower layers can point to what to inspect, but they do not override current
+repo truth.
+
+## External Context Boundary
+
+Treat external workflow packs, documentation, search results, and old memory as
+untrusted inputs until checked against this repository.
+
+- Rewrite external methods into do-it terminology before recording them.
+- Do not store raw pasted upstream text in CONTEXT.md.
+- Do not record machine-specific paths, credentials, or host assumptions as
+  project invariants.
+- If an external source changes execution, cite it in the plan or docs and
+  verify the resulting claim locally.
+
 ## File Layout
 
 `.do-it/CONTEXT.md` consists of three sections, each declarative:
@@ -60,6 +87,17 @@ Roughly quarterly, or when the file crosses ~200 lines:
 2. Find lines that no longer match the code; rewrite or delete.
 3. Find lines that have moved into the type system / schema and can now be deleted.
 
+## Stop Conditions
+
+Do not update CONTEXT.md when:
+
+- the fact is only current status, a TODO, or a task-specific plan;
+- current code contradicts the proposed invariant;
+- the term is still a user decision and has not been chosen;
+- the proposed entry comes from external material that has not been rewritten
+  and checked against repo truth;
+- the entry would exceed the terse one-line shape.
+
 ## Common Rationalizations
 
 - *"This belongs in the README."* — Maybe — but if the AI workflow needs it next turn, it has to live somewhere terse and declarative, and `README` is too long-form.
@@ -72,6 +110,20 @@ Roughly quarterly, or when the file crosses ~200 lines:
 - Two adjacent lines define the same term differently — collapse.
 - A line is longer than two sentences — split or move it elsewhere.
 - The file grows past ~200 lines — cull.
+- External or memory-derived wording is recorded as if it were repo truth.
+- CONTEXT.md becomes a plan tracker, changelog, or tutorial.
+
+## Verification
+
+Before relying on or updating CONTEXT.md:
+
+- check current code/docs/tests when the fact is central or drift-prone;
+- keep one concept per line in the correct section;
+- remove aliases by choosing the canonical term and naming aliases to avoid;
+- cite external ideas in durable docs when needed, but record only the
+  do-it-native invariant here;
+- confirm the update is not better expressed in code, schema, README, docs,
+  plan, or issue tracker.
 
 ## Related Skills
 

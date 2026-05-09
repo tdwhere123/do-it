@@ -4,6 +4,29 @@
 
 - No unreleased changes.
 
+## 0.7.1
+
+### Highlights
+
+- **agent-skills method absorption.** Rewrote selected `addyosmani/agent-skills`
+  methods into do-it-native workflow policy without vendoring upstream text or
+  adding installed upstream skill names.
+- **Skill anatomy hardening.** `do-it-skill-authoring` now defines the minimum
+  installed-skill structure: trigger, tier/process, stop conditions, common
+  rationalizations, red flags, and verification evidence.
+- **Core workflow density.** Planning, slicing, TDD, debugging, interface drill,
+  review-loop, architecture scan, verification-gate, and context now carry
+  stronger anti-skip, boundary, dependency, and proof-quality rules.
+
+### Changed
+
+- `docs/upstream-map.md` records the `agent-skills` source idea to do-it
+  destination mapping.
+- `docs/maintenance.md` documents external workflow absorption, skill anatomy,
+  and generated-artifact ownership rules.
+- README and README.zh-CN acknowledge `agent-skills` as method inspiration and
+  state the rewrite-not-vendoring boundary.
+
 ## 0.7.0
 
 ### Highlights

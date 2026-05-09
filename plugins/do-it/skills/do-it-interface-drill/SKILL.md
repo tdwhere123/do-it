@@ -47,6 +47,19 @@ Parent-only unless explicitly assigned. Use for public APIs, schemas, events, UI
 7. Specify inputs, outputs, errors, side effects, lifecycle, and invalid states.
 8. Define verification: unit, integration, contract, e2e, visual, or docs checks.
 
+## Contract Principles
+
+- Contract-first: callers should be able to use the boundary from the written
+  contract, not from reading implementation internals.
+- Hyrum's Law: if consumers can observe behavior, some consumer may rely on it;
+  preserve it or explicitly migrate it.
+- Consistent error semantics: the same failure class should be represented,
+  redacted, logged, and retried consistently across producer and consumer.
+- Validate at boundaries: reject invalid input where it enters the system, not
+  after downstream code has inferred meaning from it.
+- Prefer additive change when old callers, old data, or old agents may exist.
+  Breaking change needs a compatibility owner, migration path, and verification.
+
 ## Review Mode
 
 Use review mode after a diff exists. In review mode, do not generate new
@@ -89,6 +102,17 @@ Compare with a compact table:
 - Observability: What logs, events, metrics, or reports prove behavior?
 - Tests: What fails if a consumer misuses the contract?
 
+## Stop Conditions
+
+Stop before implementation or parallel dispatch when:
+
+- producer and consumer disagree on required fields, error semantics, or
+  lifecycle;
+- a breaking change has no migration path or compatibility owner;
+- validation is left to an internal implementation detail;
+- consumers must infer hidden behavior not named in the contract;
+- verification cannot prove both producer and consumer expectations.
+
 ## Agent Handoffs
 
 For subagent-facing interfaces, include:
@@ -129,3 +153,36 @@ Use this shape when handing off or reviewing:
 - Hiding lifecycle or retry behavior in implementation details.
 - Writing docs without tests for the contract.
 - Starting parallel work before producer and consumer agree on the boundary.
+- Treating an undocumented observed behavior as safe to remove.
+- Mixing multiple error formats for one boundary because each caller already
+  handles its own path.
+
+## Common Rationalizations
+
+- *"This is internal, so compatibility does not matter."* — Internal consumers
+  still form contracts when multiple modules, agents, or generated surfaces rely
+  on behavior.
+- *"Old callers probably do not use that field."* — If it is observable, prove
+  it is unused or make the change additive.
+- *"Validation can happen downstream."* — Downstream validation means invalid
+  state already crossed the boundary.
+
+## Red Flags
+
+- The contract only describes the happy path.
+- Optional fields are required in practice.
+- Errors differ by caller instead of failure class.
+- Tests exercise producer internals but no consumer-visible contract.
+- A docs-only interface change has no matching source or generated-surface
+  check.
+
+## Verification
+
+An interface drill is ready when:
+
+- producer, consumer, and compatibility owner are named;
+- inputs, outputs, error semantics, side effects, lifecycle, invalid states, and
+  observability are explicit;
+- candidate shapes were compared when Standard/Heavy applies;
+- breaking changes have migration proof, or the chosen shape is additive;
+- verification covers the boundary from at least one consumer-visible path.

@@ -67,6 +67,37 @@ Parent-only unless explicitly assigned:
 - Maintenance: what future churn can be avoided without expanding scope?
 - Delegation: which work can be isolated, and which shared files stay parent-owned?
 
+## Planning Boundaries
+
+Use these boundaries to prevent plans from becoming either vague permission
+slips or overbuilt process.
+
+- **Always:** name assumptions separately from confirmed facts, and attach the
+  evidence needed to confirm or retire each assumption.
+- **Always:** identify dependencies as `must precede`, `can run in parallel`,
+  or `blocked by user/external action`.
+- **Always:** add checkpoints where the next step should pause, review, or
+  integrate before more work starts.
+- **Ask:** only for choices that local truth cannot answer and that would
+  change scope, architecture, product behavior, or release risk.
+- **Never:** ask the user where files live, whether tests exist, or what the
+  current diff contains before searching locally.
+- **Never:** let a lower readiness target imply a higher one; fixture proof is
+  not operator proof.
+
+### Dependency Graph
+
+For multi-slice plans, include a compact dependency graph in plain text:
+
+```text
+A-1 -> A-2
+A-1 -> A-3
+A-2 + A-3 -> integration verification
+```
+
+Keep it small. It exists to reveal blocked or parallel work, not to model the
+entire project.
+
 ## Required Planning Artifacts
 
 For Standard and Heavy plans, include:
@@ -159,3 +190,36 @@ for a code-facing plan; they go stale faster than domain decisions.
 - Writing vague steps like "add tests" without naming the behavior to prove.
 - Splitting by technical layer when a vertical slice would be testable sooner.
 - Letting a subagent plan Heavy work without explicit assignment.
+- Treating assumptions as facts because they sound likely.
+- Omitting checkpoints, so a long plan keeps executing after the riskiest
+  premise should have been rechecked.
+
+## Common Rationalizations
+
+- *"The user already gave a plan."* — Treat it as intent, then re-read current
+  files and adjust only where repo truth requires it.
+- *"This is just docs, so no dependency map is needed."* — Workflow and install
+  docs still have source/generated/install dependencies that can drift.
+- *"We can verify at the end."* — Plans need per-slice evidence so failures
+  stop near their cause instead of at closeout.
+
+## Red Flags
+
+- The plan has tasks but no acceptance evidence.
+- The plan asks broad questions before checking local files.
+- Dependencies are implicit in prose and not visible as ordering.
+- A risky interface, install, or policy change has no checkpoint before
+  generated output or live setup.
+- The final evidence names old worker runs instead of fresh current-worktree
+  commands.
+
+## Verification
+
+Before treating a plan as ready:
+
+- local facts were inspected and separated from assumptions;
+- non-goals and ownership boundaries are explicit;
+- Standard/Heavy plans include failure-mode forecast, path map or not-applicable
+  reason, readiness target, and final evidence;
+- multi-slice plans include dependency order and checkpoints;
+- every verification item names the behavior or artifact it proves.

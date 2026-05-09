@@ -56,6 +56,10 @@ Each Standard or Heavy slice should include:
 - Write ownership and forbidden paths.
 - Inputs and outputs.
 - Dependencies and ordering.
+- Estimated size: `thin`, `normal`, or `too large`; split any `too large`
+  slice before dispatch unless the parent explicitly owns it.
+- Checkpoint: the evidence or review event that must happen before dependent
+  slices continue.
 - Verification command or evidence.
 - Review lens needed.
 - Stop conditions for `NEEDS_CONTEXT` or `BLOCKED`.
@@ -69,6 +73,17 @@ Each Standard or Heavy slice should include:
 5. Put high-risk contracts, migrations, async behavior, or security checks early.
 6. Keep each slice independently reviewable.
 7. Identify final integration and broad verification as parent-owned.
+
+## Dependency And Checkpoint Rules
+
+- A slice may depend on another slice's verified output, not on its intention.
+- Parallel slices must have disjoint write ownership or a parent-owned
+  integration file.
+- User or external decisions make the dependent slice `HITL`.
+- Every risky contract gets an early checkpoint before downstream workers build
+  against it.
+- Every generated or install surface gets a final parent-owned sync check after
+  source edits land.
 
 ## Output Shape
 
@@ -91,3 +106,35 @@ Then include:
 - Calling a preference-dependent slice `AFK`.
 - Making slices too large for one worker to verify.
 - Deferring the riskiest contract until the end.
+- Treating "independent" as "can be worked on simultaneously" without checking
+  write ownership and integration order.
+- Omitting checkpoint evidence, so a later slice builds on an unproven contract.
+
+## Common Rationalizations
+
+- *"Backend first is cleaner."* — If the user value crosses layers, the first
+  slice should prove the thinnest real path, even if it is incomplete.
+- *"The worker can figure out dependencies."* — The parent owns sequencing and
+  shared-file risk; workers should not infer hidden gates.
+- *"This slice is big but straightforward."* — If one worker cannot verify it
+  end-to-end, split it or keep it parent-owned.
+
+## Red Flags
+
+- A slice has no explicit verification command or evidence.
+- Two slices can edit the same file without a parent integration rule.
+- A downstream slice starts before the producer contract is checked.
+- Most slices are named by technical layer instead of behavior or contract.
+- `HITL` work is hidden inside an `AFK` dispatch.
+
+## Verification
+
+Before dispatching or accepting a slice plan:
+
+- the tracer-bullet slice is identified;
+- each slice has owner, write scope, dependencies, checkpoint, and stop
+  condition;
+- no parallel slice pair has conflicting write ownership;
+- high-risk contracts, migrations, async behavior, security, generated output,
+  or install surfaces have early or final parent checkpoints;
+- every slice can be reviewed independently.

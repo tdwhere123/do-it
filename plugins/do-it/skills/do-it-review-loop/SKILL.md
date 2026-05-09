@@ -150,6 +150,37 @@ comfortably; for larger diffs, escalate to review-deep.
 - `Important`: likely to cause regression, rework, review failure, or ownership confusion.
 - `Opportunity`: useful cleanup, but not required for this delivery unless tied to correctness.
 
+## Review Axes
+
+Check every non-trivial diff through five axes before spending time on polish:
+
+- Requirements: does it satisfy the task, non-goals, and acceptance evidence?
+- Correctness: can the changed behavior be wrong on real inputs, state, timing,
+  or failure paths?
+- Contracts: do APIs, schemas, CLIs, generated outputs, docs, and consumers
+  agree?
+- Maintainability: did the change add avoidable coupling, dead code, duplicate
+  logic, or unclear ownership?
+- Verification: do the tests and commands actually prove the claim, or did they
+  mock away the risky collaborator chain?
+
+### Change Sizing
+
+Large diffs are harder to review honestly. When a diff mixes unrelated policy,
+behavior, generated output, docs, and cleanup, first identify the reviewable
+units. If a unit cannot be reviewed with the available context, return `Needs
+more evidence` instead of scanning loosely.
+
+### Verify The Verification
+
+Review the evidence itself:
+
+- command ran on the current branch/worktree;
+- command covers the changed surface rather than only a nearby unit;
+- generated files were produced by scripts, not hand-edited;
+- install or package claims use temp-home or package checks when relevant;
+- passing tests are not the only proof when contract or docs-truth changed.
+
 ## Finding Shape
 
 Use durable, user-facing language:
@@ -202,8 +233,42 @@ workflow clearly owns issue creation.
   lens covers the credible failure mode.
 - Style-only comments need maintenance or correctness impact to be findings.
 - If evidence is blocked, return `Needs more evidence` instead of inventing certainty.
+- Dependency changes require a research-first trail or current package/source
+  evidence.
+- Dead code removal must prove the old path is not still referenced by runtime,
+  install, generated, or docs surfaces.
 
 ## Closeout Gate
 
 Review is not clean while unresolved `Blocking` or `Important` findings remain. Blocking/Important fixes need a closure record that includes cause and prevention, not only code changes.
 Deferred `Opportunity` findings must be explicit and non-blocking.
+
+## Common Rationalizations
+
+- *"Tests pass, so review can be shallow."* — Tests are one evidence source;
+  review still checks scope, contracts, maintainability, and proof quality.
+- *"This is generated output."* — Generated output can drift; verify the script
+  path and source of truth.
+- *"This cleanup is obviously dead."* — Dead-code claims need reference or
+  runtime evidence, especially across install and plugin surfaces.
+
+## Red Flags
+
+- The review quotes commit messages instead of diff or file evidence.
+- Findings are mostly style comments while contract or verification risk is
+  unexamined.
+- A broad diff is reviewed as one blob with no sizing or ownership split.
+- A dependency, framework, protocol, or datastore appears without current
+  source evidence.
+- The review accepts pre-merge or worker evidence as the final integrated proof.
+
+## Verification
+
+Before calling review clean:
+
+- review scope is frozen to files, commit, range, or task;
+- the five axes were checked at the depth the tier requires;
+- verification evidence was inspected for freshness and surface coverage;
+- generated, install, dependency, and dead-code claims have direct proof when
+  present;
+- no `Blocking` or `Important` finding remains unresolved or un-rechecked.

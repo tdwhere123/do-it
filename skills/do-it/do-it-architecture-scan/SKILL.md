@@ -1,6 +1,6 @@
 ---
 name: do-it-architecture-scan
-description: "Use when a change touches multiple packages or public surfaces and you need to audit ownership, dependency direction, coupling, migration path, rollout risk, or failure isolation before locking a plan."
+description: "Use when a change touches multiple packages or surfaces and you need to audit ownership, dependency direction, coupling, migration, rollout risk, or failure isolation before planning."
 ---
 
 # Do-It Architecture Scan
@@ -60,6 +60,21 @@ Parent-only unless explicitly assigned. Use for wave, phase, cross-package, pers
 - Review churn source: repeated findings point to unclear design, not isolated mistakes.
 - Delegation mismatch: agents share hidden state, write the same files, or cannot verify their outputs.
 
+## Simplicity And Liability Checks
+
+Architecture review should reduce future risk, not create ornamental structure.
+
+- Simplicity check: can the current task be made correct with a smaller local
+  repair that preserves the existing ownership model?
+- Code-as-liability check: new abstractions, adapters, generators, and modes
+  add maintenance cost; require real variation, risk isolation, or repeated
+  duplication before adding them.
+- Removal check: deleting or deprecating code needs reference evidence and a
+  migration or rollback path when users, generated outputs, or install surfaces
+  may still depend on it.
+- Failure isolation check: a boundary is useful only if it makes failures easier
+  to observe, contain, test, or roll back.
+
 ## Opportunity Levels
 
 - Shallow module opportunity: local extraction, name cleanup, helper reuse, test seam, or file split that reduces immediate friction without changing ownership.
@@ -90,6 +105,19 @@ Architecture is blocking only when it can cause:
 - a contract that consumers cannot use safely.
 
 Otherwise, record it as an opportunity or a follow-up. Do not hold the main task hostage for broad cleanup.
+
+## Stop Conditions
+
+Stop and return `Needs more evidence`, `BLOCKED`, or reroute when:
+
+- the owning boundary or consumer cannot be identified from current repo truth;
+- evidence points to an interface contract that needs `do-it-interface-drill`
+  before architecture recommendations are safe;
+- the issue is a user/product scope decision, not an architecture fact;
+- the scan would require editing outside the assigned ownership or changing
+  install/release policy that the parent did not assign;
+- verification cannot prove whether a proposed boundary improves correctness,
+  safety, delivery, or failure isolation.
 
 ## Recommendation Rules
 
@@ -129,3 +157,37 @@ During delivery:
 - Ignoring a boundary flaw because tests happen to pass.
 - Treating duplicated code as a defect without showing why it matters.
 - Forgetting to re-check docs or tests when architecture truth changes.
+- Adding an abstraction before there is real variation or a repeated change
+  cost.
+- Calling code dead without checking runtime, generated, install, and docs
+  references.
+
+## Common Rationalizations
+
+- *"This design is not ideal, so we should fix it now."* — Architecture blocks
+  only when it threatens correctness, safety, verification, or delivery.
+- *"A shared abstraction will make future work easier."* — Future ease is not a
+  reason unless current evidence shows repeated variation or coupling.
+- *"Deleting code is always simplification."* — Deleted paths can be hidden
+  contracts; prove they are unused or provide migration.
+
+## Red Flags
+
+- Recommendation starts with a rewrite and no current owner map.
+- The scan lists opportunities but no delivery recommendation.
+- A deep module opportunity is treated as blocking without a concrete failure
+  path.
+- The proposed architecture makes verification harder.
+- Docs, tests, generated outputs, or install surfaces are not rechecked after a
+  boundary changes.
+
+## Verification
+
+An architecture scan is usable when:
+
+- owning boundary, consumers, and main data/control flow are identified;
+- findings distinguish `Blocking`, `Important`, and `Opportunity`;
+- simplicity, liability, removal, and failure-isolation checks were applied;
+- any blocking recommendation names the correctness, safety, verification, or
+  delivery risk it prevents;
+- deferred opportunities are explicitly non-blocking and actionable later.

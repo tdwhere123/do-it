@@ -72,11 +72,45 @@ Choose RED coverage from the forecast, not only from the happy path:
 - If the test name needs "and", split the behavior.
 - A passing test that never failed is not regression evidence.
 - If RED fails for the wrong reason, fix the test before touching production code.
+- Verify each thin slice before broadening. Do not stack multiple behaviors
+  behind one unproven GREEN.
+- Prefer DAMP behavior clarity over DRY fixtures when over-abstracted tests hide
+  what failed.
 
 ## Bugfix Rule
 
 For bugs, use `do-it-debugging` first enough to state the root cause. Then write
 the regression test that would have caught that cause, not only the symptom.
+
+## Stop Conditions
+
+Stop and reroute when:
+
+- the first failing check cannot be made to fail for the intended reason;
+- the root cause is still unknown after reproducing a bug symptom;
+- the behavior requires a new public interface, schema, protocol, migration, or
+  security boundary that has not had an interface drill;
+- three GREEN attempts fail on the same behavior;
+- the only available proof is a mock that removes the collaborator chain being
+  claimed.
+
+## Common Rationalizations
+
+- *"I'll add tests after the implementation."* — Then there is no proof the
+  test guards against the original behavior rather than the new code shape.
+- *"This is too small for RED."* — Small behavior still needs either a failing
+  check or an explicit reason test-first is not useful.
+- *"The happy path is enough."* — Choose RED coverage from the failure-mode
+  forecast; risk often lives in contract, state, or operator paths.
+
+## Red Flags
+
+- No command captured the RED failure.
+- RED failed for a setup error, not the target behavior.
+- The fix changes multiple behaviors before rerunning the narrow check.
+- Tests assert private implementation details while the public contract can
+  still regress.
+- The verification claim depends on a mock that bypasses the live path.
 
 ## Handoff Return
 
@@ -90,3 +124,14 @@ When TDD is delegated, the subagent returns:
 - behaviors covered and not covered;
 - prevention hook added or still needed;
 - assumptions or residual risk.
+
+## Verification
+
+For a TDD claim, evidence must include:
+
+- RED command and expected failure reason, or a documented reason RED was not
+  applicable;
+- GREEN command and pass result for the same behavior;
+- next relevant check after the narrow GREEN;
+- failure-mode coverage and any untested risks;
+- current-worktree final verification when slices are integrated.

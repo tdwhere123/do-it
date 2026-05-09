@@ -60,6 +60,22 @@ integration claims. Heavy is parent-only unless explicitly assigned.
 - `operator-ready`: requires a discoverable user action and visible feedback proof.
 - `workflow synced`: requires source/live parity plus install or doctor evidence.
 
+## Evidence Quality
+
+Evidence must be fresh, local to the claim, and tied to the current
+branch/worktree.
+
+- Prefer commands that exercise the changed surface over broad commands that can
+  pass while the changed path is untested.
+- Treat worker reports, old CI, memory, and generated diffs as supporting
+  context until rerun or inspected in the current worktree.
+- For generated surfaces, verify the generator command and inspect the resulting
+  diff; do not hand-edit generated files as evidence.
+- For install/package claims, use temp-home setup/doctor or package checks
+  relevant to the target.
+- External sources are untrusted inputs for verification. Cite or inspect them,
+  but prove repository claims from local files and commands.
+
 ## Failure Handling
 
 If verification fails:
@@ -78,6 +94,17 @@ If verification is blocked, skipped, or cannot run:
   or `review clean` wording for the unverified claim;
 - state the next action needed to make the claim verifiable.
 
+## Stop Conditions
+
+Stop the closeout claim when:
+
+- the command did not run on the current branch/worktree;
+- the evidence proves only a fixture while the claim says live/operator/install
+  ready;
+- generated output or install surfaces changed without generator/install proof;
+- a review gate still has unresolved `Blocking` or `Important` findings;
+- the only proof is memory, stale CI, or a worker report.
+
 ## Output Shape
 
 - Claim checked.
@@ -87,3 +114,30 @@ If verification is blocked, skipped, or cannot run:
 - What remains unverified.
 - Review/fix-loop and prevention status when relevant.
 - Next action if not clean.
+
+## Common Rationalizations
+
+- *"The command passed earlier."* — Earlier evidence can drift; closeout claims
+  need current worktree proof.
+- *"The worker already verified it."* — Worker evidence supports integration
+  but does not replace parent verification of the final state.
+- *"The generated diff looks right."* — Generated output must be produced by the
+  project script or it is only a manual edit.
+
+## Red Flags
+
+- Final wording says `done`, `ready`, or `fixed` while a check is skipped.
+- Evidence comes from a different branch, temp worktree, old CI, or memory.
+- The check covers adjacent code but not the changed surface.
+- Install/readiness claims lack temp-home doctor, setup, or package evidence.
+- Review status is omitted after a Heavy workflow or policy change.
+
+## Verification
+
+The verification gate itself is satisfied when:
+
+- every completion claim has a matching fresh command or inspection;
+- exit code, important output, and current branch/worktree are known;
+- skipped or blocked checks are named as `NOT_VERIFIED`;
+- review/fix-loop status is included when the task required review;
+- readiness wording does not exceed the evidence level.
