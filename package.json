@@ -1,6 +1,6 @@
 {
   "name": "@tdwhere/do-it",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "description": "Installable AI coding workflow for Codex and Claude Code with risk-based routing, scoped sub-agents, and evidence-backed completion.",
   "type": "module",
   "license": "MIT",

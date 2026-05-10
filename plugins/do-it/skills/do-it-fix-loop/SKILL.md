@@ -69,6 +69,42 @@ caught earlier next time. Use one of:
 Do not mark a fix closed with only "changed code" evidence when no prevention
 hook exists.
 
+## Stop Conditions
+
+Stop and return `STILL_OPEN` or `NEEDS_CONTEXT` when:
+
+- a finding cannot be reproduced or refuted from current files;
+- the requested fix conflicts with another accepted finding or user constraint;
+- the fix would cross an interface, persistence, security, or release boundary
+  that was not assigned to this slice;
+- the same finding remains after one targeted repair and verification rerun.
+
+## Common Rationalizations
+
+- *"I changed the code the reviewer pointed at."* — Closure needs proof that
+  the behavior or contract risk is gone.
+- *"This adjacent cleanup will prevent future issues."* — Cleanup waits until
+  Blocking and Important findings in the current scope are clear.
+- *"The reviewer probably meant this."* — Preserve the finding ID and verify
+  the exact claim before editing.
+
+## Red Flags
+
+- Multiple unrelated findings are fixed in one commit with one broad test.
+- A finding is marked closed without command, line, or behavior evidence.
+- Prevention is omitted for a Blocking or Important fix.
+- Re-review scope is narrower than the files or contracts changed by the fix.
+
+## Verification
+
+Before calling the loop clean:
+
+- every Blocking and Important finding is `closed`, `downgraded with evidence`,
+  `STILL_OPEN`, or `NEEDS_CONTEXT`;
+- finding-specific checks pass on the current worktree;
+- the same-scope review has been rerun for repaired surfaces;
+- residual risks and deferred Opportunities are explicitly named.
+
 ## Closure Record
 
 For each fixed finding, record:

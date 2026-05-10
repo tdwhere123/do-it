@@ -203,7 +203,7 @@ flowchart TD
 
 ```bash
 npm pack
-npm install -g ./tdwhere-do-it-0.7.1.tgz
+npm install -g ./tdwhere-do-it-0.7.2.tgz
 do-it setup
 ```
 
@@ -261,6 +261,12 @@ package.json     npm 包元数据和 CLI scripts
 ```
 
 私有 `.do-it/` 目录用于本地计划、笔记和临时材料。它被 Git 忽略，也不会被安装。
+
+## 升级到 0.7.2
+
+`0.7.2` 修复 Claude Code plugin hooks 在 macOS 自带 Bash 3.2 下的兼容性。
+如果机器已经缓存了 `0.7.1` plugin，需要重新安装或刷新 plugin，让 Claude
+加载新的 hook 文件。
 
 ## 升级到 0.7.1
 

@@ -50,6 +50,16 @@ skill slice they were given.
 - Check for naming collisions and duplicated behavior.
 - Run installer/doctor/package validation only when those surfaces are in scope.
 
+## Stop Conditions
+
+Stop before editing or publishing a skill when:
+
+- the trigger overlaps another skill and the routing boundary is unclear;
+- the skill would introduce a host, command, manifest target, or install path
+  not present in the repo;
+- Heavy behavior would be available to subagents without explicit assignment;
+- generated plugin or installed copies would drift from the maintained source.
+
 ## Minimum Skill Anatomy
 
 Every installed do-it skill should include, or intentionally inherit from a

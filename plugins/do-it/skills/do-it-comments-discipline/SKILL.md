@@ -1,6 +1,6 @@
 ---
 name: do-it-comments-discipline
-description: "Use when authoring or reviewing code comments — enforce that every comment is a future index hook (type annotation, anchor token, cross-file reference, invariant, or compiler/linter directive) and reject narrative, history, task-reference, tombstone, orphan-TODO, and what-comments that go stale fast."
+description: "Use when code comments are authored or reviewed and must be checked as anchors, invariants, cross-file references, or tool directives instead of narrative."
 ---
 
 # Do-It Comments Discipline
@@ -246,6 +246,15 @@ For each new or changed comment in the diff, ask:
 If none of (1) holds, or (2) is yes, or (3) is no, or (4)/(5)/(6) fails — the
 comment is rejected. Either rewrite or delete.
 
+## Stop Conditions
+
+Stop and return a finding instead of rewriting silently when:
+
+- the comment asserts behavior that might be false and needs code evidence;
+- the comment points to another file or symbol that cannot be found;
+- deleting the comment would remove the only statement of an invariant;
+- the right fix is a rename or code restructure owned by another slice.
+
 ## Anti-Pattern Detection (hook keywords)
 
 The `comments-lint` hook scans newly-added comment lines for these keyword
@@ -326,6 +335,16 @@ Example finding:
   suggested fix: rewrite as invariant — "// invariant: only Ed25519 keys
   are accepted; RSA is rejected at boot."
 ```
+
+## Verification
+
+Before calling a comment pass clean:
+
+- every changed comment is classified into one allowed category, or removed;
+- every `see also:` target is greppable by path plus symbol or anchor;
+- every TODO has an owner and closing condition;
+- every tool directive uses the language/tool's actual directive syntax and a real reason;
+- every flagged anti-pattern is fixed, explicitly allowed, or reported as a finding.
 
 ## Trigger Event
 

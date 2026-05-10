@@ -36,6 +36,16 @@ do_it_json_get_nested() {
   fi
 }
 
+_do_it_hash_key() {
+  if command -v sha1sum >/dev/null 2>&1; then
+    sha1sum 2>/dev/null | cut -c1-12
+  elif command -v shasum >/dev/null 2>&1; then
+    shasum -a 1 2>/dev/null | cut -c1-12
+  else
+    cksum 2>/dev/null | awk '{print $1}'
+  fi
+}
+
 # Internal: drop a self-contained `.gitignore` inside the runtime dir itself
 # instead of editing the repo's top-level `.gitignore`. This keeps worktrees
 # clean (no spurious modification of `.gitignore`) and makes the ignore rule
@@ -93,7 +103,7 @@ do_it_session_dir() {
       fi
     fi
     if [[ "$_hazard" -eq 1 ]]; then
-      key="$(printf '%s' "$session_id_in" | sha1sum 2>/dev/null | cut -c1-12)"
+      key="$(printf '%s' "$session_id_in" | _do_it_hash_key)"
       if [[ -z "$key" ]]; then key="nosession"; fi
     else
       key="$session_id_in"
@@ -102,12 +112,12 @@ do_it_session_dir() {
     local repo_root
     repo_root="$(git rev-parse --show-toplevel 2>/dev/null)"
     if [[ -n "$repo_root" ]]; then
-      key="$(printf '%s' "$repo_root" | sha1sum 2>/dev/null | cut -c1-12)"
+      key="$(printf '%s' "$repo_root" | _do_it_hash_key)"
       if [[ -z "$key" ]]; then key="nosession"; fi
     else
       # Non-git, no session id: hash the cwd so each project gets its own
       # bucket instead of all of them sharing a global `nosession` dir.
-      key="$(printf '%s' "$(pwd 2>/dev/null)" | sha1sum 2>/dev/null | cut -c1-12)"
+      key="$(printf '%s' "$(pwd 2>/dev/null)" | _do_it_hash_key)"
       if [[ -z "$key" ]]; then key="nosession"; fi
     fi
   fi
@@ -240,17 +250,13 @@ do_it_prompt_has_word() {
   printf '%s' "$lc" | grep -qiwF -- "$lcw"
 }
 
-# Test if any keyword from the named array appears in the prompt.
-# - Pure-ASCII terms: word-boundary match (so `fix` does not match `prefix`).
-# - CJK / mixed terms: case-insensitive substring (CJK has no word boundaries).
-# Args: <prompt> <array-name>. Requires bash 4.3+ for `local -n`.
-do_it_prompt_has_any() {
-  local prompt="$1" __do_it_array_name="$2"
+_do_it_prompt_has_any_values() {
+  local prompt="$1"
+  shift
   local lc
   lc="$(do_it_lc "$prompt")"
-  local -n __do_it_arr_ref="$__do_it_array_name"
   local word lcw
-  for word in "${__do_it_arr_ref[@]}"; do
+  for word in "$@"; do
     if [[ -z "$word" ]]; then continue; fi
     lcw="$(do_it_lc "$word")"
     if _do_it_term_is_ascii "$lcw"; then
@@ -264,6 +270,35 @@ do_it_prompt_has_any() {
     fi
   done
   return 1
+}
+
+# Test if any keyword from a known hook keyword array appears in the prompt.
+# - Pure-ASCII terms: word-boundary match (so `fix` does not match `prefix`).
+# - CJK / mixed terms: case-insensitive substring (CJK has no word boundaries).
+# Args: <prompt> <array-name>.
+do_it_prompt_has_any() {
+  local prompt="$1" __do_it_array_name="$2"
+  case "$__do_it_array_name" in
+    DO_IT_INTENT_VERBS)
+      _do_it_prompt_has_any_values "$prompt" "${DO_IT_INTENT_VERBS[@]+"${DO_IT_INTENT_VERBS[@]}"}" ;;
+    DO_IT_UNCERTAINTY_WORDS)
+      _do_it_prompt_has_any_values "$prompt" "${DO_IT_UNCERTAINTY_WORDS[@]+"${DO_IT_UNCERTAINTY_WORDS[@]}"}" ;;
+    DO_IT_HEAVY_SIGNALS)
+      _do_it_prompt_has_any_values "$prompt" "${DO_IT_HEAVY_SIGNALS[@]+"${DO_IT_HEAVY_SIGNALS[@]}"}" ;;
+    DO_IT_LIGHT_SIGNALS)
+      _do_it_prompt_has_any_values "$prompt" "${DO_IT_LIGHT_SIGNALS[@]+"${DO_IT_LIGHT_SIGNALS[@]}"}" ;;
+    DO_IT_ESCAPE_WORDS)
+      _do_it_prompt_has_any_values "$prompt" "${DO_IT_ESCAPE_WORDS[@]+"${DO_IT_ESCAPE_WORDS[@]}"}" ;;
+    DO_IT_LONG_INPUT_HINTS)
+      _do_it_prompt_has_any_values "$prompt" "${DO_IT_LONG_INPUT_HINTS[@]+"${DO_IT_LONG_INPUT_HINTS[@]}"}" ;;
+    DO_IT_QUESTION_HINTS)
+      _do_it_prompt_has_any_values "$prompt" "${DO_IT_QUESTION_HINTS[@]+"${DO_IT_QUESTION_HINTS[@]}"}" ;;
+    DO_IT_INTENT_OBJECTS)
+      _do_it_prompt_has_any_values "$prompt" "${DO_IT_INTENT_OBJECTS[@]+"${DO_IT_INTENT_OBJECTS[@]}"}" ;;
+    *)
+      return 1
+      ;;
+  esac
 }
 
 # Convenience wrapper for the escape-word table.
@@ -403,7 +438,7 @@ _do_it_with_state_lock() {
 _do_it_warn_state_corruption() {
   local state="$1" msg="$2"
   local dir
-  dir="$(dirname -- "$state")"
+  dir="$(dirname "$state")"
   local marker="${dir}/.state-warn"
   if [[ ! -f "$marker" ]]; then
     : > "$marker" 2>/dev/null || true

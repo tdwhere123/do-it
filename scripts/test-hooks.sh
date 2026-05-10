@@ -21,6 +21,10 @@ fail() {
   exit 1
 }
 
+if grep -R -n -E '^[[:space:]]*(local|declare)[[:space:]][^#;]*-n' hooks/*.sh hooks/lib; then
+  fail "hooks must stay compatible with macOS Bash 3.2; nameref local/declare -n is not allowed"
+fi
+
 json_prompt() {
   local session_id="$1" prompt="$2" cwd="${3:-$REPO_ROOT}"
   jq -nc --arg prompt "$prompt" --arg sid "$session_id" --arg cwd "$cwd" \

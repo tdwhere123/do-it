@@ -83,7 +83,7 @@ if ! command -v git >/dev/null 2>&1; then
   exit 0
 fi
 
-FILE_DIR="$(dirname -- "$FILE_PATH")"
+FILE_DIR="$(dirname "$FILE_PATH")"
 REPO_ROOT="$(git -C "$FILE_DIR" rev-parse --show-toplevel 2>/dev/null)"
 if [[ -z "$REPO_ROOT" ]]; then
   do_it_debug comments-lint "decision=skip reason=not-a-git-repo"
@@ -96,7 +96,7 @@ fi
 # covers the simple case.
 REAL_PATH=""
 if command -v readlink >/dev/null 2>&1; then
-  REAL_PATH="$(readlink -f -- "$FILE_PATH" 2>/dev/null || true)"
+  REAL_PATH="$(readlink -f "$FILE_PATH" 2>/dev/null || true)"
 fi
 if [[ -n "$REAL_PATH" ]]; then
   case "$REAL_PATH" in
@@ -110,7 +110,7 @@ fi
 
 # File-size cap: skip anything larger than 1 MiB. Big files blow the awk
 # pass and would only surface noise in the reminder.
-FILE_BYTES="$(stat -c %s -- "$FILE_PATH" 2>/dev/null || stat -f %z -- "$FILE_PATH" 2>/dev/null || echo 0)"
+FILE_BYTES="$(stat -c %s "$FILE_PATH" 2>/dev/null || stat -f %z "$FILE_PATH" 2>/dev/null || echo 0)"
 case "$FILE_BYTES" in
   ''|*[!0-9]*) FILE_BYTES=0 ;;
 esac
@@ -146,7 +146,7 @@ if [[ -z "$ADDED_LINES" ]]; then
   STATUS_LINE="$(_doit_timeout 5s git -C "$REPO_ROOT" status --porcelain -- "$FILE_PATH" 2>/dev/null | head -n1)"
   case "$STATUS_LINE" in
     \?\?*|A*|*A\ *)
-      ADDED_LINES="$(_doit_timeout 5s cat -- "$FILE_PATH" 2>/dev/null || true)"
+      ADDED_LINES="$(_doit_timeout 5s cat "$FILE_PATH" 2>/dev/null || true)"
       ;;
   esac
 fi

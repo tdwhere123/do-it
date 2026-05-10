@@ -155,3 +155,37 @@ Review/drill workers return:
 - Re-run verification that supports final claims on the integrated branch or current worktree.
 - Ensure subagents did not touch forbidden paths.
 - Close or re-dispatch workers only after the stop condition is satisfied.
+
+## Stop Conditions
+
+Do not dispatch, or stop the lane, when:
+
+- write ownership overlaps another active worker or user-owned edit;
+- the parent cannot state current truth, failure-mode forecast, or readiness target;
+- the child needs credentials, network, destructive cleanup, or branch actions not granted;
+- the child returns `NEEDS_CONTEXT`, `BLOCKED`, `STILL_OPEN`, or budget overrun.
+
+## Common Rationalizations
+
+- *"Parallel agents will be faster."* — Parallelism helps only when write sets,
+  proof paths, and stop conditions are independent.
+- *"The worker says done."* — Worker output is input to integration; the parent
+  still verifies final claims.
+- *"The prompt can stay loose because the agent is smart."* — Loose scope
+  creates conflicts, duplicated reads, and unreviewable claims.
+
+## Red Flags
+
+- Two workers can edit the same manifest, docs index, migration, or generated file.
+- A worker is asked to review and fix the same surface in one ambiguous task.
+- Return schema omits changed files, commands, assumptions, or residual risk.
+- Parent closes workers before receiving final status or inspecting their diffs.
+
+## Verification
+
+Before accepting delegated work:
+
+- each worker stayed within write ownership and forbidden paths;
+- returned evidence matches the assigned readiness target;
+- integrated verification is rerun by the parent where the final claim depends on it;
+- unresolved worker statuses are either re-dispatched, fixed locally, or recorded as open risk.

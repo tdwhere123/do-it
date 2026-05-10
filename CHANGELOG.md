@@ -4,6 +4,21 @@
 
 - No unreleased changes.
 
+## 0.7.2
+
+### Fixed
+
+- Claude Code plugin hooks now run on macOS's bundled Bash 3.2 by removing
+  Bash 4.3 nameref usage (`local -n`) from keyword loading and prompt matching.
+- Hook scripts avoid a few GNU-only assumptions on macOS (`sha1sum`,
+  `dirname --`, `stat --`, `cat --`, and template-less `mktemp`).
+
+### Changed
+
+- Tightened selected do-it skills with shorter trigger metadata and explicit
+  stop, red-flag, and verification guidance for closeout, fix-loop,
+  delegation, worktree isolation, grill logging, and skill authoring.
+
 ## 0.7.1
 
 ### Highlights

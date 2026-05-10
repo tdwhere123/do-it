@@ -60,6 +60,40 @@ published workflow files, verify the relevant installer/doctor/packaging surface
 before saying it is ready. If those paths are outside current write ownership,
 do not edit them; report the needed follow-up.
 
+## Stop Conditions
+
+Stop before commit, merge, push, or cleanup when:
+
+- intended scope is unclear or the diff includes unrelated/user-owned edits;
+- verification or review evidence is missing for the closeout claim;
+- the target base, merge policy, or cleanup permission is not explicit;
+- install/package surfaces changed without setup, doctor, or pack evidence.
+
+## Common Rationalizations
+
+- *"The tests passed, so the branch can close."* — Closeout also needs scope,
+  review status, intended diff, and integration/rollback notes.
+- *"This local cleanup is obvious."* — Worktree and branch deletion still need
+  task ownership and explicit cleanup scope.
+- *"The generated files look right."* — Generated or installed surfaces need
+  the generator/install command as evidence.
+
+## Red Flags
+
+- Commit contains unrelated files because they were already dirty.
+- Final report says merged or ready without naming the checked branch/ref.
+- Cleanup removes a worktree before merge, PR, or discard status is recorded.
+- Release/install wording appears without temp-home doctor or package proof.
+
+## Verification
+
+Before closing the branch:
+
+- `git status --short` or equivalent intended-diff inspection is known;
+- verification and review evidence matches the delivered surface;
+- commit/merge/push/cleanup actions are recorded or explicitly skipped;
+- rollback or recovery path is named for merge/release/install changes.
+
 ## Final Record
 
 Report:

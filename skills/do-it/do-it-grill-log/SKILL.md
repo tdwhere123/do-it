@@ -127,6 +127,24 @@ status: resolved
 - `status: resolved` with execution-blocking `needs_user_decision` items remaining. (Do not flip status until each blocking item resolves.)
 - File grows past ~150 lines for a single task. (Probably needs splitting into sub-tasks, or the task is too broad.)
 
+## Stop Conditions
+
+Stop and return to `do-it-grill` or the user when:
+
+- a decision item is `needs_user_decision` and changes the next action;
+- a fact has no cheap falsifier but the implementation depends on it;
+- the log would need multiple unrelated task slugs to stay coherent;
+- the evidence is only paraphrase, memory, or old transcript context.
+
+## Verification
+
+Before using the log as closeout evidence:
+
+- every execution-blocking fact is `confirmed` or `refuted`;
+- every execution-blocking decision is `chosen`, `deferred`, or escalated;
+- every evidence field points to a file, command, grep result, or explicit user choice;
+- frontmatter `status: resolved` appears only when no blocking item remains.
+
 ## Related Skills
 
 - `do-it-grill` — primary writer.

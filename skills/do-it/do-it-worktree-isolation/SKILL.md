@@ -50,6 +50,40 @@ parent-only unless explicitly assigned.
 - If baseline checks fail, report the failure before implementation claims.
 - If setup needs network or privileged access and fails, request approval through the normal tool flow.
 
+## Stop Conditions
+
+Stop before creating, editing, merging, or cleaning a worktree when:
+
+- the intended base ref is unknown or stale and cannot be verified;
+- existing dirty files overlap the task-owned paths;
+- the worktree path is not ignored or would land inside another active lane;
+- cleanup would remove work not proven merged, pushed, or intentionally discarded.
+
+## Common Rationalizations
+
+- *"I'll just edit main because it is faster."* — Use the current checkout only
+  when risk, dirtiness, and parallelism are low enough for Light.
+- *"The branch name makes the base obvious."* — Base truth comes from git, not
+  naming convention.
+- *"Cleanup is harmless after tests pass."* — Cleanup depends on merge/discard
+  state, not test status.
+
+## Red Flags
+
+- Worktree is created from a guessed base or old local branch.
+- Multiple lanes can mutate the same generated output or manifest.
+- Final answer omits worktree path, branch, or cleanup state.
+- `git status` was never checked before edits or before closeout.
+
+## Verification
+
+Before claiming isolation is ready or cleaned:
+
+- branch, path, and base ref are recorded;
+- status was checked in both source and lane when relevant;
+- ignored/allowed path assumptions are verified;
+- cleanup names exactly which task-owned worktrees or branches were removed or retained.
+
 ## Handoff Shape
 
 - worktree path and branch;

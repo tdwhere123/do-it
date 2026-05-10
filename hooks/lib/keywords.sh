@@ -6,15 +6,44 @@
 # the hook code expects, preserving backwards compatibility for project-level
 # overrides (`<cwd>/.do-it/keywords.local.sh`).
 #
-# These arrays are read via `local -n` indirection in hooks/lib/common.sh
-# (do_it_prompt_has_any), which shellcheck cannot resolve — so SC2034 is a
-# false positive here.
+# These arrays are read indirectly by hooks/lib/common.sh (do_it_prompt_has_any),
+# which shellcheck cannot resolve — so SC2034 is a false positive here.
 # shellcheck disable=SC2034
 
 # Resolve the data directory relative to this lib file. The two-step expansion
 # is so this still works when sourced from any cwd.
 _DO_IT_KEYWORDS_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 _DO_IT_KEYWORDS_DATA_DIR="$(cd "${_DO_IT_KEYWORDS_LIB_DIR}/../data" && pwd)"
+
+_do_it_array_clear() {
+  local __arr_name="$1"
+  case "$__arr_name" in
+    DO_IT_INTENT_VERBS) DO_IT_INTENT_VERBS=() ;;
+    DO_IT_UNCERTAINTY_WORDS) DO_IT_UNCERTAINTY_WORDS=() ;;
+    DO_IT_HEAVY_SIGNALS) DO_IT_HEAVY_SIGNALS=() ;;
+    DO_IT_LIGHT_SIGNALS) DO_IT_LIGHT_SIGNALS=() ;;
+    DO_IT_ESCAPE_WORDS) DO_IT_ESCAPE_WORDS=() ;;
+    DO_IT_LONG_INPUT_HINTS) DO_IT_LONG_INPUT_HINTS=() ;;
+    DO_IT_QUESTION_HINTS) DO_IT_QUESTION_HINTS=() ;;
+    DO_IT_INTENT_OBJECTS) DO_IT_INTENT_OBJECTS=() ;;
+    *) return 1 ;;
+  esac
+}
+
+_do_it_array_append() {
+  local __arr_name="$1" __value="$2"
+  case "$__arr_name" in
+    DO_IT_INTENT_VERBS) DO_IT_INTENT_VERBS+=("$__value") ;;
+    DO_IT_UNCERTAINTY_WORDS) DO_IT_UNCERTAINTY_WORDS+=("$__value") ;;
+    DO_IT_HEAVY_SIGNALS) DO_IT_HEAVY_SIGNALS+=("$__value") ;;
+    DO_IT_LIGHT_SIGNALS) DO_IT_LIGHT_SIGNALS+=("$__value") ;;
+    DO_IT_ESCAPE_WORDS) DO_IT_ESCAPE_WORDS+=("$__value") ;;
+    DO_IT_LONG_INPUT_HINTS) DO_IT_LONG_INPUT_HINTS+=("$__value") ;;
+    DO_IT_QUESTION_HINTS) DO_IT_QUESTION_HINTS+=("$__value") ;;
+    DO_IT_INTENT_OBJECTS) DO_IT_INTENT_OBJECTS+=("$__value") ;;
+    *) return 1 ;;
+  esac
+}
 
 # Read a tsv file into an array passed by name. Comments (`#`) and blank lines
 # are skipped. Each line is `<term><TAB><flags>`; flags may be empty. The flags
@@ -24,8 +53,7 @@ _DO_IT_KEYWORDS_DATA_DIR="$(cd "${_DO_IT_KEYWORDS_LIB_DIR}/../data" && pwd)"
 # Args: <array-name> <tsv-path>
 _do_it_load_tsv() {
   local __arr_name="$1" __path="$2"
-  local -n __arr_ref="$__arr_name"
-  __arr_ref=()
+  _do_it_array_clear "$__arr_name" || return 0
   if [[ ! -f "$__path" ]]; then
     return 0
   fi
@@ -56,7 +84,7 @@ _do_it_load_tsv() {
     case ",$flags," in
       *,trailing-ws,*) term="$term " ;;
     esac
-    __arr_ref+=("$term")
+    _do_it_array_append "$__arr_name" "$term"
   done < "$__path"
 }
 

@@ -73,7 +73,7 @@ fi
 
 # Idempotent stale marker. Replace the existing first-line marker if one is
 # present; otherwise insert at the top.
-TMP="$(mktemp)"
+TMP="$(mktemp "${TMPDIR:-/tmp}/do-it-code-map.XXXXXX")"
 trap 'rm -f "$TMP"' EXIT
 
 FIRST_LINE="$(head -n 1 "$CODE_MAP" 2>/dev/null || true)"
