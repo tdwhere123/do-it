@@ -205,7 +205,7 @@ flowchart TD
 
 ```bash
 npm pack
-npm install -g ./tdwhere-do-it-0.7.2.tgz
+npm install -g ./tdwhere-do-it-0.7.3.tgz
 do-it setup
 ```
 
@@ -264,12 +264,19 @@ package.json     npm 包元数据和 CLI scripts
 
 私有 `.do-it/` 目录用于本地计划、笔记和临时材料。它被 Git 忽略，也不会被安装。
 
+## 升级到 0.7.3
+
+`0.7.3` 把常规 Standard/Heavy 的 router 改为 state-only。router 只记录
+tier 和 dimensions，真正需要压力测试时由 `grill-prompt` 输出可见提示。它也
+收紧了 review、closeout、comments，以及 brainstorm/grill 指引里的 workflow
+accountability。如果机器已经缓存了 `0.7.2` plugin，需要重新安装或刷新 plugin，
+让宿主加载新的 hook 和 skill 文件。
+
 ## 升级到 0.7.2
 
-`0.7.2` 修复 Claude Code plugin hooks 在 macOS 自带 Bash 3.2 下的兼容性，
-并把常规 Standard/Heavy 的 router 改为 state-only。router 只记录 tier 和
-dimensions，真正需要压力测试时由 `grill-prompt` 输出可见提示。如果机器已经
-缓存了 `0.7.1` plugin，需要重新安装或刷新 plugin，让 Claude 加载新的 hook 文件。
+`0.7.2` 修复 Claude Code plugin hooks 在 macOS 自带 Bash 3.2 下的兼容性。
+如果机器已经缓存了 `0.7.1` plugin，需要重新安装或刷新 plugin，让 Claude
+加载兼容的 hook 文件。
 
 ## 升级到 0.7.1
 

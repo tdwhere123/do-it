@@ -229,7 +229,7 @@ For a packed local release artifact:
 
 ```bash
 npm pack
-npm install -g ./tdwhere-do-it-0.7.2.tgz
+npm install -g ./tdwhere-do-it-0.7.3.tgz
 do-it setup
 ```
 
@@ -291,14 +291,20 @@ package.json     npm package metadata and CLI scripts
 The private `.do-it/` directory is for local plans, notes, and scratch
 artifacts. It is ignored by Git and is not installed.
 
+## Upgrading to 0.7.3
+
+`0.7.3` makes the router state-only for routine Standard/Heavy turns. The
+router records tier and dimensions for downstream hooks, while visible
+pressure-test guidance remains in `grill-prompt` when a real grill trigger
+fires. It also tightens workflow accountability in review, closeout, comments,
+and brainstorm/grill guidance. If a machine has a cached `0.7.2` plugin,
+reinstall or refresh the plugin so the host loads the new hook and skill files.
+
 ## Upgrading to 0.7.2
 
 `0.7.2` fixes Claude Code plugin hook compatibility with macOS's bundled Bash
-3.2 and makes the router state-only for routine Standard/Heavy turns. The
-router records tier and dimensions for downstream hooks, while visible
-pressure-test guidance remains in `grill-prompt` when a real grill trigger
-fires. If a machine has a cached `0.7.1` plugin, reinstall or refresh the
-plugin so Claude loads the new hook files.
+3.2. If a machine has a cached `0.7.1` plugin, reinstall or refresh the plugin
+so Claude loads the compatible hook files.
 
 ## Upgrading to 0.7.1
 
