@@ -71,6 +71,17 @@ not as installed skill names or vendored text:
 | Source-driven context and security posture | `do-it-planning`, `do-it-context`, `do-it-review-loop` | Research-first comparison for new surfaces, context hierarchy, untrusted external-context boundary, and current-source evidence for dependency/protocol choices. |
 | Performance and release proof discipline | `do-it-architecture-scan`, `do-it-verification-gate`, `docs/maintenance.md` | Measure/verify before claiming readiness; package/install claims require temp-home, doctor, build, or pack evidence. |
 
+Useful ideas from `gsd-build/get-shit-done` and `gsd-build/gsd-2` are absorbed
+as do-it-native gates, not as a replacement state machine:
+
+| Source Idea | do-it Destination | Absorbed Shape |
+|---|---|---|
+| Discuss-phase captures implementation decisions before planning | `do-it-brainstorm`, `do-it-grill`, `do-it-planning` | Brainstorm maps options and tradeoffs, grill asks one decision at a time with context/options/recommendation, and planning checks every decision is covered or explicitly deferred. |
+| Assumptions discussion mode | `do-it-grill` | Read repo truth first, state concrete assumptions with evidence, and ask the user to confirm or correct the one assumption that changes execution. |
+| Decision coverage gates | `do-it-planning`, `do-it-review-loop`, `spec-compliance-reviewer` | Requirements, grill decisions, and brainstorm handoff items must trace into a plan slice, delivered surface, verification witness, or explicit user-confirmed deferral. |
+| Plan checker and source-audit gaps | `do-it-review-loop`, `do-it-fix-loop` | Missing coverage, unwired implementation, unused delivered surfaces, and synthetic proof become review findings; in-scope Blocking/Important findings are repaired now unless the user confirms deferral. |
+| Fresh context per task | `do-it-subagent-orchestration`, `docs/routing-matrix.md` | Keep subagent slices bounded with exact facts, ownership, stop conditions, and return schemas instead of carrying broad parent context into every worker. |
+
 ## Installed Agents
 
 | Agent | do-it Role | Notes |

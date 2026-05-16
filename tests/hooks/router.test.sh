@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Smoke tests for hooks/router.sh — locks in Wave 1+2 invariants:
-#   - Light tier is silent (no system-reminder injection)
+# Smoke tests for hooks/router.sh — locks in routing invariants:
+#   - Router is state-only (no routine system-reminder injection)
 #   - Standard requires intent-verb + code-object combo
 #   - Heavy requires >=2 heavy signals
 #   - subagent context (transcript_path with /agents/) suppresses output
 #   - escape words trigger pass-through skip flags
 #   - SESSION_ID path-injection is sanitized
-#   - DEBUG mode appends trigger trailer
+#   - DEBUG mode stays stderr-only via do_it_debug and does not emit context
 #   - 5 dimension flags are written in a single batched state-set
 #
 # Usage: bash tests/hooks/router.test.sh
@@ -83,37 +83,37 @@ echo "Case 2: bare intent verb without code object → Light fallback (silent)"
 )
 case "$?" in
   0)  _pass "single intent-verb without code object stays Light" ;;
-  *)  _fail "single verb leaked to Standard/Heavy banner" ;;
+  *)  _fail "single verb changed routing/output unexpectedly" ;;
 esac
 
 # -------------------------------------------------------------------------
-echo "Case 3: intent verb + code object → Standard banner"
+echo "Case 3: intent verb + code object → Standard state, silent output"
 (
   _isolate_state "/tmp/doit-test-router-c3"
   out=$(_run_router "实现 src/auth.ts 的登录" "c3-1")
-  case "$out" in
-    *"do-it tier: Standard"*) exit 0 ;;
-    *)                         printf 'got: %s\n' "$out" >&2; exit 11 ;;
-  esac
+  [[ -z "$out" ]] || { printf 'unexpected output: %s\n' "$out" >&2; exit 11; }
+  state="$(_state_for c3-1)"
+  [[ "$(jq -r '.tier' "$state")" == "Standard" ]] || { cat "$state" >&2; exit 12; }
 )
 case "$?" in
-  0)  _pass "intent-verb + code-object resolves Standard" ;;
-  *)  _fail "Standard banner missing" ;;
+  0)  _pass "intent-verb + code-object resolves Standard state silently" ;;
+  11) _fail "Standard emitted output" ;;
+  *)  _fail "Standard state missing" ;;
 esac
 
 # -------------------------------------------------------------------------
-echo "Case 4: >=2 heavy signals → Heavy banner"
+echo "Case 4: >=2 heavy signals → Heavy state, silent output"
 (
   _isolate_state "/tmp/doit-test-router-c4"
   out=$(_run_router "重写 schema 涉及 breaking change 跨 frontend/ backend/" "c4-1")
-  case "$out" in
-    *"do-it tier: Heavy"*) exit 0 ;;
-    *)                      printf 'got: %s\n' "$out" >&2; exit 11 ;;
-  esac
+  [[ -z "$out" ]] || { printf 'unexpected output: %s\n' "$out" >&2; exit 11; }
+  state="$(_state_for c4-1)"
+  [[ "$(jq -r '.tier' "$state")" == "Heavy" ]] || { cat "$state" >&2; exit 12; }
 )
 case "$?" in
-  0)  _pass "Heavy signals resolve Heavy tier" ;;
-  *)  _fail "Heavy banner missing" ;;
+  0)  _pass "Heavy signals resolve Heavy state silently" ;;
+  11) _fail "Heavy emitted output" ;;
+  *)  _fail "Heavy state missing" ;;
 esac
 
 # -------------------------------------------------------------------------
@@ -165,30 +165,32 @@ echo "Case 7: hazardous SESSION_ID is sanitized into hash bucket"
       */..\\/escape|*../escape) echo "literal escape path leaked: $entry" >&2; exit 11 ;;
     esac
   done
-  case "$out" in
-    *"do-it tier: Standard"*) exit 0 ;;
-    *)                         echo "no Standard banner" >&2; exit 12 ;;
-  esac
+  [[ -z "$out" ]] || { printf 'unexpected output: %s\n' "$out" >&2; exit 12; }
+  shopt -s nullglob
+  matches=("$base"/*)
+  shopt -u nullglob
+  [[ "${#matches[@]}" -eq 1 ]] || { echo "expected one sanitized session dir" >&2; exit 13; }
+  state="${matches[0]}/state.json"
+  [[ "$(jq -r '.tier' "$state")" == "Standard" ]] || { cat "$state" >&2; exit 14; }
 )
 case "$?" in
-  0)  _pass "SESSION_ID with .. is hashed; banner still emits" ;;
+  0)  _pass "SESSION_ID with .. is hashed; Standard state still records" ;;
   *)  _fail "session id sanitization regression" ;;
 esac
 
 # -------------------------------------------------------------------------
-echo "Case 8: DEBUG mode appends trigger trailer"
+echo "Case 8: DEBUG mode remains state-only on stdout"
 (
   _isolate_state "/tmp/doit-test-router-c8"
   export DO_IT_DEBUG=1
   out=$(_run_router "实现 src/auth.ts" "c8-1")
-  case "$out" in
-    *"<!-- triggered by:"*"dims="*"-->"*) exit 0 ;;
-    *)                                     printf 'no debug trailer: %s\n' "$out" >&2; exit 11 ;;
-  esac
+  [[ -z "$out" ]] || { printf 'unexpected output: %s\n' "$out" >&2; exit 11; }
+  state="$(_state_for c8-1)"
+  [[ "$(jq -r '.tier' "$state")" == "Standard" ]] || { cat "$state" >&2; exit 12; }
 )
 case "$?" in
-  0)  _pass "DEBUG appends trigger+dims HTML trailer" ;;
-  *)  _fail "DEBUG trailer missing" ;;
+  0)  _pass "DEBUG does not emit additionalContext from router" ;;
+  *)  _fail "DEBUG stdout/state regression" ;;
 esac
 
 # -------------------------------------------------------------------------

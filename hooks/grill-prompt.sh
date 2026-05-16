@@ -4,14 +4,12 @@
 # Heavy always, Standard when uncertain / explicitly requested / long with a
 # planning hint. Light never auto-grills.
 #
-# 0.5.x behavior:
-#   - Once a session is already grilled, subsequent prompts are skipped unless
-#     the user explicitly asks to re-grill (重新 grill / 再 pressure-test /
-#     重新审视 / re-grill).
-#   - Question / discussion turns are skipped via state.last_prompt_kind=question
-#     and by direct detection here.
-#   - Standard-tier turns receive a compact decision-check pointer; Heavy-tier
-#     turns receive the fuller fact-first grill reminder.
+# Current grill prompt scope:
+#   - once a session is already grilled, skip repeated reminders unless the user
+#     explicitly asks to re-grill;
+#   - skip question and discussion turns via router state plus direct detection;
+#   - Standard-tier turns receive a compact decision-check pointer, while
+#     Heavy-tier turns receive the fuller fact-first grill reminder.
 
 set -uo pipefail
 

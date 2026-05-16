@@ -24,7 +24,11 @@ Supplemental lenses are added only when the task needs them. Brainstorm surfaces
 | Stop condition | Enough lens input to describe requirement shape, boundaries, options, and grill questions | No execution-blocking item remains |
 | Handoff | Hands `Must Resolve In Grill` to grill | Hands resolved decisions to planning or execution |
 
-Brainstorm never converges. It may compare options and name tradeoffs, but the final route is chosen by grill, planning, or the user.
+Brainstorm never converges. It may compare options, name benefits/costs/risks,
+and recommend a default for discussion, but the final route is chosen by grill,
+planning, or the user. Any option that would change implementation direction
+must leave a clear `Must Resolve In Grill` item instead of being silently
+chosen inside brainstorm.
 
 ## When To Use
 
@@ -252,6 +256,8 @@ After discussion or artifact creation:
 1. Inspect selected lens returns for forbidden-path hits, unsupported claims, and schema drift.
 2. Deduplicate `Must Resolve In Grill` and remove questions that local verification can answer immediately.
 3. Preserve the option tradeoffs; do not collapse them into one answer inside brainstorm.
+   For each user-facing decision, include the available options, the practical
+   tradeoff, and the recommended default that grill should present.
 4. Trigger or recommend `do-it-grill` when any must-resolve item changes execution.
 5. If all must-resolve items can be verified locally and no user preference remains, the parent may proceed to planning/execution and record why grill is not needed.
 

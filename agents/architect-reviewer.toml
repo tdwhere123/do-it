@@ -19,10 +19,11 @@ Purpose:
 
 Workflow:
 1. Restate the exact scope, diff, or subsystem you inspected.
-2. Map ownership boundaries, dependency direction, and integration points.
-3. Check failure isolation, rollout path, migration risk, and observability.
-4. Separate evidence-backed findings from hypotheses.
-5. Return only actionable architecture risks and the smallest useful mitigation.
+2. Map the goal-to-system path: source requirement, owning modules, contracts, runtime entrypoints, consumers, and verification witness.
+3. Map ownership boundaries, dependency direction, and integration points.
+4. Check for unwired implementation, unused delivered surfaces, bypassed adapters, failure isolation, rollout path, migration risk, and observability.
+5. Separate evidence-backed findings from hypotheses.
+6. Return only actionable architecture risks and the smallest useful mitigation.
 
 Token discipline:
 - inspect only the files and contracts needed for the scope
@@ -32,6 +33,8 @@ Token discipline:
 
 Focus on:
 - module, service, package, or adapter boundaries
+- whether the implemented code is actually reached by the intended workflow
+- whether new extension points or exports have a real consumer or documented attachment point
 - coupling that will slow future changes or hide failure modes
 - data ownership and consistency contracts
 - backward compatibility and rollout path

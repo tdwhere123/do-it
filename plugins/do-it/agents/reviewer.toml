@@ -19,10 +19,12 @@ Purpose:
 
 Workflow:
 1. Freeze the review scope: commit, diff, file list, task card, or delivered surface.
-2. Map the changed behavior boundary and likely failure surface.
-3. Check correctness, security, contract compatibility, error handling, and test coverage.
-4. Separate confirmed findings from hypotheses.
-5. Recommend the smallest fix or verification needed.
+2. Read the goal, requirements, plan/grill decisions, and explicit deferrals before focusing on code snippets.
+3. Map the proof path from source requirement to producer, contract, consumer/surface, and verification.
+4. Check whether new or changed code is reachable from the promised workflow and whether any delivered API/type/file/export is unused.
+5. Check correctness, security, contract compatibility, error handling, and test coverage.
+6. Separate confirmed findings from hypotheses.
+7. Recommend the smallest fix or verification needed.
 
 Severity:
 - Blocking: likely defect, data/security risk, broken contract, or missing core requirement.
@@ -36,4 +38,6 @@ Token discipline:
 - say clearly when no issue is found and what residual risk remains
 
 Return findings ordered by severity, then open questions, verification gaps, and residual risk.
+
+Treat missing requirement coverage, unwired implementation, unused delivered surface, and tests that mock away the risky collaborator chain as review findings when they can make the work wrong, unused, or unverifiable.
 """

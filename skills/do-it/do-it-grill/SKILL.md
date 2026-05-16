@@ -20,7 +20,7 @@ A common failure is to dump a 5-question template at the user and call it grilli
 1. **One premise at a time.** Pick the single most-load-bearing premise that, if wrong, would invalidate the most downstream work. Ask only that. Wait for the answer. Then pick the next.
 2. **Anchor terms before debating intent.** If the user uses a term that has a definition in `CLAUDE.md`, `.do-it/CONTEXT.md`, or visible in code with a different shape — surface the conflict before going further.
 3. **Verify, don't ask, when verification is cheap.** If the question can be answered with `rg`, `cat`, or a quick local command, do that and report what you found.
-4. **Ask only for decisions.** Ask the user one focused question only when local truth cannot decide a preference, priority, or scope tradeoff that changes execution.
+4. **Ask only for decisions.** Ask the user one focused question only when local truth cannot decide a preference, priority, or scope tradeoff that changes execution. Before asking, explain the decision in plain language, list the viable options with benefits/costs/risks, and recommend a default.
 5. **Sediment what you learned.** When a term gets clarified or a constraint surfaces, append it to `.do-it/CONTEXT.md` (one line, declarative). Use `do-it-grill-log` for the per-task `.do-it/grill/<task>.md` artifact (`kind: fact|decision`, falsifier, status, evidence).
 
 ## When To Use
@@ -70,9 +70,30 @@ Run this loop until every execution-blocking item is resolved: facts become `con
 
 1. **Pick the most load-bearing premise.** What single belief, if wrong, would change the most downstream decisions?
 2. **Try to falsify cheaply.** Read the file, grep for the symbol, run the unit test, glance at the schema. If you find evidence, jump to step 4.
-3. **Ask one focused question** only when the remaining unknown is a user decision. Recommend a default option so the user has something to push back on.
+3. **Ask one focused question** only when the remaining unknown is a user decision. Start with the minimum context the user needs, then show 2-3 real options with tradeoffs and a recommended default so the user has something concrete to accept or correct.
 4. **Record the outcome** in `.do-it/grill/<task>.md` (see `do-it-grill-log`). Use `kind: fact` with `confirmed/refuted` for evidence, or `kind: decision` with `chosen/deferred/needs_user_decision` for user preferences.
 5. **Repeat** with the next-most-load-bearing premise, until the remaining unknowns no longer change the route.
+
+## Assumptions Mode
+
+Use assumptions mode when the user may not know the technical vocabulary, the
+codebase has strong existing patterns, or open-ended questions would be
+needlessly hard to answer.
+
+1. Read the relevant current truth first: project docs, code map, nearby
+   patterns, and any brainstorm artifact.
+2. State the assumptions you would use if the user said nothing, with confidence
+   and evidence.
+3. Ask the user to confirm or correct only the assumption that changes the most
+   downstream work.
+4. Rephrase technical choices in product or operator language when that is more
+   useful than implementation jargon.
+5. Log confirmed assumptions as decisions or facts before planning consumes
+   them.
+
+Do not use assumptions mode to smuggle in unverified preferences. If the
+assumption is cheap to verify, verify it; if it is a user preference, present it
+as a choice.
 
 ## Convergence After Brainstorm
 
@@ -123,6 +144,18 @@ Use these as checks, not personas:
 - Review: What would a skeptical reviewer block on?
 - Maintenance: What future churn can be avoided without expanding scope?
 - Delegation: Does each worker have a tier, ownership, verification, and stop conditions?
+
+## Question Shape
+
+When a user decision is needed, use this shape:
+
+- Context: one or two sentences explaining why the decision matters now.
+- Options: 2-3 viable choices, each with benefit, cost, risk, and when to choose it.
+- Recommendation: one default with the reason.
+- Question: one focused ask. Do not bundle unrelated decisions.
+
+If the user answers only part of the question, record the settled part and ask
+the next smallest unresolved decision.
 
 ## Common Rationalizations
 
@@ -196,6 +229,8 @@ For a heavy grill:
 ## Common Mistakes
 
 - Asking five generic questions at once instead of one focused premise.
+- Asking technical open questions when assumptions mode would let the user
+  confirm or correct a concrete proposal.
 - Challenging in the abstract without reading files.
 - Turning every idea into a blocker.
 - Asking about facts that codebase exploration can answer.

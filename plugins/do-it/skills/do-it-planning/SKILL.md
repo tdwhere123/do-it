@@ -50,11 +50,15 @@ Parent-only unless explicitly assigned:
    `task`, `wave`, or `phase` when delivery shape matters.
 6. State goal, non-goals, acceptance evidence, and residual unknowns.
 7. For Standard/Heavy work, add a failure-mode forecast and the proof path map.
-8. Choose an approach and reject plausible alternatives with reasons.
-9. Break work into slices when more than one deliverable exists.
-10. Name verification commands or evidence checks.
-11. Name review depth and fix-loop expectations.
-12. Define closeout shape.
+8. Run a decision coverage check: every grill decision, brainstorm
+   `Must Resolve`, requirement, or source-audit item that affects execution is
+   either mapped to a plan slice, verified as already satisfied, or explicitly
+   deferred with user confirmation.
+9. Choose an approach and reject plausible alternatives with reasons.
+10. Break work into slices when more than one deliverable exists.
+11. Name verification commands or evidence checks.
+12. Name review depth and fix-loop expectations.
+13. Define closeout shape.
 
 ## Planning Lenses
 
@@ -114,6 +118,10 @@ For Standard and Heavy plans, include:
 - `Final Evidence`: the branch/worktree and checks that must be fresh at
   closeout; inherited worker or pre-merge evidence is supporting context, not the
   final claim.
+- `Decision Coverage`: each user decision, requirement, and route-changing
+  source item is covered by a slice, already satisfied with evidence, or
+  deferred with explicit confirmation. Unmapped items are planning defects, not
+  optional polish.
 
 ## Approach Comparison
 
@@ -185,6 +193,8 @@ for a code-facing plan; they go stale faster than domain decisions.
 ## Common Mistakes
 
 - Omitting failure-mode forecast or path map for non-trivial behavior, interface, runtime, or surface work.
+- Letting a user decision, brainstorm handoff item, or requirement disappear
+  between discussion and the executable plan.
 - Asking where files live before searching.
 - Planning from a stale design instead of current code.
 - Writing vague steps like "add tests" without naming the behavior to prove.

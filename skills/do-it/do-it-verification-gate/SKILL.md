@@ -113,6 +113,9 @@ Stop the closeout claim when:
 - Result: `VERIFIED`, `FAILED`, or `NOT_VERIFIED`.
 - What remains unverified.
 - Review/fix-loop and prevention status when relevant.
+- Workflow steps used/skipped: brainstorm, grill, subagent, review, and
+  verification; include reasons for skipped steps that were relevant to the
+  route.
 - Next action if not clean.
 
 ## Common Rationalizations

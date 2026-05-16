@@ -53,6 +53,10 @@ parent-only unless explicitly assigned.
 - External or subagent feedback is a claim to check.
 - Do not respond with performative agreement; act or give technical pushback.
 - If a suggested fix would add unused surface, ask whether to remove or defer it.
+- If a confirmed Blocking or Important finding is fixable inside the assigned
+  scope, fix it now after root-cause analysis. Do not silently defer it to a
+  later version. Deferral requires explicit user confirmation or a clearly
+  unassigned boundary, and the closeout must name that reason.
 
 ## Prevention Requirement
 
@@ -87,12 +91,16 @@ Stop and return `STILL_OPEN` or `NEEDS_CONTEXT` when:
   Blocking and Important findings in the current scope are clear.
 - *"The reviewer probably meant this."* — Preserve the finding ID and verify
   the exact claim before editing.
+- *"We can leave this for next version."* — Only if the user confirmed the
+  deferral or the fix is outside the assigned boundary; otherwise repair the
+  root cause now.
 
 ## Red Flags
 
 - Multiple unrelated findings are fixed in one commit with one broad test.
 - A finding is marked closed without command, line, or behavior evidence.
 - Prevention is omitted for a Blocking or Important fix.
+- A confirmed in-scope issue is moved to follow-up without user confirmation.
 - Re-review scope is narrower than the files or contracts changed by the fix.
 
 ## Verification
@@ -104,6 +112,8 @@ Before calling the loop clean:
 - finding-specific checks pass on the current worktree;
 - the same-scope review has been rerun for repaired surfaces;
 - residual risks and deferred Opportunities are explicitly named.
+- any deferred Blocking or Important item has explicit user confirmation or a
+  documented out-of-scope boundary.
 
 ## Closure Record
 

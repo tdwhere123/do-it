@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # do-it router (UserPromptSubmit hook).
-# Classifies the prompt as Light / Standard / Heavy and injects the
-# recommended skill set as additionalContext. Never blocks on its own.
+# Classifies the prompt as Light / Standard / Heavy and records routing state.
+# User-visible pressure-test reminders belong to grill-prompt.sh. Never blocks
+# on its own.
 
 set -uo pipefail
 
@@ -118,11 +119,10 @@ if [[ "$TIER" == "Heavy" ]] || do_it_prompt_requires_durable_plan "$PROMPT"; the
 fi
 do_it_session_state_set "$SESSION_ID" durable_plan_required "$durable_plan_required"
 
-# 0.7.x Phase 6: orthogonal dimensions. Tier stays as the single derived label
-# all existing skills already key off; these bools are NEW additive signals
-# downstream skills MAY read but are not required to. Light skips dimension
-# evaluation entirely — discussion / mechanical turns gain nothing from it
-# and we want to keep that path cheap.
+# Dimensions are orthogonal to tier. Tier stays as the single derived label
+# existing skills key off; downstream skills may read these additive booleans
+# when choosing TDD, review, or interface intensity. Light skips dimension
+# evaluation because discussion and mechanical turns do not benefit from it.
 DIM_TOUCHES_CODE=0
 DIM_CROSSES_PACKAGES=0
 DIM_BREAKS_INTERFACE=0
@@ -250,45 +250,7 @@ do_it_session_state_set_many "$SESSION_ID" \
 
 do_it_debug router "tier=$TIER heavy_count=$heavy_count prompt_len=$PROMPT_LEN dims=touch:${DIM_TOUCHES_CODE},pkg:${DIM_CROSSES_PACKAGES},iface:${DIM_BREAKS_INTERFACE},tdd:${DIM_NEEDS_TDD},review:${DIM_NEEDS_REVIEW_LOOP}"
 
-MSG=""
-case "$TIER" in
-  Heavy)
-    # 0.7.x Phase 5: lazy skill loading. The banner no longer enumerates the
-    # skill catalogue inline; instead the agent loads `skills/_index.md` only
-    # when a skill is actually needed. Keeps the per-prompt token cost flat
-    # regardless of how many skills exist.
-    MSG="<system-reminder>
-do-it tier: Heavy. Multi-signal. Verify facts before asking, durable plan, budget review by release/interface risk. Skills: use the Skill tool to load any skill by name; the index of available skills is shipped as \`skills/_index.md\` under the plugin root. Bypass: yolo / 直接做 / /do-it-skip.
-</system-reminder>"
-    ;;
-  Standard)
-    MSG="<system-reminder>
-do-it tier: Standard. Inline modification map; grill only on uncertainty/explicit/long; review by risk. Skills: use the Skill tool to load any skill by name; the index of available skills is shipped as \`skills/_index.md\` under the plugin root. Bypass: yolo / /do-it-skip.
-</system-reminder>"
-    ;;
-  Light)
-    # 0.7.x: Light tier is fully silent. Mechanical / discussion turns get
-    # zero injection — verification-gate still fires if code is actually
-    # edited, but the prompt path stays clean.
-    MSG=""
-    ;;
-esac
-
-# Debug-only: append the trigger reason inside an HTML comment so it travels
-# with the system-reminder when DO_IT_DEBUG is on. Phase 6 also surfaces the
-# orthogonal dimensions here so the debug trace shows what downstream skills
-# can read from session state.
-case "${DO_IT_DEBUG:-0}" in
-  ''|0|false|FALSE|off|OFF) ;;
-  *)
-    if [[ -n "$MSG" ]]; then
-      MSG="${MSG}
-<!-- triggered by: tier=${TIER}, heavy_count=${heavy_count}, prompt_len=${PROMPT_LEN}, dims={touches:${DIM_TOUCHES_CODE}, packages:${DIM_CROSSES_PACKAGES}, interface:${DIM_BREAKS_INTERFACE}, tdd:${DIM_NEEDS_TDD}, review:${DIM_NEEDS_REVIEW_LOOP}} -->"
-    fi
-    ;;
-esac
-
-if [[ -n "$MSG" ]]; then
-  do_it_emit_context UserPromptSubmit "$MSG"
-fi
+# Router is state-only: it writes tier/dimensions for downstream hooks and
+# skills. User-visible pressure-test guidance belongs to grill-prompt.sh, and
+# debug traces stay on stderr through do_it_debug.
 exit 0

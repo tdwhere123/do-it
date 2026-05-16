@@ -101,5 +101,7 @@ Report:
 - branch/worktree state;
 - commits created or intentionally not created;
 - verification and review evidence;
+- workflow steps used/skipped: brainstorm, grill, subagent, review, and
+  verification, with reasons for skipped relevant steps;
 - cleanup performed or intentionally skipped;
 - residual risks.

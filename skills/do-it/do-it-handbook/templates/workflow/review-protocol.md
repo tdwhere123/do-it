@@ -13,8 +13,9 @@ Review mode, severity, and evidence expectations.
   (`architect-reviewer`, `red-team-reviewer`, `domain-language-reviewer`,
   etc.) run when their lens is needed.
 
-The default for a Standard-tier task is self-review + PR-style review.
-Heavy tier adds multi-perspective review.
+The default for a Standard-tier task is self-review. Add PR-style review when
+the task has a named non-local risk, an interface/module boundary, or an
+explicit review/subagent request. Heavy tier adds multi-perspective review.
 
 ## Severity
 
@@ -64,6 +65,9 @@ A card is done when:
   (not just the worktree).
 - `runtime-status.md` and `code-map.md` are updated if implementation
   shape changed.
+- The closeout states which brainstorm, grill, subagent, review, and
+  verification steps were used or skipped, with the reason when the route made
+  them relevant.
 
 ## Anti-Patterns
 

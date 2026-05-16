@@ -3,27 +3,16 @@
 # Blocks Claude from declaring "done/passed/完成/通过" without recent verification
 # evidence (Bash, pnpm test, vitest, jest, etc.) in the recent transcript tail.
 #
-# 0.5.x behavior:
-#   - Completion-language detection narrowed to the *last* assistant message
-#     instead of the last 80 transcript lines; prevents stale "done" from a
-#     prior turn from re-triggering the gate this turn.
-#   - Pass-through when the current turn made no Edit/Write/MultiEdit calls —
-#     pure discussion / answer-the-question turns no longer get gated.
-#   - Pass-through when the router classified this prompt as a question
-#     (state.last_prompt_kind == question).
-#   - Evidence pattern expanded: pytest, mypy, tsc, eslint, ruff, biome,
-#     cargo (run|build|check), go (run|build|vet).
-#
-# 0.7.x behavior (Phase 7, review-quick inline review for Light):
-#   - Light tier + edits in this session → inject inline-review reminder
-#     before the fresh-evidence check. Agent must produce an
-#     `inline-review: clean` (or `inline-review: <finding>`) marker in the
-#     transcript before claiming done. The inline-review marker can be in any
-#     recent assistant text; once seen we pass through and the regular
-#     fresh-evidence rule still applies.
-#   - The inline-review reminder and the fresh-evidence reminder are
-#     orthogonal: inline-review checks code-level correctness/comment
-#     discipline; fresh-evidence checks that a verification command was run.
+# Current gate scope:
+#   - evaluate completion-language only in the last assistant message so stale
+#     earlier claims do not re-trigger the gate;
+#   - pass through pure discussion turns and prompts the router classified as a
+#     question;
+#   - accept common verification commands including pytest, mypy, tsc, eslint,
+#     ruff, biome, cargo, and go checks;
+#   - for Light-tier edit turns, require an inline-review marker before the
+#     fresh-evidence check. Inline review covers code correctness/comment
+#     discipline; fresh evidence covers the verification command.
 
 set -uo pipefail
 

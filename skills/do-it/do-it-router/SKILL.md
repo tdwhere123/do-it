@@ -120,7 +120,7 @@ Flow: scope lock -> deep truth scan -> grill/interface/architecture/domain drill
 - Need isolated workspace or parallel lane setup: `do-it-worktree-isolation`.
 - Need branch, PR, merge, or cleanup closeout: `do-it-branch-closeout`.
 - Need to create or rewrite skills: `do-it-skill-authoring`.
-- Authoring or reviewing comments on a code edit: `do-it-comments-discipline`. This is hook-triggered (PostToolUse on Edit/Write/MultiEdit); the router does not invoke it explicitly, but a Standard or Heavy review pass that touches comments should load it for the comments lens.
+- Authoring or reviewing comments on a code edit: `do-it-comments-discipline`. The parent agent should apply it before writing comments; the PostToolUse `comments-lint` hook is advisory backup, and a Standard or Heavy review pass that touches comments should load it for the comments lens.
 
 Use the narrowest sequence that covers the risk. A small API rename may need only Standard interface drill plus delivery. A phase plan may need Heavy planning, slicing, grill, interface, architecture, and domain-language passes.
 
@@ -156,6 +156,8 @@ For final delivery:
 - verification run and outcome;
 - final-branch or current-worktree evidence for completion claims;
 - review/fix-loop status;
+- workflow steps used/skipped: brainstorm, grill, subagent, review, and
+  verification, with reasons for skipped relevant steps;
 - assumptions, skipped checks, or residual risk.
 
 ## Common Mistakes

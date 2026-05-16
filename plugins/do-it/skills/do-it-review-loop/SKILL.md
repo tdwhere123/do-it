@@ -24,13 +24,17 @@ Use for non-trivial task work and all subagent review assignments unless
 explicitly assigned otherwise.
 
 1. Freeze the review scope: task, commit, range, PR, or changed files.
-2. Read the actual diff and relevant current files.
-3. Check the failure-mode forecast, proof path map, readiness target, and final evidence expectations when they exist.
-4. Check requirements before quality polish when a plan or task card exists.
-5. Report only confirmed issues or clearly labeled uncertainty.
-6. Order findings by severity with evidence.
-7. Use at most one focused reviewer when the risk is not locally reviewable; otherwise the parent performs local review.
-8. Send `Blocking` and `Important` findings into `do-it-fix-loop`.
+2. Start from the goal and coverage contract: user request, plan/task card,
+   grill decisions, brainstorm handoff, requirements, and explicit deferrals.
+3. Map the proof path before reading local snippets: producer -> contract/event/schema -> transport/client -> state/query -> surface/operator action -> verification.
+4. Read the actual diff and relevant current files, then verify the changed
+   code is reachable through that proof path.
+5. Check the failure-mode forecast, proof path map, readiness target, and final evidence expectations when they exist.
+6. Check requirements before quality polish when a plan or task card exists.
+7. Report only confirmed issues or clearly labeled uncertainty.
+8. Order findings by severity with evidence.
+9. Use at most one focused reviewer when the risk is not locally reviewable; otherwise the parent performs local review.
+10. Send `Blocking` and `Important` findings into `do-it-fix-loop`.
 
 ### Heavy
 
@@ -75,20 +79,16 @@ memory-pick without a fresh search is `Blocking`.
 
 ## Review intensity (graduated)
 
-Review intensity is the canonical axis 0.7.x and later use to describe how
-much review effort to spend; it subsumes the older free-form descriptions
-under the per-tier sections above. Concretely:
+Review intensity is the canonical axis for deciding how much review effort to
+spend. It is risk-selected, not a synonym for routing tier:
 
-- review-quick subsumes the older "Light tier review (parent-local)" wording.
-- review-deep subsumes the older "Standard tier review (one focused
-  reviewer)" wording. When the older Standard text says "parent performs
-  local review" it means review-quick; when it says "one focused reviewer"
-  it means review-deep.
-- review-adversarial subsumes the older "Heavy tier review (multi-lens)"
-  wording.
+- review-quick covers local parent review.
+- review-deep covers one focused reviewer subagent.
+- review-adversarial covers multi-lens review.
 
 If the per-tier text and an intensity description ever appear to disagree,
-the intensity description below is authoritative.
+pick the smallest intensity that covers the concrete failure modes and name why
+it was used or skipped.
 
 Review intensity is orthogonal to the tier:
 
@@ -98,9 +98,10 @@ Review intensity is orthogonal to the tier:
   - Light tier with code edits (verification-gate auto-fires)
   - Standard tier modification map with no new dependency / interface change
 
-- **review-deep** (Standard default, or Heavy + low risk): one reviewer
-  subagent (`reviewer`). Standard finding shape. Use when:
+- **review-deep** (Standard with a named non-local risk, or Heavy + low risk):
+  one reviewer subagent (`reviewer`). Standard finding shape. Use when:
   - Standard tier with breaking-interface / new module / cross-package signal
+  - Standard tier when the user explicitly asks for review or subagents
   - Heavy tier without high-risk lenses
 
 - **review-adversarial** (Heavy default for high-risk surface): parallel
@@ -117,7 +118,9 @@ Default by tier + dimensions:
 
 - tier=Light, touches_code=1 → review-quick (inline self-review at
   verification-gate)
-- tier=Standard → review-deep
+- tier=Standard + low/local risk → review-quick
+- tier=Standard + named non-local risk, explicit review, or explicit subagent
+  request → review-deep
 - tier=Heavy + (breaks_interface=1 OR crosses_packages=1 OR
   security/migration tag) → review-adversarial
 - tier=Heavy other → review-deep + comments-lens
@@ -163,6 +166,35 @@ Check every non-trivial diff through five axes before spending time on polish:
   logic, or unclear ownership?
 - Verification: do the tests and commands actually prove the claim, or did they
   mock away the risky collaborator chain?
+
+### Proof Path Coverage
+
+Before line-by-line review, prove the delivered surface is connected to the
+goal:
+
+- Source coverage: every request, acceptance item, grill decision, and
+  brainstorm `Must Resolve` item is implemented, already satisfied with
+  evidence, or explicitly deferred by the user.
+- Live path: new or changed producer logic is reachable from the intended
+  command, route, package export, UI/operator action, or runtime entrypoint.
+- Consumer path: schemas, events, generated outputs, docs, or clients that
+  depend on the change agree with the new behavior.
+- Verification path: tests or checks exercise the real collaborator chain
+  enough to prove the readiness target.
+
+Finding classes to use:
+
+- `source-coverage gap`: a requirement or decision vanished between discussion,
+  plan, and diff.
+- `unwired implementation`: code exists but no live entrypoint or consumer can
+  reach it.
+- `unused delivered surface`: new API/type/file/export is written but not used
+  or exposed by the promised workflow.
+- `synthetic proof`: tests pass while mocking away the collaborator chain that
+  would fail in real use.
+
+These are correctness findings when they can make the delivered work wrong,
+unused, or unverifiable.
 
 ### Change Sizing
 
@@ -225,6 +257,12 @@ workflow clearly owns issue creation.
 ## Review Rules
 
 - Missing or stale failure-mode forecast, path map, readiness target, or final evidence is a review finding when it can hide a live-path, state, contract, operator, or evidence-drift bug.
+- Missing decision coverage is a review finding. Do not accept a diff where a
+  user decision, requirement, or brainstorm handoff item is absent unless the
+  user explicitly deferred it or current evidence proves it was already
+  satisfied.
+- New code that is not reachable from the promised workflow is a finding even
+  if the local unit tests pass.
 - Do not review from commit messages alone.
 - Do not auto-fix when the user asked for review-only work.
 - Tests passing do not replace review.
@@ -240,8 +278,13 @@ workflow clearly owns issue creation.
 
 ## Closeout Gate
 
-Review is not clean while unresolved `Blocking` or `Important` findings remain. Blocking/Important fixes need a closure record that includes cause and prevention, not only code changes.
-Deferred `Opportunity` findings must be explicit and non-blocking.
+Review is not clean while unresolved `Blocking` or `Important` findings remain.
+When a confirmed Blocking or Important issue is fixable in the assigned scope,
+send it to `do-it-fix-loop` now; do not leave it for a later version unless the
+user explicitly confirms the deferral or the fix crosses an unassigned
+boundary. Blocking/Important fixes need a closure record that includes cause and
+prevention, not only code changes. Deferred `Opportunity` findings must be
+explicit and non-blocking.
 
 ## Common Rationalizations
 
@@ -257,6 +300,10 @@ Deferred `Opportunity` findings must be explicit and non-blocking.
 - The review quotes commit messages instead of diff or file evidence.
 - Findings are mostly style comments while contract or verification risk is
   unexamined.
+- The review starts from changed lines and never checks whether the work is
+  reachable from the user goal.
+- A new function, route, command, or export is accepted without a caller,
+  surface, or verification witness.
 - A broad diff is reviewed as one blob with no sizing or ownership split.
 - A dependency, framework, protocol, or datastore appears without current
   source evidence.

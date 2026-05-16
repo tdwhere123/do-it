@@ -23,6 +23,9 @@ true. Most of the time it is not.
 - Authoring new code or editing existing code that introduces or mutates
   comments.
 - Reviewing a diff that adds or modifies comments.
+- Before Standard or Heavy edits that will author comments, check planned
+  comment text before writing. The PostToolUse hook is a backup reminder, not
+  the first time this skill should be considered.
 - Triggered automatically by the `comments-lint` PostToolUse hook after an
   Edit / Write / MultiEdit lands on a source file.
 - Loaded explicitly by `do-it-review-loop` when the comments lens runs.
@@ -348,11 +351,14 @@ Before calling a comment pass clean:
 
 ## Trigger Event
 
+- **Pre-edit discipline**: when an edit will add TODOs, invariants, directives,
+  cross-file references, anchors, or explanatory prose, load or apply this
+  checklist before writing.
 - **PostToolUse hook** (`comments-lint.sh`, registered with matcher
   `Edit|Write|MultiEdit`): runs after every code edit, scans the diff for
   newly-added comments matching the anti-pattern keywords, emits one
   system-reminder per file (not per line) pointing back at this skill. The
-  hook never blocks the edit.
+  hook never blocks the edit and is advisory only.
 - **review-loop comments lens**: when `do-it-review-loop` runs at Standard or
   Heavy tier on a diff that includes comment changes, it loads this skill and
   walks the Review Checklist on every changed comment.

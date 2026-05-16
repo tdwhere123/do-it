@@ -7,7 +7,7 @@ The default environment is Codex. In Claude Code or another agent runtime, keep
 the same roles and gates, then adapt tool names and delegation mechanics to that
 runtime.
 
-## 0.7.x Orthogonal Dimensions
+## Orthogonal Dimensions
 
 In addition to the single-axis tier label (`Light` / `Standard` / `Heavy`),
 the router now writes five independent boolean dimensions to session state.
@@ -29,18 +29,19 @@ classifications skip dimension evaluation entirely (every dim stays 0) so the
 discussion / mechanical-edit fast path keeps zero overhead.
 
 Dimensions live under per-session state at `<session_dir>/state.json` (jq
-present) or `state.kv` (jq absent). DEBUG mode (`DO_IT_DEBUG=1`) appends them
-to the system-reminder trailer:
-`<!-- triggered by: tier=Standard, ..., dims={touches:1, packages:0,
-interface:0, tdd:1, review:0} -->`.
+present) or `state.kv` (jq absent). DEBUG mode (`DO_IT_DEBUG=1`) writes router
+traces to stderr through `do_it_debug`; it does not emit routine router
+`additionalContext`.
 
 ### Skill Combinations By Dimension (Reference Only)
 
 The router does NOT prescribe a fixed combination — these are illustrative
 expectations downstream skills may satisfy independently:
 
-- `tier=Light`: silent banner, no skill recommendation
-- `tier=Standard, touches_code=1, needs_tdd=0`: grill (only on uncertainty / explicit / long) + one focused review
+- `tier=Light`: silent router, no skill recommendation
+- `tier=Standard, touches_code=1, needs_tdd=0`: grill only on uncertainty /
+  explicit / long; local review by default, one focused reviewer only for named
+  non-local risk
 - `tier=Standard, needs_tdd=1`: grill + planning (light) + tdd + targeted review
 - `tier=Heavy, breaks_interface=1`: grill + planning + interface-drill + adversarial review-loop
 - `tier=Heavy, crosses_packages=1`: grill + planning + architecture-scan + adversarial review-loop
@@ -49,10 +50,11 @@ These combinations are not enforced in code. Each skill's own `description`
 and decision-tree owns the actual trigger semantics; dimensions just give
 those triggers a cheaper-than-keyword input.
 
-## 0.7.x Lazy Skill Loading
+## Skill Index Loading
 
-The router system-reminder no longer enumerates the skill catalogue inline.
-Standard / Heavy banners point the agent at `skills/_index.md`, a compact
+The router is state-only: it classifies the prompt and writes routing state, but
+does not emit routine Standard/Heavy banners. Agents load `skills/_index.md`
+on-demand when they need to pick a skill. The generated index is a compact
 bucketed map (~3 KB) of every installed do-it skill grouped into:
 
 - 主线 (router 推荐) — front-line skills routed by tier
@@ -149,7 +151,7 @@ do-it-native.
 
 ## Three Tiers
 
-> **0.7.x note**: Tier is one axis. The router also writes 5 orthogonal `dim_*` flags into session state (see [0.7.x Orthogonal Dimensions](#07x-orthogonal-dimensions) above) — downstream skills may read either tier, dimensions, or both. Tier remains authoritative for the default flows below; dimensions narrow the *intensity* (e.g. review-quick vs review-adversarial — see `do-it-review-loop`).
+> Tier is one axis. The router also writes 5 orthogonal `dim_*` flags into session state (see [Orthogonal Dimensions](#orthogonal-dimensions) above) — downstream skills may read either tier, dimensions, or both. Tier remains authoritative for the default flows below; dimensions narrow the *intensity* (e.g. review-quick vs review-adversarial — see `do-it-review-loop`).
 
 | Tier | Use When | Default Skill Flow | Subagent Behavior | Closeout |
 |---|---|---|---|---|
@@ -229,12 +231,14 @@ the specific requirement.
 Default for `Standard` work:
 
 1. Make a modification map, failure-mode forecast, and proof path map before production edits.
-2. Write or tighten the smallest failing test when behavior is changed.
-3. Verify RED for the expected reason when tests apply.
-4. Implement the minimal GREEN change.
-5. Verify GREEN or run the equivalent docs/tooling check.
-6. Refactor only after verification.
-7. Run local review or one focused review lens only when the risk justifies it,
+2. If comments will be authored or changed, load `do-it-comments-discipline`
+   before editing; `comments-lint` is advisory backup, not the first gate.
+3. Write or tighten the smallest failing test when behavior is changed.
+4. Verify RED for the expected reason when tests apply.
+5. Implement the minimal GREEN change.
+6. Verify GREEN or run the equivalent docs/tooling check.
+7. Refactor only after verification.
+8. Run local review or one focused review lens only when the risk justifies it,
    then fix findings before closeout. Use `do-it-grill` when the plan, review
    response, or closeout claim needs pressure-testing.
 
@@ -269,6 +273,11 @@ Use for `Heavy` work:
   risk.
 - Standard tasks use local review by default; add at most one focused reviewer
   when a concrete failure mode is not locally reviewable.
+- Every non-trivial review starts with decision and proof-path coverage:
+  request/plan/grill decisions -> producer -> contract -> consumer/surface ->
+  verification. Missing coverage, unwired implementation, unused delivered
+  surface, or synthetic proof is a review finding when it can make the work
+  wrong, unused, or unverifiable.
 - Heavy release, workflow, or policy work defaults to two lenses: one
   skill/policy quality lens and one install/release readiness lens.
 - Add more than two lenses only for migration, security, broad public
@@ -363,3 +372,8 @@ Before claiming completion:
 6. Confirm Blocking/Important fixes include prevention hooks.
 7. Confirm review findings are fixed, deferred with rationale, or explicitly
    outside scope.
+8. Confirm any in-scope Blocking or Important issue discovered during review was
+   fixed now, unless the user explicitly confirmed deferral or the fix crossed
+   an unassigned boundary.
+9. State which brainstorm, grill, subagent, review, and verification steps were
+   used or skipped, with the reason when the route made them relevant.

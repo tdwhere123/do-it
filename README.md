@@ -194,12 +194,14 @@ flowchart TD
 
 In practice:
 
-1. `do-it-router` classifies the task and names the smallest useful workflow.
-2. `do-it-brainstorm` runs for product, architecture, workflow, and
-   release-adjacent work. It first clarifies the requirement shape, product
-   boundary, core goal, architecture foundation, extension modules, and option
-   tradeoffs, then adds only the task-fit supplements needed for UX, end-user,
-   ops, security, domain language, or plan-risk questions.
+1. `do-it-router` classifies the task and records routing state; routine
+   Standard/Heavy turns do not emit a visible router banner.
+2. `do-it-brainstorm` is used for product, architecture, workflow, and
+   release-adjacent work when the route needs divergent lenses. It clarifies
+   the requirement shape, product boundary, core goal, architecture foundation,
+   extension modules, and option tradeoffs, then adds only the task-fit
+   supplements needed for UX, end-user, ops, security, domain language, or
+   plan-risk questions.
 3. `do-it-grill` fires when the premise needs pressure-testing. When a
    brainstorm artifact exists, grill enters convergence mode and resolves
    `Must Resolve In Grill` instead of restarting divergence.
@@ -292,8 +294,11 @@ artifacts. It is ignored by Git and is not installed.
 ## Upgrading to 0.7.2
 
 `0.7.2` fixes Claude Code plugin hook compatibility with macOS's bundled Bash
-3.2. If a machine has a cached `0.7.1` plugin, reinstall or refresh the plugin
-so Claude loads the new hook files.
+3.2 and makes the router state-only for routine Standard/Heavy turns. The
+router records tier and dimensions for downstream hooks, while visible
+pressure-test guidance remains in `grill-prompt` when a real grill trigger
+fires. If a machine has a cached `0.7.1` plugin, reinstall or refresh the
+plugin so Claude loads the new hook files.
 
 ## Upgrading to 0.7.1
 
@@ -319,13 +324,24 @@ boundary to prevent prompt injection.
 **Comments discipline.** Five comment types are allowed — type annotation,
 `@anchor`, `see also`, invariant, tool directive — and six are forbidden —
 narrative, history, task-reference, tombstone, orphan-TODO, what-comment. A
-new `comments-lint` PostToolUse hook enforces this. The `review-loop` adds a
-comments lens.
+`comments-lint` PostToolUse hook provides advisory reminders. Agents should
+apply `do-it-comments-discipline` before authoring comments, and the
+`review-loop` comments lens is the acceptance gate.
+
+**Decision and proof-path coverage.** Grill now asks one load-bearing decision
+at a time with context, options, tradeoffs, and a recommended default. Review
+starts from the user goal and proof path before local diff snippets, so missing
+decision coverage, unwired implementation, unused delivered surfaces, and
+synthetic proof become review findings.
 
 **Router dimension orthogonality.** Five `dim_*` booleans (`touches_code`,
 `crosses_packages`, `breaks_interface`, `needs_tdd`, `needs_review_loop`) are
 written to session state per task. Tier classification is unchanged; the
 booleans drive which workflow steps fire.
+
+**Workflow accountability.** Hook reminders are not proof that the workflow ran.
+For non-trivial work, closeout should state which brainstorm, grill, subagent,
+review, and verification steps were used or skipped, with the reason.
 
 **Graduated review.** Three review depths: `review-quick`, `review-deep`,
 `review-adversarial`. The verification gate on Light tier with edits now emits

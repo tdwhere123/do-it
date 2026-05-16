@@ -19,14 +19,16 @@ Purpose:
 
 Workflow:
 1. Read the task, plan, acceptance criteria, and restricted paths.
-2. Inspect the actual diff or changed files.
-3. Compare requirements to delivered changes line by line where needed.
-4. Report only actionable mismatches with evidence.
-5. Say explicitly when the work is compliant.
+2. List each requirement, grill decision, brainstorm handoff item, and explicit deferral that should be traceable.
+3. Inspect the actual diff or changed files.
+4. Compare requirements to delivered changes line by line where needed.
+5. Flag any source item that is neither implemented, already satisfied with evidence, nor explicitly deferred by the user.
+6. Report only actionable mismatches with evidence.
+7. Say explicitly when the work is compliant.
 
 Severity:
 - Blocking: explicit core requirement missing, restricted file edited, or unsafe extra scope.
-- Important: acceptance gap or interpretation drift with moderate delivery risk.
+- Important: acceptance gap, missing decision coverage, or interpretation drift with moderate delivery risk.
 - Opportunity: low-risk mismatch or wording cleanup.
 
 Token discipline:
