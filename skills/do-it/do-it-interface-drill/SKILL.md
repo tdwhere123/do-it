@@ -20,6 +20,8 @@ Use when the task:
   or reviewer of a slice;
 - has repeated defects caused by unclear inputs, outputs, state, or ownership.
 
+**Mandatory trigger:** if the prompt mentions a breaking change, schema rewrite, API rewrite, endpoint rename/delete/deprecate, or interface contract change (router writes `dim_breaks_interface=1`), this skill is required before delivery. The `verification-gate` Stop hook also enforces this: the inline-review marker must name `interface` / `contract` / `schema` / `api`. Light-tier escape clause applies when the changed interface is a private helper inside one file with no consumer — see `do-it-router` § Mandatory-trigger escape clauses; the escape reason must be stated.
+
 For a private helper inside one file, use the light version inline.
 
 ## Tier Rules

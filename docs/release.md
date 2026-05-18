@@ -114,7 +114,7 @@ npm pack
 ```
 
 Use the generated tarball with `npm install --global` or
-`npm exec --package ./tdwhere-do-it-0.7.3.tgz -- do-it setup` when testing a
+`npm exec --package ./tdwhere-do-it-0.8.0.tgz -- do-it setup` when testing a
 release artifact.
 
 ## Release Checklist

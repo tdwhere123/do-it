@@ -1,6 +1,6 @@
 {
   "name": "@tdwhere/do-it",
-  "version": "0.7.3",
+  "version": "0.8.0",
   "description": "Installable AI coding workflow for Codex and Claude Code with risk-based routing, scoped sub-agents, and evidence-backed completion.",
   "type": "module",
   "license": "MIT",
@@ -62,7 +62,7 @@
     "do-it": "node bin/do-it.mjs",
     "lint": "bash scripts/lint-hooks.sh",
     "lint-hooks": "bash scripts/lint-hooks.sh",
-    "test-hooks": "bash scripts/test-hooks.sh && bash tests/hooks/router.test.sh",
+    "test-hooks": "bash scripts/test-hooks.sh && bash tests/hooks/router.test.sh && bash tests/hooks/comments-lint.test.sh && bash tests/hooks/anti-patterns-lint.test.sh && bash tests/hooks/verification-gate.test.sh && bash tests/hooks/common.test.sh",
     "test": "npm run build:generated && npm run validate:agents && npm run lint-hooks && npm run test-hooks"
   },
   "engines": {

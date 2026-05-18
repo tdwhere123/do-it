@@ -229,7 +229,7 @@ For a packed local release artifact:
 
 ```bash
 npm pack
-npm install -g ./tdwhere-do-it-0.7.3.tgz
+npm install -g ./tdwhere-do-it-0.8.0.tgz
 do-it setup
 ```
 
@@ -291,6 +291,24 @@ package.json     npm package metadata and CLI scripts
 The private `.do-it/` directory is for local plans, notes, and scratch
 artifacts. It is ignored by Git and is not installed.
 
+## Upgrading to 0.8.0
+
+`0.8.0` finishes activating the five `dim_*` orthogonal dimensions introduced
+in 0.7.0 — each dimension now has at least one named consumer (`grill-prompt`,
+`verification-gate`, or a mandatory-trigger sentence inside the matching skill).
+A new advisory PostToolUse hook `anti-patterns-lint` flags large bash
+`case` lists, newly-exported JS/TS symbols with no other-file consumer, and
+≥5-line code blocks duplicated from a same-directory neighbour — never blocks,
+single `system-reminder` per file. `do-it-fix-loop` defaults to "collect all
+findings → root-cause → batch or pointwise" instead of see-one-fix-one;
+`do-it-review-loop` correspondingly emits findings as a complete batch.
+`.do-it/runtime/pointer` records the active task slug so a fresh turn can
+recover state. `do-it-comments-discipline` SKILL is trimmed from 373 → 119
+lines. 23 sub-agent TOMLs drop their duplicated `Common protocol:` block in
+favour of a single reference to `do-it-subagent-orchestration`. If a machine
+has a cached `0.7.3` plugin, reinstall or refresh so the host loads the new
+hook and skill files.
+
 ## Upgrading to 0.7.3
 
 `0.7.3` makes the router state-only for routine Standard/Heavy turns. The
@@ -334,6 +352,15 @@ narrative, history, task-reference, tombstone, orphan-TODO, what-comment. A
 apply `do-it-comments-discipline` before authoring comments, and the
 `review-loop` comments lens is the acceptance gate.
 
+**Anti-pattern lint.** A second advisory PostToolUse hook
+`anti-patterns-lint` flags three coarse code-quality anti-patterns on the
+lines an edit just added: large bash `case` lists (≥10 consecutive
+`*"..."*` branches), newly-exported JS/TS symbols with no other-file
+consumer, and ≥5-line code blocks duplicated from a same-directory
+neighbour. Like `comments-lint` it never blocks and emits a single
+`system-reminder` per edit; suppress per-edit with the literal string
+`anti-patterns-lint-allow` in the new lines.
+
 **Decision and proof-path coverage.** Grill now asks one load-bearing decision
 at a time with context, options, tradeoffs, and a recommended default. Review
 starts from the user goal and proof path before local diff snippets, so missing
@@ -361,8 +388,10 @@ Skills load on demand.
 `output_budget`, `claude_model`, or other host-private keys. Response budgets
 live in `do-it-subagent-orchestration` and must be passed in the parent prompt.
 
-**Test coverage.** 42 regression cases in `tests/hooks/` cover `common`,
-`router`, `verification-gate`, and `comments-lint`.
+**Test coverage.** Regression cases in `tests/hooks/` cover `common`,
+`router`, `verification-gate` (incl. DIM consumers), `comments-lint`, and
+`anti-patterns-lint`. `scripts/test-hooks.sh` also exercises dim-aware
+grill suppression.
 
 Debugging hooks: `DO_IT_DEBUG=1` makes each hook emit one stderr line per
 decision (escape / skip / question / tier / trigger / evidence). Inspect

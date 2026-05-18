@@ -233,6 +233,63 @@ echo "Case 11: Standard + edits + done + Bash evidence → silent"
 case "$?" in 0) _pass "Standard happy path → silent" ;; *) _fail "Standard happy path blocked" ;; esac
 
 # -------------------------------------------------------------------------
+echo "Case 12: Standard + dim_breaks_interface=1 + done + Bash evidence + plain marker → BLOCK"
+(
+  _isolate "/tmp/doit-test-gate-c12"
+  _set_state c12 tier Standard last_prompt_kind work dim_breaks_interface 1
+  tx="$DO_IT_HOOK_DATA/tx.jsonl"
+  _build_transcript "$tx" $'inline-review: clean\ntask done' edit:1 bash:1
+  out=$(_run_gate c12 "$tx" false)
+  case "$out" in
+    *'"decision":"block"'*'dim_breaks_interface=1'*) exit 0 ;;
+    *) echo "expected breaks_interface block, got: $out" >&2; exit 11 ;;
+  esac
+)
+case "$?" in
+  0)  _pass "dim_breaks_interface=1 + generic marker → block" ;;
+  *)  _fail "dim_breaks_interface consumer regressed" ;;
+esac
+
+# -------------------------------------------------------------------------
+echo "Case 13: Standard + dim_breaks_interface=1 + marker names interface → silent"
+(
+  _isolate "/tmp/doit-test-gate-c13"
+  _set_state c13 tier Standard last_prompt_kind work dim_breaks_interface 1
+  tx="$DO_IT_HOOK_DATA/tx.jsonl"
+  _build_transcript "$tx" $'inline-review: checked the new interface contract — clean\ntask done' edit:1 bash:1
+  out=$(_run_gate c13 "$tx" false)
+  [[ -z "$out" ]] || { echo "leaked: $out" >&2; exit 11; }
+)
+case "$?" in 0) _pass "dim_breaks_interface=1 + interface-named marker → pass" ;; *) _fail "interface attestation gate too strict" ;; esac
+
+# -------------------------------------------------------------------------
+echo "Case 14: Standard + dim_needs_review_loop=1 + done + Bash + no review trace → BLOCK"
+(
+  _isolate "/tmp/doit-test-gate-c14"
+  _set_state c14 tier Standard last_prompt_kind work dim_needs_review_loop 1
+  tx="$DO_IT_HOOK_DATA/tx.jsonl"
+  _build_transcript "$tx" "task done" edit:1 bash:1
+  out=$(_run_gate c14 "$tx" false)
+  case "$out" in
+    *'"decision":"block"'*'dim_needs_review_loop=1'*) exit 0 ;;
+    *) echo "expected review-loop block, got: $out" >&2; exit 11 ;;
+  esac
+)
+case "$?" in 0) _pass "dim_needs_review_loop=1 + no review trace → block" ;; *) _fail "review-loop consumer regressed" ;; esac
+
+# -------------------------------------------------------------------------
+echo "Case 15: Standard + dim_needs_review_loop=1 + transcript mentions review-loop → silent"
+(
+  _isolate "/tmp/doit-test-gate-c15"
+  _set_state c15 tier Standard last_prompt_kind work dim_needs_review_loop 1
+  tx="$DO_IT_HOOK_DATA/tx.jsonl"
+  _build_transcript "$tx" $'ran review-quick on the delivered surface\ntask done' edit:1 bash:1
+  out=$(_run_gate c15 "$tx" false)
+  [[ -z "$out" ]] || { echo "leaked: $out" >&2; exit 11; }
+)
+case "$?" in 0) _pass "dim_needs_review_loop=1 + review trace → pass" ;; *) _fail "review-loop attestation gate too strict" ;; esac
+
+# -------------------------------------------------------------------------
 echo
 if [[ "$FAIL" -gt 0 ]]; then
   echo "FAILED: $PASS passed, $FAIL failed" >&2

@@ -10,18 +10,26 @@ runtime.
 ## Orthogonal Dimensions
 
 In addition to the single-axis tier label (`Light` / `Standard` / `Heavy`),
-the router now writes five independent boolean dimensions to session state.
+the router writes five independent boolean dimensions to session state.
 The tier value remains the canonical input every existing skill keys off.
-Dimensions are **additive signals**: downstream skills MAY read them to
-specialize triggers, but the router never coerces tier from them.
+Dimensions are **additive signals** that narrow *intensity*: downstream skills
+and hooks SHOULD read them as mandatory triggers in the table below, but the
+router never coerces tier from them.
 
-| Dimension | Hits when | Used by |
+| Dimension | Hits when | Active consumer |
 |---|---|---|
-| `dim_touches_code` | prompt names a file path, extension, fenced snippet, or curated technical noun | discriminate "discuss vs. modify" before grill / TDD fires |
-| `dim_crosses_packages` | ≥ 2 distinct top-level path segments named in the prompt | architecture-scan trigger judgement |
-| `dim_breaks_interface` | prompt mentions breaking change, schema rewrite, API rewrite, endpoint rename / delete / deprecate, or interface contract change | interface-drill trigger judgement; auto-escalates `dim_needs_review_loop` |
-| `dim_needs_tdd` | prompt names behaviour-modifying intent (`implement`, `实现`, `add feature`, `fix bug`, `修复 bug`, `添加功能`) | TDD trigger judgement |
-| `dim_needs_review_loop` | tier is Heavy OR `dim_breaks_interface=1` | review-loop trigger judgement |
+| `dim_touches_code` | prompt names a file path, extension, fenced snippet, or curated technical noun | `hooks/grill-prompt.sh` — Standard-tier implicit triggers (uncertainty / long-input) are suppressed when this is 0, treating the turn as discussion |
+| `dim_crosses_packages` | ≥ 2 distinct top-level path segments named in the prompt | `do-it-architecture-scan` skill — mandatory trigger when set |
+| `dim_breaks_interface` | prompt mentions breaking change, schema rewrite, API rewrite, endpoint rename / delete / deprecate, or interface contract change | `do-it-interface-drill` skill — mandatory trigger; `hooks/verification-gate.sh` — requires the inline-review marker to name `interface` / `contract` / `schema` / `api` |
+| `dim_needs_tdd` | prompt names behaviour-modifying intent (`implement`, `实现`, `add feature`, `fix bug`, `修复 bug`, `添加功能`) **and** also names a code object (path / extension / fenced snippet / technical noun) | `do-it-tdd` skill — mandatory trigger when set |
+| `dim_needs_review_loop` | tier is Heavy OR `dim_breaks_interface=1` | `do-it-review-loop` skill — mandatory trigger; `hooks/verification-gate.sh` — requires a `review-loop` / `review-quick` / `review-deep` / `review-adversarial` mention in the recent transcript before a "done" claim passes |
+
+DIM values live in per-session state. Two consumption paths:
+
+- **Hook layer (program path).** Hooks read via `do_it_session_state_get "$SESSION_ID" <key>` from `hooks/lib/common.sh`, which resolves the state path through the documented 5-level env-var search (`CLAUDE_PLUGIN_DATA` → `DO_IT_HOOK_DATA` → `CODEX_HOME/do-it-data` → repo `.do-it/runtime/` → `${TMPDIR}/do-it-sessions`). Never hard-code a path.
+- **Agent layer (prose path).** Agents do not query state at runtime; they judge mandatory triggers from prompt content using the rules in `do-it-router` § Reading dimensions. Hook-emitted system-reminders carry the gate-relevant signals (e.g. interface attestation requirement, review-loop trace requirement). Each SKILL's mandatory trigger has an explicit Light-tier escape clause documented at `do-it-router` § Mandatory-trigger escape clauses.
+
+Missing state degrades to tier-only behavior — hooks never block on absence.
 
 Compatibility: tier is preserved (Light / Standard / Heavy) as the derived
 classifier; all existing skill triggers continue to key off it. Light

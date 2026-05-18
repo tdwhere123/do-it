@@ -244,4 +244,25 @@ run_code_map_refresh "$codemap_session" "$no_handbook_project" "Edit" \
   "$no_handbook_project/packages/foo/src/index.ts" \
   || fail "code-map-refresh should exit 0 when handbook is missing"
 
+# Dim-aware grill suppression: Standard tier with uncertainty word but no code
+# object (`dim_touches_code=0`) should be treated as discussion and silenced.
+nocode_uncertain_session="nocode-uncertain-grill"
+run_router "$nocode_uncertain_session" "release 我想确认一下"
+[[ "$(state_value "$nocode_uncertain_session" tier)" == "Standard" ]] \
+  || fail "release+uncertainty should classify as Standard"
+[[ "$(state_value "$nocode_uncertain_session" dim_touches_code)" == "0" ]] \
+  || fail "release+uncertainty should set dim_touches_code=0"
+nocode_uncertain_grill="$(run_grill "$nocode_uncertain_session" "release 我想确认一下")"
+assert_empty "$nocode_uncertain_grill" "Standard + uncertainty + dim_touches_code=0 should suppress grill"
+
+# Counter-case: same uncertainty word with a code object should still grill.
+withcode_session="withcode-uncertain-grill"
+run_router "$withcode_session" "release 我想确认 src/release.ts"
+[[ "$(state_value "$withcode_session" tier)" == "Standard" ]] \
+  || fail "release+file should classify as Standard"
+[[ "$(state_value "$withcode_session" dim_touches_code)" == "1" ]] \
+  || fail "release+file should set dim_touches_code=1"
+withcode_grill="$(run_grill "$withcode_session" "release 我想确认 src/release.ts")"
+assert_contains "$withcode_grill" "trigger: uncertainty" "Standard + uncertainty + dim_touches_code=1 should still grill"
+
 echo "[test-hooks] ok"

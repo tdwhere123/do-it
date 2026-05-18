@@ -105,3 +105,13 @@ Report:
   verification, with reasons for skipped relevant steps;
 - cleanup performed or intentionally skipped;
 - residual risks.
+
+## Pointer Clear
+
+When the closeout decision is **merged**, **discarded**, or otherwise concludes the active task, clear the task pointer so the next turn does not pick up stale state:
+
+```bash
+mkdir -p .do-it/runtime && printf '%s' "<closed>" > .do-it/runtime/pointer
+```
+
+See `do-it-router` § Task Pointer for the full protocol. Closeout decisions that leave the branch/worktree open ("keep as-is") leave the pointer unchanged.

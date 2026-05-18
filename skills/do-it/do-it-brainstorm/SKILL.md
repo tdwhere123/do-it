@@ -150,6 +150,14 @@ When durable handoff is useful, write:
 
 `<task-slug>` follows the same rule as `do-it-grill-log`: slug from the user title or a short hash, with an optional session prefix. `<cwd>/.do-it/brainstorm/.gitkeep` should exist when the project tracks do-it artifacts.
 
+In the same turn, write the slug to the task pointer so router and other skills can pick it up:
+
+```bash
+mkdir -p .do-it/runtime && printf '%s' "<task-slug>" > .do-it/runtime/pointer
+```
+
+See `do-it-router` § Task Pointer for the full protocol. Discussion-first mode without an artifact does not write the pointer.
+
 ### File Format
 
 ```markdown

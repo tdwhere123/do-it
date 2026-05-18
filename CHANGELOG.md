@@ -4,6 +4,42 @@
 
 - No unreleased changes.
 
+## 0.8.0
+
+### Added
+
+- New PostToolUse hook `hooks/anti-patterns-lint.sh` — advisory scan after every `Edit|Write|MultiEdit` for three coarse code-quality anti-patterns: large bash `case` lists (≥10 consecutive `*"..."*` branches → suggests data-driven externalisation), newly-exported JS/TS symbols with no other-file consumer (incl. `export default function/class`), and ≥5-line code blocks duplicated from a same-directory neighbour. Never blocks; emits one `system-reminder` per file. Implementation uses portable grep+sed (no gawk-specific `match(... , arr)` three-arg form) so it runs on macOS's bundled BSD awk just like the 0.7.2-era hooks.
+- New task pointer protocol: `.do-it/runtime/pointer` is a single-line file holding the active task slug. `do-it-planning` and `do-it-brainstorm` write it when creating a durable artifact; `do-it-branch-closeout` clears it; `do-it-router` reads it before routing. Defined once in `do-it-router` § Task Pointer; other skills short-reference.
+- Tests: `tests/hooks/anti-patterns-lint.test.sh` (12 cases incl. `export default` coverage) and 4 new cases in `tests/hooks/verification-gate.test.sh` lock in the new behaviors. `scripts/test-hooks.sh` gains a dim-aware grill suppression case + counter-case so the new `hooks/grill-prompt.sh` consumer of `dim_touches_code` is exercised. `npm run test-hooks` now exercises the full `tests/hooks/*.test.sh` suite (router, comments-lint, anti-patterns-lint, verification-gate, common).
+
+### Changed
+
+- **DIM_* dimensions are now actively consumed** (the 0.7.0 "维度正交化" design finally lands). Each of the five session-state dimensions has at least one explicit consumer:
+  - `dim_touches_code` → `hooks/grill-prompt.sh` suppresses Standard-tier implicit triggers when the prompt has no code object (discussion turn).
+  - `dim_crosses_packages` → `do-it-architecture-scan` skill: mandatory trigger when set.
+  - `dim_breaks_interface` → `do-it-interface-drill` skill (mandatory trigger) and `hooks/verification-gate.sh` (requires the inline-review marker to name `interface` / `contract` / `schema` / `api`).
+  - `dim_needs_tdd` → `do-it-tdd` skill: mandatory trigger when set.
+  - `dim_needs_review_loop` → `do-it-review-loop` skill (mandatory trigger) and `hooks/verification-gate.sh` (requires `review-loop` / `review-quick` / `review-deep` / `review-adversarial` mention in the recent transcript before a "done" claim passes).
+  - The canonical one-liner for reading a dimension (and the "missing state degrades to tier-only" fallback) lives in `do-it-router` § Reading dimensions. `docs/routing-matrix.md` updated to match: MAY → SHOULD.
+- **`do-it-fix-loop` switches default posture from "see-one-fix-one" to "collect all findings → root-cause → batch or pointwise"**. The Standard tier sequence now requires a written `Batch vs Pointwise Decision` covering every finding before editing. The Red Flag entry that previously forbade multiple unrelated fixes in one commit is removed; the new red flag is going one-by-one without a written root-cause decision. `do-it-review-loop` correspondingly requires reviewers to emit findings as a complete batch, not stream them.
+- **`do-it-comments-discipline` SKILL.md trimmed from 373 lines to 119 (~68% reduction)**, keeping the 5 allowed categories (one example + one near-miss each), the 6 forbidden families (one bad line + one fix per family), the review checklist, the hook keyword reference, escape hatch, and output shape. The `comments-lint` hook strength is unchanged (still advisory) — the bet is that a smaller SKILL gets read by the agent at all.
+- **23 subagent TOML files lose their duplicated `Common protocol:` block** (~4-5 lines per agent, ~120 lines total). Replaced with a single line pointing at `do-it-subagent-orchestration` § Required Prompt Contract, which already defines the canonical dispatch contract. The shared boilerplate now lives in exactly one place.
+
+### Fixed
+
+- `hooks/verification-gate.sh` no longer falls back to a raw `tail -n 5` of the JSONL when `jq` *does* parse but the last assistant frame is tool-only with no text content. The fallback only fires when `jq` is missing; with `jq` present, an empty result is treated as "agent said nothing this turn" and the gate stays silent. Prevents a false-positive block where the new `dim_breaks_interface` attestation check would see leaked text from earlier turns and refuse to find the interface keyword on its own line.
+- Documented `Reading dimensions` in `do-it-router` § now distinguishes the hook layer (call `do_it_session_state_get` from `hooks/lib/common.sh`, which already honours the 5-level env-var path search) from the agent layer (judge mandatory triggers from prompt content; do not query state at runtime). The earlier shipped one-liner pointed at a path that is incorrect under the plugin-install env layout.
+- Each mandatory-trigger sentence inside `do-it-tdd`, `do-it-interface-drill`, `do-it-architecture-scan`, and `do-it-review-loop` now carries an explicit Light-tier escape clause and points at `do-it-router` § Mandatory-trigger escape clauses. `dim_needs_tdd` is no longer treated as a forced ceremony on docs/config edits.
+- `.do-it/runtime/pointer` protocol is reframed as a best-effort hint: read consumers MUST verify the referenced artifact exists, and the document explicitly addresses branch-switch, concurrent-write, and `<closed>`-sentinel edge cases.
+- `do-it-comments-discipline` gains a `Verification (pass criteria)` section and a `Trigger Event` section that the 373→119 slim accidentally dropped; the Anti-Pattern Hook Keywords list is reconciled with `hooks/comments-lint.sh` (adds `曾经`, `fix:`, `bugfix`, `hotfix`, `patched`, `FIXME`, `XXX`; splits `history` and `fix-narrative` into separate families to match the hook's `_record_family` calls).
+- `do-it-review-loop` and `do-it-fix-loop` now cross-link explicitly: review-loop step 8 names the batch contract fix-loop operates on; fix-loop's `Batch vs Pointwise Decision` references review-loop step 8 as the source of the complete finding list.
+- `README.md`, `README.zh-CN.md`, and `docs/release.md` carry the new `0.8.0` tarball filename and an `Upgrading to 0.8.0` section. The READMEs also gain a paragraph describing the new advisory `anti-patterns-lint` hook.
+
+### Known Limitations
+
+- `dim_needs_review_loop` enforcement in `hooks/verification-gate.sh` reads `TAIL_BUF` (last 80 JSONL lines) and accepts any historical `review-loop` / `review-quick` / `review-deep` / `review-adversarial` mention. In a long session with multiple distinct review-needing turns, a later turn can inherit an older trace and silently pass. Tightening this requires a `last_review_seen_at` session-state timestamp; tracked as follow-up, not blocking 0.8.0.
+- `dim_breaks_interface` attestation in `hooks/verification-gate.sh` accepts any inline-review marker that mentions `interface` / `contract` / `schema` / `api` — best-effort signal, not a semantic check. A marker like `inline-review: schema validation looks fine` satisfies the gate even on a non-schema change. The signal is intentionally generous; the reviewer / fix-loop is the real gate.
+
 ## 0.7.2
 
 ### Fixed

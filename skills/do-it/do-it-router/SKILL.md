@@ -33,11 +33,83 @@ continuing.
 Before routing:
 
 1. Read local instructions, user constraints, and write ownership.
-2. Inspect current truth that could change the answer: files, docs, diffs, tests, plans, issues, task cards, or runtime state.
-3. Choose a tier: `Light`, `Standard`, or `Heavy`.
-4. If the user asked for a plan first, stop at an approval checkpoint.
+2. Read `.do-it/runtime/pointer` if it exists — it names the active task slug, and the matching `.do-it/{brainstorm,grill,plans}/<slug>.md` files carry the current task state. Skip this step only when no `.do-it/` directory is present (fresh project).
+3. Inspect current truth that could change the answer: files, docs, diffs, tests, plans, issues, task cards, or runtime state.
+4. Choose a tier: `Light`, `Standard`, or `Heavy`.
+5. If the user asked for a plan first, stop at an approval checkpoint.
 
 Do not ask the user for facts that can be read locally. Ask only preference or priority questions that can change the route.
+
+## Orthogonal Dimensions
+
+In addition to the single tier label, the router writes 5 boolean dimensions into per-session state. They narrow *intensity*, not tier itself: a Standard task can still be `breaks_interface=1` and a downstream skill MAY upgrade its review or drill posture accordingly.
+
+| Dimension | Set when |
+|---|---|
+| `dim_touches_code` | prompt names a file path, extension, fenced snippet, or curated technical noun |
+| `dim_crosses_packages` | ≥ 2 distinct top-level path segments named in the prompt |
+| `dim_breaks_interface` | prompt mentions breaking change, schema/API rewrite, endpoint rename/delete/deprecate, or interface contract change |
+| `dim_needs_tdd` | prompt names behaviour-modifying intent (`implement`, `实现`, `add feature`, `fix bug`, `修复 bug`, `添加功能`) **and** also names a code object (path / extension / fenced snippet / technical noun) |
+| `dim_needs_review_loop` | tier is Heavy OR `dim_breaks_interface=1` |
+
+Tier remains the canonical input. Light classifications skip dimension evaluation entirely (every dim stays 0). The router never coerces tier from dimensions.
+
+### Reading dimensions
+
+DIM values live in per-session state written by the router. Two consumption paths exist; agents and skills must use the right one for their layer.
+
+**Hook layer (program path).** Hooks invoked by the host (router, grill-prompt, verification-gate, comments-lint, anti-patterns-lint) read DIM values via `do_it_session_state_get "$SESSION_ID" <key>` defined in `hooks/lib/common.sh`. The helper resolves the state path through the documented 5-level env-var search (`CLAUDE_PLUGIN_DATA` → `DO_IT_HOOK_DATA` → `CODEX_HOME/do-it-data` → repo `.do-it/runtime/` → `${TMPDIR}/do-it-sessions`). New hooks must call this helper and never hard-code a path.
+
+**Agent layer (prose path).** Agents do **not** query DIM state at runtime. The `dim_*` keys are hook-internal signals. Agents satisfy a SKILL's "mandatory trigger when dim_X=1" line by judging from the **prompt content** they were given:
+
+- if the user's prompt names a path/extension/code object → treat `dim_touches_code` as 1;
+- if the prompt names ≥2 top-level package segments → treat `dim_crosses_packages` as 1;
+- if the prompt mentions breaking change / schema-rewrite / endpoint rename/delete/deprecate / interface change → treat `dim_breaks_interface` as 1;
+- if the prompt names behaviour-modifying intent (`implement` / `实现` / `add feature` / `fix bug` / `修复 bug` / `添加功能`) **and** also names a code object → treat `dim_needs_tdd` as 1 (the code-object requirement narrows the trigger so it does not fire on docs/config edits — see Mandatory-trigger escape clauses below);
+- if tier is Heavy OR `dim_breaks_interface` is 1 → treat `dim_needs_review_loop` as 1.
+
+The hook layer enforces some of these via Stop hook (`hooks/verification-gate.sh` blocks on missing interface attestation or missing review-loop trace). The agent layer interprets the same signals from prompt content; the two layers agree by design.
+
+### Mandatory-trigger escape clauses
+
+A SKILL listing a mandatory DIM trigger can still skip it when its own Light-tier escape clause applies. The most important cases:
+
+- `do-it-tdd` (`dim_needs_tdd=1`): if the change is mechanical, docs-only, generated output, or config where an executable RED test is not useful (matches the skill's Light tier), state the reason in the route announcement and proceed without TDD. The trigger is a default, not a forced ceremony.
+- `do-it-interface-drill` (`dim_breaks_interface=1`): if the changed interface is a private helper inside one file and no consumer depends on it, the Light-tier inline version of interface-drill is sufficient.
+- `do-it-architecture-scan` (`dim_crosses_packages=1`): if the cross-package mention is purely textual (e.g. paths inside docs/README), inline architecture-scan suffices.
+
+Always name the escape reason. A silent skip of a mandatory trigger is a review finding.
+
+### Consumer table
+
+| Dim | Hook consumers | Skill consumers |
+|---|---|---|
+| `dim_touches_code` | `hooks/grill-prompt.sh` (suppresses Standard implicit grill on discussion turns) | — |
+| `dim_crosses_packages` | — | `do-it-architecture-scan` mandatory trigger (with the escape clause above) |
+| `dim_breaks_interface` | `hooks/verification-gate.sh` (requires inline-review marker to name `interface`/`contract`/`schema`/`api`) | `do-it-interface-drill` mandatory trigger; `do-it-review-loop` runs adversarial intensity |
+| `dim_needs_tdd` | — | `do-it-tdd` mandatory trigger (with the escape clause above) |
+| `dim_needs_review_loop` | `hooks/verification-gate.sh` (requires review-loop trace before a "done" claim) | `do-it-review-loop` mandatory trigger — applies **only to done-claim turns**, not to planning/grill turns |
+
+## Task Pointer
+
+`.do-it/runtime/pointer` is a single-line **best-effort hint** holding the active task slug. It exists to help a fresh turn recover quickly; it is never authoritative.
+
+Protocol:
+
+| Action | Owner | Shape |
+|---|---|---|
+| Read | `do-it-planning` when it needs to extend instead of fork a task; `do-it-router` § First Move when an active task exists | `cat .do-it/runtime/pointer` — one line, no trailing newline |
+| Write | `do-it-planning` when creating `.do-it/plans/<slug>.md`; `do-it-brainstorm` when creating `.do-it/brainstorm/<slug>.md` | `mkdir -p .do-it/runtime && printf '%s' "<slug>" > .do-it/runtime/pointer` |
+| Clear | `do-it-branch-closeout` when the branch is merged, discarded, or otherwise closed | `mkdir -p .do-it/runtime && printf '%s' "<closed>" > .do-it/runtime/pointer` (or `rm` the file) |
+
+Rules:
+
+- Pointer contains the slug only — ASCII-only, no spaces, no timestamps, no stage info. Stage and status live inside the artifact's own frontmatter.
+- `<closed>` is the sentinel for "no active task" so a new turn knows to ignore stale state.
+- `.do-it/runtime/` is already gitignored — the pointer is local-only.
+- A read consumer MUST verify the referenced `.do-it/{brainstorm,grill,plans}/<slug>.md` exists before trusting the pointer. The pointer can be stale after a branch switch, a manual deletion, or a concurrent session — none of these flip the pointer, so the artifact-existence check is the real source of truth.
+- Concurrent writes to the pointer file are not coordinated; one-line slug writes fit within the OS atomic-write window, but if two skills race, the loser's slug simply gets overwritten. The verify-by-artifact rule above is what keeps this safe.
+- Never write a pointer that does not match an existing `.do-it/{brainstorm,grill,plans}/<slug>.md` file.
 
 ## Required Risk Forecast
 

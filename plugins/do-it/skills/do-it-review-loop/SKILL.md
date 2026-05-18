@@ -10,6 +10,8 @@ description: "Use when a delivered diff or worker result needs PR-style correctn
 Use this to find defects, scope drift, and maintainability risk before closeout.
 Review is findings-first and evidence-backed.
 
+**Mandatory trigger:** when tier is Heavy OR the prompt signals an interface-breaking change (router writes `dim_needs_review_loop=1`), this skill is required **before any "done" claim** — it does not apply to planning, grill, or discussion turns. The `verification-gate` Stop hook enforces the done-claim case: a transcript without a `review-loop` / `review-quick` / `review-deep` / `review-adversarial` mention will be blocked. See `do-it-router` § Mandatory-trigger escape clauses for the full contract. The fix path also runs on the complete finding batch — see `do-it-fix-loop` § Batch vs Pointwise Decision, which operates on the list this skill emits at step 8.
+
 ## Tiers
 
 ### Light
@@ -32,9 +34,9 @@ explicitly assigned otherwise.
 5. Check the failure-mode forecast, proof path map, readiness target, and final evidence expectations when they exist.
 6. Check requirements before quality polish when a plan or task card exists.
 7. Report only confirmed issues or clearly labeled uncertainty.
-8. Order findings by severity with evidence.
+8. **Emit findings as a complete batch** — produce the full list (`Blocking` / `Important` / `Opportunity`) in a single return, ordered by severity. Do not stream findings one-by-one; fix-loop depends on seeing the whole list to detect shared root causes.
 9. Use at most one focused reviewer when the risk is not locally reviewable; otherwise the parent performs local review.
-10. Send `Blocking` and `Important` findings into `do-it-fix-loop`.
+10. Send the complete `Blocking` and `Important` set to `do-it-fix-loop`; fix-loop will run its Batch vs Pointwise Decision on the full list before editing.
 
 ### Heavy
 

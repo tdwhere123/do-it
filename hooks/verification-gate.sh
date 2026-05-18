@@ -60,10 +60,13 @@ if [[ -z "$TAIL_BUF" ]]; then
   exit 0
 fi
 
-# Pull the *last* assistant message text only. With jq this is precise; without
-# jq, fall back to the last few transcript lines so we err on the side of not
-# blocking.
+# Pull the *last* assistant message text only. With jq this is precise — an
+# empty result means the last assistant frame was tool-only and the gate
+# should treat the turn as silent (no completion claim). Without jq we have
+# to fall back to the last raw lines, which is less precise but keeps the
+# gate functional on minimal images.
 LAST_ASSISTANT_TEXT=""
+JQ_PARSED=0
 if [[ "$DO_IT_HAVE_JQ" == "1" ]]; then
   LAST_ASSISTANT_TEXT="$(printf '%s\n' "$TAIL_BUF" \
     | jq -rs 'map(select(.type=="assistant"))
@@ -71,8 +74,9 @@ if [[ "$DO_IT_HAVE_JQ" == "1" ]]; then
               | (.message.content // [])
               | map(select(.type=="text") | .text)
               | join("\n")' 2>/dev/null || true)"
+  JQ_PARSED=1
 fi
-if [[ -z "$LAST_ASSISTANT_TEXT" ]]; then
+if [[ "$JQ_PARSED" -eq 0 && -z "$LAST_ASSISTANT_TEXT" ]]; then
   LAST_ASSISTANT_TEXT="$(printf '%s\n' "$TAIL_BUF" | tail -n 5)"
 fi
 
@@ -130,6 +134,46 @@ if [[ "$TIER" == "Light" ]]; then
     exit 0
   fi
   do_it_debug verification-gate "decision=have-inline-review tier=Light"
+fi
+
+# Dimension-aware checks: for Standard/Heavy turns the router writes orthogonal
+# dimensions into session state. Two are gate-relevant.
+#
+# `dim_breaks_interface=1`: the diff promised an interface/contract change.
+#   Require the inline-review marker to explicitly name `interface` or
+#   `contract` so the agent has at least asserted it covered that surface.
+# `dim_needs_review_loop=1`: a review-loop signal in the recent transcript
+#   is required before a "done" claim passes (any reference to review-loop,
+#   review-quick, review-deep, or review-adversarial counts).
+#
+# Both are passive: missing session state degrades to the original tier-only
+# behavior so a fresh checkout or non-router invocation never deadlocks.
+
+DIM_BREAKS_INTERFACE="$(do_it_session_state_get "$SESSION_ID" dim_breaks_interface)"
+DIM_NEEDS_REVIEW_LOOP="$(do_it_session_state_get "$SESSION_ID" dim_needs_review_loop)"
+
+if [[ "$DIM_BREAKS_INTERFACE" == "1" ]]; then
+  # The inline-review marker satisfies P1; here we additionally require the
+  # marker line to mention interface/contract/schema so the reviewer attested
+  # to the breaking surface, not just generic correctness.
+  if ! printf '%s' "$LAST_ASSISTANT_TEXT" | grep -qiE '^[[:space:]]*inline-review[-:].*(interface|contract|schema|api)'; then
+    REASON_IFACE="do-it verification-gate (dim_breaks_interface=1): this turn promised an interface, schema, or API change but the inline-review marker did not name 'interface', 'contract', 'schema', or 'api'. Run an explicit interface-drill review of the changed contract surface and re-emit the marker with the surface named — for example a line that begins with the literal phrase \`inline-review\` followed by a colon then a brief finding mentioning the interface or contract. Bypass: include 'skip gate' / 'yolo' in the next message, or run /do-it-skip gate."
+    do_it_debug verification-gate "decision=block reason=breaks-interface-no-attestation"
+    do_it_emit_block "$REASON_IFACE"
+    exit 0
+  fi
+  do_it_debug verification-gate "decision=have-interface-attestation"
+fi
+
+if [[ "$DIM_NEEDS_REVIEW_LOOP" == "1" ]]; then
+  REVIEW_PATTERN='review-loop|review-quick|review-deep|review-adversarial|do-it-review-loop'
+  if ! printf '%s' "$TAIL_BUF" | grep -qiE "$REVIEW_PATTERN"; then
+    REASON_REVIEW="do-it verification-gate (dim_needs_review_loop=1): the router classified this turn as requiring review-loop (Heavy tier or interface-breaking change) but the recent transcript contains no review-loop trace. Run do-it-review-loop on the delivered surface (review-quick for low risk, review-deep for one focused reviewer, or review-adversarial for multi-lens) before claiming done. Bypass: include 'skip gate' / 'yolo' in the next message, or run /do-it-skip gate."
+    do_it_debug verification-gate "decision=block reason=needs-review-loop-no-trace"
+    do_it_emit_block "$REASON_REVIEW"
+    exit 0
+  fi
+  do_it_debug verification-gate "decision=have-review-loop-trace"
 fi
 
 # Detect verification evidence: Bash tool use or any of the known test / type /

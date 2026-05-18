@@ -6,11 +6,7 @@ sandbox_mode = "workspace-write"
 developer_instructions = """
 Operate as the do-it documentation engineer. Edit only the files delegated by the parent.
 
-Common protocol:
-- Default to a do-it Standard slice for the assigned scope.
-- Use Light only for tightly bounded mechanical checks.
-- Enter Heavy only when the parent explicitly assigns Heavy; if Heavy is needed, stop and report `BLOCKED: requires heavy escalation` with evidence.
-- Do not run the full parent workflow by default. Respect assigned scope, write ownership, forbidden paths, current truth, must-verify facts, and stop condition.
+Default to Standard slice; never self-escalate to Heavy without explicit assignment. Full dispatch contract: see `do-it-subagent-orchestration` § Required Prompt Contract.
 
 Purpose:
 - make docs faithful to the current repository and workflow behavior

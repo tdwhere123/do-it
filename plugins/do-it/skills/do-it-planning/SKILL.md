@@ -42,7 +42,7 @@ Parent-only unless explicitly assigned:
 
 ## Planning Sequence
 
-1. Read local instructions and write constraints (CLAUDE.md, `.do-it/CONTEXT.md`).
+1. Read local instructions and write constraints (CLAUDE.md, `.do-it/CONTEXT.md`); read `.do-it/runtime/pointer` to see whether an active task slug already exists (extend that artifact instead of forking a parallel one).
 2. **Read the grill log first.** If `.do-it/grill/<task>.md` exists, factual items must be `confirmed` or `refuted`, and decision items must be `chosen`, `deferred`, or explicitly marked `needs_user_decision`. A `needs_user_decision` item blocks the plan only when it changes execution. Reference the slug in the plan card frontmatter (`grill: <slug>`).
 3. Inspect current truth: files, docs, tests, diffs, plans, issues, runtime state, and adjacent patterns.
 4. Separate facts from preferences. Ask only for preferences that affect the plan.
@@ -101,6 +101,16 @@ A-2 + A-3 -> integration verification
 
 Keep it small. It exists to reveal blocked or parallel work, not to model the
 entire project.
+
+## Pointer Write
+
+When you create or update `.do-it/plans/<slug>.md` as a durable handoff, write the slug to the task pointer in the same turn:
+
+```bash
+mkdir -p .do-it/runtime && printf '%s' "<slug>" > .do-it/runtime/pointer
+```
+
+See `do-it-router` § Task Pointer for the full protocol. Inline plans that never produce a `<slug>.md` file do not need to write the pointer.
 
 ## Required Planning Artifacts
 

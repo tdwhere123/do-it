@@ -120,6 +120,19 @@ if [[ -z "$TRIGGER" && "$TIER" == "Standard" ]]; then
   fi
 fi
 
+# Dimension-aware suppression: an implicit trigger on a Standard turn that did
+# not name any code object is almost always a discussion turn. Demote unless
+# the user explicitly asked to grill. dim_touches_code is written by the
+# router only for Standard / Heavy; Heavy ignores this check via the
+# heavy-tier early return above.
+if [[ -n "$TRIGGER" && "$TIER" == "Standard" && "$EXPLICIT_GRILL" -eq 0 ]]; then
+  TOUCHES_CODE="$(do_it_session_state_get "$SESSION_ID" dim_touches_code)"
+  if [[ "$TOUCHES_CODE" != "1" ]]; then
+    do_it_debug grill-prompt "decision=no-trigger tier=Standard reason=dim-touches-code-zero original-trigger=${TRIGGER}"
+    exit 0
+  fi
+fi
+
 if [[ -z "$TRIGGER" ]]; then
   do_it_debug grill-prompt "decision=no-trigger tier=$TIER"
   exit 0
