@@ -129,6 +129,9 @@ Stop and return `STILL_OPEN` or `NEEDS_CONTEXT` when:
 ## Red Flags
 
 - A finding is marked closed without command, line, or behavior evidence.
+- A finding is "closed" by silencing the symptom — a swallowed error, a
+  weakened assertion, a skipped or deleted test — instead of repairing the
+  cause (see `do-it-router` § Integrity).
 - A cluster of related findings is patched one-by-one without a written root-cause decision — symptom of "see one fix one" that the Batch vs Pointwise step is meant to prevent.
 - The Batch vs Pointwise decision record is missing or contradicts the actual fix shape (e.g. record says "3 clusters" but the diff edits each finding location independently).
 - Prevention is omitted for a Blocking or Important fix.

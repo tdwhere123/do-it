@@ -4,6 +4,33 @@
 
 - No unreleased changes.
 
+## 0.9.0
+
+### Added
+
+- `install/migrate.mjs` — version-migration logic (`parseMinor`, `matchesFromRange`, `needsMigration`, `applyMigrationAction`, `applyMatchingMigrations`) extracted from `install/manage.mjs` as pure, importable functions.
+- `tests/install/manage.test.mjs` — 14 tests covering the migration logic plus the end-to-end install flow: fresh install, re-install from an older state version (migration + `*.pre-migrate.json` backup), and codex/claude target independence. New `npm run test-install`, wired into `npm test`.
+- `scripts/check-skill-links.mjs` — fails when a `SKILL.md` references a `` `do-it-*` `` skill or command that does not exist, or a skill directory is missing from `manifest.json`. New `npm run check:skill-links`, wired into `npm test`.
+- `do-it-router` § Integrity — a canonical principle: a failure is a clue to trace to a root cause, not a symptom to make disappear. Names the cover-up patterns (swallowed exception, weakened/deleted assertion, skipped/deleted test, commented-out failing code, hiding fallback, edited evidence). `do-it-debugging`, `do-it-fix-loop`, `do-it-verification-gate`, and the subagent dispatch contract reference it; the `reviewer` agent treats a cover-up as a Blocking finding.
+- `do-it-visual-planning/templates/plan-card.html` and `review-report.html` — content-fragment templates that reuse the existing browser-companion frame and CSS; section order matches `task-card-template.md` and review-loop severity grouping.
+- CI `test` job now also runs on `macos-latest`, guarding the bash hooks against BSD/GNU tool divergence (`find`, `printf`, `date`).
+
+### Changed
+
+- **`hooks/verification-gate.sh` block reasons rewritten as short single-instruction sentences.** The verbose "for example a line whose content is the literal phrase…" meta-explanation that caused the model to echo the reason back verbatim is removed.
+- **`hooks/verification-gate.sh` scopes edit / evidence / review-loop detection to the current turn** — the transcript lines after the last user message. A verification command or review-loop trace from an earlier turn can no longer satisfy a later unverified turn. The tail window is raised 80 → 400 lines (turn scoping removes the staleness cost of a larger window).
+- `applyMigrationAction` now throws on an unknown migration action instead of logging and skipping it — a malformed manifest fails loud rather than leaving a half-migrated state.
+- `manifest.json` migrations gain `0.7.x` and `0.8.x` entries.
+- `do-it install` and `doctor` now report the install-state version of **every** manifest target, surfacing codex/claude cross-host version drift that a single-target run otherwise hides.
+- `do-it-subagent-orchestration` Required Prompt Contract gains an `integrity stance` field, propagating the integrity principle into every dispatched subagent.
+- `do-it-router` and `do-it-planning` now point at `do-it-handbook` and `task-card-template.md` so the handbook skeleton is discovered and reused instead of ignored.
+
+### Fixed
+
+- `do_it_emit_block` / `do_it_emit_context` emit valid JSON via a `printf` fallback when `jq` is unavailable. Previously a jq-less host silently dropped the Stop-hook block decision and context reminders entirely.
+- The 0.8.0 known limitation where a stale `review-loop` trace in a long session could let a later review-needing turn pass silently — resolved by the current-turn scoping above.
+- Stale session directories under the runtime sessions base are pruned after `DO_IT_SESSION_TTL_DAYS` (default 7) of inactivity (`do_it_prune_stale_sessions`, run once per session from `router.sh`), instead of accumulating without bound.
+
 ## 0.8.0
 
 ### Added

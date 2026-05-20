@@ -132,6 +132,8 @@ Stop the closeout claim when:
 - Final wording says `done`, `ready`, or `fixed` while a check is skipped.
 - Evidence comes from a different branch, temp worktree, old CI, or memory.
 - The check covers adjacent code but not the changed surface.
+- A check was made to pass by editing the test, assertion, or expected output
+  instead of the behavior (see `do-it-router` § Integrity).
 - Install/readiness claims lack temp-home doctor, setup, or package evidence.
 - Review status is omitted after a Heavy workflow or policy change.
 

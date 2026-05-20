@@ -205,7 +205,7 @@ flowchart TD
 
 ```bash
 npm pack
-npm install -g ./tdwhere-do-it-0.8.0.tgz
+npm install -g ./tdwhere-do-it-0.9.0.tgz
 do-it setup
 ```
 
@@ -263,6 +263,21 @@ package.json     npm 包元数据和 CLI scripts
 ```
 
 私有 `.do-it/` 目录用于本地计划、笔记和临时材料。它被 Git 忽略，也不会被安装。
+
+## 升级到 0.9.0
+
+`0.9.0` 是一个可靠性与纪律性发布。安装态迁移逻辑抽到 `install/migrate.mjs`
+并有完整测试覆盖（`npm run test-install`）；未知迁移 action 现在直接报错,
+不再留下半迁移状态;`do-it install` 与 `doctor` 会报告每个 target 的安装态
+版本,让 Codex/Claude 之间的版本漂移可见。`verification-gate` Stop hook 把
+编辑/证据/review-loop 检测收紧到当前 turn —— 上一个 turn 的痕迹不再能放行
+当前未验证的 turn —— 注入文本也重写成简洁的单句指令。`do_it_emit_block` /
+`do_it_emit_context` 在没有 `jq` 时仍能输出合法 JSON。陈旧 session 目录会在
+7 天后清理。`do-it-router` 新增 `Integrity` 段 —— 失败是要追根因的线索,
+不是要掩盖的症状 —— 被 `do-it-debugging`、`do-it-fix-loop`、
+`do-it-verification-gate` 和子智能体派发合约引用。`do-it-visual-planning`
+新增 `plan-card` / `review-report` 场景模板,CI 测试任务现在也跑 macOS。
+若某台机器缓存了 `0.8.0` 插件,请重装或刷新,让宿主加载新的 hook 和 skill。
 
 ## 升级到 0.8.0
 

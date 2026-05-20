@@ -31,6 +31,7 @@ fi
 
 do_it_source_local_keywords "$CWD"
 do_it_session_state_inc "$SESSION_ID" hook_invocations router
+do_it_prune_stale_sessions "$SESSION_ID"
 
 do_it_prompt_requires_durable_plan() {
   local prompt_lc

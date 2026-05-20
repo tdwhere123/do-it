@@ -6,6 +6,10 @@ import path from "node:path";
 import process from "node:process";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import {
+  needsMigration,
+  applyMatchingMigrations
+} from "./migrate.mjs";
 
 const VALID_COMMANDS = new Set(["install", "doctor", "setup"]);
 const HELP_FLAGS = new Set(["-h", "--help", "help"]);
@@ -538,22 +542,6 @@ function runPreInstall() {
   }
 }
 
-function parseMinor(version) {
-  if (typeof version !== "string") return null;
-  const match = /^(\d+)\.(\d+)/.exec(version);
-  if (!match) return null;
-  return `${match[1]}.${match[2]}`;
-}
-
-function needsMigration(state) {
-  if (!state || typeof state !== "object") return false;
-  if (!state.version) return false;
-  if (state.version === manifest.version) return false;
-  const stateMinor = parseMinor(state.version);
-  const manifestMinor = parseMinor(manifest.version);
-  return stateMinor !== null && manifestMinor !== null && stateMinor !== manifestMinor;
-}
-
 function runMigration(state) {
   if (noMigrate) {
     console.error(
@@ -574,53 +562,16 @@ function runMigration(state) {
     throw err;
   }
 
-  const migrations = Array.isArray(manifest.migrations) ? manifest.migrations : [];
-  for (const m of migrations) {
-    if (!matchesFromRange(m.from, state.version)) continue;
-    for (const action of m.actions ?? []) {
-      applyMigrationAction(action, state);
-    }
-  }
-}
-
-function matchesFromRange(spec, version) {
-  if (!spec || !version) return false;
-  if (spec === version) return true;
-  // "0.4.x" matches any 0.4.* version.
-  if (spec.endsWith(".x")) {
-    const base = spec.slice(0, -2);
-    return version.startsWith(`${base}.`);
-  }
-  return false;
-}
-
-function applyMigrationAction(action, state) {
-  switch (action.type) {
-    case "remove-state-entry": {
-      if (state.entries && state.entries[action.target]) {
-        delete state.entries[action.target];
-        console.error(`[do-it]   removed state entry ${action.target}`);
-      }
-      break;
-    }
-    case "rename-state-key": {
-      if (state.entries && state.entries[action.from] && !state.entries[action.to]) {
-        state.entries[action.to] = state.entries[action.from];
-        delete state.entries[action.from];
-        console.error(`[do-it]   renamed state entry ${action.from} → ${action.to}`);
-      }
-      break;
-    }
-    default:
-      console.error(`[do-it]   skipping unknown migration action: ${JSON.stringify(action)}`);
-  }
+  // invariant: migrated state is in-memory only; writeInstallState() rewrites
+  // it fresh from the manifest, so the migration never reaches disk.
+  applyMatchingMigrations(state, manifest.migrations, state.version);
 }
 
 function install() {
   runPreInstall();
 
   const state = readInstallState();
-  if (needsMigration(state)) {
+  if (needsMigration(state, manifest.version)) {
     runMigration(state);
   }
 
@@ -685,6 +636,7 @@ function install() {
     console.log(`- ${item}`);
   }
 
+  reportCrossHostVersions();
 }
 
 function doctor() {
@@ -761,13 +713,15 @@ function doctor() {
   // Friendly nudge when the *only* problem is a minor-version drift — `do-it
   // install` will silently migrate.
   const stateOnDisk = readInstallState();
-  if (needsMigration(stateOnDisk)) {
+  if (needsMigration(stateOnDisk, manifest.version)) {
     console.log("");
     console.log(
       `hint: install state at ${statePath} is ${stateOnDisk.version}, manifest is ${manifest.version}. ` +
         `Run \`do-it install --target=${targetName}\` to migrate (silent by default).`
     );
   }
+
+  reportCrossHostVersions();
 
   if (sessionId) {
     printSessionSummary(sessionId);
@@ -814,6 +768,58 @@ function printSessionSummary(id) {
   }
 
   console.log("  (no state recorded for this session)");
+}
+
+// Report the recorded install-state version of every manifest target, so
+// cross-host drift is visible: each target keeps a separate state file, and
+// installing one host never touches the other's state.
+function reportCrossHostVersions() {
+  const names = Object.keys(targetsConfig);
+  if (names.length < 2) return;
+
+  const lines = [];
+  for (const name of names) {
+    const tConfig = targetsConfig[name];
+    const override = process.env[tConfig.rootEnv];
+    let root = null;
+    if (override) {
+      root = path.resolve(override);
+    } else if (process.env.HOME) {
+      root = expandRootDefault(tConfig.rootDefault);
+    }
+    if (!root) {
+      lines.push(`- ${name}: unknown (set ${tConfig.rootEnv} to check)`);
+      continue;
+    }
+
+    const tStatePath = path.join(
+      root,
+      tConfig.stateFile ?? ".do-it-install-state.json"
+    );
+    let version = null;
+    try {
+      version = JSON.parse(fs.readFileSync(tStatePath, "utf8")).version ?? null;
+    } catch {
+      version = null;
+    }
+
+    if (!version) {
+      lines.push(`- ${name}: not installed`);
+    } else if (version === manifest.version) {
+      lines.push(`- ${name}: ${version} (up to date)`);
+    } else {
+      lines.push(
+        `- ${name}: ${version} ` +
+          `(run \`do-it install --target=${name}\` to update to ${manifest.version})`
+      );
+    }
+  }
+
+  console.log("");
+  console.log(`install state by target (manifest ${manifest.version}):`);
+  for (const line of lines) {
+    console.log(line);
+  }
 }
 
 if (command === "install") {

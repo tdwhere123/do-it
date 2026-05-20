@@ -142,8 +142,8 @@ echo "Case 6: Light + edits + done + no inline-review marker → BLOCK"
   _build_transcript "$tx" "task done all set" edit:1
   out=$(_run_gate c6 "$tx" false)
   case "$out" in
-    *'"decision":"block"'*'review-quick'*) exit 0 ;;
-    *) echo "no review-quick block: $out" >&2; exit 11 ;;
+    *'"decision":"block"'*'inline self-review'*) exit 0 ;;
+    *) echo "no inline-review block: $out" >&2; exit 11 ;;
   esac
 )
 case "$?" in 0) _pass "Light + edits + done + no marker → block" ;; *) _fail "inline-review block missing" ;; esac
@@ -156,12 +156,12 @@ echo "Case 7: B3 — gate's own block reason replayed must NOT self-satisfy"
   tx="$DO_IT_HOOK_DATA/tx.jsonl"
   # Simulate: assistant text contains the gate's own block reason text
   # (which mentions \`inline-review:\` mid-line behind backticks).
-  reason_text='do-it review-quick (Light tier): this session edited code and the latest response declares completion, but no inline self-review marker is present. Output a single line that begins with the marker prefix `inline-review:` (clean, or a finding). All set, task done.'
+  reason_text="do-it gate: code changed and completion was claimed without an inline self-review. Review the diff for correctness regressions, missing tests, boundary error handling, and comment discipline, then emit one line starting with the \`inline-review:\` marker stating clean or a finding. Bypass: say 'skip gate' or run /do-it-skip gate. All set, task done."
   _build_transcript "$tx" "$reason_text" edit:1
   out=$(_run_gate c7 "$tx" false)
   # Expect: still blocks (no real marker on its own line)
   case "$out" in
-    *'"decision":"block"'*'review-quick'*) exit 0 ;;
+    *'"decision":"block"'*'inline self-review'*) exit 0 ;;
     *) echo "self-satisfied: $out" >&2; exit 11 ;;
   esac
 )
@@ -180,7 +180,7 @@ echo "Case 8: Light + edits + done + line-anchored marker → proceed (then no-e
   out=$(_run_gate c8 "$tx" false)
   # Marker satisfied → falls through to evidence check; no Bash in transcript → block on evidence
   case "$out" in
-    *'"decision":"block"'*'no verification evidence'*) exit 0 ;;
+    *'"decision":"block"'*'ran no verification'*) exit 0 ;;
     *) echo "expected evidence-block: $out" >&2; exit 11 ;;
   esac
 )
@@ -210,8 +210,8 @@ echo "Case 10: Standard + edits + done + no evidence → BLOCK (no inline-review
   _build_transcript "$tx" "task done" edit:1
   out=$(_run_gate c10 "$tx" false)
   case "$out" in
-    *'"decision":"block"'*'no verification evidence'*) exit 0 ;;
-    *'review-quick'*) echo "Standard wrongly hit review-quick: $out" >&2; exit 12 ;;
+    *'"decision":"block"'*'ran no verification'*) exit 0 ;;
+    *'inline self-review'*) echo "Standard wrongly hit inline-review: $out" >&2; exit 12 ;;
     *) echo "expected evidence block: $out" >&2; exit 11 ;;
   esac
 )
@@ -241,7 +241,7 @@ echo "Case 12: Standard + dim_breaks_interface=1 + done + Bash evidence + plain 
   _build_transcript "$tx" $'inline-review: clean\ntask done' edit:1 bash:1
   out=$(_run_gate c12 "$tx" false)
   case "$out" in
-    *'"decision":"block"'*'dim_breaks_interface=1'*) exit 0 ;;
+    *'"decision":"block"'*'interface, schema, or API'*) exit 0 ;;
     *) echo "expected breaks_interface block, got: $out" >&2; exit 11 ;;
   esac
 )
@@ -271,7 +271,7 @@ echo "Case 14: Standard + dim_needs_review_loop=1 + done + Bash + no review trac
   _build_transcript "$tx" "task done" edit:1 bash:1
   out=$(_run_gate c14 "$tx" false)
   case "$out" in
-    *'"decision":"block"'*'dim_needs_review_loop=1'*) exit 0 ;;
+    *'"decision":"block"'*'needs a review-loop'*) exit 0 ;;
     *) echo "expected review-loop block, got: $out" >&2; exit 11 ;;
   esac
 )
@@ -288,6 +288,52 @@ echo "Case 15: Standard + dim_needs_review_loop=1 + transcript mentions review-l
   [[ -z "$out" ]] || { echo "leaked: $out" >&2; exit 11; }
 )
 case "$?" in 0) _pass "dim_needs_review_loop=1 + review trace → pass" ;; *) _fail "review-loop attestation gate too strict" ;; esac
+
+# -------------------------------------------------------------------------
+echo "Case 16: B1 — a review trace in a PREVIOUS turn does not satisfy this turn"
+(
+  _isolate "/tmp/doit-test-gate-c16"
+  _set_state c16 tier Standard last_prompt_kind work dim_needs_review_loop 1
+  tx="$DO_IT_HOOK_DATA/tx.jsonl"
+  : > "$tx"
+  # Previous turn carries a review-loop trace.
+  jq -nc '{type:"assistant", message:{content:[{type:"text", text:"ran review-quick on the earlier surface"}]}}' >> "$tx"
+  # A user message starts a new turn.
+  jq -nc '{type:"user", message:{content:[{type:"text", text:"now ship the next change"}]}}' >> "$tx"
+  # Current turn: edits + evidence + done, but NO review trace.
+  jq -nc '{type:"assistant", message:{content:[{type:"tool_use", name:"Edit", input:{file_path:"/tmp/x.ts"}}]}}' >> "$tx"
+  jq -nc '{type:"assistant", message:{content:[{type:"tool_use", name:"Bash", input:{command:"pnpm test"}}]}}' >> "$tx"
+  jq -nc '{type:"assistant", message:{content:[{type:"text", text:"task done"}]}}' >> "$tx"
+  out=$(_run_gate c16 "$tx" false)
+  case "$out" in
+    *'"decision":"block"'*'needs a review-loop'*) exit 0 ;;
+    *) echo "stale review trace wrongly passed: $out" >&2; exit 11 ;;
+  esac
+)
+case "$?" in
+  0)  _pass "previous-turn review trace does not satisfy current turn" ;;
+  *)  _fail "B1 staleness: a stale review trace passed a later turn" ;;
+esac
+
+# -------------------------------------------------------------------------
+echo "Case 17: B1 — a review trace in the CURRENT turn (after the user line) passes"
+(
+  _isolate "/tmp/doit-test-gate-c17"
+  _set_state c17 tier Standard last_prompt_kind work dim_needs_review_loop 1
+  tx="$DO_IT_HOOK_DATA/tx.jsonl"
+  : > "$tx"
+  jq -nc '{type:"assistant", message:{content:[{type:"text", text:"older unrelated note"}]}}' >> "$tx"
+  jq -nc '{type:"user", message:{content:[{type:"text", text:"ship the next change"}]}}' >> "$tx"
+  jq -nc '{type:"assistant", message:{content:[{type:"tool_use", name:"Edit", input:{file_path:"/tmp/x.ts"}}]}}' >> "$tx"
+  jq -nc '{type:"assistant", message:{content:[{type:"tool_use", name:"Bash", input:{command:"pnpm test"}}]}}' >> "$tx"
+  jq -nc '{type:"assistant", message:{content:[{type:"text", text:"ran review-quick on the delivered surface; task done"}]}}' >> "$tx"
+  out=$(_run_gate c17 "$tx" false)
+  [[ -z "$out" ]] || { echo "leaked: $out" >&2; exit 11; }
+)
+case "$?" in
+  0)  _pass "current-turn review trace passes" ;;
+  *)  _fail "current-turn review trace wrongly blocked" ;;
+esac
 
 # -------------------------------------------------------------------------
 echo

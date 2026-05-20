@@ -40,6 +40,22 @@ Before routing:
 
 Do not ask the user for facts that can be read locally. Ask only preference or priority questions that can change the route.
 
+## Integrity
+
+A failure, error, surprising result, or red flag is a clue to investigate — not an obstacle to make disappear. When something does not work:
+
+1. Trace it to a root cause before changing anything. A symptom you cannot explain is not understood.
+2. Never make a symptom vanish without explaining it. These are cover-ups, not fixes:
+   - swallowing an exception or emptying a `catch`;
+   - weakening, loosening, or deleting an assertion so a check passes;
+   - deleting, skipping, or `xfail`-ing a failing test instead of fixing the cause;
+   - commenting out failing code or returning early past it;
+   - adding a fallback or default that hides why the primary path failed;
+   - editing the evidence (expected output, snapshot, fixture) instead of the behavior.
+3. Report honestly. State what was verified, what was not, and what is still broken. "I could not verify X" or "this still fails because Y" is a correct, useful answer; a false "done" is a defect.
+
+This principle binds the parent agent and every subagent. `do-it-debugging`, `do-it-fix-loop`, and `do-it-verification-gate` enforce it at their stages; reviewers treat a cover-up as a Blocking finding.
+
 ## Orthogonal Dimensions
 
 In addition to the single tier label, the router writes 5 boolean dimensions into per-session state. They narrow *intensity*, not tier itself: a Standard task can still be `breaks_interface=1` and a downstream skill MAY upgrade its review or drill posture accordingly.
@@ -181,6 +197,7 @@ Flow: scope lock -> deep truth scan -> grill/interface/architecture/domain drill
 - Need to design an API, schema, event, CLI, UI contract, module seam, or handoff: `do-it-interface-drill`.
 - Need coupling, ownership, modularity, or testability analysis: `do-it-architecture-scan`.
 - Need names, domain model, glossary, or code/docs/user terminology alignment: `do-it-domain-language`.
+- Need a durable project handbook (invariants, architecture, code map, glossary, backlog): `do-it-handbook`. Suggest it when work spans many files or several sessions and `.do-it/handbook/` does not yet exist; downstream skills (`do-it-grill`, `do-it-planning`, `do-it-architecture-scan`) read those files when present.
 - Need optional visual comparison or diagrams: `do-it-visual-planning`. This is auxiliary and does not participate in the core tier flow.
 - Need implementation: execute locally or delegate a bounded slice after the route is clear; add `do-it-tdd` or `do-it-debugging` when the behavior or root cause warrants it.
 - Need behavior-first implementation or regression coverage: `do-it-tdd`.

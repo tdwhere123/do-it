@@ -98,6 +98,9 @@ Stop and return `Needs more evidence` or reroute when:
   the symptom.
 - *"I cannot reproduce it, but this should help."* — Without a witness or
   blocked-repro statement, the claim is not verifiable.
+- *"Making the error go away is the fix."* — Silencing a symptom — a caught
+  exception, a fallback, a skipped test — without a named root cause is a
+  cover-up, not a fix. See `do-it-router` § Integrity.
 
 ## Red Flags
 

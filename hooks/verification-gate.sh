@@ -6,6 +6,9 @@
 # Current gate scope:
 #   - evaluate completion-language only in the last assistant message so stale
 #     earlier claims do not re-trigger the gate;
+#   - scope edit / evidence / review-loop detection to the current turn (the
+#     transcript lines after the last user message) so an earlier turn's trace
+#     cannot silently satisfy a later unverified turn;
 #   - pass through pure discussion turns and prompts the router classified as a
 #     question;
 #   - accept common verification commands including pytest, mypy, tsc, eslint,
@@ -52,9 +55,11 @@ if [[ -z "$TRANSCRIPT_PATH" || ! -f "$TRANSCRIPT_PATH" ]]; then
   exit 0
 fi
 
-# Window for "did this turn touch files / did it run verification": last 80
-# JSONL lines is more than enough for one assistant turn.
-TAIL_LINES=80
+# Window for "did this turn touch files / did it run verification". The window
+# is generous because the per-turn slice below (CURRENT_TURN_BUF) is what the
+# edit/evidence/review checks actually read, so a larger window only widens how
+# long a turn can be without losing coverage — it cannot leak a stale trace.
+TAIL_LINES=400
 TAIL_BUF="$(tail -n "$TAIL_LINES" "$TRANSCRIPT_PATH" 2>/dev/null || true)"
 if [[ -z "$TAIL_BUF" ]]; then
   exit 0
@@ -80,6 +85,21 @@ if [[ "$JQ_PARSED" -eq 0 && -z "$LAST_ASSISTANT_TEXT" ]]; then
   LAST_ASSISTANT_TEXT="$(printf '%s\n' "$TAIL_BUF" | tail -n 5)"
 fi
 
+# Slice the tail to the current turn: every line after the last user message.
+# The edit / evidence / review-loop checks read this slice instead of the full
+# tail, so a verification command or review-loop trace from an earlier turn
+# cannot pass a later unverified turn (the documented dim_needs_review_loop
+# staleness). When a turn is longer than the tail window the user line has
+# scrolled out and the whole tail is already the current turn — falling back to
+# TAIL_BUF is then correct.
+CURRENT_TURN_BUF="$TAIL_BUF"
+_last_user_line="$(printf '%s\n' "$TAIL_BUF" \
+  | grep -nE '"(type|role)"[[:space:]]*:[[:space:]]*"user"' \
+  | tail -n1 | cut -d: -f1)"
+if [[ -n "$_last_user_line" ]]; then
+  CURRENT_TURN_BUF="$(printf '%s\n' "$TAIL_BUF" | tail -n +"$((_last_user_line + 1))")"
+fi
+
 # Detect completion claims in the last assistant message only.
 COMPLETION_PATTERN='(完成|done|passed|已修|通过|fixed|works|all set|success|完工)'
 if ! printf '%s' "$LAST_ASSISTANT_TEXT" | grep -qiE "$COMPLETION_PATTERN"; then
@@ -87,10 +107,10 @@ if ! printf '%s' "$LAST_ASSISTANT_TEXT" | grep -qiE "$COMPLETION_PATTERN"; then
   exit 0
 fi
 
-# No-edit pass-through: if the recent tail has no Edit/Write/MultiEdit tool_use,
-# this is a discussion turn — do not gate it.
+# No-edit pass-through: if the current turn has no Edit/Write/MultiEdit
+# tool_use, this is a discussion turn — do not gate it.
 EDIT_TOOL_PATTERN='"name"[[:space:]]*:[[:space:]]*"(Edit|Write|MultiEdit|NotebookEdit)"'
-if ! printf '%s' "$TAIL_BUF" | grep -qiE "$EDIT_TOOL_PATTERN"; then
+if ! printf '%s' "$CURRENT_TURN_BUF" | grep -qiE "$EDIT_TOOL_PATTERN"; then
   do_it_debug verification-gate "decision=no-edits"
   exit 0
 fi
@@ -128,7 +148,7 @@ if [[ "$TIER" == "Light" ]]; then
     # start of any line, so a transcript replay of this reason cannot
     # self-satisfy the regex above. The example token is wrapped in backticks
     # and embedded mid-sentence.
-    INLINE_REASON="do-it review-quick (Light tier): this session edited code and the latest response declares completion, but no inline self-review marker is present on its own line in the recent transcript. Before claiming done, run an inline self-review of the diff and check: (a) any obvious correctness regression; (b) missing tests if behavior changed; (c) error handling at boundaries; (d) comment-discipline violations (only @anchor: / see also: / invariant: / type annotations / tool directives are allowed — flag narrative or task-reference comments). Then output a single line that begins with the marker prefix \`inline-review:\` (clean, or a finding) — for example a line whose content is the literal phrase \`inline-review\` followed by a colon then \`clean\`. To bypass: include 'skip gate' / 'yolo' in the next message, or run /do-it-skip gate."
+    INLINE_REASON="do-it gate: code changed and completion was claimed without an inline self-review. Review the diff for correctness regressions, missing tests, boundary error handling, and comment discipline, then emit one line starting with the \`inline-review:\` marker stating clean or a finding. Bypass: say 'skip gate' or run /do-it-skip gate."
     do_it_debug verification-gate "decision=block reason=no-inline-review tier=Light"
     do_it_emit_block "$INLINE_REASON"
     exit 0
@@ -142,9 +162,10 @@ fi
 # `dim_breaks_interface=1`: the diff promised an interface/contract change.
 #   Require the inline-review marker to explicitly name `interface` or
 #   `contract` so the agent has at least asserted it covered that surface.
-# `dim_needs_review_loop=1`: a review-loop signal in the recent transcript
-#   is required before a "done" claim passes (any reference to review-loop,
-#   review-quick, review-deep, or review-adversarial counts).
+# `dim_needs_review_loop=1`: a review-loop signal in the current turn is
+#   required before a "done" claim passes (any reference to review-loop,
+#   review-quick, review-deep, or review-adversarial counts). Scoped to
+#   CURRENT_TURN_BUF so an earlier turn's trace cannot satisfy this turn.
 #
 # Both are passive: missing session state degrades to the original tier-only
 # behavior so a fresh checkout or non-router invocation never deadlocks.
@@ -157,7 +178,7 @@ if [[ "$DIM_BREAKS_INTERFACE" == "1" ]]; then
   # marker line to mention interface/contract/schema so the reviewer attested
   # to the breaking surface, not just generic correctness.
   if ! printf '%s' "$LAST_ASSISTANT_TEXT" | grep -qiE '^[[:space:]]*inline-review[-:].*(interface|contract|schema|api)'; then
-    REASON_IFACE="do-it verification-gate (dim_breaks_interface=1): this turn promised an interface, schema, or API change but the inline-review marker did not name 'interface', 'contract', 'schema', or 'api'. Run an explicit interface-drill review of the changed contract surface and re-emit the marker with the surface named — for example a line that begins with the literal phrase \`inline-review\` followed by a colon then a brief finding mentioning the interface or contract. Bypass: include 'skip gate' / 'yolo' in the next message, or run /do-it-skip gate."
+    REASON_IFACE="do-it gate: this turn changed an interface, schema, or API but the \`inline-review:\` line does not name the surface. Re-run an interface-drill review and re-emit the marker line naming the interface, contract, schema, or api you checked. Bypass: say 'skip gate' or run /do-it-skip gate."
     do_it_debug verification-gate "decision=block reason=breaks-interface-no-attestation"
     do_it_emit_block "$REASON_IFACE"
     exit 0
@@ -167,8 +188,8 @@ fi
 
 if [[ "$DIM_NEEDS_REVIEW_LOOP" == "1" ]]; then
   REVIEW_PATTERN='review-loop|review-quick|review-deep|review-adversarial|do-it-review-loop'
-  if ! printf '%s' "$TAIL_BUF" | grep -qiE "$REVIEW_PATTERN"; then
-    REASON_REVIEW="do-it verification-gate (dim_needs_review_loop=1): the router classified this turn as requiring review-loop (Heavy tier or interface-breaking change) but the recent transcript contains no review-loop trace. Run do-it-review-loop on the delivered surface (review-quick for low risk, review-deep for one focused reviewer, or review-adversarial for multi-lens) before claiming done. Bypass: include 'skip gate' / 'yolo' in the next message, or run /do-it-skip gate."
+  if ! printf '%s' "$CURRENT_TURN_BUF" | grep -qiE "$REVIEW_PATTERN"; then
+    REASON_REVIEW="do-it gate: this turn needs a review-loop (Heavy tier or interface-breaking change) but no review trace is present in it. Run do-it-review-loop on the delivered surface before claiming done. Bypass: say 'skip gate' or run /do-it-skip gate."
     do_it_debug verification-gate "decision=block reason=needs-review-loop-no-trace"
     do_it_emit_block "$REASON_REVIEW"
     exit 0
@@ -187,12 +208,12 @@ EVIDENCE_PATTERN+='|pytest|mypy|tsc|eslint|ruff|biome|prettier'
 EVIDENCE_PATTERN+='|cargo[[:space:]]+(test|run|build|check|clippy)'
 EVIDENCE_PATTERN+='|go[[:space:]]+(test|run|build|vet)'
 
-if printf '%s' "$TAIL_BUF" | grep -qiE "$EVIDENCE_PATTERN"; then
+if printf '%s' "$CURRENT_TURN_BUF" | grep -qiE "$EVIDENCE_PATTERN"; then
   do_it_debug verification-gate "decision=have-evidence"
   exit 0
 fi
 
-REASON="do-it verification-gate: completion language detected (e.g. 'done/passed/完成/通过') in the latest response, but no verification evidence (Bash command, pnpm test, vitest, pytest, cargo test, etc.) appears in the recent transcript. Run the verification command and cite its output before claiming the task is complete. To bypass: include 'skip gate' / 'yolo' in the next message, or run /do-it-skip gate."
+REASON="do-it gate: completion was claimed but this turn ran no verification. Run the verification command (tests, build, lint, or type-check) and cite its output before claiming done. Bypass: say 'skip gate' or run /do-it-skip gate."
 
 do_it_debug verification-gate "decision=block reason=no-evidence"
 do_it_emit_block "$REASON"

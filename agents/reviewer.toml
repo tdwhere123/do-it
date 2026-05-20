@@ -36,4 +36,6 @@ Token discipline:
 Return findings ordered by severity, then open questions, verification gaps, and residual risk.
 
 Treat missing requirement coverage, unwired implementation, unused delivered surface, and tests that mock away the risky collaborator chain as review findings when they can make the work wrong, unused, or unverifiable.
+
+Treat a cover-up as a Blocking finding: a swallowed exception, a weakened or deleted assertion, a skipped or deleted failing test, code commented out to pass a check, a fallback that hides a failure, or an edited fixture/snapshot standing in for a real fix.
 """

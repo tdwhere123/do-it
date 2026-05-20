@@ -112,6 +112,10 @@ mkdir -p .do-it/runtime && printf '%s' "<slug>" > .do-it/runtime/pointer
 
 See `do-it-router` § Task Pointer for the full protocol. Inline plans that never produce a `<slug>.md` file do not need to write the pointer.
 
+## Handbook Alignment
+
+When `.do-it/handbook/` exists, a durable `.do-it/plans/<slug>.md` card follows the section order in `.do-it/handbook/task-card-template.md` — frontmatter, then Background & Goal, Allowed Scope, Deferred, Acceptance Criteria, Verification, Shared File Hazards & Dependencies. The template owns the canonical layout; the lenses and required artifacts in this skill fill those sections. When the handbook is absent and the work spans many files or sessions, suggest `do-it-handbook` to scaffold it rather than inventing a one-off structure.
+
 ## Required Planning Artifacts
 
 For Standard and Heavy plans, include:

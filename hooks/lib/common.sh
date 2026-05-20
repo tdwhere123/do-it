@@ -3,8 +3,10 @@
 #   source "${SCRIPT_DIR}/lib/common.sh"
 #   source "${SCRIPT_DIR}/lib/keywords.sh"
 #
-# Helpers degrade silently (return ""/exit 0) when jq is unavailable, so a
-# misconfigured environment never blocks the user.
+# Helpers degrade gracefully when jq is unavailable: most return ""/exit 0,
+# while do_it_emit_* fall back to hand-built JSON so Stop-hook decisions and
+# context reminders still reach the host. A misconfigured environment never
+# crashes a hook.
 
 set -uo pipefail
 
@@ -175,6 +177,11 @@ do_it_skip_flag_path() {
 # so older session dirs do not break.
 DO_IT_SKIP_TTL_SECONDS="${DO_IT_SKIP_TTL_SECONDS:-300}"
 
+# Age (in days) past which an inactive session directory is pruned by
+# do_it_prune_stale_sessions. Session dirs accumulate one bucket per repo /
+# session id and are never otherwise cleaned up.
+DO_IT_SESSION_TTL_DAYS="${DO_IT_SESSION_TTL_DAYS:-7}"
+
 # Test if skip flag is set. 0 = present (and not expired), 1 = absent.
 # Empty flag files are honored as legacy "no-TTL, always valid". Flag files
 # whose body is a unix timestamp older than DO_IT_SKIP_TTL_SECONDS are deleted
@@ -230,6 +237,37 @@ do_it_write_skip() {
       : > "$dir/skip-${flag}" 2>/dev/null || true
     fi
   done
+}
+
+# Prune session directories untouched for more than DO_IT_SESSION_TTL_DAYS.
+# Runs at most once per session (a `.pruned` marker in the current session dir
+# guards repeats) and is fully best-effort: every failure stays silent so a
+# cleanup problem never blocks a hook. The current session dir is never pruned.
+# Args: <session_id> (locates the sessions base; also the dir to spare).
+do_it_prune_stale_sessions() {
+  local session_id="${1:-}"
+  local self base marker
+  self="$(do_it_session_dir "$session_id")"
+  base="$(dirname "$self")"
+  [[ -z "$base" || ! -d "$base" ]] && return 0
+  marker="${self}/.pruned"
+  [[ -f "$marker" ]] && return 0
+  mkdir -p "$self" 2>/dev/null || return 0
+  : > "$marker" 2>/dev/null || true
+
+  # `-mtime +N` / `-mtime -N` are portable across BSD and GNU find. The cheap
+  # dir-mtime filter runs first; the inner scan only confirms candidates, and
+  # catches jq-less `state.kv` appends that bump a file mtime but not the dir.
+  find "$base" -maxdepth 1 -mindepth 1 -type d \
+       -mtime "+${DO_IT_SESSION_TTL_DAYS}" 2>/dev/null \
+    | while IFS= read -r d; do
+        [[ "$d" == "$self" ]] && continue
+        if [[ -n "$(find "$d" -mtime "-${DO_IT_SESSION_TTL_DAYS}" 2>/dev/null | head -n1)" ]]; then
+          continue
+        fi
+        rm -rf "$d" 2>/dev/null || true
+      done
+  return 0
 }
 
 # Lower-case a string portably.
@@ -646,12 +684,29 @@ do_it_session_summary() {
   printf '{}\n'
 }
 
+# Internal: escape a string for embedding inside a JSON string literal. Used by
+# the jq-free fallbacks of do_it_emit_context / do_it_emit_block so that a host
+# without jq still receives valid JSON instead of an empty (dropped) decision.
+# Backslash must be replaced first. Args: <string>.
+_do_it_json_escape() {
+  local s="$1"
+  s="${s//\\/\\\\}"
+  s="${s//\"/\\\"}"
+  s="${s//$'\t'/\\t}"
+  s="${s//$'\r'/\\r}"
+  s="${s//$'\n'/\\n}"
+  printf '%s' "$s"
+}
+
 # Emit additionalContext system-reminder via JSON. Args: <event-name> <text>.
 do_it_emit_context() {
   local event="$1" text="$2"
   if [[ "$DO_IT_HAVE_JQ" == "1" ]]; then
     jq -nc --arg e "$event" --arg t "$text" \
       '{hookSpecificOutput: {hookEventName: $e, additionalContext: $t}}'
+  else
+    printf '{"hookSpecificOutput":{"hookEventName":"%s","additionalContext":"%s"}}\n' \
+      "$(_do_it_json_escape "$event")" "$(_do_it_json_escape "$text")"
   fi
 }
 
@@ -660,6 +715,8 @@ do_it_emit_block() {
   local reason="$1"
   if [[ "$DO_IT_HAVE_JQ" == "1" ]]; then
     jq -nc --arg r "$reason" '{decision: "block", reason: $r}'
+  else
+    printf '{"decision":"block","reason":"%s"}\n' "$(_do_it_json_escape "$reason")"
   fi
 }
 

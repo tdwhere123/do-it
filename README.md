@@ -229,7 +229,7 @@ For a packed local release artifact:
 
 ```bash
 npm pack
-npm install -g ./tdwhere-do-it-0.8.0.tgz
+npm install -g ./tdwhere-do-it-0.9.0.tgz
 do-it setup
 ```
 
@@ -290,6 +290,26 @@ package.json     npm package metadata and CLI scripts
 
 The private `.do-it/` directory is for local plans, notes, and scratch
 artifacts. It is ignored by Git and is not installed.
+
+## Upgrading to 0.9.0
+
+`0.9.0` is a reliability and discipline release. Install-state migration logic
+moves into `install/migrate.mjs` with full test coverage (`npm run
+test-install`); an unknown migration action now fails loud instead of leaving a
+half-migrated state; `do-it install` and `doctor` report the install-state
+version of every target so Codex/Claude version drift is visible. The
+`verification-gate` Stop hook scopes its edit/evidence/review-loop detection to
+the current turn — an earlier turn's trace can no longer pass a later
+unverified turn — and its block reasons are rewritten as short
+single-instruction sentences. `do_it_emit_block` / `do_it_emit_context` keep
+emitting valid JSON without `jq`. Stale session directories are pruned after 7
+days. `do-it-router` gains an `Integrity` section — a failure is a clue to
+trace, not a symptom to hide — referenced by `do-it-debugging`,
+`do-it-fix-loop`, `do-it-verification-gate`, and the subagent dispatch
+contract. `do-it-visual-planning` ships `plan-card` / `review-report` scenario
+templates, and the CI test job now also runs on macOS. If a machine has a
+cached `0.8.0` plugin, reinstall or refresh so the host loads the new hook and
+skill files.
 
 ## Upgrading to 0.8.0
 

@@ -1,6 +1,6 @@
 {
   "name": "@tdwhere/do-it",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "Installable AI coding workflow for Codex and Claude Code with risk-based routing, scoped sub-agents, and evidence-backed completion.",
   "type": "module",
   "license": "MIT",
@@ -55,6 +55,7 @@
     "doctor": "node install/manage.mjs doctor",
     "doctor:claude": "node install/manage.mjs doctor --target=claude",
     "validate:agents": "node scripts/validate-agent-bundle.mjs",
+    "check:skill-links": "node scripts/check-skill-links.mjs",
     "build:generated": "node scripts/build-claude-agents.mjs && node scripts/build-skills-index.mjs",
     "build:claude-agents": "npm run build:generated && node scripts/validate-agent-bundle.mjs",
     "build:codex-plugin": "npm run build:generated && node scripts/build-codex-plugin.mjs && node scripts/validate-agent-bundle.mjs",
@@ -63,7 +64,8 @@
     "lint": "bash scripts/lint-hooks.sh",
     "lint-hooks": "bash scripts/lint-hooks.sh",
     "test-hooks": "bash scripts/test-hooks.sh && bash tests/hooks/router.test.sh && bash tests/hooks/comments-lint.test.sh && bash tests/hooks/anti-patterns-lint.test.sh && bash tests/hooks/verification-gate.test.sh && bash tests/hooks/common.test.sh",
-    "test": "npm run build:generated && npm run validate:agents && npm run lint-hooks && npm run test-hooks"
+    "test-install": "node --test tests/install/*.test.mjs",
+    "test": "npm run build:generated && npm run validate:agents && npm run check:skill-links && npm run lint-hooks && npm run test-hooks && npm run test-install"
   },
   "engines": {
     "node": ">=18"

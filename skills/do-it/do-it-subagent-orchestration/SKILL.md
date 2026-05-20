@@ -53,6 +53,7 @@ Every subagent prompt must include:
 - `readiness target`: fixture-ready, live-event-ready, operator-ready, docs-truth-ready, or install-ready.
 - `must-verify facts`: facts the child must check itself before acting or reporting.
 - `stop condition`: when to return `NEEDS_CONTEXT`, `BLOCKED`, or `STILL_OPEN` instead of improvising.
+- `integrity stance`: a failure is a clue to trace, not to hide. The child investigates root causes and reports honestly — it never swallows an error, weakens a check, skips a test, or claims unverified work is done (see `do-it-router` § Integrity).
 - `output_budget`: token cap for the structured response, selected from the default budget table below.
 - `return schema`: the exact shape the parent needs.
 

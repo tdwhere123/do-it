@@ -15,14 +15,21 @@ concurrency:
 
 jobs:
   test:
-    name: Test (Node ${{ matrix.node-version }})
-    runs-on: ubuntu-latest
+    name: Test (${{ matrix.os }}, Node ${{ matrix.node-version }})
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 15
 
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-latest]
         node-version: [18.x, 20.x, 22.x, 24.x]
+        # macOS ships BSD find/sed/awk/date; one job there guards the hook
+        # scripts against GNU-only assumptions. The divergence is node-version
+        # independent, so a single Node is enough.
+        include:
+          - os: macos-latest
+            node-version: 22.x
 
     steps:
       - name: Checkout
@@ -36,7 +43,12 @@ jobs:
           node-version: ${{ matrix.node-version }}
 
       - name: Install system test tools
-        run: sudo apt-get update && sudo apt-get install -y jq shellcheck
+        run: |
+          if [ "${{ runner.os }}" = "macOS" ]; then
+            brew install jq shellcheck
+          else
+            sudo apt-get update && sudo apt-get install -y jq shellcheck
+          fi
 
       - name: Check whitespace
         run: |

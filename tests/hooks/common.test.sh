@@ -187,6 +187,55 @@ case "$?" in
 esac
 
 # -------------------------------------------------------------------------
+echo "Case 6: do_it_emit_block / do_it_emit_context emit valid JSON without jq"
+(
+  _isolate_env "/tmp/doit-test-emitjq"
+  source "$COMMON"
+  # Force the jq-free fallback path regardless of whether jq is installed.
+  DO_IT_HAVE_JQ=0
+  block="$(do_it_emit_block 'do-it gate: no evidence. Bypass: "skip gate".')"
+  ctx="$(do_it_emit_context "Stop" "$(printf 'line one\ttab\nline two \\ end')")"
+  [[ -n "$block" ]] || exit 61
+  [[ -n "$ctx" ]] || exit 62
+  if command -v jq >/dev/null 2>&1; then
+    printf '%s' "$block" | jq -e '.decision == "block"' >/dev/null 2>&1 || exit 63
+    printf '%s' "$ctx" | jq -e '.hookSpecificOutput.hookEventName == "Stop"' >/dev/null 2>&1 || exit 64
+  fi
+)
+case "$?" in
+  0)  _pass "jq-free emit fallbacks produce valid JSON" ;;
+  61) _fail "do_it_emit_block produced no output without jq" ;;
+  62) _fail "do_it_emit_context produced no output without jq" ;;
+  63) _fail "do_it_emit_block fallback is not valid block JSON" ;;
+  64) _fail "do_it_emit_context fallback is not valid context JSON" ;;
+  *)  _fail "subshell crashed (exit=$?)" ;;
+esac
+
+# -------------------------------------------------------------------------
+echo "Case 7: do_it_prune_stale_sessions removes stale dirs, keeps fresh + self"
+(
+  _isolate_env "/tmp/doit-test-prune"
+  source "$COMMON"
+  base="${DO_IT_HOOK_DATA}/sessions"
+  mkdir -p "$base/stale" "$base/fresh"
+  echo x > "$base/stale/state.json"
+  echo x > "$base/fresh/state.json"
+  # Year-2000 timestamp is portable across GNU and BSD touch.
+  touch -t 200001010000 "$base/stale/state.json" "$base/stale"
+  do_it_prune_stale_sessions "cursess"
+  [[ -e "$base/stale" ]] && exit 71
+  [[ -e "$base/fresh" ]] || exit 72
+  [[ -f "$(do_it_session_dir cursess)/.pruned" ]] || exit 73
+)
+case "$?" in
+  0)  _pass "stale pruned; fresh and current session kept" ;;
+  71) _fail "stale session dir was not pruned" ;;
+  72) _fail "fresh session dir was wrongly pruned" ;;
+  73) _fail ".pruned marker not written for current session" ;;
+  *)  _fail "subshell crashed (exit=$?)" ;;
+esac
+
+# -------------------------------------------------------------------------
 echo
 echo "Summary: $PASS passed, $FAIL failed"
 if [[ "$FAIL" -gt 0 ]]; then
