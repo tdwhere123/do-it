@@ -252,6 +252,77 @@ function validateGeneratedSkills(manifest, errors) {
   }
 }
 
+function validateIndexJson(pkg, manifest, errors) {
+  if (!pkg.files?.includes("index.json")) {
+    errors.push("package.json files[] must include index.json");
+  }
+
+  const indexPath = repoPath("index.json");
+  if (!fs.existsSync(indexPath)) {
+    errors.push("index.json is missing; run npm run build:generated");
+    return;
+  }
+
+  let index;
+  try {
+    index = JSON.parse(fs.readFileSync(indexPath, "utf8"));
+  } catch (error) {
+    errors.push(`index.json is not readable JSON: ${error.message}`);
+    return;
+  }
+
+  if (index.version !== manifest.version) {
+    errors.push(`index.json version ${index.version ?? "<missing>"} does not match manifest ${manifest.version}`);
+  }
+  if (index.package !== pkg.name) {
+    errors.push(`index.json package ${index.package ?? "<missing>"} does not match package.json ${pkg.name}`);
+  }
+  if (index.total_skills !== (manifest.skills ?? []).length) {
+    errors.push(`index.json total_skills ${index.total_skills ?? "<missing>"} does not match manifest skills`);
+  }
+  if (index.total_agents !== (manifest.agents ?? []).length) {
+    errors.push(`index.json total_agents ${index.total_agents ?? "<missing>"} does not match manifest agents`);
+  }
+
+  const entries = Array.isArray(index.entries) ? index.entries : [];
+  if (!Array.isArray(index.entries)) {
+    errors.push("index.json entries must be an array");
+  }
+  const expectedEntryCount = (manifest.skills ?? []).length + (manifest.agents ?? []).length;
+  if (entries.length !== expectedEntryCount) {
+    errors.push(`index.json entries length ${entries.length} does not match manifest total ${expectedEntryCount}`);
+  }
+
+  const indexed = new Map(entries.map((entry) => [`${entry.kind}:${entry.name}`, entry]));
+  for (const skill of manifest.skills ?? []) {
+    const entry = indexed.get(`skill:${skill.name}`);
+    if (!entry) {
+      errors.push(`index.json missing skill:${skill.name}`);
+      continue;
+    }
+    if (entry.source !== skill.source || entry.target !== skill.target) {
+      errors.push(`index.json skill:${skill.name} source/target drift`);
+    }
+    if (typeof entry.description !== "string" || entry.description.trim() === "") {
+      errors.push(`index.json skill:${skill.name} description missing`);
+    }
+  }
+
+  for (const agent of manifest.agents ?? []) {
+    const entry = indexed.get(`agent:${agent.name}`);
+    if (!entry) {
+      errors.push(`index.json missing agent:${agent.name}`);
+      continue;
+    }
+    if (entry.source !== agent.source || entry.target !== agent.target) {
+      errors.push(`index.json agent:${agent.name} source/target drift`);
+    }
+    if (typeof entry.description !== "string" || entry.description.trim() === "") {
+      errors.push(`index.json agent:${agent.name} description missing`);
+    }
+  }
+}
+
 function main() {
   const pkg = readJson("package.json");
   const manifest = readJson("manifest.json");
@@ -261,6 +332,7 @@ function main() {
   const sourceNames = validateSourceAgents(manifest, errors);
   validateGeneratedAgents(sourceNames, errors);
   validateGeneratedSkills(manifest, errors);
+  validateIndexJson(pkg, manifest, errors);
 
   if (errors.length > 0) {
     console.error(`validate-agent-bundle: ${errors.length} failure(s)`);

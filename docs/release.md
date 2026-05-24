@@ -114,7 +114,7 @@ npm pack
 ```
 
 Use the generated tarball with `npm install --global` or
-`npm exec --package ./tdwhere-do-it-0.9.0.tgz -- do-it setup` when testing a
+`npm exec --package ./tdwhere-do-it-0.9.1.tgz -- do-it setup` when testing a
 release artifact.
 
 ## Release Checklist
@@ -134,8 +134,9 @@ release artifact.
 11. Run `npm pack --dry-run --json`.
 12. Confirm `docs/upstream-map.md` reflects the latest imports.
 13. Confirm `manifest.json` matches the on-disk inventory.
-14. Confirm `.agents/plugins/marketplace.json`, `plugins/do-it/`, and
-   `install/codex-hooks.json` are included in the package.
+14. Confirm `index.json`, `.agents/plugins/marketplace.json`,
+   `plugins/do-it/`, and `install/codex-hooks.json` are included in the
+   package.
 15. Confirm the temporary/source-only rewrite material is not included in the
    package.
 16. Confirm a simulated legacy upgrade can remove unmodified deprecated targets

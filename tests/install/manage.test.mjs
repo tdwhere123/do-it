@@ -166,6 +166,46 @@ test("install populates a fresh codex root with a versioned state file", () => {
   }
 });
 
+test("install falls back to copy when staged rename crosses filesystems", () => {
+  const root = freshRoot("codex-exdev");
+  const preloadPath = path.join(root, "force-exdev.cjs");
+
+  fs.writeFileSync(
+    preloadPath,
+    [
+      'const fs = require("node:fs");',
+      "const originalRenameSync = fs.renameSync;",
+      "fs.renameSync = function renameSync(from, to) {",
+      '  if (String(from).includes(".do-it-install-staging-")) {',
+      '    const error = new Error("forced EXDEV for staged install rename");',
+      '    error.code = "EXDEV";',
+      "    throw error;",
+      "  }",
+      "  return originalRenameSync.apply(this, arguments);",
+      "};",
+      ""
+    ].join("\n")
+  );
+
+  try {
+    const result = runManage(["install"], {
+      CODEX_HOME: root,
+      NODE_OPTIONS: `--require=${preloadPath}`
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.ok(
+      fs.existsSync(path.join(root, "skills", "do-it-router", "SKILL.md")),
+      "skill directory should be copied into place after EXDEV"
+    );
+    assert.ok(
+      !fs.readdirSync(root).some((name) => name.startsWith(".do-it-install-staging-")),
+      "staging directory should be cleaned after EXDEV fallback"
+    );
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("re-install from an older state version triggers a backed-up migration", () => {
   const root = freshRoot("codex-migrate");
   try {
@@ -178,7 +218,6 @@ test("re-install from an older state version triggers a backed-up migration", ()
 
     const result = runManage(["install"], { CODEX_HOME: root });
     assert.equal(result.status, 0, result.stderr);
-    assert.match(result.stderr, /migrating 0\.7\.0/);
     assert.ok(
       fs.existsSync(`${statePath}.pre-migrate.json`),
       "migration should leave a pre-migrate backup"

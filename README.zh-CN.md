@@ -205,7 +205,7 @@ flowchart TD
 
 ```bash
 npm pack
-npm install -g ./tdwhere-do-it-0.9.0.tgz
+npm install -g ./tdwhere-do-it-0.9.1.tgz
 do-it setup
 ```
 
@@ -254,6 +254,7 @@ commands/        Claude Code command 入口
 dist/claude/     生成后的 Claude Code agent 定义
 docs/            路由、维护、来源映射和发布说明
 hooks/           Host hook 脚本
+index.json       生成后的 skill/agent 发现清单
 install/         安装器、doctor 和 shell wrapper 入口
 plugins/do-it/   生成后的 Codex plugin bundle
 skills/custom/   默认不安装的本地 skill 示例
@@ -263,6 +264,15 @@ package.json     npm 包元数据和 CLI scripts
 ```
 
 私有 `.do-it/` 目录用于本地计划、笔记和临时材料。它被 Git 忽略，也不会被安装。
+
+## 升级到 0.9.1
+
+`0.9.1` 新增根目录 `index.json`，作为生成后的 skill/agent 机器可读清单，
+方便外部运行时、marketplace 工具和覆盖检查按需发现 do-it 能力。它由
+`manifest.json`、skill frontmatter 和 agent TOML 描述生成，并纳入生成物
+校验。安装器现在也会在 staged target 跨文件系统替换触发 `EXDEV` 时回退到
+copy-and-remove。旧的历史说明目录 `install/migrations/` 已移除；实际安装态
+迁移逻辑仍保留在 `manifest.json` 和 `install/migrate.mjs`。
 
 ## 升级到 0.9.0
 

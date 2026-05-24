@@ -163,6 +163,9 @@ The Claude target installs to `~/.claude/` by default; override with
   definitions.
 - Copy-based installer and `doctor` commands that validate managed host files
   against `manifest.json`.
+- Root `index.json`, a generated machine-readable inventory of the do-it
+  skills and agents for external discovery, marketplace tooling, and coverage
+  checks.
 - A release surface that works from a local checkout, a packed tarball, a
   GitHub repository, a GitHub-backed terminal install, or a Codex plugin
   marketplace.
@@ -229,7 +232,7 @@ For a packed local release artifact:
 
 ```bash
 npm pack
-npm install -g ./tdwhere-do-it-0.9.0.tgz
+npm install -g ./tdwhere-do-it-0.9.1.tgz
 do-it setup
 ```
 
@@ -280,6 +283,7 @@ commands/        Claude Code command surface
 dist/claude/     Generated Claude Code agent definitions
 docs/            Routing, maintenance, origin map, and release notes
 hooks/           Host hook scripts
+index.json       Generated skill/agent discovery inventory
 install/         Installer, doctor, and shell wrapper entrypoints
 plugins/do-it/   Generated Codex plugin bundle
 skills/custom/   Local skill examples that are not installed by default
@@ -290,6 +294,17 @@ package.json     npm package metadata and CLI scripts
 
 The private `.do-it/` directory is for local plans, notes, and scratch
 artifacts. It is ignored by Git and is not installed.
+
+## Upgrading to 0.9.1
+
+`0.9.1` adds a generated root `index.json` inventory for skill/agent discovery
+and coverage checks. It is built from `manifest.json`, skill frontmatter, and
+agent TOML descriptions via `scripts/build-index-json.mjs`, and is validated
+as part of the generated bundle checks. The installer also handles
+cross-device staged replacement by falling back to copy-and-remove on `EXDEV`.
+The old historical `install/migrations/` note directory has been removed; live
+install-state migration behavior remains in `manifest.json` and
+`install/migrate.mjs`.
 
 ## Upgrading to 0.9.0
 

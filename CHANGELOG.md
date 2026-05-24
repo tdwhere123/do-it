@@ -4,6 +4,35 @@
 
 - No unreleased changes.
 
+## 0.9.1
+
+### Added
+
+- `index.json` — generated machine-readable inventory for the do-it skill and
+  agent surface. It records package/version metadata, skill group coverage,
+  optional skills, and every manifest-backed skill/agent entry with source and
+  target paths.
+- `scripts/build-index-json.mjs` — builds and validates the root inventory
+  from `manifest.json`, skill frontmatter, and agent TOML descriptions. Wired
+  into `npm run build:generated` and package validation.
+- Install tests now cover cross-device staged replacement (`EXDEV`) and the
+  generated index/docs cleanup contract.
+
+### Changed
+
+- `index.json` is included in the npm package file list so external runtimes
+  and marketplaces can discover do-it's installed skill/agent surface without
+  loading every `SKILL.md`.
+- Removed the stale `install/migrations/` note directory from the package.
+  Install-state migrations remain active in `manifest.json` and
+  `install/migrate.mjs`; the removed file was historical human documentation.
+
+### Fixed
+
+- `install/manage.mjs` now falls back to copy-and-remove when replacing a
+  staged managed target fails with `EXDEV`, which can happen when temp/staging
+  and the target install root are on different filesystems.
+
 ## 0.9.0
 
 ### Added
@@ -348,7 +377,6 @@
 - `install/manage.mjs` — `--session=<id>` flag for doctor;
   `--no-migrate` flag for install; `needsMigration` / `runMigration`
   with manifest-declared migration actions; pre-migrate state backup.
-- `install/migrations/0.4-to-0.5.md` — human-readable upgrade notes.
 - `manifest.json` `migrations` field — declarative migration actions
   (`remove-state-entry`, `rename-state-key`).
 
@@ -381,9 +409,8 @@
 
 ### Migration
 
-`do-it install` detects 0.4.x install state and silently migrates. See
-`install/migrations/0.4-to-0.5.md` for full details. Behavior is additive
-only; the auto-migrate is mostly bookkeeping (state version bump + new
+`do-it install` detects 0.4.x install state and silently migrates. Behavior is
+additive only; the auto-migrate is mostly bookkeeping (state version bump + new
 skills `do-it-context`, `do-it-grill-log`).
 
 ## 0.4.0

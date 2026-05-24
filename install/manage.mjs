@@ -273,7 +273,16 @@ function replaceManagedTarget(stagedPath, targetPath, transaction) {
   assertWithinInstallRoot(targetPath);
 
   const record = backupTargetForTransaction(targetPath, transaction);
-  fs.renameSync(stagedPath, targetPath);
+  try {
+    fs.renameSync(stagedPath, targetPath);
+  } catch (error) {
+    if (error?.code !== "EXDEV") {
+      throw error;
+    }
+
+    copyEntry(stagedPath, targetPath);
+    fs.rmSync(stagedPath, { recursive: true, force: true });
+  }
   record.installed = true;
 }
 
