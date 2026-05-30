@@ -11,8 +11,6 @@ const repoRoot = path.resolve(scriptDir, "..");
 const allowedAgentKeys = new Set([
   "name",
   "description",
-  "model",
-  "model_reasoning_effort",
   "sandbox_mode",
   "developer_instructions"
 ]);
@@ -86,6 +84,18 @@ function parseTomlTopLevelKeys(source, filePath) {
 function readTomlStringValue(source, key) {
   const match = new RegExp(`^${key}\\s*=\\s*"([^"]*)"`, "m").exec(source);
   return match?.[1] ?? null;
+}
+
+function validatePortableAgentPolicy(relativePath, content, errors) {
+  const concreteModelPattern = /\b(?:gpt-[A-Za-z0-9_.-]+|sonnet|opus|haiku)\b/i;
+  const hostPrivatePattern = /\b(?:model_reasoning_effort|claude_model|output_budget)\b/;
+
+  if (concreteModelPattern.test(content)) {
+    errors.push(`${relativePath}: must not pin concrete model names; model selection is host-owned`);
+  }
+  if (hostPrivatePattern.test(content)) {
+    errors.push(`${relativePath}: must not contain host-private model or budget fields`);
+  }
 }
 
 function sameFile(leftPath, rightPath) {
@@ -173,6 +183,7 @@ function validateSourceAgents(manifest, errors) {
   for (const fileName of sourceFiles) {
     const filePath = repoPath(`agents/${fileName}`);
     const source = fs.readFileSync(filePath, "utf8");
+    validatePortableAgentPolicy(`agents/${fileName}`, source, errors);
     const keys = parseTomlTopLevelKeys(source, filePath);
     const agentName = readTomlStringValue(source, "name");
     const expectedName = fileName.replace(/\.toml$/, "");
@@ -232,6 +243,10 @@ function validateGeneratedAgents(sourceNames, errors) {
     if (!content.includes(`\nname: ${name}\n`)) {
       errors.push(`dist/claude/agents/${name}.md frontmatter name mismatch`);
     }
+    if (content.includes("\nmodel:")) {
+      errors.push(`dist/claude/agents/${name}.md must inherit the host model; omit model frontmatter`);
+    }
+    validatePortableAgentPolicy(`dist/claude/agents/${name}.md`, content, errors);
   }
 }
 

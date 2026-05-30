@@ -232,7 +232,7 @@ For a packed local release artifact:
 
 ```bash
 npm pack
-npm install -g ./tdwhere-do-it-0.9.1.tgz
+npm install -g ./tdwhere-do-it-0.10.0.tgz
 do-it setup
 ```
 
@@ -295,16 +295,17 @@ package.json     npm package metadata and CLI scripts
 The private `.do-it/` directory is for local plans, notes, and scratch
 artifacts. It is ignored by Git and is not installed.
 
-## Upgrading to 0.9.1
+## Upgrading to 0.10.0
 
-`0.9.1` adds a generated root `index.json` inventory for skill/agent discovery
-and coverage checks. It is built from `manifest.json`, skill frontmatter, and
-agent TOML descriptions via `scripts/build-index-json.mjs`, and is validated
-as part of the generated bundle checks. The installer also handles
-cross-device staged replacement by falling back to copy-and-remove on `EXDEV`.
-The old historical `install/migrations/` note directory has been removed; live
-install-state migration behavior remains in `manifest.json` and
-`install/migrate.mjs`.
+`0.10.0` is a workflow reliability release. It keeps the skill surface stable
+while tightening the actual work loop: durable plans can carry an Evidence
+Ledger, readiness claims name their truth plane, review verifies the full proof
+path, subagent lanes have parent-owned status, and closeout keeps source,
+package, temp install, live install, and host behavior distinct.
+
+Agent templates are now model-agnostic. Source `agents/*.toml` files no longer
+pin concrete models or reasoning-effort fields, and Claude generated agents
+inherit the running host model by default.
 
 ## Upgrading to 0.9.0
 
@@ -422,6 +423,21 @@ Skills load on demand.
 **Subagent token budgets.** Codex agent TOML stays schema-clean: no
 `output_budget`, `claude_model`, or other host-private keys. Response budgets
 live in `do-it-subagent-orchestration` and must be passed in the parent prompt.
+
+**Model-agnostic agents.** Agent templates do not pin concrete model names or
+reasoning-effort fields. Codex TOML stays portable, and Claude generated agents
+inherit the running host model unless a tested host compatibility fallback is
+needed.
+
+**Evidence ledger and truth planes.** Heavy, release/install, multi-agent, and
+explicit durable-plan work records claim rows in the plan's verification
+section. Source repo, worktree, package artifact, temp install, live Codex, live
+Claude, and host behavior are separate truth planes.
+
+**Subagent lane status.** Parent agents track delegated lanes as `assigned`,
+`running`, `done_with_evidence`, `integrated`, or `blocking`. Worker `DONE`
+does not become a final claim until the parent inspects, reviews, and verifies
+the integrated surface.
 
 **Test coverage.** Regression cases in `tests/hooks/` cover `common`,
 `router`, `verification-gate` (incl. DIM consumers), `comments-lint`, and

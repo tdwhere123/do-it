@@ -36,13 +36,22 @@ Every subagent prompt must specify:
   on.
 - **failure-mode forecast**: expected failure classes the child must
   cover or refute.
-- **path map**: producer → contract → transport → consumer → state →
-  surface, or `not applicable`.
+- **path map**: producer → contract/event/schema → transport/client →
+  state/query → surface/operator action → verification, or
+  `not applicable`.
 - **readiness target**: the readiness label expected after the slice.
+- **truth plane**: `source-repo`, `task-worktree`, `integration-worktree`,
+  `temp-install`, `live-codex`, `live-claude`, `package-artifact`,
+  `host-behavior`, or `external-blocked`.
+- **lane status**: starts as `assigned`; the parent updates it through
+  `running`, `done_with_evidence`, `integrated`, or `blocking`.
 - **must-verify facts**: facts the child must check itself before
   acting or reporting.
 - **stop condition**: when to return `NEEDS_CONTEXT`, `BLOCKED`, or
   `STILL_OPEN`.
+- **integrity stance**: failure is a clue to trace, not to hide; do not
+  swallow errors, weaken checks, skip tests, or claim unverified work is done.
+- **output_budget**: token cap selected from `do-it-subagent-orchestration`.
 - **return schema**: the exact shape the parent needs.
 
 Include this guardrail unless Heavy is explicitly assigned:
@@ -57,6 +66,7 @@ Implementation/debugging workers return:
 
 - `status`: `DONE`, `DONE_WITH_CONCERNS`, `NEEDS_CONTEXT`, or
   `BLOCKED`;
+- lane status recommendation: `done_with_evidence` or `blocking`;
 - tier used;
 - files changed;
 - commands run with results;
@@ -88,6 +98,9 @@ Review/drill workers return:
 - Re-run verification on the integrated branch — not the worker's
   isolated working copy.
 - Ensure subagents did not touch forbidden paths.
+- Maintain lane state as `assigned`, `running`, `done_with_evidence`,
+  `integrated`, or `blocking`.
+- Treat worker `DONE` as input to inspect; parent acceptance is `integrated`.
 - Close or re-dispatch workers only after the stop condition is
   satisfied.
 

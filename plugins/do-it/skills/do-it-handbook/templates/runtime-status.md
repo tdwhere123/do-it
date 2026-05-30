@@ -16,10 +16,24 @@ is not started yet".
   wired to runtime entrypoints yet.
 - `live-event-ready` — wired to the runtime event/transport layer;
   fixture-tested end-to-end internally.
+- `workflow-synced` — source and live host surfaces have matching install or
+  doctor proof.
 - `mcp-consumable` / `cli-consumable` / `http-consumable` — surfaced
   to the relevant external client.
 
 A feature listed below should carry exactly one label.
+
+## Truth Planes
+
+- `source-repo`
+- `task-worktree`
+- `integration-worktree`
+- `temp-install`
+- `live-codex`
+- `live-claude`
+- `package-artifact`
+- `host-behavior`
+- `external-blocked`
 
 ## Status Table
 

@@ -1,6 +1,6 @@
 {
   "name": "do-it",
-  "version": "0.9.1",
+  "version": "0.10.0",
   "description": "Installable AI coding workflow for Codex and Claude Code with risk-based routing, scoped sub-agents, and evidence-backed completion.",
   "author": {
     "name": "tdwhere123"

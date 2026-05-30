@@ -51,6 +51,10 @@ Every subagent prompt must include:
 - `failure-mode forecast`: expected failure classes the child must actively cover or refute.
 - `path map`: producer -> contract/event/schema -> transport/client -> state/query -> surface/operator action -> verification, or `not applicable`.
 - `readiness target`: fixture-ready, live-event-ready, operator-ready, docs-truth-ready, or install-ready.
+- `truth plane`: source-repo, task-worktree, integration-worktree, temp-install,
+  live-codex, live-claude, package-artifact, host-behavior, or external-blocked.
+- `lane status`: starts as `assigned`; parent updates it through `running`,
+  `done_with_evidence`, `integrated`, or `blocking`.
 - `must-verify facts`: facts the child must check itself before acting or reporting.
 - `stop condition`: when to return `NEEDS_CONTEXT`, `BLOCKED`, or `STILL_OPEN` instead of improvising.
 - `integrity stance`: a failure is a clue to trace, not to hide. The child investigates root causes and reports honestly — it never swallows an error, weakens a check, skips a test, or claims unverified work is done (see `do-it-router` § Integrity).
@@ -126,6 +130,9 @@ status: ...
 Implementation/debugging workers return:
 
 - status: `DONE`, `DONE_WITH_CONCERNS`, `NEEDS_CONTEXT`, or `BLOCKED`;
+- lane status recommendation: `done_with_evidence` or `blocking`; a worker
+  status of `STILL_OPEN` maps to `blocking` unless the parent deliberately
+  keeps the lane active as `running` and re-dispatches it;
 - tier used;
 - files changed;
 - commands run with results;
@@ -155,6 +162,11 @@ Review/drill workers return:
 - Resolve duplicate or conflicting findings.
 - Re-run verification that supports final claims on the integrated branch or current worktree.
 - Ensure subagents did not touch forbidden paths.
+- Maintain lane state in the plan or closeout: `assigned`, `running`,
+  `done_with_evidence`, `integrated`, or `blocking`.
+- Treat `DONE` as a worker status only. The parent changes a lane to
+  `integrated` after review, diff inspection, and any required final
+  verification.
 - Close or re-dispatch workers only after the stop condition is satisfied.
 
 ## Stop Conditions
@@ -181,6 +193,8 @@ Do not dispatch, or stop the lane, when:
 - A worker is asked to review and fix the same surface in one ambiguous task.
 - Return schema omits changed files, commands, assumptions, or residual risk.
 - Parent closes workers before receiving final status or inspecting their diffs.
+- Parent reports completion while any lane remains `assigned`, `running`, or
+  `blocking` without naming it as residual risk.
 
 ## Verification
 
@@ -189,4 +203,5 @@ Before accepting delegated work:
 - each worker stayed within write ownership and forbidden paths;
 - returned evidence matches the assigned readiness target;
 - integrated verification is rerun by the parent where the final claim depends on it;
+- lane states are recorded and any non-`integrated` lane is named as open risk;
 - unresolved worker statuses are either re-dispatched, fixed locally, or recorded as open risk.

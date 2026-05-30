@@ -11,22 +11,9 @@ const repoRoot = path.resolve(scriptDir, "..");
 const agentsDir = path.join(repoRoot, "agents");
 const outDir = path.join(repoRoot, "dist", "claude", "agents");
 
-const CLAUDE_MODEL_BY_AGENT = new Map([
-  ["architecture-strategist", "sonnet"],
-  ["architecture-taste-reviewer", "sonnet"],
-  ["ceo-reviewer", "sonnet"],
-  ["code-mapper", "sonnet"],
-  ["end-user-advocate", "sonnet"],
-  ["ops-sre", "sonnet"],
-  ["product-strategist", "sonnet"],
-  ["ux-designer", "sonnet"]
-]);
-
 const CODEX_AGENT_KEYS = new Set([
   "name",
   "description",
-  "model",
-  "model_reasoning_effort",
   "sandbox_mode",
   "developer_instructions"
 ]);
@@ -106,12 +93,10 @@ function buildClaudeAgent(toml) {
   }
   const description = data.description ?? "";
   const body = (data.developer_instructions ?? "").replace(/\s+$/g, "");
-  const claudeModel = CLAUDE_MODEL_BY_AGENT.get(data.name) ?? "inherit";
   return [
     "---",
     `name: ${data.name}`,
     `description: ${escapeYamlDoubleQuoted(description)}`,
-    `model: ${claudeModel}`,
     "---",
     "",
     body,

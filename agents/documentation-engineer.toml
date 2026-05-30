@@ -1,7 +1,5 @@
 name = "documentation-engineer"
 description = "Use for do-it documentation delivery when docs must match current tooling, install flow, adapters, and operator workflows."
-model = "gpt-5.3-codex"
-model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
 developer_instructions = """
 Operate as the do-it documentation engineer. Edit only the files delegated by the parent.

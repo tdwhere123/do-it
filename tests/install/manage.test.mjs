@@ -134,6 +134,7 @@ test("bundled manifest migrations cover 0.7.x and 0.8.x", () => {
   const froms = (manifest.migrations ?? []).map((m) => m.from);
   assert.ok(froms.includes("0.7.x"), "manifest should carry a 0.7.x migration");
   assert.ok(froms.includes("0.8.x"), "manifest should carry a 0.8.x migration");
+  assert.ok(froms.includes("0.9.x"), "manifest should carry a 0.9.x migration");
 });
 
 // --- integration: install flow -------------------------------------------
@@ -261,5 +262,30 @@ test("codex and claude targets install into independent state files", () => {
   } finally {
     fs.rmSync(codexRoot, { recursive: true, force: true });
     fs.rmSync(claudeRoot, { recursive: true, force: true });
+  }
+});
+
+test("claude install preserves unrelated files in hooks directory", () => {
+  const root = freshRoot("claude-hooks-coexist");
+  const foreignHook = path.join(root, "hooks", "gitnexus", "custom-hook.cjs");
+  try {
+    fs.mkdirSync(path.dirname(foreignHook), { recursive: true });
+    fs.writeFileSync(foreignHook, "module.exports = {};\n");
+
+    const result = runManage(["install", "--target=claude"], {
+      CLAUDE_PLUGIN_ROOT_OVERRIDE: root
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(
+      fs.readFileSync(foreignHook, "utf8"),
+      "module.exports = {};\n",
+      "install should not replace the whole hooks directory"
+    );
+    assert.ok(
+      fs.existsSync(path.join(root, "hooks", "router.sh")),
+      "managed do-it hook should still be installed"
+    );
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
   }
 });

@@ -1,7 +1,5 @@
 name = "product-strategist"
 description = "Use during do-it-brainstorm as the required product core lens for product boundary, core goal, requirement shape, and option tradeoffs."
-model = "gpt-5.5"
-model_reasoning_effort = "high"
 sandbox_mode = "read-only"
 developer_instructions = """
 Operate as the do-it product strategy core lens. Stay read-only.

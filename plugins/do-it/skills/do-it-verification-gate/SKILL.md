@@ -58,7 +58,24 @@ integration claims. Heavy is parent-only unless explicitly assigned.
 - `fixture-ready`: requires fixture-level behavior proof and no live/operator-ready wording.
 - `live-event-ready`: requires producer -> transport/client -> consumer proof on real wiring.
 - `operator-ready`: requires a discoverable user action and visible feedback proof.
-- `workflow synced`: requires source/live parity plus install or doctor evidence.
+- `workflow-synced`: requires source/live parity plus install or doctor evidence.
+
+## Truth Planes And Ledger Rows
+
+Use the smallest exact truth plane for each claim: `source-repo`,
+`task-worktree`, `integration-worktree`, `temp-install`, `live-codex`,
+`live-claude`, `package-artifact`, `host-behavior`, or `external-blocked`.
+Evidence from one plane does not prove another.
+
+When a durable plan has an `Evidence Ledger`, verify against the matching row
+before closeout:
+
+- `VERIFIED` needs a fresh command or inspection from the current branch,
+  worktree, install root, package artifact, or host surface named by the row.
+- `NOT_VERIFIED`, `BLOCKED`, and `DEFERRED_BY_USER` must stay visible in the
+  final report and cannot support `done`, `ready`, or `synced` wording.
+- Worker reports, memory, old CI, and generated diffs can explain why a row
+  exists; they do not by themselves close it.
 
 ## Evidence Quality
 
@@ -101,6 +118,7 @@ Stop the closeout claim when:
 - the command did not run on the current branch/worktree;
 - the evidence proves only a fixture while the claim says live/operator/install
   ready;
+- evidence proves a different truth plane than the claim names;
 - generated output or install surfaces changed without generator/install proof;
 - a review gate still has unresolved `Blocking` or `Important` findings;
 - the only proof is memory, stale CI, or a worker report.

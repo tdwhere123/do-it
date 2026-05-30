@@ -129,6 +129,10 @@ For Standard and Heavy plans, include:
 - `Readiness Target`: one of `fixture-ready`, `live-event-ready`,
   `operator-ready`, `docs-truth-ready`, or `install-ready`; do not let a
   lower readiness level imply a higher one.
+- `Truth Plane`: the surface the claim is about. Use the smallest exact label:
+  `source-repo`, `task-worktree`, `integration-worktree`, `temp-install`,
+  `live-codex`, `live-claude`, `package-artifact`, `host-behavior`, or
+  `external-blocked`.
 - `Final Evidence`: the branch/worktree and checks that must be fresh at
   closeout; inherited worker or pre-merge evidence is supporting context, not the
   final claim.
@@ -136,6 +140,15 @@ For Standard and Heavy plans, include:
   source item is covered by a slice, already satisfied with evidence, or
   deferred with explicit confirmation. Unmapped items are planning defects, not
   optional polish.
+- `Evidence Ledger`: required for Heavy, release/install, multi-agent, or
+  explicit durable-plan work. Put it in `## 5. Verification` and keep one row
+  per claim:
+
+  `Claim ID | Readiness target | Truth plane | Ref/path | Evidence | Result | Date | Owner | Residual risk`
+
+  `Result` is one of `VERIFIED`, `FAILED`, `NOT_VERIFIED`, `BLOCKED`, or
+  `DEFERRED_BY_USER`. Old projects do not need historical backfill; write a
+  `NOT_VERIFIED` baseline only when old state affects the current task.
 
 ## Approach Comparison
 

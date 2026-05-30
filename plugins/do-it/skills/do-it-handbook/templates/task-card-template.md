@@ -91,6 +91,26 @@ Evidence column that names a verifiable artifact.
 Concrete shell commands a reviewer can run to verify §4. Order them
 build → test → lint → integration.
 
+For Heavy, release/install, multi-agent, or explicit durable-plan work, include
+an Evidence Ledger table. Ordinary Light work and one-shot Standard fixes can
+skip it.
+
+```markdown
+| Claim ID | Readiness target | Truth plane | Ref/path | Evidence | Result | Date | Owner | Residual risk |
+|---|---|---|---|---|---|---|---|---|
+| C1 | fixture-ready | source-repo | `src/...` | `npm test` | NOT_VERIFIED | YYYY-MM-DD | parent | command not run yet |
+```
+
+Allowed `Result` values: `VERIFIED`, `FAILED`, `NOT_VERIFIED`, `BLOCKED`, and
+`DEFERRED_BY_USER`.
+
+Allowed truth planes: `source-repo`, `task-worktree`, `integration-worktree`,
+`temp-install`, `live-codex`, `live-claude`, `package-artifact`,
+`host-behavior`, and `external-blocked`.
+
+Old projects do not need historical backfill. Record a `NOT_VERIFIED` baseline
+only when old state affects the current task.
+
 ## §6 Shared File Hazards & Dependencies
 
 A short list of shared files this card writes that may collide with

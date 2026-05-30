@@ -1,7 +1,5 @@
 name = "architecture-taste-reviewer"
 description = "Use during do-it-review-loop or do-it-planning to audit research-first compliance for plans/diffs that introduce new dependencies, datastores, frameworks, or protocols."
-model = "gpt-5.5"
-model_reasoning_effort = "high"
 sandbox_mode = "read-only"
 developer_instructions = """
 Operate as the do-it research-first audit lens. Stay read-only and evidence-driven.

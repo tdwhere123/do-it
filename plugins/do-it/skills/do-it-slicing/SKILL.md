@@ -62,6 +62,10 @@ Each Standard or Heavy slice should include:
   slices continue.
 - Verification command or evidence.
 - Review lens needed.
+- Truth plane and readiness target for claims that cross source, worktree,
+  package, temp install, live install, or host behavior.
+- Parent-owned lane status for delegated slices: `assigned`, `running`,
+  `done_with_evidence`, `integrated`, or `blocking`.
 - Stop conditions for `NEEDS_CONTEXT` or `BLOCKED`.
 
 ## Slicing Sequence
@@ -87,9 +91,9 @@ Each Standard or Heavy slice should include:
 
 ## Output Shape
 
-| Slice | Marker | Owner | Goal | Verification | Dependencies |
-| --- | --- | --- | --- | --- | --- |
-| C-1 | AFK | worker | ... | ... | none |
+| Slice | Marker | Owner | Lane status | Goal | Verification | Dependencies |
+| --- | --- | --- | --- | --- | --- | --- |
+| C-1 | AFK | worker | assigned | ... | ... | none |
 
 Then include:
 
@@ -138,3 +142,5 @@ Before dispatching or accepting a slice plan:
 - high-risk contracts, migrations, async behavior, security, generated output,
   or install surfaces have early or final parent checkpoints;
 - every slice can be reviewed independently.
+- delegated lanes have parent-owned status and no final claim depends on a lane
+  that is not `integrated`.

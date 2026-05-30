@@ -68,6 +68,8 @@ Stop before commit, merge, push, or cleanup when:
 - verification or review evidence is missing for the closeout claim;
 - the target base, merge policy, or cleanup permission is not explicit;
 - install/package surfaces changed without setup, doctor, or pack evidence.
+- release, install, or workflow-sync wording collapses source, package,
+  temp-install, live-install, and host-behavior truth planes into one claim.
 
 ## Common Rationalizations
 
@@ -84,6 +86,8 @@ Stop before commit, merge, push, or cleanup when:
 - Final report says merged or ready without naming the checked branch/ref.
 - Cleanup removes a worktree before merge, PR, or discard status is recorded.
 - Release/install wording appears without temp-home doctor or package proof.
+- Final report says a multi-agent task is complete while a lane is still
+  `assigned`, `running`, or `blocking`.
 
 ## Verification
 
@@ -91,6 +95,8 @@ Before closing the branch:
 
 - `git status --short` or equivalent intended-diff inspection is known;
 - verification and review evidence matches the delivered surface;
+- Evidence Ledger rows, truth planes, and unresolved lane states are current
+  when a durable plan exists;
 - commit/merge/push/cleanup actions are recorded or explicitly skipped;
 - rollback or recovery path is named for merge/release/install changes.
 
@@ -101,6 +107,11 @@ Report:
 - branch/worktree state;
 - commits created or intentionally not created;
 - verification and review evidence;
+- Evidence Ledger summary: `VERIFIED`, `FAILED`, `NOT_VERIFIED`, `BLOCKED`, and
+  `DEFERRED_BY_USER` counts or rows;
+- truth-plane status for source, worktree, package, temp install, live install,
+  and host behavior when those surfaces are in scope;
+- subagent lane status when workers or reviewers were dispatched;
 - workflow steps used/skipped: brainstorm, grill, subagent, review, and
   verification, with reasons for skipped relevant steps;
 - cleanup performed or intentionally skipped;

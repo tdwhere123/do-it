@@ -206,6 +206,11 @@ Every implementation-ready handoff should name:
 - failure-mode forecast
 - path map or `not applicable` reason
 - readiness target (`fixture-ready`, `live-event-ready`, `operator-ready`, `docs-truth-ready`, or `install-ready`)
+- truth plane (`source-repo`, `task-worktree`, `integration-worktree`,
+  `temp-install`, `live-codex`, `live-claude`, `package-artifact`,
+  `host-behavior`, or `external-blocked`)
+- Evidence Ledger rows for Heavy, release/install, multi-agent, or explicit
+  durable-plan work
 - implementation mode
 - review stack
 - final-branch/worktree verification commands or evidence checks
@@ -282,10 +287,10 @@ Use for `Heavy` work:
 - Standard tasks use local review by default; add at most one focused reviewer
   when a concrete failure mode is not locally reviewable.
 - Every non-trivial review starts with decision and proof-path coverage:
-  request/plan/grill decisions -> producer -> contract -> consumer/surface ->
-  verification. Missing coverage, unwired implementation, unused delivered
-  surface, or synthetic proof is a review finding when it can make the work
-  wrong, unused, or unverifiable.
+  request/plan/grill decisions -> producer -> contract -> transport/client ->
+  consumer/surface -> verification. Missing coverage, unwired implementation,
+  unused delivered surface, hidden truth-plane drift, or synthetic proof is a
+  review finding when it can make the work wrong, unused, or unverifiable.
 - Heavy release, workflow, or policy work defaults to two lenses: one
   skill/policy quality lens and one install/release readiness lens.
 - Add more than two lenses only for migration, security, broad public
@@ -340,6 +345,8 @@ Every subagent prompt should include:
 - write ownership and restricted paths;
 - the current facts it may rely on and the facts it must verify itself;
 - the failure-mode forecast, path map, and readiness target for the slice;
+- the truth plane and initial lane status for the slice;
+- the integrity stance and output budget from `do-it-subagent-orchestration`;
 - the expected loop: inspect, plan, execute or review, verify when applicable,
   and report;
 - a stop condition for `NEEDS_CONTEXT`, `BLOCKED`, or `STILL_OPEN`;
@@ -376,12 +383,17 @@ Before claiming completion:
 2. Inspect the diff for restricted-file edits.
 3. Run the relevant verification commands or grep checks.
 4. Confirm final-branch/current-worktree evidence supports the exact readiness claim.
-5. Confirm stale terminology and adapter gaps are either removed or reported.
-6. Confirm Blocking/Important fixes include prevention hooks.
-7. Confirm review findings are fixed, deferred with rationale, or explicitly
+5. Confirm evidence proves the exact truth plane being claimed; source,
+   package, temp install, live install, and host behavior are separate claims.
+6. Summarize any Evidence Ledger rows and keep `NOT_VERIFIED`, `BLOCKED`, or
+   `DEFERRED_BY_USER` visible.
+7. Confirm subagent lane states are `integrated` or reported as residual risk.
+8. Confirm stale terminology and adapter gaps are either removed or reported.
+9. Confirm Blocking/Important fixes include prevention hooks.
+10. Confirm review findings are fixed, deferred with rationale, or explicitly
    outside scope.
-8. Confirm any in-scope Blocking or Important issue discovered during review was
+11. Confirm any in-scope Blocking or Important issue discovered during review was
    fixed now, unless the user explicitly confirmed deferral or the fix crossed
    an unassigned boundary.
-9. State which brainstorm, grill, subagent, review, and verification steps were
+12. State which brainstorm, grill, subagent, review, and verification steps were
    used or skipped, with the reason when the route made them relevant.

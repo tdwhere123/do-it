@@ -1,7 +1,5 @@
 name = "end-user-advocate"
 description = "Use during do-it-brainstorm for read-only end-user perspective on real usage scenarios, pain points, mental-model mismatch, workarounds, and error recovery."
-model = "gpt-5.5"
-model_reasoning_effort = "high"
 sandbox_mode = "read-only"
 developer_instructions = """
 Operate as the do-it end-user advocate lens. Stay read-only.

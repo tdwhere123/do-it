@@ -4,6 +4,45 @@
 
 - No unreleased changes.
 
+## 0.10.0
+
+### Added
+
+- Evidence Ledger rows for durable `.do-it/plans/<task>.md` cards. Heavy,
+  release/install, multi-agent, and explicit durable-plan work can now track
+  each claim by readiness target, truth plane, evidence, result, owner, and
+  residual risk without adding another skill.
+- Truth-plane vocabulary for source, task worktree, integration worktree,
+  temp install, live Codex, live Claude, package artifact, host behavior, and
+  external blockers.
+- Subagent lane status vocabulary (`assigned`, `running`,
+  `done_with_evidence`, `integrated`, `blocking`) so parent closeout can wait
+  for, inspect, and accept delegated work instead of trusting worker `DONE`.
+
+### Changed
+
+- Agent templates are model-agnostic. Source `agents/*.toml` files no longer
+  pin concrete models or reasoning-effort fields, and Claude generated agents
+  omit `model:` frontmatter so the host owns model selection.
+- `do-it-planning`, `do-it-verification-gate`, `do-it-review-loop`,
+  `do-it-fix-loop`, `do-it-interface-drill`, `do-it-slicing`,
+  `do-it-subagent-orchestration`, and `do-it-branch-closeout` now share the
+  evidence-ledger, proof-path, truth-plane, and lane-status contract.
+- Release and maintenance docs now require source, package, temp install,
+  live install, and host behavior readiness to be claimed separately.
+
+### Fixed
+
+- `code-mapper` is consistently read-only. It now returns proposed handbook
+  code-map updates to the parent instead of claiming permission to write from a
+  read-only lane.
+- Live installs now manage individual do-it hook files instead of claiming the
+  entire `hooks/` directory, so non-do-it hook integrations can coexist.
+- `scripts/validate-agent-bundle.mjs` rejects model pins and host-private
+  model/budget fields in portable agent templates and generated Claude agents.
+- `manifest.json` carries a `0.9.x` install-state migration range for the
+  `0.10.0` minor upgrade.
+
 ## 0.9.1
 
 ### Added

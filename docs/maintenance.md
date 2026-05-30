@@ -92,9 +92,9 @@ protects future upgrades is missing.
 
 | Host surface | Skills | Agents | Commands | Hooks | Doctor | Verification command |
 |---|---|---|---|---|---|---|
-| Codex global setup | Managed from `manifest.json` | TOML from `agents/` | CLI `do-it` | Enforced through root `hooks.json` and `hooks/` | Default target | `CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it setup` |
+| Codex global setup | Managed from `manifest.json` | TOML from `agents/` | CLI `do-it` | Enforced through root `hooks.json` plus do-it-managed files under `hooks/` | Default target | `CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it setup` |
 | Codex plugin marketplace | Generated under `plugins/do-it/skills/` | Generated under `plugins/do-it/agents/` | None | Do not rely on plugin hooks while `plugin_hooks=false` | None; use global setup for doctor | `npm run build:codex-plugin` and `CODEX_HOME=/tmp/do-it-plugin-test codex plugin marketplace add /path/to/do-it` |
-| Claude Code plugin | Same maintained `skills/do-it/` source | Generated Markdown under `dist/claude/agents/` | `commands/` | Plugin `hooks/hooks.json` | `--target=claude` | `CLAUDE_PLUGIN_ROOT_OVERRIDE=/tmp/do-it-claude-test npm exec --package . -- do-it setup --target=claude` |
+| Claude Code plugin | Same maintained `skills/do-it/` source | Generated Markdown under `dist/claude/agents/` | `commands/` | Do-it-managed files under `hooks/`, including `hooks/hooks.json` | `--target=claude` | `CLAUDE_PLUGIN_ROOT_OVERRIDE=/tmp/do-it-claude-test npm exec --package . -- do-it setup --target=claude` |
 
 Deprecated legacy skill targets use the same safety rule: install removes them
 only when they are marked as do-it-managed in the state file or when
@@ -186,10 +186,11 @@ has been verified.
    review stack, and explicit stop conditions.
 5. Verify the agent file does not include machine-specific paths, secrets, or
    runtime-only assumptions.
-6. Keep Codex TOML schema-clean. Supported top-level keys are `name`,
-   `description`, `model`, `model_reasoning_effort`, `sandbox_mode`, and
-   `developer_instructions`; do not add `output_budget`, `claude_model`, or
-   other host-private fields.
+6. Keep Codex TOML schema-clean and model-agnostic. Supported top-level keys
+   are `name`, `description`, `sandbox_mode`, and `developer_instructions`.
+   Do not add concrete model names, `model_reasoning_effort`, `output_budget`,
+   `claude_model`, or other host-private fields. Host adapters inherit or map
+   model policy outside the portable agent template.
 7. Update `docs/routing-matrix.md` if the agent changes default planning,
    implementation, review, or closeout flow.
 
@@ -237,10 +238,12 @@ the same `agents/*.toml` source-of-truth. The Claude target adds:
   below the frontmatter when it is still useful.
 - **Agent change:** edit `agents/<name>.toml`. The next install (or
   `npm run build:claude-agents`) regenerates the Claude `.md` form.
-- **Claude-only model change:** keep Codex TOML schema-clean. Do not add
-  `claude_model`, `output_budget`, or other host-private keys to
-  `agents/*.toml`; update the model map in `scripts/build-claude-agents.mjs`
-  or the budget table in `do-it-subagent-orchestration` instead.
+- **Model policy change:** keep source agents host-owned and model-agnostic.
+  Do not add concrete model names, `model`, `model_reasoning_effort`,
+  `claude_model`, `output_budget`, or other host-private policy to
+  `agents/*.toml`. Claude generated agents omit `model:` by default and inherit
+  the running host model; only use a uniform `model: inherit` compatibility
+  fallback if a tested Claude Code version requires the field.
 - **Hook keyword change:** edit `hooks/data/*.tsv` and keep
   `hooks/data/SCHEMA.md` aligned. End users override locally via
   `<cwd>/.do-it/keywords.local.sh` (sourced after defaults).

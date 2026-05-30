@@ -126,10 +126,8 @@ const skillEntries = manifest.skills
   .map((entry) => adaptEntry(entry, "skill"));
 const agentEntries = manifest.agents.map((entry) => adaptEntry(entry, "agent"));
 const extraEntries = (targetConfig.extras ?? []).map((extra) => ({
+  ...extra,
   kind: "extra",
-  name: extra.name,
-  source: extra.source,
-  target: extra.target,
   shape: extra.kind === "directory" ? "directory" : "file"
 }));
 const entries = [...skillEntries, ...agentEntries, ...extraEntries];
@@ -157,12 +155,25 @@ function assertWithinInstallRoot(targetPath) {
 
 function assertManagedTargetShape(entry) {
   if (entry.kind === "extra") {
-    // Extras are top-level dirs/files added by target config (e.g.
-    // .claude-plugin, hooks, commands). Allow single-segment names.
-    if (!/^[A-Za-z0-9_.-]+$/.test(entry.target)) {
+    // Extras are files/dirs added by target config. They may be top-level
+    // entries (e.g. hooks.json) or scoped nested entries (e.g. hooks/router.sh).
+    const targetSegments =
+      typeof entry.target === "string" ? entry.target.split("/") : [];
+    const targetSafe =
+      targetSegments.length > 0 &&
+      !path.isAbsolute(entry.target) &&
+      !entry.target.includes("\\") &&
+      targetSegments.every(
+        (segment) =>
+          segment.length > 0 &&
+          segment !== "." &&
+          segment !== ".." &&
+          /^[A-Za-z0-9_.-]+$/.test(segment)
+      );
+    if (!targetSafe) {
       throw new Error(
         `Unsafe extra target for ${entry.name}: ${entry.target}. ` +
-          "Expected a single-segment top-level name."
+          "Expected a safe relative path."
       );
     }
     return;
@@ -451,7 +462,12 @@ function assertInstallSafe(entry, state) {
   }
 
   const stateEntry = state.entries?.[entry.target];
-  if (stateEntry?.hash === hashPath(targetPath)) {
+  const targetHash = hashPath(targetPath);
+  if (stateEntry?.hash === targetHash) {
+    return;
+  }
+
+  if ((entry.legacyHashes ?? []).includes(targetHash)) {
     return;
   }
 

@@ -1,7 +1,5 @@
 name = "sql-pro"
 description = "Use for do-it SQL interface drill involving query semantics, migrations, transactions, storage contracts, or performance risk."
-model = "gpt-5.5"
-model_reasoning_effort = "high"
 sandbox_mode = "read-only"
 developer_instructions = """
 Operate as the do-it SQL specialist. Stay read-only. Return SQL findings, designs, and minimal patch recommendations; do not edit files from this agent config.

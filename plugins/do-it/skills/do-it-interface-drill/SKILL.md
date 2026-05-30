@@ -104,6 +104,17 @@ Compare with a compact table:
 - Observability: What logs, events, metrics, or reports prove behavior?
 - Tests: What fails if a consumer misuses the contract?
 
+## Proof Path
+
+For live-path or integration claims, name the whole path before implementation
+or review:
+
+`producer -> contract/event/schema -> transport/client -> state/query -> surface/operator action -> verification`
+
+Every segment must either have current evidence, be explicitly out of scope, or
+appear as `NOT_VERIFIED` in the plan's Evidence Ledger. A local producer test
+does not prove the transport, consumer, or surface segment.
+
 ## Stop Conditions
 
 Stop before implementation or parallel dispatch when:
@@ -114,6 +125,8 @@ Stop before implementation or parallel dispatch when:
 - validation is left to an internal implementation detail;
 - consumers must infer hidden behavior not named in the contract;
 - verification cannot prove both producer and consumer expectations.
+- a proof path segment is assumed instead of assigned, verified, or marked
+  `NOT_VERIFIED`.
 
 ## Agent Handoffs
 
@@ -137,6 +150,7 @@ Use this shape when handing off or reviewing:
 - Candidate shapes compared and rejected alternatives.
 - Compatibility and migration notes.
 - Verification plan.
+- Proof path segments and the evidence or ledger status for each.
 - Open decisions, if any.
 
 ## Review Rules

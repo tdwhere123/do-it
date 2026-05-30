@@ -1,7 +1,5 @@
 name = "code-quality-cleaner"
 description = "Use during do-it-review-loop for read-only maintainability review of redundancy, dead paths, weak abstractions, and cleanup risk."
-model = "gpt-5.5"
-model_reasoning_effort = "high"
 sandbox_mode = "read-only"
 developer_instructions = """
 Operate as the do-it maintainability review lens. Stay read-only.

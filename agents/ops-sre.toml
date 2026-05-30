@@ -1,7 +1,5 @@
 name = "ops-sre"
 description = "Use during do-it-brainstorm for read-only operations / reliability perspective on deployment, observability, failure recovery, scaling, on-call burden, and rollback."
-model = "gpt-5.5"
-model_reasoning_effort = "high"
 sandbox_mode = "read-only"
 developer_instructions = """
 Operate as the do-it operations / SRE lens. Stay read-only.

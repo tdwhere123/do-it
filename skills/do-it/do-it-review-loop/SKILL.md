@@ -10,7 +10,7 @@ description: "Use when a delivered diff or worker result needs PR-style correctn
 Use this to find defects, scope drift, and maintainability risk before closeout.
 Review is findings-first and evidence-backed.
 
-**Mandatory trigger:** when tier is Heavy OR the prompt signals an interface-breaking change (router writes `dim_needs_review_loop=1`), this skill is required **before any "done" claim** — it does not apply to planning, grill, or discussion turns. The `verification-gate` Stop hook enforces the done-claim case: a transcript without a `review-loop` / `review-quick` / `review-deep` / `review-adversarial` mention will be blocked. See `do-it-router` § Mandatory-trigger escape clauses for the full contract. The fix path also runs on the complete finding batch — see `do-it-fix-loop` § Batch vs Pointwise Decision, which operates on the list this skill emits at step 8.
+**Mandatory trigger:** when tier is Heavy OR the prompt signals an interface-breaking change (router writes `dim_needs_review_loop=1`), this skill is required **before any "done" claim** — it does not apply to planning, grill, or discussion turns. The `verification-gate` Stop hook enforces the done-claim case: a transcript without a `review-loop` / `review-quick` / `review-deep` / `review-adversarial` mention will be blocked. See `do-it-router` § Mandatory-trigger escape clauses for the full contract. The fix path also runs on the complete finding batch — see `do-it-fix-loop` § Batch vs Pointwise Decision, which operates on the list emitted by the "Emit findings as a complete batch" step below.
 
 ## Tiers
 
@@ -32,11 +32,13 @@ explicitly assigned otherwise.
 4. Read the actual diff and relevant current files, then verify the changed
    code is reachable through that proof path.
 5. Check the failure-mode forecast, proof path map, readiness target, and final evidence expectations when they exist.
-6. Check requirements before quality polish when a plan or task card exists.
-7. Report only confirmed issues or clearly labeled uncertainty.
-8. **Emit findings as a complete batch** — produce the full list (`Blocking` / `Important` / `Opportunity`) in a single return, ordered by severity. Do not stream findings one-by-one; fix-loop depends on seeing the whole list to detect shared root causes.
-9. Use at most one focused reviewer when the risk is not locally reviewable; otherwise the parent performs local review.
-10. Send the complete `Blocking` and `Important` set to `do-it-fix-loop`; fix-loop will run its Batch vs Pointwise Decision on the full list before editing.
+6. If an Evidence Ledger exists, check that every delivered claim has the right
+   readiness target, truth plane, and current evidence row.
+7. Check requirements before quality polish when a plan or task card exists.
+8. Report only confirmed issues or clearly labeled uncertainty.
+9. **Emit findings as a complete batch** — produce the full list (`Blocking` / `Important` / `Opportunity`) in a single return, ordered by severity. Do not stream findings one-by-one; fix-loop depends on seeing the whole list to detect shared root causes.
+10. Use at most one focused reviewer when the risk is not locally reviewable; otherwise the parent performs local review.
+11. Send the complete `Blocking` and `Important` set to `do-it-fix-loop`; fix-loop will run its Batch vs Pointwise Decision on the full list before editing.
 
 ### Heavy
 
@@ -213,6 +215,8 @@ Review the evidence itself:
 - command covers the changed surface rather than only a nearby unit;
 - generated files were produced by scripts, not hand-edited;
 - install or package claims use temp-home or package checks when relevant;
+- evidence proves the stated truth plane, not only an adjacent source,
+  worktree, package, live install, or host-behavior surface;
 - passing tests are not the only proof when contract or docs-truth changed.
 
 ## Finding Shape
@@ -265,6 +269,10 @@ workflow clearly owns issue creation.
   satisfied.
 - New code that is not reachable from the promised workflow is a finding even
   if the local unit tests pass.
+- A producer -> contract -> transport -> consumer -> surface path that is only
+  partially wired is a finding even when each local piece exists.
+- Evidence Ledger rows that overclaim readiness, omit truth planes, or hide
+  `NOT_VERIFIED` work are findings.
 - Do not review from commit messages alone.
 - Do not auto-fix when the user asked for review-only work.
 - Tests passing do not replace review.

@@ -59,3 +59,28 @@ test("removed install migration note is not referenced by shipped docs", () => {
     );
   }
 });
+
+test("agent templates and generated Claude agents do not pin models", () => {
+  const concreteModel = /\b(?:gpt-[A-Za-z0-9_.-]+|sonnet|opus|haiku)\b/i;
+  const hostPrivate = /\b(?:model_reasoning_effort|claude_model|output_budget)\b/;
+
+  for (const dir of ["agents", "plugins/do-it/agents"]) {
+    for (const fileName of fs.readdirSync(path.join(repoRoot, dir))) {
+      if (!fileName.endsWith(".toml")) continue;
+      const relativePath = `${dir}/${fileName}`;
+      const text = fs.readFileSync(path.join(repoRoot, relativePath), "utf8");
+      assert.doesNotMatch(text, /^model\s*=/m, `${relativePath} should not set model`);
+      assert.doesNotMatch(text, hostPrivate, `${relativePath} should not contain host-private model policy`);
+      assert.doesNotMatch(text, concreteModel, `${relativePath} should not name concrete models`);
+    }
+  }
+
+  const claudeDir = path.join(repoRoot, "dist/claude/agents");
+  for (const fileName of fs.readdirSync(claudeDir)) {
+    if (!fileName.endsWith(".md")) continue;
+    const relativePath = `dist/claude/agents/${fileName}`;
+    const text = fs.readFileSync(path.join(repoRoot, relativePath), "utf8");
+    assert.doesNotMatch(text, /^\s*model:/m, `${relativePath} should inherit host model`);
+    assert.doesNotMatch(text, concreteModel, `${relativePath} should not name concrete models`);
+  }
+});

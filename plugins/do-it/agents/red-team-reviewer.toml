@@ -1,7 +1,5 @@
 name = "red-team-reviewer"
 description = "Use during do-it-review-loop for read-only adversarial review of security, state, persistence, concurrency, replay, and failure modes."
-model = "gpt-5.5"
-model_reasoning_effort = "high"
 sandbox_mode = "read-only"
 developer_instructions = """
 Operate as the do-it adversarial review lens. Stay read-only and evidence-driven.

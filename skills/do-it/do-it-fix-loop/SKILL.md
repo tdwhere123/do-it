@@ -50,7 +50,7 @@ parent-only unless explicitly assigned.
 
 ## Batch vs Pointwise Decision
 
-This step operates on the complete finding batch emitted by `do-it-review-loop` § Standard step 8 — if the reviewer is still streaming findings, wait. The two contracts are paired by design; editing one without the other re-introduces "see-one-fix-one" churn.
+This step operates on the complete finding batch emitted by `do-it-review-loop` § Standard, "Emit findings as a complete batch" — if the reviewer is still streaming findings, wait. The two contracts are paired by design; editing one without the other re-introduces "see-one-fix-one" churn.
 
 Findings often share a root cause — the same missing helper, the same forgotten validation, the same architectural mismatch surfaces in 3-5 places. Fixing them one-by-one means "fix one, another appears, fix that, another appears" — wasted re-review rounds and partial fixes that miss the real cause.
 
@@ -145,6 +145,9 @@ Before calling the loop clean:
 - every Blocking and Important finding is `closed`, `downgraded with evidence`,
   `STILL_OPEN`, or `NEEDS_CONTEXT`;
 - finding-specific checks pass on the current worktree;
+- any Evidence Ledger row touched by the fix is updated with current
+  `VERIFIED`, `FAILED`, `NOT_VERIFIED`, `BLOCKED`, or `DEFERRED_BY_USER`
+  status instead of being left implicit;
 - the same-scope review has been rerun for repaired surfaces;
 - residual risks and deferred Opportunities are explicitly named.
 - any deferred Blocking or Important item has explicit user confirmation or a
@@ -159,6 +162,7 @@ For each fixed finding, record:
 - root cause or cause class;
 - files changed;
 - command or line evidence proving closure;
+- ledger row or truth plane affected, when a durable plan exists;
 - prevention hook added or explicit follow-up;
 - remaining risk or deferred opportunity.
 

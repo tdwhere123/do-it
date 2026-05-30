@@ -68,9 +68,9 @@ checks currently show `codex_hooks=true`, `plugins=true`, and
 
 | Host surface | Skills | Agents | Commands | Hooks | Doctor | Verification command |
 |---|---|---|---|---|---|---|
-| Codex global setup | Yes, from `manifest.json` | Yes, TOML from `agents/` | CLI `do-it` only | Yes, root `hooks.json` plus `hooks/` | Yes, default target | `CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it setup` |
+| Codex global setup | Yes, from `manifest.json` | Yes, TOML from `agents/` | CLI `do-it` only | Yes, root `hooks.json` plus do-it-managed files under `hooks/` | Yes, default target | `CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it setup` |
 | Codex plugin marketplace | Yes, generated under `plugins/do-it/skills/` | Yes, generated under `plugins/do-it/agents/` | No slash command surface | Not relied on while `plugin_hooks=false` | No direct doctor; pair with global setup for hooks | `npm run build:codex-plugin` then `CODEX_HOME=/tmp/do-it-plugin-test codex plugin marketplace add /path/to/do-it` |
-| Claude Code plugin | Yes, from `skills/do-it/` | Yes, generated Markdown under `dist/claude/agents/` | Yes, `commands/` | Yes, plugin `hooks/hooks.json` | Yes, `--target=claude` | `CLAUDE_PLUGIN_ROOT_OVERRIDE=/tmp/do-it-claude-test npm exec --package . -- do-it setup --target=claude` |
+| Claude Code plugin | Yes, from `skills/do-it/` | Yes, generated Markdown under `dist/claude/agents/` | Yes, `commands/` | Yes, do-it-managed files under `hooks/`, including `hooks/hooks.json` | Yes, `--target=claude` | `CLAUDE_PLUGIN_ROOT_OVERRIDE=/tmp/do-it-claude-test npm exec --package . -- do-it setup --target=claude` |
 
 ## Local Checkout Surface
 
@@ -114,7 +114,7 @@ npm pack
 ```
 
 Use the generated tarball with `npm install --global` or
-`npm exec --package ./tdwhere-do-it-0.9.1.tgz -- do-it setup` when testing a
+`npm exec --package ./tdwhere-do-it-0.10.0.tgz -- do-it setup` when testing a
 release artifact.
 
 ## Release Checklist
@@ -148,6 +148,9 @@ release artifact.
 20. Confirm the release instructions describe copy-based install behavior only,
    not symlink-based deployment.
 21. Confirm Codex-installed `agents/*.toml` do not contain unsupported fields
-   such as `claude_model` or `output_budget`, and that
-   `npm run build:claude-agents` still generates Claude agent frontmatter with
-   the intended model values.
+   such as `model`, `model_reasoning_effort`, `claude_model`, or
+   `output_budget`, and that `npm run build:claude-agents` generates Claude
+   agent frontmatter without concrete model pins.
+22. For release/install claims, record source, package, temp-install, live
+   Codex, live Claude, and host-behavior truth planes separately; do not call
+   the workflow synced until live doctor or setup evidence exists.

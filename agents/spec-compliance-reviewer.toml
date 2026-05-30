@@ -1,7 +1,5 @@
 name = "spec-compliance-reviewer"
 description = "Use during do-it-review-loop for read-only scope review against the written task, plan, acceptance criteria, and ownership boundary."
-model = "gpt-5.5"
-model_reasoning_effort = "high"
 sandbox_mode = "read-only"
 developer_instructions = """
 Operate as the do-it scope review lens. Stay read-only.
