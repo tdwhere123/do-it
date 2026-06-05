@@ -265,10 +265,10 @@ run_router "$withcode_session" "release 我想确认 src/release.ts"
 withcode_grill="$(run_grill "$withcode_session" "release 我想确认 src/release.ts")"
 assert_contains "$withcode_grill" "trigger: uncertainty" "Standard + uncertainty + dim_touches_code=1 should still grill"
 
-# ---- Phase 3 advisory nudges (plan-card reliability + existing-codebase) ----
+# ---- advisory nudges (plan-card reliability + existing-codebase) ----
 
-# C1: after grill on durable-plan work with no plan card, a later grilled turn
-# emits a one-shot plan-card nudge.
+# Plan-card nudge: after grill on durable-plan work with no plan card, a later
+# grilled turn emits a one-shot plan-card nudge.
 nudge_project="$TMP_ROOT/plan-nudge-project"
 mkdir -p "$nudge_project"
 plan_nudge_session="plan-card-nudge"
@@ -299,7 +299,7 @@ has_plan_out="$(run_grill "$has_plan_session" "ok implement it" "$nudge_has_plan
 [[ "$has_plan_out" != *"no .do-it/plans/<slug>.md exists yet"* ]] \
   || fail "existing plan card should suppress the planning nudge"
 
-# C2: port/restore intent emits a one-shot "grep current code first" nudge.
+# Port/restore intent emits a one-shot "grep current code first" nudge.
 port_session="port-intent-nudge"
 run_router "$port_session" "port the BudgetService from v0.1" "$REPO_ROOT"
 [[ "$(state_value "$port_session" port_intent)" == "1" ]] \
@@ -308,7 +308,7 @@ port_out="$(run_grill "$port_session" "port the BudgetService from v0.1" "$REPO_
 assert_contains "$port_out" "port / restore / reintroduce work" \
   "port intent should nudge to grep current code first"
 
-# C2: established project (has .do-it/CONTEXT.md) + Standard code edit emits the
+# Established project (has .do-it/CONTEXT.md) + Standard code edit emits the
 # read-existing nudge; a greenfield repo does not.
 brown_project="$TMP_ROOT/brownfield-project"
 mkdir -p "$brown_project/.do-it"

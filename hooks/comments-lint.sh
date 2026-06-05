@@ -253,9 +253,10 @@ if [[ "${FIX_HITS:-0}" -gt 0 ]]; then
   _record_family "fix-narrative"
 fi
 
-# 3. Task references
+# 3. Task references — external trackers plus do-it stage markers (phase /
+#    wave / backlog IDs) that rot a release or two after they are written.
 TASKREF_HITS=$(printf '%s\n' "$FILTERED" \
-  | grep -ciE 'issue #|pr #|ticket #|jira-' \
+  | grep -ciE 'issue #|pr #|ticket #|jira-|\bBL-[0-9]|\bphase[ -][0-9]|\bwave[ -][0-9]' \
   || true)
 if [[ "${TASKREF_HITS:-0}" -gt 0 ]]; then
   HITS=$((HITS + TASKREF_HITS))

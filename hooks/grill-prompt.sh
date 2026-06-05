@@ -92,8 +92,8 @@ fi
 # ---- One-shot advisory nudges (work turns only; never block) ----
 ADVISORY_TIER="$(do_it_session_state_get "$SESSION_ID" tier)"
 
-# C1: grill ran in a prior turn and durable planning is required, but no plan
-# card exists yet — nudge to land it before implementation drifts ahead.
+# Plan-card nudge: grill ran in a prior turn and durable planning is required,
+# but no plan card exists yet — nudge to land it before implementation drifts ahead.
 _grilled_prev="$(do_it_session_state_get "$SESSION_ID" grilled)"
 if [[ "$(do_it_session_state_get "$SESSION_ID" plan_nudged)" != "1" \
    && "$(do_it_session_state_get "$SESSION_ID" durable_plan_seen)" == "1" \
@@ -105,7 +105,7 @@ do-it planning: grill has converged and this is durable-plan work, but no .do-it
 </system-reminder>"
 fi
 
-# C2: existing-codebase / port-restore "understand before you change" nudge.
+# Existing-codebase / port-restore "understand before you change" nudge.
 if [[ "$(do_it_session_state_get "$SESSION_ID" brownfield_nudged)" != "1" ]]; then
   _port="$(do_it_session_state_get "$SESSION_ID" port_intent)"
   _brown="$(do_it_session_state_get "$SESSION_ID" dim_brownfield)"

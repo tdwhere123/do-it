@@ -211,6 +211,23 @@ _assert_not_contains "owner-tagged TODO ok" "$OUT" "orphan-todo"
 rm -rf "$DIR"
 
 # -------------------------------------------------------------------------
+echo "Case 10: stage markers (phase / wave / backlog id) → flagged as task-ref"
+DIR=$(_setup_repo)
+FILE="$DIR/stage.ts"
+printf 'function s() { return 1; }\n' > "$FILE"
+( cd "$DIR" && git add stage.ts && git commit -q -m base ) >/dev/null 2>&1
+cat > "$FILE" <<'EOF'
+function s() {
+  // Phase 3 advisory wiring; tracked at BL-038, lands in wave 2
+  return 1;
+}
+EOF
+OUT=$(_run_hook "$FILE")
+_assert_contains "flags stage markers" "$OUT" "system-reminder"
+_assert_contains "names task-ref family for stage markers" "$OUT" "task-ref"
+rm -rf "$DIR"
+
+# -------------------------------------------------------------------------
 echo
 echo "Summary: $PASS passed, $FAIL failed"
 if [[ "$FAIL" -gt 0 ]]; then
