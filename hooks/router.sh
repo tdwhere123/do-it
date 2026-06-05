@@ -119,6 +119,31 @@ if [[ "$TIER" == "Heavy" ]] || do_it_prompt_requires_durable_plan "$PROMPT"; the
   durable_plan_required=1
 fi
 do_it_session_state_set "$SESSION_ID" durable_plan_required "$durable_plan_required"
+# Sticky: once durable planning is required in a session, remember it so the
+# post-grill plan-card nudge can fire on a later turn even after the per-turn
+# durable_plan_required is recomputed to 0 by a follow-up prompt.
+if [[ "$durable_plan_required" == "1" ]]; then
+  do_it_session_state_set "$SESSION_ID" durable_plan_seen 1
+fi
+
+# Existing-codebase + port/restore signals for the advisory nudges that
+# grill-prompt.sh emits (router stays state-only). brownfield = the project has
+# accumulated do-it context (CONTEXT.md or a handbook), so the agent should read
+# that existing structure before editing rather than assume greenfield. Kept
+# precise on purpose: the advisory points at those exact files, and a bare git
+# repo is not "established" in the sense that matters. port_intent = the prompt
+# asks to port / restore / reintroduce something that often already exists.
+brownfield=0
+if [[ -f "${CWD}/.do-it/CONTEXT.md" || -d "${CWD}/.do-it/handbook" ]]; then
+  brownfield=1
+fi
+do_it_session_state_set "$SESSION_ID" dim_brownfield "$brownfield"
+port_intent=0
+case "$(do_it_lc "$PROMPT")" in
+  *"移植"*|*"迁移回"*|*"重新引入"*|*"恢复"*|*"reintroduce"*|*"re-introduce"*|*"port from"*|*"port over"*|*"port the"*|*"restore the"*|*"bring back"*)
+    port_intent=1 ;;
+esac
+do_it_session_state_set "$SESSION_ID" port_intent "$port_intent"
 
 # Dimensions are orthogonal to tier. Tier stays as the single derived label
 # existing skills key off; downstream skills may read these additive booleans

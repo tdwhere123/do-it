@@ -265,4 +265,68 @@ run_router "$withcode_session" "release 我想确认 src/release.ts"
 withcode_grill="$(run_grill "$withcode_session" "release 我想确认 src/release.ts")"
 assert_contains "$withcode_grill" "trigger: uncertainty" "Standard + uncertainty + dim_touches_code=1 should still grill"
 
+# ---- Phase 3 advisory nudges (plan-card reliability + existing-codebase) ----
+
+# C1: after grill on durable-plan work with no plan card, a later grilled turn
+# emits a one-shot plan-card nudge.
+nudge_project="$TMP_ROOT/plan-nudge-project"
+mkdir -p "$nudge_project"
+plan_nudge_session="plan-card-nudge"
+run_router "$plan_nudge_session" "Prepare the release schema migration" "$nudge_project"
+run_grill "$plan_nudge_session" "Prepare the release schema migration" "$nudge_project" >/dev/null
+[[ "$(state_value "$plan_nudge_session" durable_plan_seen)" == "1" ]] \
+  || fail "Heavy turn should set durable_plan_seen"
+run_router "$plan_nudge_session" "ok implement it" "$nudge_project"
+plan_nudge_out="$(run_grill "$plan_nudge_session" "ok implement it" "$nudge_project")"
+assert_contains "$plan_nudge_out" "no .do-it/plans/<slug>.md exists yet" \
+  "post-grill durable work with no plan card should nudge planning"
+
+# one-shot: a third turn does not repeat the plan nudge
+run_router "$plan_nudge_session" "continue implementing" "$nudge_project"
+plan_nudge_repeat="$(run_grill "$plan_nudge_session" "continue implementing" "$nudge_project")"
+[[ "$plan_nudge_repeat" != *"no .do-it/plans/<slug>.md exists yet"* ]] \
+  || fail "plan-card nudge should be one-shot per session"
+
+# with a plan card present, no plan nudge
+nudge_has_plan="$TMP_ROOT/plan-present-project"
+mkdir -p "$nudge_has_plan/.do-it/plans"
+printf '# plan\n' > "$nudge_has_plan/.do-it/plans/task.md"
+has_plan_session="plan-present"
+run_router "$has_plan_session" "Prepare the release schema migration" "$nudge_has_plan"
+run_grill "$has_plan_session" "Prepare the release schema migration" "$nudge_has_plan" >/dev/null
+run_router "$has_plan_session" "ok implement it" "$nudge_has_plan"
+has_plan_out="$(run_grill "$has_plan_session" "ok implement it" "$nudge_has_plan")"
+[[ "$has_plan_out" != *"no .do-it/plans/<slug>.md exists yet"* ]] \
+  || fail "existing plan card should suppress the planning nudge"
+
+# C2: port/restore intent emits a one-shot "grep current code first" nudge.
+port_session="port-intent-nudge"
+run_router "$port_session" "port the BudgetService from v0.1" "$REPO_ROOT"
+[[ "$(state_value "$port_session" port_intent)" == "1" ]] \
+  || fail "port prompt should set port_intent"
+port_out="$(run_grill "$port_session" "port the BudgetService from v0.1" "$REPO_ROOT")"
+assert_contains "$port_out" "port / restore / reintroduce work" \
+  "port intent should nudge to grep current code first"
+
+# C2: established project (has .do-it/CONTEXT.md) + Standard code edit emits the
+# read-existing nudge; a greenfield repo does not.
+brown_project="$TMP_ROOT/brownfield-project"
+mkdir -p "$brown_project/.do-it"
+printf '# context\n' > "$brown_project/.do-it/CONTEXT.md"
+brown_session="brownfield-nudge"
+run_router "$brown_session" "Implement the cleanup in src/util.ts" "$brown_project"
+[[ "$(state_value "$brown_session" dim_brownfield)" == "1" ]] \
+  || fail "project with .do-it/CONTEXT.md should set dim_brownfield"
+brown_out="$(run_grill "$brown_session" "Implement the cleanup in src/util.ts" "$brown_project")"
+assert_contains "$brown_out" "established codebase" \
+  "brownfield Standard code edit should nudge read-existing"
+
+greenfield_project="$TMP_ROOT/greenfield-project"
+mkdir -p "$greenfield_project"
+greenfield_session="greenfield-no-nudge"
+run_router "$greenfield_session" "Implement the cleanup in src/util.ts" "$greenfield_project"
+green_out="$(run_grill "$greenfield_session" "Implement the cleanup in src/util.ts" "$greenfield_project")"
+[[ "$green_out" != *"established codebase"* ]] \
+  || fail "greenfield repo should not emit the read-existing nudge"
+
 echo "[test-hooks] ok"

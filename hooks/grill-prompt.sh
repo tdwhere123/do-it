@@ -21,6 +21,16 @@ source "${SCRIPT_DIR}/lib/keywords.sh"
 # shellcheck source=lib/debug.sh
 source "${SCRIPT_DIR}/lib/debug.sh"
 
+# Advisory nudges (plan-card reliability, existing-codebase discipline) are
+# computed once on a work turn and attached to whichever exit path this hook
+# takes, so they fire even when the grill reminder itself does not. Advisory
+# only — never blocks.
+_doit_advisory=""
+_emit_advisory_exit() {
+  [[ -n "$_doit_advisory" ]] && do_it_emit_context UserPromptSubmit "$_doit_advisory"
+  exit 0
+}
+
 # Read stdin first so the subagent check can use the JSON-supplied
 # transcript_path (the host delivers it on stdin, not as an env var).
 RAW_INPUT="$(do_it_read_stdin)"
@@ -79,6 +89,40 @@ if [[ "$EXPLICIT_GRILL" -eq 0 ]] && { [[ "$LAST_PROMPT_KIND" == "question" ]] ||
   exit 0
 fi
 
+# ---- One-shot advisory nudges (work turns only; never block) ----
+ADVISORY_TIER="$(do_it_session_state_get "$SESSION_ID" tier)"
+
+# C1: grill ran in a prior turn and durable planning is required, but no plan
+# card exists yet — nudge to land it before implementation drifts ahead.
+_grilled_prev="$(do_it_session_state_get "$SESSION_ID" grilled)"
+if [[ "$(do_it_session_state_get "$SESSION_ID" plan_nudged)" != "1" \
+   && "$(do_it_session_state_get "$SESSION_ID" durable_plan_seen)" == "1" \
+   && -n "$_grilled_prev" && "$_grilled_prev" != "0" && "$_grilled_prev" != "skip-question" ]] \
+   && ! ls "${CWD}/.do-it/plans/"*.md >/dev/null 2>&1; then
+  do_it_session_state_set "$SESSION_ID" plan_nudged 1
+  _doit_advisory="${_doit_advisory}<system-reminder>
+do-it planning: grill has converged and this is durable-plan work, but no .do-it/plans/<slug>.md exists yet. Load do-it-planning to land the plan card (acceptance criteria, failure-mode forecast, path map) before implementing. Advisory — skip only if an inline modification map fully covers the work.
+</system-reminder>"
+fi
+
+# C2: existing-codebase / port-restore "understand before you change" nudge.
+if [[ "$(do_it_session_state_get "$SESSION_ID" brownfield_nudged)" != "1" ]]; then
+  _port="$(do_it_session_state_get "$SESSION_ID" port_intent)"
+  _brown="$(do_it_session_state_get "$SESSION_ID" dim_brownfield)"
+  _touch="$(do_it_session_state_get "$SESSION_ID" dim_touches_code)"
+  if [[ "$_port" == "1" ]]; then
+    do_it_session_state_set "$SESSION_ID" brownfield_nudged 1
+    _doit_advisory="${_doit_advisory}<system-reminder>
+do-it (existing code): this looks like port / restore / reintroduce work. Before writing a 'port' plan, grep/Glob the current packages/apps/migrations for the target name — it may already exist; if so, extend it instead of rebuilding. Advisory.
+</system-reminder>"
+  elif [[ "$_brown" == "1" && "$_touch" == "1" ]] && { [[ "$ADVISORY_TIER" == "Standard" || "$ADVISORY_TIER" == "Heavy" ]]; }; then
+    do_it_session_state_set "$SESSION_ID" brownfield_nudged 1
+    _doit_advisory="${_doit_advisory}<system-reminder>
+do-it (existing code): this is an established codebase. Before editing, read the file/area you are changing and reuse its existing patterns, names, and invariants (.do-it/CONTEXT.md and handbook if present) rather than assuming greenfield. Advisory.
+</system-reminder>"
+  fi
+fi
+
 # Same-session de-dup: if we already grilled and the user did not re-request,
 # stay quiet.
 if [[ "$RE_GRILL" -eq 0 ]]; then
@@ -89,7 +133,7 @@ if [[ "$RE_GRILL" -eq 0 ]]; then
   fi
   if [[ -n "$GRILLED" && "$GRILLED" != "0" && "$GRILLED" != "skip-question" ]]; then
     do_it_debug grill-prompt "decision=already-grilled state=$GRILLED"
-    exit 0
+    _emit_advisory_exit
   fi
 fi
 
@@ -108,7 +152,7 @@ if [[ -z "$TRIGGER" && "$EXPLICIT_GRILL" -eq 1 ]]; then
 fi
 if [[ -z "$TRIGGER" && "$TIER" == "Light" ]]; then
   do_it_debug grill-prompt "decision=no-trigger tier=$TIER reason=light"
-  exit 0
+  _emit_advisory_exit
 fi
 if [[ -z "$TRIGGER" && "$TIER" == "Standard" ]] && do_it_prompt_has_any "$PROMPT" DO_IT_UNCERTAINTY_WORDS; then
   TRIGGER="uncertainty"
@@ -129,13 +173,13 @@ if [[ -n "$TRIGGER" && "$TIER" == "Standard" && "$EXPLICIT_GRILL" -eq 0 ]]; then
   TOUCHES_CODE="$(do_it_session_state_get "$SESSION_ID" dim_touches_code)"
   if [[ "$TOUCHES_CODE" != "1" ]]; then
     do_it_debug grill-prompt "decision=no-trigger tier=Standard reason=dim-touches-code-zero original-trigger=${TRIGGER}"
-    exit 0
+    _emit_advisory_exit
   fi
 fi
 
 if [[ -z "$TRIGGER" ]]; then
   do_it_debug grill-prompt "decision=no-trigger tier=$TIER"
-  exit 0
+  _emit_advisory_exit
 fi
 
 # Heavy-tier turns get a fuller fact-first reminder; everyone else gets the
@@ -182,5 +226,5 @@ case "${DO_IT_DEBUG:-0}" in
     ;;
 esac
 
-do_it_emit_context UserPromptSubmit "$MSG"
+do_it_emit_context UserPromptSubmit "${MSG}${_doit_advisory}"
 exit 0
