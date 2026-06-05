@@ -4,19 +4,16 @@
   "package": "@tdwhere/do-it",
   "repository": "https://github.com/tdwhere123/do-it",
   "domain": "agentic-workflow",
-  "total_skills": 22,
+  "total_skills": 20,
   "total_agents": 23,
   "coverage": {
     "skill_groups": {
       "index": 1,
       "mainline": 7,
       "maintenance": 3,
-      "on-demand": 10,
-      "optional": 1
+      "on-demand": 9
     },
-    "optional_skills": [
-      "do-it-visual-planning"
-    ]
+    "optional_skills": []
   },
   "entries": [
     {
@@ -72,7 +69,7 @@
     {
       "kind": "skill",
       "name": "do-it-context",
-      "description": "Use when repo terms or invariants are drifting and `.do-it/CONTEXT.md` should become the downstream source of truth for names, relationships, and facts.",
+      "description": "Use when repo terms or invariants are drifting, or when user/docs/code naming disagrees and a canonical glossary is needed — `.do-it/CONTEXT.md` is the downstream source of truth for names, relationships, and facts.",
       "origin": "do-it",
       "optional": false,
       "group": "maintenance",
@@ -108,16 +105,6 @@
       "group": "on-demand",
       "source": "skills/do-it/do-it-interface-drill",
       "target": "skills/do-it-interface-drill"
-    },
-    {
-      "kind": "skill",
-      "name": "do-it-domain-language",
-      "description": "Use when user language, docs, and code naming disagree and a canonical domain glossary or handoff vocabulary is needed.",
-      "origin": "do-it",
-      "optional": false,
-      "group": "on-demand",
-      "source": "skills/do-it/do-it-domain-language",
-      "target": "skills/do-it-domain-language"
     },
     {
       "kind": "skill",
@@ -198,16 +185,6 @@
       "group": "on-demand",
       "source": "skills/do-it/do-it-branch-closeout",
       "target": "skills/do-it-branch-closeout"
-    },
-    {
-      "kind": "skill",
-      "name": "do-it-visual-planning",
-      "description": "Use when a plan or design decision would benefit from a small diagram, sketch, mockup, or side-by-side visual artifact alongside text.",
-      "origin": "do-it",
-      "optional": true,
-      "group": "optional",
-      "source": "skills/do-it/do-it-visual-planning",
-      "target": "skills/do-it-visual-planning"
     },
     {
       "kind": "skill",

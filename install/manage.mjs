@@ -30,7 +30,7 @@ function usage(stream = console.error) {
   stream("");
   stream("Options:");
   stream("  --target=<name>   Pick install target (default: codex). Available: codex, claude.");
-  stream("  --with-optional   Include skills marked optional (e.g. visual-planning).");
+  stream("  --with-optional   Include any skills marked optional in the manifest.");
   stream("  --session=<id>    With doctor: pretty-print session state (hook invocations, tier history) for the given session id.");
   stream("  --no-migrate      With install: refuse to silently migrate from an older install-state version (exit code 2).");
   stream("");

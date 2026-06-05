@@ -37,7 +37,7 @@ Parent-only unless explicitly assigned:
 
 - use for wave, phase, release, multi-agent, durable workflow, or cross-boundary planning;
 - lock scope, write ownership, non-goals, and integration ownership;
-- run grill, interface, architecture, domain-language, or slicing drills as needed;
+- run grill, interface, architecture, vocabulary (do-it-context), or slicing drills as needed;
 - stop for approval if the user asked to confirm the plan.
 
 ## Planning Sequence
@@ -221,6 +221,16 @@ Include:
 
 Keep file paths and code snippets out of durable PRD prose unless the user asks
 for a code-facing plan; they go stale faster than domain decisions.
+
+## Visual Aids (optional)
+
+When seeing an option is materially clearer than reading it — UI layout
+alternatives, architecture/data-flow diagrams, before/after states, side-by-side
+interface shapes — sketch it under `.do-it/visual/<topic>/` (descriptive
+filenames like `option-a-flow.md`, `api-boundary.svg`). Treat these as auxiliary
+evidence, not durable plan output: the decision still lands in the plan card.
+Skip visuals for text-only decisions, one-line questions, or where a table is
+clearer. A visual aid never promotes a task's tier by itself.
 
 ## Output Shape
 

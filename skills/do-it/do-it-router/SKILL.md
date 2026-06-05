@@ -227,9 +227,9 @@ review-clean.
 - Need to challenge a premise, plan, or closeout claim: `do-it-grill`.
 - Need to design an API, schema, event, CLI, UI contract, module seam, or handoff: `do-it-interface-drill`.
 - Need coupling, ownership, modularity, or testability analysis: `do-it-architecture-scan`.
-- Need names, domain model, glossary, or code/docs/user terminology alignment: `do-it-domain-language`.
+- Need names, domain model, glossary, or code/docs/user terminology alignment: `do-it-context` (§ Domain Glossary Mode).
 - Need a durable project handbook (invariants, architecture, code map, glossary, backlog): `do-it-handbook`. Suggest it when work spans many files or several sessions and `.do-it/handbook/` does not yet exist; downstream skills (`do-it-grill`, `do-it-planning`, `do-it-architecture-scan`) read those files when present.
-- Need optional visual comparison or diagrams: `do-it-visual-planning`. This is auxiliary and does not participate in the core tier flow.
+- Need optional visual comparison or diagrams: `do-it-planning` § Visual Aids. Auxiliary; does not participate in the core tier flow.
 - Need implementation: execute locally or delegate a bounded slice after the route is clear; add `do-it-tdd` or `do-it-debugging` when the behavior or root cause warrants it.
 - Need behavior-first implementation or regression coverage: `do-it-tdd`.
 - Need root-cause diagnosis before fixing: `do-it-debugging`.
@@ -242,7 +242,7 @@ review-clean.
 - Need to create or rewrite skills: `do-it-skill-authoring`.
 - Authoring or reviewing comments on a code edit: `do-it-comments-discipline`. The parent agent should apply it before writing comments; the PostToolUse `comments-lint` hook is advisory backup, and a Standard or Heavy review pass that touches comments should load it for the comments lens.
 
-Use the narrowest sequence that covers the risk. A small API rename may need only Standard interface drill plus delivery. A phase plan may need Heavy planning, slicing, grill, interface, architecture, and domain-language passes.
+Use the narrowest sequence that covers the risk. A small API rename may need only Standard interface drill plus delivery. A phase plan may need Heavy planning, slicing, grill, interface, architecture, and vocabulary passes.
 
 ## Delegation Policy
 

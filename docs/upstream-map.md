@@ -18,7 +18,7 @@ runtime-specific assumptions do not leak into new Codex installs.
 | `do-it-brainstorm` | requirement-shape discovery before grill | Absorbs multi-perspective divergence into a product + architecture core flow: product boundary, core goal, option tradeoffs, architecture foundation, extension modules, and explicit grill handoff. |
 | `do-it-architecture-scan` | architecture risk and opportunity scan | Absorbs codebase-improvement heuristics while keeping opportunities non-blocking unless correctness or delivery risk is real. |
 | `do-it-interface-drill` | interface and boundary design | Absorbs interface-design drills for APIs, schemas, CLIs, events, UI contracts, and agent handoffs. |
-| `do-it-domain-language` | canonical term and model alignment | Absorbs ubiquitous-language and domain-model discipline for overloaded terms, glossary updates, and contradictions between code/docs/user language. |
+| `do-it-context` § Domain Glossary Mode | canonical term and model alignment | Absorbs ubiquitous-language and domain-model discipline for overloaded terms, glossary updates, and contradictions between code/docs/user language. (Folded in from the former `do-it-domain-language` skill.) |
 | `do-it-tdd` | behavior-first RED/GREEN loop | Absorbs behavior-via-public-interface testing and one-test-at-a-time tracer-bullet TDD. |
 | `do-it-debugging` | root-cause investigation | Absorbs systematic debugging and issue triage: reproduce, trace, find root cause, then plan durable RED/GREEN fixes. |
 | `do-it-subagent-orchestration` | delegated slice protocol | Absorbs parallel-agent dispatch and subagent-driven development, but defaults child agents to Standard slices instead of inheriting Heavy parent flows. |
@@ -27,7 +27,7 @@ runtime-specific assumptions do not leak into new Codex installs.
 | `do-it-verification-gate` | evidence-before-claims closeout | Absorbs legacy verification discipline and makes success claims depend on fresh commands or explicit evidence. |
 | `do-it-worktree-isolation` | workspace isolation | Absorbs git-worktree setup and current-worktree safety into a do-it support skill. |
 | `do-it-branch-closeout` | branch/PR/merge finish | Absorbs development-branch finish checks, commit/PR evidence, and cleanup choices. |
-| `do-it-visual-planning` | optional planning companion | Absorbs the older visual brainstorming helper as an optional `.do-it/visual` support path, not a core workflow gate. Marked `optional: true` in `manifest.json` from 0.4.0; install with `--with-optional`. |
+| `do-it-planning` § Visual Aids | optional planning companion | Absorbs the older visual brainstorming helper as an optional `.do-it/visual` support path, not a core workflow gate. (Folded in from the former `do-it-visual-planning` skill; the browser companion was retired.) |
 | `do-it-skill-authoring` | skill creation and maintenance | Absorbs progressive-disclosure skill writing and repo-managed skill validation. |
 
 ## External Idea Map

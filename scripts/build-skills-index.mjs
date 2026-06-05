@@ -32,7 +32,6 @@ const ON_DEMAND = [
   "do-it-interface-drill",
   "do-it-debugging",
   "do-it-slicing",
-  "do-it-domain-language",
   "do-it-comments-discipline",
   "do-it-worktree-isolation",
   "do-it-branch-closeout",

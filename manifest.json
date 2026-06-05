@@ -367,6 +367,22 @@
         "3d78d21c9cf63494773970273e750a7893d8dafc78992ce8a02bb01a417dd276"
       ],
       "reason": "folded into do-it-grill as the Grill Log Artifact section"
+    },
+    {
+      "name": "do-it-domain-language",
+      "target": "skills/do-it-domain-language",
+      "legacyHashes": [
+        "794f2d0cce1e77276a3840d12d673e9cc2859f7a3bc57df5dba435ac0717965b"
+      ],
+      "reason": "folded into do-it-context as Domain Glossary Mode"
+    },
+    {
+      "name": "do-it-visual-planning",
+      "target": "skills/do-it-visual-planning",
+      "legacyHashes": [
+        "d9a5232ded1eb64340d1698cce5e55b6e6c0a93046ce0f77458df0f8faa0936a"
+      ],
+      "reason": "auxiliary skill folded into do-it-planning as the Visual Aids section; browser companion retired"
     }
   ],
   "skills": [
@@ -425,12 +441,6 @@
       "origin": "do-it"
     },
     {
-      "name": "do-it-domain-language",
-      "source": "skills/do-it/do-it-domain-language",
-      "target": "skills/do-it-domain-language",
-      "origin": "do-it"
-    },
-    {
       "name": "do-it-tdd",
       "source": "skills/do-it/do-it-tdd",
       "target": "skills/do-it-tdd",
@@ -477,13 +487,6 @@
       "source": "skills/do-it/do-it-branch-closeout",
       "target": "skills/do-it-branch-closeout",
       "origin": "do-it"
-    },
-    {
-      "name": "do-it-visual-planning",
-      "source": "skills/do-it/do-it-visual-planning",
-      "target": "skills/do-it-visual-planning",
-      "origin": "do-it",
-      "optional": true
     },
     {
       "name": "do-it-skill-authoring",
