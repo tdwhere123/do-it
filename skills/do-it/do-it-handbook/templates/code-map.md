@@ -43,7 +43,7 @@ sections may be hand-maintained.
 - Tests: _<directory>_ — run with `<command>`.
 - Type definitions: _<directory>_ — convention `<one-liner>`.
 - Configuration: _<file>_ — _<env var or file format>_.
-- Docs: _<directory>_ — `maintenance.md` governs updates.
+- Docs: _<directory>_ — the `do-it-handbook` SKILL `## Maintenance` section governs updates.
 
 ## Conventions
 

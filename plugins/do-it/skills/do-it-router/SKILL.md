@@ -56,6 +56,27 @@ A failure, error, surprising result, or red flag is a clue to investigate — no
 
 This principle binds the parent agent and every subagent. `do-it-debugging`, `do-it-fix-loop`, and `do-it-verification-gate` enforce it at their stages; reviewers treat a cover-up as a Blocking finding.
 
+## Restraint
+
+do-it favors the smallest change that earns its keep — fast *and* good, not more
+ceremony. When extending the system or planning a change inside a project, apply
+these by default:
+
+- Prefer advisory nudges and side-channels over write-blocking gates: remind in
+  the moment, do not stall the work before it starts.
+- Thin or reuse an existing skill before adding a new one. Do not build anything
+  that grows unbounded with use (anti-pattern lists, auto-collected findings,
+  ever-longer checklists); ask "will this keep growing?" before adding a rule.
+- Before deleting code, a field, or a doc that looks unused, read its git history
+  and original intent. "No current consumer" is a reason to investigate why it
+  was built, not a licence to delete.
+- Let capabilities surface automatically at the right moment instead of requiring
+  the user to remember a `/command`.
+- Match process to risk, not habit: small work stays Light; only real risk earns
+  planning, review, and proof.
+
+This binds how do-it itself evolves and how it shapes changes inside a project.
+
 ## Orthogonal Dimensions
 
 In addition to the single tier label, the router writes 5 boolean dimensions into per-session state. They narrow *intensity*, not tier itself: a Standard task can still be `breaks_interface=1` and a downstream skill MAY upgrade its review or drill posture accordingly.
@@ -189,6 +210,37 @@ Use only in the parent agent unless a subagent is explicitly assigned Heavy.
 
 Flow: scope lock -> deep truth scan -> grill/interface/architecture/domain drills as needed -> slice plan -> execution and right-sized review gates -> integrated verification -> closeout.
 
+## Execution Pipeline
+
+Once the route is set, execute non-trivial work in this order (Light-tier
+mechanical edits skip most of it):
+
+1. Read the task card / inline map, the relevant `invariants.md`, and the
+   affected existing code before editing.
+2. Freeze scope from the card's Allowed Scope; map producer -> consumer for
+   multi-package or live-path work.
+3. Write or update tests first when practical (`do-it-tdd`).
+4. Implement the smallest change that satisfies the card, then verify with its
+   own commands.
+5. Run `do-it-review-loop` on the diff before marking done; sweep changed
+   contracts for doc/code drift.
+
+For a wave (cards that land together) see `do-it-slicing`: run independent cards
+in parallel only when their **write sets do not overlap**; serialize shared
+barrel/index files. For phase or risky shared-file work, isolate with
+`do-it-worktree-isolation` and merge back only after the integrated branch is
+review-clean.
+
+### Anti-tail discipline
+
+- **One card, one goal** — if a card grows a second goal, split it.
+- **No silent scope expansion** — a file outside Allowed Scope means update the
+  scope explicitly or open a backlog issue.
+- **No commit during a fix loop without re-running review** — partial fixes ship
+  under the cover of "addressed".
+- **No mocking the real collaborator chain** in integration tests unless the
+  card says so.
+
 ## Route Map
 
 - Need a plan or design handoff: `do-it-planning`.
@@ -196,9 +248,9 @@ Flow: scope lock -> deep truth scan -> grill/interface/architecture/domain drill
 - Need to challenge a premise, plan, or closeout claim: `do-it-grill`.
 - Need to design an API, schema, event, CLI, UI contract, module seam, or handoff: `do-it-interface-drill`.
 - Need coupling, ownership, modularity, or testability analysis: `do-it-architecture-scan`.
-- Need names, domain model, glossary, or code/docs/user terminology alignment: `do-it-domain-language`.
+- Need names, domain model, glossary, or code/docs/user terminology alignment: `do-it-context` (§ Domain Glossary Mode).
 - Need a durable project handbook (invariants, architecture, code map, glossary, backlog): `do-it-handbook`. Suggest it when work spans many files or several sessions and `.do-it/handbook/` does not yet exist; downstream skills (`do-it-grill`, `do-it-planning`, `do-it-architecture-scan`) read those files when present.
-- Need optional visual comparison or diagrams: `do-it-visual-planning`. This is auxiliary and does not participate in the core tier flow.
+- Need optional visual comparison or diagrams: `do-it-planning` § Visual Aids. Auxiliary; does not participate in the core tier flow.
 - Need implementation: execute locally or delegate a bounded slice after the route is clear; add `do-it-tdd` or `do-it-debugging` when the behavior or root cause warrants it.
 - Need behavior-first implementation or regression coverage: `do-it-tdd`.
 - Need root-cause diagnosis before fixing: `do-it-debugging`.
@@ -211,7 +263,7 @@ Flow: scope lock -> deep truth scan -> grill/interface/architecture/domain drill
 - Need to create or rewrite skills: `do-it-skill-authoring`.
 - Authoring or reviewing comments on a code edit: `do-it-comments-discipline`. The parent agent should apply it before writing comments; the PostToolUse `comments-lint` hook is advisory backup, and a Standard or Heavy review pass that touches comments should load it for the comments lens.
 
-Use the narrowest sequence that covers the risk. A small API rename may need only Standard interface drill plus delivery. A phase plan may need Heavy planning, slicing, grill, interface, architecture, and domain-language passes.
+Use the narrowest sequence that covers the risk. A small API rename may need only Standard interface drill plus delivery. A phase plan may need Heavy planning, slicing, grill, interface, architecture, and vocabulary passes.
 
 ## Delegation Policy
 

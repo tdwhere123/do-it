@@ -82,6 +82,14 @@ if ! command -v git >/dev/null 2>&1; then
 fi
 
 FILE_DIR="$(dirname "$FILE_PATH")"
+# Canonicalize the directory so it matches git's symlink-resolved
+# --show-toplevel output. On macOS the temp/working tree can sit under
+# /var -> /private/var (or /tmp -> /private/tmp); without this the REPO_ROOT
+# prefix strip below would fail, leaving REL_FILE absolute and REL_DIR collapsed
+# to ".", which breaks both the diff pathspec and the self-exclusion. pwd -P is
+# POSIX-portable; readlink -f is not (BSD lacks it).
+FILE_DIR="$(cd "$FILE_DIR" 2>/dev/null && pwd -P || printf '%s' "$FILE_DIR")"
+FILE_PATH="$FILE_DIR/$(basename "$FILE_PATH")"
 REPO_ROOT="$(git -C "$FILE_DIR" rev-parse --show-toplevel 2>/dev/null)"
 if [[ -z "$REPO_ROOT" ]]; then
   do_it_debug anti-patterns-lint "decision=skip reason=not-a-git-repo"
@@ -187,9 +195,11 @@ case "$FILE_PATH" in
       NO_CONSUMER_NAMES=""
       while IFS= read -r name; do
         [[ -z "$name" ]] && continue
-        # Search for any reference to `name` in other JS/TS files. Use a basic
-        # word-boundary regex; this catches `Name(`, `Name.`, ` Name `, etc.
-        REFS="$(_doit_timeout 5s git -C "$REPO_ROOT" grep -lE "\\b${name}\\b" \
+        # Search for any reference to `name` in other JS/TS files. Use git
+        # grep's own `-w` word match with `-F` fixed string — portable to BSD
+        # (macOS), unlike a GNU `\b` regex which BSD regcomp does not support.
+        # This still catches `Name(`, `Name.`, ` Name `, etc. at word boundaries.
+        REFS="$(_doit_timeout 5s git -C "$REPO_ROOT" grep -lwF -e "$name" \
           -- '*.ts' '*.tsx' '*.js' '*.jsx' '*.mjs' '*.cjs' 2>/dev/null || true)"
         # Drop the current file from the result.
         REL_FILE="${FILE_PATH#"${REPO_ROOT}/"}"
@@ -305,6 +315,9 @@ fi
 
 PROJECT_ROOT="$(do_it_project_root "$CWD")"
 PROJECT_ROOT="${PROJECT_ROOT%/}"
+# FILE_PATH was symlink-resolved with pwd -P above; resolve PROJECT_ROOT the same
+# way so the display strip still works when CWD is a symlinked path (macOS).
+PROJECT_ROOT="$(cd "$PROJECT_ROOT" 2>/dev/null && pwd -P || printf '%s' "$PROJECT_ROOT")"
 case "$FILE_PATH" in
   "$PROJECT_ROOT"/*) DISPLAY_PATH="${FILE_PATH#"$PROJECT_ROOT"/}" ;;
   *) DISPLAY_PATH="$FILE_PATH" ;;

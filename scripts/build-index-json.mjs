@@ -26,16 +26,13 @@ const SKILL_GROUPS = new Map([
   ["do-it-interface-drill", "on-demand"],
   ["do-it-debugging", "on-demand"],
   ["do-it-slicing", "on-demand"],
-  ["do-it-domain-language", "on-demand"],
   ["do-it-comments-discipline", "on-demand"],
   ["do-it-worktree-isolation", "on-demand"],
   ["do-it-branch-closeout", "on-demand"],
   ["do-it-subagent-orchestration", "on-demand"],
   ["do-it-handbook", "maintenance"],
   ["do-it-context", "maintenance"],
-  ["do-it-grill-log", "maintenance"],
-  ["do-it-skill-authoring", "maintenance"],
-  ["do-it-visual-planning", "optional"]
+  ["do-it-skill-authoring", "maintenance"]
 ]);
 
 function repoPath(relativePath) {

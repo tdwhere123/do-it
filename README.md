@@ -112,8 +112,7 @@ CODEX_HOME=/tmp/do-it-plugin-test codex plugin marketplace add /path/to/do-it
 ```
 
 The Codex plugin bundle lives at `plugins/do-it/` and is generated from
-`manifest.json`. It includes 23 skills and 23 agents, including optional
-`do-it-visual-planning`.
+`manifest.json`. It includes 20 skills and 23 agents.
 
 For v1, pair plugin installation with `do-it setup` when you need enforced
 automatic hooks. Local `codex features list` currently reports
@@ -137,9 +136,8 @@ do-it doctor --target=claude
 ```
 
 The Claude target installs to `~/.claude/` by default; override with
-`CLAUDE_PLUGIN_ROOT_OVERRIDE`. Optional skills such as
-`do-it-visual-planning` are excluded by default; opt in with
-`--with-optional`.
+`CLAUDE_PLUGIN_ROOT_OVERRIDE`. The `--with-optional` flag installs any manifest
+skills marked optional (none are marked optional in 0.11.0).
 
 ## What It Installs
 
@@ -322,8 +320,7 @@ emitting valid JSON without `jq`. Stale session directories are pruned after 7
 days. `do-it-router` gains an `Integrity` section — a failure is a clue to
 trace, not a symptom to hide — referenced by `do-it-debugging`,
 `do-it-fix-loop`, `do-it-verification-gate`, and the subagent dispatch
-contract. `do-it-visual-planning` ships `plan-card` / `review-report` scenario
-templates, and the CI test job now also runs on macOS. If a machine has a
+contract. The CI test job now also runs on macOS. If a machine has a
 cached `0.8.0` plugin, reinstall or refresh so the host loads the new hook and
 skill files.
 

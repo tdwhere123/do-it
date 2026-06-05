@@ -163,6 +163,29 @@ _assert_not_contains "no-consumer silent for referenced symbol" "$OUT" "- no-con
 rm -rf "$DIR"
 
 # -------------------------------------------------------------------------
+echo "Case 4b: no-consumer with only a substring neighbour — word match required"
+DIR=$(_setup_repo)
+FILE="$DIR/util.ts"
+cat > "$FILE" <<'EOF'
+// initial
+EOF
+# Another file references WidgetFactory (Widget is a substring); a whole-word
+# match must NOT count it as a consumer of the exported `Widget`.
+cat > "$DIR/consumer.ts" <<'EOF'
+import { WidgetFactory } from './factory';
+console.log(WidgetFactory());
+EOF
+( cd "$DIR" && git add . && git commit -q -m base ) >/dev/null 2>&1
+cat > "$FILE" <<'EOF'
+// initial
+export function Widget() { return 1; }
+EOF
+OUT=$(_run_hook "$FILE")
+_assert_contains "no-consumer flags symbol with only a substring neighbour" "$OUT" "- no-consumer:"
+_assert_contains "names the orphan symbol Widget" "$OUT" "Widget"
+rm -rf "$DIR"
+
+# -------------------------------------------------------------------------
 echo "Case 5: copy-paste hit — ≥5-line block duplicated in same directory"
 DIR=$(_setup_repo)
 mkdir -p "$DIR/src"

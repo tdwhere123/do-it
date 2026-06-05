@@ -1,5 +1,5 @@
 {
-  "version": "0.10.0",
+  "version": "0.11.0",
   "migrations": [
     {
       "from": "0.4.x",
@@ -23,6 +23,10 @@
     },
     {
       "from": "0.9.x",
+      "actions": []
+    },
+    {
+      "from": "0.10.x",
       "actions": []
     }
   ],
@@ -359,6 +363,30 @@
         "15619616cf9b0d82f74f81e472ad1669b5cc23f56b8b6adb31d9e33ddb16d79e"
       ],
       "reason": "removed after 0.4.x; use do-it-router plus focused planning, TDD/debugging, review-loop, fix-loop, and verification-gate as needed"
+    },
+    {
+      "name": "do-it-grill-log",
+      "target": "skills/do-it-grill-log",
+      "legacyHashes": [
+        "3d78d21c9cf63494773970273e750a7893d8dafc78992ce8a02bb01a417dd276"
+      ],
+      "reason": "folded into do-it-grill as the Grill Log Artifact section"
+    },
+    {
+      "name": "do-it-domain-language",
+      "target": "skills/do-it-domain-language",
+      "legacyHashes": [
+        "794f2d0cce1e77276a3840d12d673e9cc2859f7a3bc57df5dba435ac0717965b"
+      ],
+      "reason": "folded into do-it-context as Domain Glossary Mode"
+    },
+    {
+      "name": "do-it-visual-planning",
+      "target": "skills/do-it-visual-planning",
+      "legacyHashes": [
+        "d9a5232ded1eb64340d1698cce5e55b6e6c0a93046ce0f77458df0f8faa0936a"
+      ],
+      "reason": "auxiliary skill folded into do-it-planning as the Visual Aids section; visual companion relocated under do-it-planning"
     }
   ],
   "skills": [
@@ -399,12 +427,6 @@
       "origin": "do-it"
     },
     {
-      "name": "do-it-grill-log",
-      "source": "skills/do-it/do-it-grill-log",
-      "target": "skills/do-it-grill-log",
-      "origin": "do-it"
-    },
-    {
       "name": "do-it-brainstorm",
       "source": "skills/do-it/do-it-brainstorm",
       "target": "skills/do-it-brainstorm",
@@ -420,12 +442,6 @@
       "name": "do-it-interface-drill",
       "source": "skills/do-it/do-it-interface-drill",
       "target": "skills/do-it-interface-drill",
-      "origin": "do-it"
-    },
-    {
-      "name": "do-it-domain-language",
-      "source": "skills/do-it/do-it-domain-language",
-      "target": "skills/do-it-domain-language",
       "origin": "do-it"
     },
     {
@@ -475,13 +491,6 @@
       "source": "skills/do-it/do-it-branch-closeout",
       "target": "skills/do-it-branch-closeout",
       "origin": "do-it"
-    },
-    {
-      "name": "do-it-visual-planning",
-      "source": "skills/do-it/do-it-visual-planning",
-      "target": "skills/do-it-visual-planning",
-      "origin": "do-it",
-      "optional": true
     },
     {
       "name": "do-it-skill-authoring",

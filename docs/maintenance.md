@@ -110,8 +110,8 @@ When a skill changes, decide which kind of update it is:
 - do-it rewrite
 - do-it compatibility adapter that preserves a workflow idea while changing the
   installed name and wording
-- optional auxiliary support, such as visual planning, that is installed but not
-  part of the default tier flow
+- optional auxiliary support that is installed but not part of the default tier
+  flow (no skills are marked optional in 0.11.0)
 
 For either kind:
 
@@ -259,8 +259,7 @@ surface generated from the same maintained manifest:
   `do-it` at `./plugins/do-it`.
 - `plugins/do-it/.codex-plugin/plugin.json` — plugin metadata with version
   parity to `package.json`.
-- `plugins/do-it/skills/` — generated from every `manifest.skills[]` entry,
-  including optional `do-it-visual-planning`.
+- `plugins/do-it/skills/` — generated from every `manifest.skills[]` entry.
 - `plugins/do-it/agents/` — generated from every `manifest.agents[]` entry.
 - `scripts/build-codex-plugin.mjs` — the only supported way to refresh the
   generated plugin bundle.

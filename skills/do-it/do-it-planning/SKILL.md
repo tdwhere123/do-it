@@ -37,7 +37,7 @@ Parent-only unless explicitly assigned:
 
 - use for wave, phase, release, multi-agent, durable workflow, or cross-boundary planning;
 - lock scope, write ownership, non-goals, and integration ownership;
-- run grill, interface, architecture, domain-language, or slicing drills as needed;
+- run grill, interface, architecture, vocabulary (do-it-context), or slicing drills as needed;
 - stop for approval if the user asked to confirm the plan.
 
 ## Planning Sequence
@@ -112,9 +112,28 @@ mkdir -p .do-it/runtime && printf '%s' "<slug>" > .do-it/runtime/pointer
 
 See `do-it-router` § Task Pointer for the full protocol. Inline plans that never produce a `<slug>.md` file do not need to write the pointer.
 
-## Handbook Alignment
+## Task Card Layout
 
-When `.do-it/handbook/` exists, a durable `.do-it/plans/<slug>.md` card follows the section order in `.do-it/handbook/task-card-template.md` — frontmatter, then Background & Goal, Allowed Scope, Deferred, Acceptance Criteria, Verification, Shared File Hazards & Dependencies. The template owns the canonical layout; the lenses and required artifacts in this skill fill those sections. When the handbook is absent and the work spans many files or sessions, suggest `do-it-handbook` to scaffold it rather than inventing a one-off structure.
+A durable `.do-it/plans/<slug>.md` card uses this canonical layout; the lenses
+and required artifacts in this skill fill the sections.
+
+Frontmatter (block-quoted bullets): **Card ID**, **Source/Background**,
+**Target** (repo-relative paths), **Size** (S ≤ 5 files, M ≤ 20, L ≤ 100,
+XL > 100), **Tier** (Light/Standard/Heavy), **Prerequisite**, **Blocks**,
+**Owner**, **Grill** (slug or `none`), **Brainstorm** (slug or `none`).
+
+Sections, in order:
+
+1. **Background & Goal** — why it matters, plus a one-sentence goal (one card = one goal).
+2. **Allowed Scope** — exhaustive list of files the card touches, with the change per file.
+3. **Deferred** — anything intentionally out of scope, each citing a backlog issue; write `Nothing deferred.` if none.
+4. **Acceptance Criteria** — table of stable AC IDs (AC1, AC2, …) each with a verifiable Evidence column.
+5. **Verification** — concrete shell commands ordered build → test → lint → integration; put the Evidence Ledger here for Heavy, release/install, multi-agent, or durable-plan work.
+6. **Shared File Hazards & Dependencies** — shared files that may collide with other cards in the wave; write `No shared-file hazards.` if none.
+
+All paths are repository-relative. When the work spans many files or sessions
+and no `.do-it/handbook/` exists yet, suggest `do-it-handbook` to scaffold the
+project-truth files rather than inventing a one-off structure.
 
 ## Required Planning Artifacts
 
@@ -202,6 +221,27 @@ Include:
 
 Keep file paths and code snippets out of durable PRD prose unless the user asks
 for a code-facing plan; they go stale faster than domain decisions.
+
+## Visual Aids (optional)
+
+When seeing an option is materially clearer than reading it — UI layout
+alternatives, architecture/data-flow diagrams, before/after states, side-by-side
+interface shapes, or visual task sequencing for multi-agent work — produce the
+smallest useful artifact under `.do-it/visual/<topic>/` (descriptive filenames
+like `option-a-flow.md`, `api-boundary.svg`), compare 2-3 options with explicit
+tradeoffs, and name a recommendation. Feed that decision back into this plan card
+(or `do-it-interface-drill` / `do-it-architecture-scan` when it shapes a contract
+or boundary).
+
+Treat visuals as auxiliary evidence, not durable plan output: the decision still
+lands in the plan card. Skip them for text-only decisions, one-line questions, or
+where a table is clearer. A visual aid never promotes a task's tier by itself.
+
+For browser-based side-by-side comparison, this skill ships an optional local
+visual companion under `scripts/` (a small static server plus `plan-card` /
+`review-report` render templates). Load `references/visual-companion.md` only
+when you actually need the browser render; for everything else, file-based
+sketches in `.do-it/visual/` are enough.
 
 ## Output Shape
 

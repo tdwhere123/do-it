@@ -130,16 +130,16 @@ rebuilds it from each `skills/do-it/<name>/SKILL.md` frontmatter and
 - `do-it-context`: maintains the project's canonical `.do-it/CONTEXT.md` —
   one-line definitions for terms, invariants, and relationships that
   downstream skills (grill, planning, review) read before debating semantics.
-- `do-it-grill-log`: writes the per-task `.do-it/grill/<task>.md` artifact
-  (`kind`, falsifier, status, evidence). Read by `do-it-planning` and
+  Its § Domain Glossary Mode stabilizes domain terms and catches contradictions
+  between user language, docs, and code.
+- `do-it-grill` § Grill Log Artifact: writes the per-task `.do-it/grill/<task>.md`
+  artifact (`kind`, falsifier, status, evidence). Read by `do-it-planning` and
   `do-it-verification-gate` so unresolved facts or execution-blocking
   decisions block closeout.
 - `do-it-architecture-scan`: checks ownership, dependency direction, coupling,
   migration path, rollout risk, and failure isolation.
 - `do-it-interface-drill`: checks API, type, schema, CLI, docs, protocol, and
   adapter contracts at the producer/consumer boundary.
-- `do-it-domain-language`: stabilizes domain terms and catches contradictions
-  between user language, docs, and code.
 - `do-it-tdd`, `do-it-debugging`, `do-it-review-loop`,
   `do-it-fix-loop`, and `do-it-verification-gate`: focused quality loops used
   when behavior, root cause, review findings, or completion claims require
@@ -148,8 +148,6 @@ rebuilds it from each `skills/do-it/<name>/SKILL.md` frontmatter and
   slices, ownership boundaries, and return schemas.
 - `do-it-worktree-isolation` and `do-it-branch-closeout`: optional support for
   isolated work and final integration.
-- `do-it-visual-planning`: optional local visual companion for planning
-  artifacts; it is not part of the default delivery route.
 
 The do-it roles absorb the useful discipline from the previous workflow family:
 mandatory truth checks, failure-mode forecasting, explicit planning, isolated
@@ -183,16 +181,16 @@ class: task` for a delegated slice, or `tier: Heavy, class: wave` for the parent
 coordinator. Do not use `wave` or `phase` as substitutes for `Standard` or
 `Heavy`.
 
-`do-it-domain-language`, `do-it-worktree-isolation`, `do-it-skill-authoring`,
-and `do-it-visual-planning` are routed by need rather than by tier:
+`do-it-worktree-isolation` and `do-it-skill-authoring` are routed by need rather
+than by tier:
 
-- use `do-it-domain-language` when overloaded terms, product concepts, or
-  business rules affect the plan or review;
 - use `do-it-worktree-isolation` when current workspace state, parallel lanes,
   or rollback risk requires isolation;
-- use `do-it-skill-authoring` when creating or updating skills;
-- use `do-it-visual-planning` only when a local visual planning companion would
-  improve a planning discussion.
+- use `do-it-skill-authoring` when creating or updating skills.
+
+Vocabulary work (overloaded terms, product concepts, business rules) routes to
+`do-it-context` § Domain Glossary Mode; visual comparison routes to
+`do-it-planning` § Visual Aids.
 
 ## Planning Rules
 
@@ -276,7 +274,7 @@ Use for `Heavy` work:
 2. Use `do-it-grill` to challenge the decision tree, failure-mode forecast, and path map before implementation.
 3. Use `do-it-slicing` to define lanes and shared-file ownership.
 4. Run `do-it-interface-drill`, `do-it-architecture-scan`, and
-   `do-it-domain-language` only where their evidence will change the plan.
+   `do-it-context` § Domain Glossary Mode only where their evidence will change the plan.
 5. Delegate Standard slices unless a child is explicitly assigned Heavy work.
 6. Run expanded review, fix-loop, re-review, and branch closeout.
 

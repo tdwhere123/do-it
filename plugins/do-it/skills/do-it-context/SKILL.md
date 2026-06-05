@@ -1,13 +1,13 @@
 ---
 name: do-it-context
-description: "Use when repo terms or invariants are drifting and `.do-it/CONTEXT.md` should become the downstream source of truth for names, relationships, and facts."
+description: "Use when repo terms or invariants are drifting, or when user/docs/code naming disagrees and a canonical glossary is needed — `.do-it/CONTEXT.md` is the downstream source of truth for names, relationships, and facts."
 ---
 
 # Do-It Context
 
 ## Purpose
 
-`.do-it/CONTEXT.md` is the single canonical place where this project's terminology, invariants, and relationship-shapes live for AI workflows. Other skills (especially `do-it-grill`, `do-it-planning`, `do-it-review-loop`, `do-it-domain-language`) read it before debating definitions.
+`.do-it/CONTEXT.md` is the single canonical place where this project's terminology, invariants, and relationship-shapes live for AI workflows. Other skills (especially `do-it-grill`, `do-it-planning`, `do-it-review-loop`) read it before debating definitions. This skill also owns the deeper domain-language pass (canonical glossary + contradiction checks) — see § Domain Glossary Mode.
 
 It is **not** a wiki, README replacement, or onboarding doc. It is a terse, declarative artifact intended to fit in the AI's working memory budget. Keep it under ~200 lines.
 
@@ -31,11 +31,15 @@ When context sources disagree, use this order:
 
 1. Current code, tests, schemas, manifests, generated source-of-truth scripts,
    and live command output.
-2. `.do-it/CONTEXT.md` for terse repo terms, invariants, and relationships that
+2. `CLAUDE.md` (or the host's equivalent root agent-instruction file) for
+   durable, human-authored conventions and behavioral rules the team chose —
+   authoritative for *how to work here*, though current code still wins on
+   *what the code is*.
+3. `.do-it/CONTEXT.md` for terse repo terms, invariants, and relationships that
    code does not express accessibly.
-3. Current plan, grill log, task card, or issue for the active work.
-4. README, docs, ADRs, and maintenance guides.
-5. Memory, old reports, previous worker summaries, and external sources.
+4. Current plan, grill log, task card, or issue for the active work.
+5. README, docs, ADRs, and maintenance guides.
+6. Memory, old reports, previous worker summaries, and external sources.
 
 Lower layers can point to what to inspect, but they do not override current
 repo truth.
@@ -87,6 +91,85 @@ Roughly quarterly, or when the file crosses ~200 lines:
 2. Find lines that no longer match the code; rewrite or delete.
 3. Find lines that have moved into the type system / schema and can now be deleted.
 
+## CLAUDE.md (durable conventions)
+
+`CLAUDE.md` (or the host's equivalent root instruction file) holds the durable,
+human-owned conventions for how agents work in this project — coding standards,
+review bar, do/don't rules, restraint principles. do-it reads it before grill
+and planning. It differs from the other do-it homes:
+
+- **CLAUDE.md** — durable *behavioral* conventions and team rules (human-owned,
+  rarely changes).
+- **`.do-it/CONTEXT.md`** — per-session *factual* sediment (terms, invariants,
+  relationships) that `do-it-grill` writes.
+- **`.do-it/handbook/`** — structural project docs (architecture, code map,
+  glossary, backlog).
+
+CLAUDE.md is the top of the convention ladder: a rule that has held across
+sessions and is about *how to work* (not a project fact) graduates here from
+`.do-it/CONTEXT.md`.
+
+When the user asks to set up or tidy CLAUDE.md, scaffold a lean skeleton on
+demand — never auto-write, and never overwrite an existing CLAUDE.md (additive,
+like the handbook bootstrap). A useful skeleton:
+
+```markdown
+# <Project> — agent conventions
+
+## Restraint
+- Prefer advisory nudges over write-blocking gates.
+- Reuse or thin an existing module before adding a new one; do not build things
+  that grow unbounded.
+- Read existing structure and git intent before deleting or rewriting.
+
+## Conventions
+- <language / formatting / naming rules that code cannot express on its own>
+
+## Review bar
+- <what blocks a merge here>
+```
+
+Keep it short — CLAUDE.md is read every turn, so it competes for context budget.
+Detail belongs in `.do-it/handbook/` or `docs/`.
+
+## Domain Glossary Mode (Standard+)
+
+The sediment workflow above is the Light path — one line per clarified term. For
+non-trivial naming or modeling work (a new public API, schema, data model, phase
+plan, or widespread terminology drift), do the deeper pass: build an explicit
+canonical language map before names harden into code, docs, schemas, UI labels,
+or handoffs.
+
+Sequence:
+
+1. Collect terms from the user request, docs, code, tests, schemas, logs, and UI copy.
+2. Group synonyms, aliases, abbreviations, and deprecated terms.
+3. Identify contradictions between code, docs, user language, and runtime behavior.
+4. Define canonical terms from domain meaning, not implementation convenience.
+5. Name domain entities, actions, states, invariants, and forbidden states.
+6. Recommend what must change now and what can wait; feed interface/architecture
+   implications into the relevant do-it skill.
+
+Glossary shape:
+
+| Term | Definition | Source evidence | Aliases | Status |
+| --- | --- | --- | --- | --- |
+| canonical-term | ... | file/docs/user | old-term | canonical |
+
+Status values: `canonical` (use in new code/docs), `alias` (acceptable for
+compatibility), `deprecated` (avoid in new work, migrate when touched),
+`conflict` (sources disagree and need a decision).
+
+Contradiction checks — look for: a user term and a code term that mean different
+things; docs describing a concept code models differently; a UI label hiding a
+backend state distinction; schema names encoding transport detail instead of
+domain meaning; tests using legacy terms; agents or task cards using different
+names for the same ownership boundary.
+
+Stable canonical terms graduate into `glossary.md` via the three-session
+promotion rule (see `do-it-handbook`). Do not rename code broadly when a glossary
+is enough for the current task.
+
 ## Stop Conditions
 
 Do not update CONTEXT.md when:
@@ -130,4 +213,3 @@ Before relying on or updating CONTEXT.md:
 - `do-it-grill` — primary writer of new entries.
 - `do-it-planning` — reads CONTEXT.md before drafting plan cards.
 - `do-it-review-loop` — checks CONTEXT.md for contract terms before reviewing.
-- `do-it-domain-language` — for the deeper "is this a coherent domain language" question.
