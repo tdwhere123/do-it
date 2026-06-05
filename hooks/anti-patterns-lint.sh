@@ -315,6 +315,9 @@ fi
 
 PROJECT_ROOT="$(do_it_project_root "$CWD")"
 PROJECT_ROOT="${PROJECT_ROOT%/}"
+# FILE_PATH was symlink-resolved with pwd -P above; resolve PROJECT_ROOT the same
+# way so the display strip still works when CWD is a symlinked path (macOS).
+PROJECT_ROOT="$(cd "$PROJECT_ROOT" 2>/dev/null && pwd -P || printf '%s' "$PROJECT_ROOT")"
 case "$FILE_PATH" in
   "$PROJECT_ROOT"/*) DISPLAY_PATH="${FILE_PATH#"$PROJECT_ROOT"/}" ;;
   *) DISPLAY_PATH="$FILE_PATH" ;;

@@ -110,8 +110,8 @@ When a skill changes, decide which kind of update it is:
 - do-it rewrite
 - do-it compatibility adapter that preserves a workflow idea while changing the
   installed name and wording
-- optional auxiliary support, such as visual planning, that is installed but not
-  part of the default tier flow
+- optional auxiliary support that is installed but not part of the default tier
+  flow (no skills are marked optional in 0.11.0)
 
 For either kind:
 

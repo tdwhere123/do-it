@@ -45,8 +45,8 @@ The do-it skills are rewrites, not vendored copies. Useful ideas from
 | `improve-codebase-architecture` | `do-it-architecture-scan` | Friction-led exploration, shallow-module detection, deep-module candidates, coupling and testability impact. |
 | `tdd` | `do-it-tdd` | Public-interface behavior tests and one RED/GREEN vertical slice at a time. |
 | `triage-issue` | `do-it-debugging` | Manifestation, code path, root cause, minimal fix, and TDD fix plan. |
-| `qa` | `do-it-review-loop`, `do-it-domain-language` | User-facing durable issues, concise reproduction, and project domain language. |
-| `ubiquitous-language`, `domain-model` | `do-it-domain-language` | Canonical glossary, ambiguity flags, code/docs contradiction checks, and lightweight ADR triggers. |
+| `qa` | `do-it-review-loop`, `do-it-context` | User-facing durable issues, concise reproduction, and project domain language. |
+| `ubiquitous-language`, `domain-model` | `do-it-context` § Domain Glossary Mode | Canonical glossary, ambiguity flags, code/docs contradiction checks, and lightweight ADR triggers. |
 | `write-a-skill` | `do-it-skill-authoring` | Concise SKILL.md, progressive disclosure, optional resources, and validation. |
 
 Excluded or adapter-only ideas remain outside the core install flow unless a

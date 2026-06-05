@@ -140,7 +140,7 @@ fi
 do_it_session_state_set "$SESSION_ID" dim_brownfield "$brownfield"
 port_intent=0
 case "$(do_it_lc "$PROMPT")" in
-  *"移植"*|*"迁移回"*|*"重新引入"*|*"恢复"*|*"reintroduce"*|*"re-introduce"*|*"port from"*|*"port over"*|*"port the"*|*"restore the"*|*"bring back"*)
+  *"移植"*|*"迁移回"*|*"重新引入"*|*"恢复历史"*|*"恢复旧"*|*"恢复以前"*|*"reintroduce"*|*"re-introduce"*|*"port from"*|*"port over"*|*"port the"*|*"restore legacy"*|*"restore the old"*|*"bring back the"*)
     port_intent=1 ;;
 esac
 do_it_session_state_set "$SESSION_ID" port_intent "$port_intent"
