@@ -56,6 +56,27 @@ A failure, error, surprising result, or red flag is a clue to investigate — no
 
 This principle binds the parent agent and every subagent. `do-it-debugging`, `do-it-fix-loop`, and `do-it-verification-gate` enforce it at their stages; reviewers treat a cover-up as a Blocking finding.
 
+## Restraint
+
+do-it favors the smallest change that earns its keep — fast *and* good, not more
+ceremony. When extending the system or planning a change inside a project, apply
+these by default:
+
+- Prefer advisory nudges and side-channels over write-blocking gates: remind in
+  the moment, do not stall the work before it starts.
+- Thin or reuse an existing skill before adding a new one. Do not build anything
+  that grows unbounded with use (anti-pattern lists, auto-collected findings,
+  ever-longer checklists); ask "will this keep growing?" before adding a rule.
+- Before deleting code, a field, or a doc that looks unused, read its git history
+  and original intent. "No current consumer" is a reason to investigate why it
+  was built, not a licence to delete.
+- Let capabilities surface automatically at the right moment instead of requiring
+  the user to remember a `/command`.
+- Match process to risk, not habit: small work stays Light; only real risk earns
+  planning, review, and proof.
+
+This binds how do-it itself evolves and how it shapes changes inside a project.
+
 ## Orthogonal Dimensions
 
 In addition to the single tier label, the router writes 5 boolean dimensions into per-session state. They narrow *intensity*, not tier itself: a Standard task can still be `breaks_interface=1` and a downstream skill MAY upgrade its review or drill posture accordingly.

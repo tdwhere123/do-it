@@ -31,11 +31,15 @@ When context sources disagree, use this order:
 
 1. Current code, tests, schemas, manifests, generated source-of-truth scripts,
    and live command output.
-2. `.do-it/CONTEXT.md` for terse repo terms, invariants, and relationships that
+2. `CLAUDE.md` (or the host's equivalent root agent-instruction file) for
+   durable, human-authored conventions and behavioral rules the team chose —
+   authoritative for *how to work here*, though current code still wins on
+   *what the code is*.
+3. `.do-it/CONTEXT.md` for terse repo terms, invariants, and relationships that
    code does not express accessibly.
-3. Current plan, grill log, task card, or issue for the active work.
-4. README, docs, ADRs, and maintenance guides.
-5. Memory, old reports, previous worker summaries, and external sources.
+4. Current plan, grill log, task card, or issue for the active work.
+5. README, docs, ADRs, and maintenance guides.
+6. Memory, old reports, previous worker summaries, and external sources.
 
 Lower layers can point to what to inspect, but they do not override current
 repo truth.
@@ -86,6 +90,47 @@ Roughly quarterly, or when the file crosses ~200 lines:
 1. Find duplicates and resolve them.
 2. Find lines that no longer match the code; rewrite or delete.
 3. Find lines that have moved into the type system / schema and can now be deleted.
+
+## CLAUDE.md (durable conventions)
+
+`CLAUDE.md` (or the host's equivalent root instruction file) holds the durable,
+human-owned conventions for how agents work in this project — coding standards,
+review bar, do/don't rules, restraint principles. do-it reads it before grill
+and planning. It differs from the other do-it homes:
+
+- **CLAUDE.md** — durable *behavioral* conventions and team rules (human-owned,
+  rarely changes).
+- **`.do-it/CONTEXT.md`** — per-session *factual* sediment (terms, invariants,
+  relationships) that `do-it-grill` writes.
+- **`.do-it/handbook/`** — structural project docs (architecture, code map,
+  glossary, backlog).
+
+CLAUDE.md is the top of the convention ladder: a rule that has held across
+sessions and is about *how to work* (not a project fact) graduates here from
+`.do-it/CONTEXT.md`.
+
+When the user asks to set up or tidy CLAUDE.md, scaffold a lean skeleton on
+demand — never auto-write, and never overwrite an existing CLAUDE.md (additive,
+like the handbook bootstrap). A useful skeleton:
+
+```markdown
+# <Project> — agent conventions
+
+## Restraint
+- Prefer advisory nudges over write-blocking gates.
+- Reuse or thin an existing module before adding a new one; do not build things
+  that grow unbounded.
+- Read existing structure and git intent before deleting or rewriting.
+
+## Conventions
+- <language / formatting / naming rules that code cannot express on its own>
+
+## Review bar
+- <what blocks a merge here>
+```
+
+Keep it short — CLAUDE.md is read every turn, so it competes for context budget.
+Detail belongs in `.do-it/handbook/` or `docs/`.
 
 ## Domain Glossary Mode (Standard+)
 
