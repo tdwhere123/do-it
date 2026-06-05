@@ -4,6 +4,46 @@
 
 - No unreleased changes.
 
+## 0.11.0
+
+### Fixed
+
+- macOS CI: the `anti-patterns-lint` hook is now BSD-portable. The no-consumer
+  check uses git grep's own `-w` word match instead of a GNU `\b` regex, and
+  file paths are canonicalized with `pwd -P` before repo-relative stripping so
+  the `/var`→`/private/var` symlink no longer breaks self-exclusion. The macOS
+  hook-test job was failing on these for three releases.
+
+### Changed
+
+- Handbook slimmed from 12 templates to 7 project-truth files. The five process
+  docs that duplicated skills were removed: the task-card layout now lives in
+  `do-it-planning`, the review protocol in `do-it-review-loop`, the dispatch
+  contract in `do-it-subagent-orchestration`, the execution pipeline in
+  `do-it-router`, and the handbook maintenance rules in the `do-it-handbook`
+  skill.
+- Three low-utilization skills consolidated (23 → 20): `do-it-grill-log` folded
+  into `do-it-grill` (Grill Log Artifact), `do-it-domain-language` into
+  `do-it-context` (Domain Glossary Mode), and the optional `do-it-visual-planning`
+  into `do-it-planning` (Visual Aids); the visual-planning browser companion is
+  retired. Existing installs remove the deprecated skills on upgrade.
+- `do-it-router` gains a § Restraint principle: advisory over blocking, reuse
+  over add, no unbounded libraries, check git intent before deleting, and
+  capabilities that auto-fire instead of requiring a `/command`.
+- `do-it-context` gives `CLAUDE.md` a formal role in the source-of-truth
+  hierarchy, draws the `CLAUDE.md` / `CONTEXT.md` / handbook boundary, and can
+  scaffold a lean `CLAUDE.md` on demand (additive, never auto-write).
+
+### Added
+
+- Advisory nudges (one-shot, never block): after grill on durable-plan work with
+  no plan card, a reminder to land the plan card before implementation drifts
+  ahead; on established projects (`.do-it/CONTEXT.md` or handbook present) or
+  port/restore prompts, a reminder to read existing structure / grep current
+  code first.
+- `comments-lint` now flags `phase N`, `wave N`, and `BL-NNN` stage markers as
+  `task-ref` comments.
+
 ## 0.10.0
 
 ### Added
