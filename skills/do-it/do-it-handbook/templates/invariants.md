@@ -30,8 +30,8 @@ A change to this file is a project-shape decision, not a routine edit.
 
 ## Review
 
-9. A worker `DONE` claim is not an acceptance signal; the review
-   protocol in `workflow/review-protocol.md` decides acceptance.
+9. A worker `DONE` claim is not an acceptance signal; `do-it-review-loop`
+   decides acceptance.
 10. Closeout requires fresh verification evidence on the integrated
     branch; evidence from an isolated worktree alone is not enough.
 

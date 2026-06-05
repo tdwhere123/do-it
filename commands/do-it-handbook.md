@@ -1,5 +1,5 @@
 ---
-description: 在当前项目里铺一份 .do-it/handbook/ 骨架（invariants / architecture / code-map / glossary / backlog / runtime-status / maintenance / task-card-template + 三个 workflow 文件），仅补齐缺失文件，不覆盖已有内容。
+description: 在当前项目里铺一份 .do-it/handbook/ 骨架（invariants / architecture / code-map / glossary / backlog / runtime-status），仅补齐缺失文件，不覆盖已有内容。
 ---
 
 # /do-it-handbook

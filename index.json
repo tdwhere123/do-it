@@ -232,7 +232,7 @@
     {
       "kind": "skill",
       "name": "do-it-handbook",
-      "description": "Use when a project needs a durable `.do-it/handbook/` skeleton for architecture, glossary, code map, backlog, runtime, maintenance, and workflow docs.",
+      "description": "Use when a project needs a durable `.do-it/handbook/` skeleton for architecture, invariants, glossary, code map, backlog, and runtime status.",
       "origin": "do-it",
       "optional": false,
       "group": "maintenance",

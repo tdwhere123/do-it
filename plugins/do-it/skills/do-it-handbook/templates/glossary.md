@@ -36,11 +36,10 @@ Avoid:
 ## Process Vocabulary
 
 **Light / Standard / Heavy** — Tier classification used by
-`do-it-router` to size the workflow for a task. See
-`workflow/agent-workflow.md`.
+`do-it-router` to size the workflow for a task. See `do-it-router`.
 
 **Blocking / Important / Opportunity** — Severity used in review
-findings. See `workflow/review-protocol.md`.
+findings. See `do-it-review-loop`.
 
 **Grill / Brainstorm** — Convergent (`do-it-grill`) and divergent
 (`do-it-brainstorm`) reasoning passes that run before planning.

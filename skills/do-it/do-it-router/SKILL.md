@@ -189,6 +189,37 @@ Use only in the parent agent unless a subagent is explicitly assigned Heavy.
 
 Flow: scope lock -> deep truth scan -> grill/interface/architecture/domain drills as needed -> slice plan -> execution and right-sized review gates -> integrated verification -> closeout.
 
+## Execution Pipeline
+
+Once the route is set, execute non-trivial work in this order (Light-tier
+mechanical edits skip most of it):
+
+1. Read the task card / inline map, the relevant `invariants.md`, and the
+   affected existing code before editing.
+2. Freeze scope from the card's Allowed Scope; map producer -> consumer for
+   multi-package or live-path work.
+3. Write or update tests first when practical (`do-it-tdd`).
+4. Implement the smallest change that satisfies the card, then verify with its
+   own commands.
+5. Run `do-it-review-loop` on the diff before marking done; sweep changed
+   contracts for doc/code drift.
+
+For a wave (cards that land together) see `do-it-slicing`: run independent cards
+in parallel only when their **write sets do not overlap**; serialize shared
+barrel/index files. For phase or risky shared-file work, isolate with
+`do-it-worktree-isolation` and merge back only after the integrated branch is
+review-clean.
+
+### Anti-tail discipline
+
+- **One card, one goal** — if a card grows a second goal, split it.
+- **No silent scope expansion** — a file outside Allowed Scope means update the
+  scope explicitly or open a backlog issue.
+- **No commit during a fix loop without re-running review** — partial fixes ship
+  under the cover of "addressed".
+- **No mocking the real collaborator chain** in integration tests unless the
+  card says so.
+
 ## Route Map
 
 - Need a plan or design handoff: `do-it-planning`.

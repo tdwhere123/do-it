@@ -55,7 +55,7 @@ Skip it for text-only decisions, one-line questions, or plans where a table is c
 
 `templates/` ships ready-made content fragments for two recurring artifacts:
 
-- `templates/plan-card.html` — a plan / task card (goal, scope, acceptance criteria, verification, risks); section order matches `.do-it/handbook/task-card-template.md` so a visual card and a written card stay consistent.
+- `templates/plan-card.html` — a plan / task card (goal, scope, acceptance criteria, verification, risks); section order matches the task-card layout in `do-it-planning` so a visual card and a written card stay consistent.
 - `templates/review-report.html` — review findings grouped by Blocking / Important / Opportunity with evidence.
 
 To use one: copy the fragment into the companion `screen_dir`, fill its `slot:` placeholders, and drop unused sections. The server wraps the fragment in `frame-template.html`, which already carries all CSS — the fragment stays small because only the content varies, and a consistent skeleton means the layout is not re-derived each time.
