@@ -25,8 +25,9 @@
 - Three low-utilization skills consolidated (23 → 20): `do-it-grill-log` folded
   into `do-it-grill` (Grill Log Artifact), `do-it-domain-language` into
   `do-it-context` (Domain Glossary Mode), and the optional `do-it-visual-planning`
-  into `do-it-planning` (Visual Aids); the visual-planning browser companion is
-  retired. Existing installs remove the deprecated skills on upgrade.
+  into `do-it-planning` (Visual Aids); the visual companion (local browser
+  server + render templates) moves under `do-it-planning` and its templates were
+  visually redesigned. Existing installs remove the deprecated skills on upgrade.
 - `do-it-router` gains a § Restraint principle: advisory over blocking, reuse
   over add, no unbounded libraries, check git intent before deleting, and
   capabilities that auto-fire instead of requiring a `/command`.

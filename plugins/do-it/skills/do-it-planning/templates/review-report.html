@@ -1,0 +1,47 @@
+<!--
+  do-it review-report template — a CONTENT FRAGMENT for do-it-planning § Visual Aids.
+
+  Usage: copy this fragment into the companion server's screen_dir (see
+  references/visual-companion.md), fill every `slot:` placeholder, and drop
+  any finding block you do not need (or repeat one for more findings). The
+  server wraps the fragment in frame-template.html, which carries all CSS —
+  so do NOT add <html>, <head>, <body>, or a <style> block here.
+
+  Findings are grouped by severity to match do-it-review-loop output.
+-->
+<div class="section">
+  <h2><!-- slot: review scope — the surface reviewed --></h2>
+  <p class="subtitle"><!-- slot: what was reviewed and the overall verdict --></p>
+  <div class="meta-row">
+    <span><b>Blocking:</b> <!-- slot: count --></span>
+    <span><b>Important:</b> <!-- slot: count --></span>
+    <span><b>Opportunity:</b> <!-- slot: count --></span>
+  </div>
+</div>
+
+<div class="section">
+  <div class="label">Findings</div>
+
+  <div class="finding blocking">
+    <div class="sev">Blocking</div>
+    <p><!-- slot: finding — likely defect, data/security risk, broken contract --></p>
+    <div class="evidence"><!-- slot: file:line, command output, or diff evidence --></div>
+  </div>
+
+  <div class="finding important">
+    <div class="sev">Important</div>
+    <p><!-- slot: finding — plausible regression, weak failure handling, missing test --></p>
+    <div class="evidence"><!-- slot: evidence --></div>
+  </div>
+
+  <div class="finding opportunity">
+    <div class="sev">Opportunity</div>
+    <p><!-- slot: finding — useful but safely deferrable improvement --></p>
+    <div class="evidence"><!-- slot: evidence --></div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="label">Residual Risk</div>
+  <p><!-- slot: what remains unproven, or "None identified." --></p>
+</div>

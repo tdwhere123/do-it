@@ -226,11 +226,22 @@ for a code-facing plan; they go stale faster than domain decisions.
 
 When seeing an option is materially clearer than reading it — UI layout
 alternatives, architecture/data-flow diagrams, before/after states, side-by-side
-interface shapes — sketch it under `.do-it/visual/<topic>/` (descriptive
-filenames like `option-a-flow.md`, `api-boundary.svg`). Treat these as auxiliary
-evidence, not durable plan output: the decision still lands in the plan card.
-Skip visuals for text-only decisions, one-line questions, or where a table is
-clearer. A visual aid never promotes a task's tier by itself.
+interface shapes, or visual task sequencing for multi-agent work — produce the
+smallest useful artifact under `.do-it/visual/<topic>/` (descriptive filenames
+like `option-a-flow.md`, `api-boundary.svg`), compare 2-3 options with explicit
+tradeoffs, and name a recommendation. Feed that decision back into this plan card
+(or `do-it-interface-drill` / `do-it-architecture-scan` when it shapes a contract
+or boundary).
+
+Treat visuals as auxiliary evidence, not durable plan output: the decision still
+lands in the plan card. Skip them for text-only decisions, one-line questions, or
+where a table is clearer. A visual aid never promotes a task's tier by itself.
+
+For browser-based side-by-side comparison, this skill ships an optional local
+visual companion under `scripts/` (a small static server plus `plan-card` /
+`review-report` render templates). Load `references/visual-companion.md` only
+when you actually need the browser render; for everything else, file-based
+sketches in `.do-it/visual/` are enough.
 
 ## Output Shape
 
