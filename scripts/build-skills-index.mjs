@@ -42,7 +42,6 @@ const ON_DEMAND = [
 const HANDBOOK = [
   "do-it-handbook",
   "do-it-context",
-  "do-it-grill-log",
   "do-it-skill-authoring"
 ];
 

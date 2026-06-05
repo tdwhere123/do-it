@@ -130,8 +130,8 @@ rebuilds it from each `skills/do-it/<name>/SKILL.md` frontmatter and
 - `do-it-context`: maintains the project's canonical `.do-it/CONTEXT.md` —
   one-line definitions for terms, invariants, and relationships that
   downstream skills (grill, planning, review) read before debating semantics.
-- `do-it-grill-log`: writes the per-task `.do-it/grill/<task>.md` artifact
-  (`kind`, falsifier, status, evidence). Read by `do-it-planning` and
+- `do-it-grill` § Grill Log Artifact: writes the per-task `.do-it/grill/<task>.md`
+  artifact (`kind`, falsifier, status, evidence). Read by `do-it-planning` and
   `do-it-verification-gate` so unresolved facts or execution-blocking
   decisions block closeout.
 - `do-it-architecture-scan`: checks ownership, dependency direction, coupling,

@@ -148,7 +148,7 @@ When durable handoff is useful, write:
 .do-it/brainstorm/<task-slug>.md
 ```
 
-`<task-slug>` follows the same rule as `do-it-grill-log`: slug from the user title or a short hash, with an optional session prefix. `<cwd>/.do-it/brainstorm/.gitkeep` should exist when the project tracks do-it artifacts.
+`<task-slug>` follows the same slug rule as the grill log (see `do-it-grill` § Grill Log Artifact): slug from the user title or a short hash, with an optional session prefix. `<cwd>/.do-it/brainstorm/.gitkeep` should exist when the project tracks do-it artifacts.
 
 In the same turn, write the slug to the task pointer so router and other skills can pick it up:
 
@@ -288,7 +288,6 @@ After discussion or artifact creation:
 
 - `do-it-router` — sets tier and decides whether brainstorm is useful.
 - `do-it-subagent-orchestration` — dispatch contract for selected lenses.
-- `do-it-grill` — converges the must-discuss stack.
-- `do-it-grill-log` — records resolved facts and decisions.
+- `do-it-grill` — converges the must-discuss stack and records resolved facts and decisions in its grill log.
 - `do-it-review-loop` — reviews delivered diff, skill quality, install readiness, and release risk after implementation.
 - `do-it-context` — sediments terms anchored during brainstorm or grill.

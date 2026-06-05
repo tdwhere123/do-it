@@ -359,6 +359,14 @@
         "15619616cf9b0d82f74f81e472ad1669b5cc23f56b8b6adb31d9e33ddb16d79e"
       ],
       "reason": "removed after 0.4.x; use do-it-router plus focused planning, TDD/debugging, review-loop, fix-loop, and verification-gate as needed"
+    },
+    {
+      "name": "do-it-grill-log",
+      "target": "skills/do-it-grill-log",
+      "legacyHashes": [
+        "3d78d21c9cf63494773970273e750a7893d8dafc78992ce8a02bb01a417dd276"
+      ],
+      "reason": "folded into do-it-grill as the Grill Log Artifact section"
     }
   ],
   "skills": [
@@ -396,12 +404,6 @@
       "name": "do-it-context",
       "source": "skills/do-it/do-it-context",
       "target": "skills/do-it-context",
-      "origin": "do-it"
-    },
-    {
-      "name": "do-it-grill-log",
-      "source": "skills/do-it/do-it-grill-log",
-      "target": "skills/do-it-grill-log",
       "origin": "do-it"
     },
     {

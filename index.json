@@ -4,13 +4,13 @@
   "package": "@tdwhere/do-it",
   "repository": "https://github.com/tdwhere123/do-it",
   "domain": "agentic-workflow",
-  "total_skills": 23,
+  "total_skills": 22,
   "total_agents": 23,
   "coverage": {
     "skill_groups": {
       "index": 1,
       "mainline": 7,
-      "maintenance": 4,
+      "maintenance": 3,
       "on-demand": 10,
       "optional": 1
     },
@@ -78,16 +78,6 @@
       "group": "maintenance",
       "source": "skills/do-it/do-it-context",
       "target": "skills/do-it-context"
-    },
-    {
-      "kind": "skill",
-      "name": "do-it-grill-log",
-      "description": "Use when grill facts or decisions need durable status logging as kind fact or decision before work continues.",
-      "origin": "do-it",
-      "optional": false,
-      "group": "maintenance",
-      "source": "skills/do-it/do-it-grill-log",
-      "target": "skills/do-it-grill-log"
     },
     {
       "kind": "skill",

@@ -21,7 +21,7 @@ A common failure is to dump a 5-question template at the user and call it grilli
 2. **Anchor terms before debating intent.** If the user uses a term that has a definition in `CLAUDE.md`, `.do-it/CONTEXT.md`, or visible in code with a different shape — surface the conflict before going further.
 3. **Verify, don't ask, when verification is cheap.** If the question can be answered with `rg`, `cat`, or a quick local command, do that and report what you found.
 4. **Ask only for decisions.** Ask the user one focused question only when local truth cannot decide a preference, priority, or scope tradeoff that changes execution. Before asking, explain the decision in plain language, list the viable options with benefits/costs/risks, and recommend a default.
-5. **Sediment what you learned.** When a term gets clarified or a constraint surfaces, append it to `.do-it/CONTEXT.md` (one line, declarative). Use `do-it-grill-log` for the per-task `.do-it/grill/<task>.md` artifact (`kind: fact|decision`, falsifier, status, evidence).
+5. **Sediment what you learned.** When a term gets clarified or a constraint surfaces, append it to `.do-it/CONTEXT.md` (one line, declarative). Record the per-task `.do-it/grill/<task>.md` artifact (`kind: fact|decision`, falsifier, status, evidence) per § Grill Log Artifact below.
 
 ## When To Use
 
@@ -71,7 +71,7 @@ Run this loop until every execution-blocking item is resolved: facts become `con
 1. **Pick the most load-bearing premise.** What single belief, if wrong, would change the most downstream decisions?
 2. **Try to falsify cheaply.** Read the file, grep for the symbol, run the unit test, glance at the schema. If you find evidence, jump to step 4.
 3. **Ask one focused question** only when the remaining unknown is a user decision. Start with the minimum context the user needs, then show 2-3 real options with tradeoffs and a recommended default so the user has something concrete to accept or correct.
-4. **Record the outcome** in `.do-it/grill/<task>.md` (see `do-it-grill-log`). Use `kind: fact` with `confirmed/refuted` for evidence, or `kind: decision` with `chosen/deferred/needs_user_decision` for user preferences.
+4. **Record the outcome** in `.do-it/grill/<task>.md` (see § Grill Log Artifact). Use `kind: fact` with `confirmed/refuted` for evidence, or `kind: decision` with `chosen/deferred/needs_user_decision` for user preferences.
 5. **Repeat** with the next-most-load-bearing premise, until the remaining unknowns no longer change the route.
 
 ## Assumptions Mode
@@ -103,7 +103,7 @@ Convergence flow:
 
 1. **Read the artifact.** Parse `Requirement Shape`, `Product Boundary`, `Core Goal`, `Options`, `Architecture Foundation`, and `Grill Handoff`. Each `Must Resolve In Grill` entry is a candidate premise the brainstorm lenses thought a human, grill, or local verification had to settle.
 2. **Rank by route-impact.** Sort candidates by "if this is wrong, how many downstream choices change?" — same rule as the Iterative Loop. Cross-lens tensions usually outrank single-lens one-offs.
-3. **Resolve each candidate** via the existing loop (verify cheaply, ask one question if a user decision is needed, log the result in `.do-it/grill/<task>.md` per `do-it-grill-log`).
+3. **Resolve each candidate** via the existing loop (verify cheaply, ask one question if a user decision is needed, log the result in `.do-it/grill/<task>.md` per § Grill Log Artifact).
 4. **Reference the brainstorm slug** in the grill log frontmatter: add `brainstorm: <task-slug>` so `do-it-planning` and `do-it-verification-gate` can trace the lineage.
 5. **Flip brainstorm status.** Once every execution-blocking `Must Resolve In Grill` item has a resolution (`chosen` / `deferred` / `needs_user_decision` for decisions; `confirmed` / `refuted` for facts), edit the brainstorm artifact's frontmatter from `status: open` to `status: converged`. Do not delete the artifact; future sessions read it.
 
@@ -238,10 +238,53 @@ For a heavy grill:
 - Treating architecture taste as delivery truth.
 - Using a fuzzy term repeatedly without ever defining it back to the user or to `.do-it/CONTEXT.md`.
 
+## Grill Log Artifact
+
+Grill records every pressure-tested fact or decision in `.do-it/grill/<task>.md`
+so the signal outlives the chat turn and feeds `do-it-planning` and
+`do-it-verification-gate`. Without it, grilling is just a vibe — once context
+compacts, every signal is gone.
+
+`<task-slug>` is the user's task title (lowercased, dash-separated, ≤32 chars)
+when one is obvious, else the first 8 chars of the SHA-1 of the first prompt;
+prefix with the short session id when collisions are likely. Keep
+`.do-it/grill/.gitkeep` so the directory tracks in git.
+
+Format:
+
+```markdown
+---
+task: <one-line title>
+session_id: <id>
+created: <YYYY-MM-DD>
+status: open            # flips to `resolved` when no execution-blocking item remains
+brainstorm: <slug>      # only when converging a brainstorm artifact
+---
+
+## Items tested
+
+- [ ] **<the load-bearing fact or decision, stated as a claim>**
+  - kind: <fact | decision>
+  - falsifier: <the cheap deterministic check for a fact, or `user choice required` for a decision>
+  - status: <confirmed | refuted | chosen | deferred | needs_user_decision>
+  - evidence: <file:line / grep output / explicit user choice — the literal artifact, never paraphrase>
+
+## Anchored terms
+
+- **<term>**: <definition> ← from CLAUDE.md / .do-it/CONTEXT.md / clarified this turn
+```
+
+Rules: use `confirmed`/`refuted` only for facts, `chosen`/`deferred`/`needs_user_decision`
+only for decisions. A `needs_user_decision` item blocks only when it changes the
+next execution step. Append new items and mutate existing ones in place — never
+delete an item; refute or defer it with evidence. Anchored-terms entries get
+sedimented to `.do-it/CONTEXT.md` (see `do-it-context`); this section is a
+working pad. Flip `status: resolved` once no execution-blocking item remains, and
+do not flip it back without a new entry explaining why.
+
 ## Related Skills
 
-- `do-it-context` — set up and maintain `.do-it/CONTEXT.md` with project terms and invariants.
-- `do-it-grill-log` — write per-task `.do-it/grill/<task>.md` artifacts (`kind`, falsifier, status, evidence).
+- `do-it-context` — set up and maintain `.do-it/CONTEXT.md` with project terms and invariants (sediment destination for anchored terms).
 - `do-it-brainstorm` — divergent persona pass that runs before grill; produces the open decisions grill converges on.
-- `do-it-planning` — consume the grill outcome into a plan card under `.do-it/plans/<task>.md`.
+- `do-it-planning` — consume the grill outcome into a plan card under `.do-it/plans/<task>.md`; reads the grill slug.
 - `do-it-review-loop` — apply pressure to the delivered diff after grilling has set the bar.

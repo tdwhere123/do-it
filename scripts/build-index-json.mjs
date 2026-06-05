@@ -33,7 +33,6 @@ const SKILL_GROUPS = new Map([
   ["do-it-subagent-orchestration", "on-demand"],
   ["do-it-handbook", "maintenance"],
   ["do-it-context", "maintenance"],
-  ["do-it-grill-log", "maintenance"],
   ["do-it-skill-authoring", "maintenance"],
   ["do-it-visual-planning", "optional"]
 ]);
