@@ -16,7 +16,7 @@ This is the workflow I use every day for real project work. If it fits your
 style, use it. If something feels wrong, open an issue, send a PR, or fork it
 and reshape it for your own agent setup.
 
-## The Three Moves
+## The Four Moves
 
 ### Route the work
 
@@ -58,6 +58,25 @@ fresh verification output before it can claim the task is complete.
 
 That keeps the closeout tied to the repository's actual state, not the agent's
 confidence.
+
+### Keep it small
+
+`do-it` treats every line as a liability before it is an asset. A shared
+**decision ladder** runs across the whole write lifecycle: does this need to
+exist at all? → can stdlib do it? → a platform native? → an installed
+dependency? → one line? → only then a minimal custom build. The first rung that
+works wins.
+
+It is wired into three points, not bolted on as a linter:
+
+- **Before** you write, `do-it-grill` opens with the necessity question.
+- **While** you write, the router's Restraint reflex and a non-blocking
+  write-time advisory flag speculative abstractions.
+- **After** you write, `do-it-review-loop`'s YAGNI lens tags what can be deleted,
+  inlined, or replaced by stdlib.
+
+Safety is never what gets cut: trust-boundary validation, data-loss handling,
+security, and accessibility stay in.
 
 ## Codex Global Setup
 
@@ -198,13 +217,16 @@ In practice:
 1. `do-it-router` classifies the task and records routing state; routine
    Standard/Heavy turns do not emit a visible router banner.
 2. `do-it-brainstorm` is used for product, architecture, workflow, and
-   release-adjacent work when the route needs divergent lenses. It clarifies
-   the requirement shape, product boundary, core goal, architecture foundation,
-   extension modules, and option tradeoffs, then adds only the task-fit
-   supplements needed for UX, end-user, ops, security, domain language, or
-   plan-risk questions.
-3. `do-it-grill` fires when the premise needs pressure-testing. When a
-   brainstorm artifact exists, grill enters convergence mode and resolves
+   release-adjacent work when the route needs divergent lenses. It runs the
+   product and architecture cores **inline by default**, fanning out to
+   independent subagents only at Heavy tier or on explicit request. It maps
+   options along the decision ladder with a deletion-over-addition bias, then
+   adds only the task-fit supplements needed for UX, end-user, ops, security,
+   domain language, or plan-risk questions.
+3. `do-it-grill` fires when the premise needs pressure-testing. It opens with
+   the necessity question — does this need to exist at all? — then falsifies the
+   load-bearing premises by exploring code instead of asking. When a brainstorm
+   artifact exists, grill enters convergence mode and resolves
    `Must Resolve In Grill` instead of restarting divergence.
 4. `Light`, `Standard`, and `Heavy` use different flows, not the same flow at
    different intensities.
@@ -453,10 +475,15 @@ high-quality projects already proved out:
 - [`obra/superpowers`](https://github.com/obra/superpowers): skill + subworker
   collaboration model.
 - [`mattpocock/skills`](https://github.com/mattpocock/skills): skill packaging
-  and discovery.
+  and discovery, and the prompt-convergence hygiene (leading words over adjective
+  triads, one decision at a time, checkable completion criteria) that shaped the
+  grill and brainstorm rewrites.
 - [`addyosmani/agent-skills`](https://github.com/addyosmani/agent-skills):
   production-skill anatomy, anti-rationalization, and evidence-first method
   discipline.
+- [`DietrichGebert/ponytail`](https://github.com/DietrichGebert/ponytail): the
+  "best code is the code you never wrote" decision ladder and YAGNI review
+  discipline behind the *Keep it small* move.
 
 `do-it` is my own take on the same problem space, shaped by what I learned from
 those projects and from daily use on real work. It rewrites methods into
