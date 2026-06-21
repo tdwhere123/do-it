@@ -1,290 +1,88 @@
 ---
 name: do-it-grill
-description: "Use when hidden assumptions or user-only decisions need fact verification before planning, implementation, or closeout."
+description: "Pressure-test the load-bearing premises and necessity of a plan before it hardens into code, commits, or claims. Use when hidden assumptions or user-only decisions gate planning, implementation, or closeout, or when asked to grill, challenge, or stress-test."
 ---
 
 # Do-It Grill
 
-## Purpose
+Pressure-test reasoning before it hardens into code, commits, or claims. Verify the facts you can verify locally, challenge whether the work needs to exist at all, and surface the one decision that genuinely needs the user — then stop.
 
-Use this to pressure-test reasoning before work hardens into code, docs, commits, or claims. The goal is to verify the facts that can be verified locally, expose the decision that actually needs a user choice, and keep hidden delivery risk from leaking into implementation.
+`do-it-brainstorm` diverges (maps requirement shape and options) and runs first when both run; grill converges and never re-diverges. `do-it-review-loop` reviews a delivered diff; grill challenges whether that review is needed, sufficient, or honestly closed.
 
-`do-it-review-loop` owns delivered diff review, QA intake, and multi-perspective findings. `do-it-grill` challenges whether that review is needed, sufficient, or honestly closed.
+## The loop
 
-`do-it-brainstorm` runs the divergent step — the product strategy and architecture strategy core lenses, plus any task-fit supplemental lenses, clarify the requirement shape, product boundary, architecture foundation, options, and tradeoffs before grill arrives. Grill then converges the `Must Resolve In Grill` items those lenses surfaced. Brainstorm never converges; grill never diverges. If both run, brainstorm runs first.
+Run until every load-bearing premise is either verified against a source or logged as an explicit user decision — no execution-blocking unknown remains.
 
-## How It Differs From a Q&A Template
+1. **Necessity first.** Before grilling *how*, grill *whether*: does this need to exist, or does an existing capability already cover it? This is the decision ladder's rung 1 (see `do-it-router` § Restraint) and is usually the most load-bearing premise.
+2. **Pick the most load-bearing premise.** The single belief that, if wrong, changes the most downstream work. One at a time — do not dump a five-question template; that gets shallow, scattered answers.
+3. **Falsify it cheaply — explore, don't ask.** If `rg`, opening the file, or a quick test can settle it, do that and cite `path:line`. Treat every user claim about behavior ("X is already validated", "called from one place") as a premise to grep, not a fact; if the code disagrees, surface the disagreement with a citation.
+4. **Ask only for decisions — one at a time, with a recommended answer.** When local truth cannot decide a preference, priority, or scope tradeoff, ask one focused question: one or two sentences of why-it-matters-now, 2-3 real options with benefit/cost/risk, and your recommended default so the user has something concrete to accept or correct. If the user answers only part, record the settled part and ask the next smallest unresolved decision.
+5. **Record and sediment.** Log each result in `.do-it/grill/<task>.md` (§ Grill log). When a term or constraint gets clarified, append one declarative line to `.do-it/CONTEXT.md`.
 
-A common failure is to dump a 5-question template at the user and call it grilling. That gets shallow, scattered answers. Instead:
+## When to use / skip
 
-1. **One premise at a time.** Pick the single most-load-bearing premise that, if wrong, would invalidate the most downstream work. Ask only that. Wait for the answer. Then pick the next.
-2. **Anchor terms before debating intent.** If the user uses a term that has a definition in `CLAUDE.md`, `.do-it/CONTEXT.md`, or visible in code with a different shape — surface the conflict before going further.
-3. **Verify, don't ask, when verification is cheap.** If the question can be answered with `rg`, `cat`, or a quick local command, do that and report what you found.
-4. **Ask only for decisions.** Ask the user one focused question only when local truth cannot decide a preference, priority, or scope tradeoff that changes execution. Before asking, explain the decision in plain language, list the viable options with benefits/costs/risks, and recommend a default.
-5. **Sediment what you learned.** When a term gets clarified or a constraint surfaces, append it to `.do-it/CONTEXT.md` (one line, declarative). Record the per-task `.do-it/grill/<task>.md` artifact (`kind: fact|decision`, falsifier, status, evidence) per § Grill Log Artifact below.
+Grill when: asked to grill, challenge, or stress-test; a plan has multiple plausible paths; acceptance criteria are vague; architecture, interface, release, phase, wave, or multi-agent coordination is involved; a review response seems too agreeable or under-evidenced; a closeout claim may outrun verification.
 
-## When To Use
+Skip for tiny mechanical edits with obvious acceptance checks.
 
-Use the grill when:
+## Tiers
 
-- the user asks to be grilled, challenged, or stress-tested;
-- a plan has multiple plausible paths;
-- acceptance criteria are vague;
-- architecture, interface, release, phase, wave, or multi-agent coordination is involved;
-- a review response seems too agreeable or under-evidenced;
-- a closeout claim may outrun verification.
+- **Light** — bounded work: inspect the nearest truth, name the one route-changing assumption or risk, ask at most one question (only if a preference blocks the next step), recommend the route. Does not consume brainstorm.
+- **Standard** — default for subagents and ordinary non-trivial planning: inspect code/docs/tests before asking, run the loop premise by premise, return blockers, important risks, options, and a recommendation. Must read a brainstorm artifact when one exists.
+- **Heavy** — parent-only unless assigned: wave/phase/architecture/interface/release/multi-agent decisions; codebase exploration is mandatory; return scope lock, verified facts, decision options with one recommendation, gates, and residual risk.
 
-Skip the grill for tiny mechanical edits with obvious acceptance checks.
+## Anchoring terms
 
-## Tier Rules
+When a term feels fuzzy, before debating it: search `CLAUDE.md`, `.do-it/CONTEXT.md`, and `docs/` for an existing definition. If one exists and the user is using it differently, quote both side by side and ask which applies. If none exists and the term will recur, propose one (CONTEXT-FORMAT shape, see `do-it-context`) and write it back. Pick one term per concept; do not let synonyms (`payload` vs `event body`) drift in the same conversation.
 
-### Light
+## Assumptions mode
 
-Use for bounded work:
+When the user may lack the technical vocabulary, or the codebase has strong existing patterns, do not ask open technical questions. Read current truth first, state the assumptions you would use if the user said nothing (with confidence and evidence), and ask the user to confirm or correct only the one that changes the most downstream work. Rephrase technical choices in product or operator language when that is clearer. Verify cheap assumptions instead of asking; present genuine preferences as a choice — never smuggle an unverified preference in as an assumption.
 
-- inspect the nearest truth;
-- name the one assumption or risk that could change the route;
-- ask at most one question, and only if a preference is needed;
-- recommend the next route.
+## Convergence after brainstorm
 
-### Standard
+When `.do-it/brainstorm/<task>.md` exists with `status: open` (Standard/Heavy must read it; Light only skims):
 
-Default for subagents and ordinary non-trivial planning:
+1. Read `Requirement Shape`, `Options`, `Architecture Foundation`, and the `Must Resolve In Grill` list — each entry is a candidate premise the lenses thought a human or local verification had to settle.
+2. Rank by route-impact (cross-lens tensions usually outrank single-lens one-offs) and resolve each via the loop.
+3. Add `brainstorm: <slug>` to the grill log frontmatter so `do-it-planning` and `do-it-verification-gate` can trace the lineage.
+4. Once every execution-blocking item is resolved, flip the brainstorm artifact's `status: open` → `converged`. Do not delete it. Do not regenerate lens angles inside grill — if a lens return is thin, re-run that brainstorm lens with narrower scope.
 
-- inspect code/docs/tests before asking;
-- pick the single highest-leverage premise — ask, verify, decide, then move to the next;
-- challenge goal, non-goals, acceptance, sequencing, and verification;
-- return blockers, important risks, options, and a recommendation.
+## Grill log
 
-### Heavy
+Record every pressure-tested fact or decision in `.do-it/grill/<task>.md` so the signal survives context compaction and feeds `do-it-planning` and `do-it-verification-gate`. Standard and Heavy write it; Light and discussion-first may keep it inline.
 
-Parent-only unless explicitly assigned:
-
-- wave, phase, architecture, interface, release, or multi-agent decisions;
-- codebase exploration is mandatory;
-- include scope lock, verified facts, decision options, gates, and residual risk.
-
-## The Iterative Loop
-
-Run this loop until every execution-blocking item is resolved: facts become `confirmed` or `refuted`, while user preferences become `chosen`, `deferred`, or `needs_user_decision`.
-
-1. **Pick the most load-bearing premise.** What single belief, if wrong, would change the most downstream decisions?
-2. **Try to falsify cheaply.** Read the file, grep for the symbol, run the unit test, glance at the schema. If you find evidence, jump to step 4.
-3. **Ask one focused question** only when the remaining unknown is a user decision. Start with the minimum context the user needs, then show 2-3 real options with tradeoffs and a recommended default so the user has something concrete to accept or correct.
-4. **Record the outcome** in `.do-it/grill/<task>.md` (see § Grill Log Artifact). Use `kind: fact` with `confirmed/refuted` for evidence, or `kind: decision` with `chosen/deferred/needs_user_decision` for user preferences.
-5. **Repeat** with the next-most-load-bearing premise, until the remaining unknowns no longer change the route.
-
-## Assumptions Mode
-
-Use assumptions mode when the user may not know the technical vocabulary, the
-codebase has strong existing patterns, or open-ended questions would be
-needlessly hard to answer.
-
-1. Read the relevant current truth first: project docs, code map, nearby
-   patterns, and any brainstorm artifact.
-2. State the assumptions you would use if the user said nothing, with confidence
-   and evidence.
-3. Ask the user to confirm or correct only the assumption that changes the most
-   downstream work.
-4. Rephrase technical choices in product or operator language when that is more
-   useful than implementation jargon.
-5. Log confirmed assumptions as decisions or facts before planning consumes
-   them.
-
-Do not use assumptions mode to smuggle in unverified preferences. If the
-assumption is cheap to verify, verify it; if it is a user preference, present it
-as a choice.
-
-## Convergence After Brainstorm
-
-When `.do-it/brainstorm/<task>.md` exists with `status: open`, grill enters convergence mode for the same task. The selected brainstorm lenses have already widened the frame; grill's job is to pick the load-bearing items off the brainstorm artifact and resolve them, not to re-run divergence.
-
-Convergence flow:
-
-1. **Read the artifact.** Parse `Requirement Shape`, `Product Boundary`, `Core Goal`, `Options`, `Architecture Foundation`, and `Grill Handoff`. Each `Must Resolve In Grill` entry is a candidate premise the brainstorm lenses thought a human, grill, or local verification had to settle.
-2. **Rank by route-impact.** Sort candidates by "if this is wrong, how many downstream choices change?" — same rule as the Iterative Loop. Cross-lens tensions usually outrank single-lens one-offs.
-3. **Resolve each candidate** via the existing loop (verify cheaply, ask one question if a user decision is needed, log the result in `.do-it/grill/<task>.md` per § Grill Log Artifact).
-4. **Reference the brainstorm slug** in the grill log frontmatter: add `brainstorm: <task-slug>` so `do-it-planning` and `do-it-verification-gate` can trace the lineage.
-5. **Flip brainstorm status.** Once every execution-blocking `Must Resolve In Grill` item has a resolution (`chosen` / `deferred` / `needs_user_decision` for decisions; `confirmed` / `refuted` for facts), edit the brainstorm artifact's frontmatter from `status: open` to `status: converged`. Do not delete the artifact; future sessions read it.
-
-Tier behavior:
-
-- **Light**: grill does **not** consume brainstorm. If brainstorm exists at Light tier, it was probably explicit; honor it by skimming the personas section briefly, but do the regular single-thread Light grill.
-- **Standard / Heavy**: grill **must** read the brainstorm artifact when it exists. Skipping it loses the point of running brainstorm at all.
-
-Convergence does not regenerate lens angles. If a lens return looks thin or wrong, the answer is to re-run that brainstorm lens with narrower scope, not to invent the missing angle inside grill.
-
-## Anchoring Terms
-
-When a term feels fuzzy, before you debate it:
-
-1. Search `CLAUDE.md`, `.do-it/CONTEXT.md`, and `docs/` for an existing definition.
-2. If a definition exists and the user is using it differently, **call out the conflict immediately**. Quote both definitions side by side. Ask which one applies.
-3. If no definition exists and the term will be re-used, propose one in CONTEXT-FORMAT shape (see `do-it-context`) and write it back.
-4. Avoid synonyms — if `payload` and `event body` mean the same thing in this conversation, pick one and stick to it.
-
-## Code Reverification
-
-When the user makes a factual claim about behavior ("the validator already checks X", "this is called from one place", "we don't ship Y in prod"):
-
-1. Treat it as a premise, not a fact.
-2. `grep` / open the file. Two minutes of reading beats five minutes of debate.
-3. If the code disagrees, surface the disagreement with a path:line citation.
-4. Update the grill log with the verified state.
-
-## Lenses
-
-Use these as checks, not personas:
-
-- Truth: What has been verified locally, and what is only assumed?
-- Scope: What is the smallest complete outcome?
-- Acceptance: What exact evidence proves the work is done?
-- Interface: Which contract or boundary will another part of the system rely on?
-- Failure: What is the most likely way this plan ships a bug?
-- Review: What would a skeptical reviewer block on?
-- Maintenance: What future churn can be avoided without expanding scope?
-- Delegation: Does each worker have a tier, ownership, verification, and stop conditions?
-
-## Question Shape
-
-When a user decision is needed, use this shape:
-
-- Context: one or two sentences explaining why the decision matters now.
-- Options: 2-3 viable choices, each with benefit, cost, risk, and when to choose it.
-- Recommendation: one default with the reason.
-- Question: one focused ask. Do not bundle unrelated decisions.
-
-If the user answers only part of the question, record the settled part and ask
-the next smallest unresolved decision.
-
-## Common Rationalizations
-
-These are the "I'm done grilling" excuses that should each cost you another loop:
-
-- *"It feels reasonable."* — Reasonable ≠ verified. Name the evidence.
-- *"The user said it works that way."* — Treat as premise. Grep before believing.
-- *"It would be a small refactor if wrong."* — Costed in tokens or in a follow-up sprint? Re-state.
-- *"We can fix it in review."* — Maybe; but if grill catches it now, review carries fewer findings.
-- *"There's no time to anchor terms."* — There's also no time to debug a contract mismatch in production.
-- *"Both interpretations probably work."* — Then which one ships? Pick.
-
-## Red Flags
-
-Pause and re-grill when you see:
-
-- The user agreeing immediately with whatever you propose. (Are they confirming or appeasing?)
-- Acceptance criteria that say "looks good" or "works".
-- A plan that names `Phase 2` of work that doesn't yet exist.
-- "Should be straightforward" applied to a multi-package change.
-- Terms used inconsistently in the same paragraph.
-- A review response that has zero `Blocking` / `Important` items but the change touches a public interface.
-
-## Codebase Exploration
-
-For Standard and Heavy grills, inspect enough current truth to avoid theater:
-
-- current diff and dirty files in scope;
-- owning modules, call paths, tests, docs, or plans;
-- existing terminology and conventions;
-- nearby working examples;
-- verification commands or evidence surfaces.
-
-Stop exploration when the next unknown is a real user decision or the facts are sufficient to recommend a route.
-
-## Output Shape
-
-For a light grill:
-
-- current truth checked;
-- one route-changing assumption or risk;
-- one question only if user preference blocks the next action;
-- recommended route.
-
-For a standard grill:
-
-- current truth checked;
-- grill log items (facts confirmed/refuted; decisions chosen/deferred/needs_user_decision) — usually written to `.do-it/grill/<task>.md`;
-- blockers;
-- important risks;
-- options considered;
-- recommended path;
-- verification and review checks.
-
-For a heavy grill:
-
-- scope lock;
-- verified facts;
-- blockers;
-- important risks;
-- non-blocking opportunities;
-- decision options with one recommended path;
-- verification and review gates that must be satisfied.
-
-## Severity
-
-- `Blocking`: Must resolve before execution or closeout because it can make the work wrong, unsafe, or unverifiable.
-- `Important`: Should resolve now because it can create rework, review failure, or unclear ownership.
-- `Opportunity`: Useful architecture or quality improvement, but not a blocker unless tied to correctness or delivery risk.
-
-## Common Mistakes
-
-- Asking five generic questions at once instead of one focused premise.
-- Asking technical open questions when assumptions mode would let the user
-  confirm or correct a concrete proposal.
-- Challenging in the abstract without reading files.
-- Turning every idea into a blocker.
-- Asking about facts that codebase exploration can answer.
-- Accepting a plan because it sounds reasonable while evidence is missing.
-- Treating architecture taste as delivery truth.
-- Using a fuzzy term repeatedly without ever defining it back to the user or to `.do-it/CONTEXT.md`.
-
-## Grill Log Artifact
-
-Grill records every pressure-tested fact or decision in `.do-it/grill/<task>.md`
-so the signal outlives the chat turn and feeds `do-it-planning` and
-`do-it-verification-gate`. Without it, grilling is just a vibe — once context
-compacts, every signal is gone.
-
-`<task-slug>` is the user's task title (lowercased, dash-separated, ≤32 chars)
-when one is obvious, else the first 8 chars of the SHA-1 of the first prompt;
-prefix with the short session id when collisions are likely. Keep
-`.do-it/grill/.gitkeep` so the directory tracks in git.
-
-Format:
+`<task-slug>`: the user's task title (lowercased, dash-separated, ≤32 chars), else the first 8 chars of the SHA-1 of the first prompt; prefix with the short session id on collision. Keep `.do-it/grill/.gitkeep` so the directory tracks in git.
 
 ```markdown
 ---
 task: <one-line title>
 session_id: <id>
 created: <YYYY-MM-DD>
-status: open            # flips to `resolved` when no execution-blocking item remains
+status: open            # → resolved when no execution-blocking item remains
 brainstorm: <slug>      # only when converging a brainstorm artifact
 ---
 
 ## Items tested
-
 - [ ] **<the load-bearing fact or decision, stated as a claim>**
   - kind: <fact | decision>
-  - falsifier: <the cheap deterministic check for a fact, or `user choice required` for a decision>
   - status: <confirmed | refuted | chosen | deferred | needs_user_decision>
-  - evidence: <file:line / grep output / explicit user choice — the literal artifact, never paraphrase>
+  - evidence: <file:line / grep output / explicit user choice — the literal artifact, never paraphrased>
 
 ## Anchored terms
-
 - **<term>**: <definition> ← from CLAUDE.md / .do-it/CONTEXT.md / clarified this turn
 ```
 
-Rules: use `confirmed`/`refuted` only for facts, `chosen`/`deferred`/`needs_user_decision`
-only for decisions. A `needs_user_decision` item blocks only when it changes the
-next execution step. Append new items and mutate existing ones in place — never
-delete an item; refute or defer it with evidence. Anchored-terms entries get
-sedimented to `.do-it/CONTEXT.md` (see `do-it-context`); this section is a
-working pad. Flip `status: resolved` once no execution-blocking item remains, and
-do not flip it back without a new entry explaining why.
+Use `confirmed`/`refuted` only for facts, `chosen`/`deferred`/`needs_user_decision` only for decisions. Append new items and mutate existing ones in place — never delete an item; refute or defer it with evidence. Anchored terms sediment to `.do-it/CONTEXT.md` (see `do-it-context`). A `needs_user_decision` item blocks only when it changes the next execution step; flip `status: resolved` once none remain.
 
-## Related Skills
+## Reference
 
-- `do-it-context` — set up and maintain `.do-it/CONTEXT.md` with project terms and invariants (sediment destination for anchored terms).
-- `do-it-brainstorm` — divergent persona pass that runs before grill; produces the open decisions grill converges on.
-- `do-it-planning` — consume the grill outcome into a plan card under `.do-it/plans/<task>.md`; reads the grill slug.
-- `do-it-review-loop` — apply pressure to the delivered diff after grilling has set the bar.
+The challenge taxonomy (eight lenses), the "I'm done grilling" rationalizations to push past, red flags that warrant another loop, severity definitions, and common mistakes live in `references/checks.md`. Load it when a grill stalls or you need the full lens set; the loop above is enough for the common case.
+
+## Related skills
+
+- `do-it-router` — sets tier and owns the decision ladder that grill's necessity rung references.
+- `do-it-brainstorm` — divergent pass that runs first; produces the open decisions grill converges.
+- `do-it-context` — `.do-it/CONTEXT.md` is the sediment destination for anchored terms.
+- `do-it-planning` — consumes the grill outcome into a plan card under `.do-it/plans/<task>.md`; reads the grill slug.
+- `do-it-review-loop` — applies pressure to the delivered diff after grilling sets the bar.

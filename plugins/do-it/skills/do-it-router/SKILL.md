@@ -77,6 +77,21 @@ these by default:
 
 This binds how do-it itself evolves and how it shapes changes inside a project.
 
+### The decision ladder
+
+The best code is the code you never wrote. When a change calls for new code, walk down these rungs and stop at the first that holds — the cheapest sufficient option wins:
+
+1. **Does it need to exist?** Speculative or "might need it later" → skip it.
+2. **Does the stdlib do it?** → use it.
+3. **Is there a native platform feature?** → use it.
+4. **Is an already-installed dependency enough?** → use it.
+5. **Can it be one line?** → one line.
+6. Only then: the smallest custom code that works.
+
+Bias toward deletion over addition and boring over clever. Never cut for the ladder's sake: input validation at trust boundaries, error handling that prevents data loss, security, accessibility, or a feature the user explicitly asked for. Lazy, not negligent.
+
+This is the shared "write less" primitive: `do-it-grill` opens with rung 1 (does this need to exist?), `do-it-brainstorm` maps options along the ladder, and `hooks/anti-patterns-lint.sh` flags rungs the code skipped. Reference it; do not restate it.
+
 ## Orthogonal Dimensions
 
 In addition to the single tier label, the router writes 5 boolean dimensions into per-session state. They narrow *intensity*, not tier itself: a Standard task can still be `breaks_interface=1` and a downstream skill MAY upgrade its review or drill posture accordingly.

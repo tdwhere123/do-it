@@ -279,6 +279,43 @@ _assert_contains "names MixedFn" "$OUT" "MixedFn"
 rm -rf "$DIR"
 
 # -------------------------------------------------------------------------
+echo "Case 6d: no-consumer flags a speculative interface with no reference"
+DIR=$(_setup_repo)
+FILE="$DIR/ports.ts"
+cat > "$FILE" <<'EOF'
+// initial
+EOF
+( cd "$DIR" && git add ports.ts && git commit -q -m base ) >/dev/null 2>&1
+cat > "$FILE" <<'EOF'
+// initial
+export interface SpeculativePort { run(): void; }
+EOF
+OUT=$(_run_hook "$FILE")
+_assert_contains "no-consumer flags unreferenced interface" "$OUT" "- no-consumer:"
+_assert_contains "names SpeculativePort" "$OUT" "SpeculativePort"
+rm -rf "$DIR"
+
+# -------------------------------------------------------------------------
+echo "Case 6e: no-consumer silent for a referenced interface"
+DIR=$(_setup_repo)
+FILE="$DIR/ports.ts"
+cat > "$FILE" <<'EOF'
+// initial
+EOF
+cat > "$DIR/impl.ts" <<'EOF'
+import { UsedPort } from './ports';
+export class Impl implements UsedPort { run() {} }
+EOF
+( cd "$DIR" && git add . && git commit -q -m base ) >/dev/null 2>&1
+cat > "$FILE" <<'EOF'
+// initial
+export interface UsedPort { run(): void; }
+EOF
+OUT=$(_run_hook "$FILE")
+_assert_not_contains "no-consumer silent for referenced interface" "$OUT" "- no-consumer:"
+rm -rf "$DIR"
+
+# -------------------------------------------------------------------------
 echo "Case 7: out-of-scope extension — skipped silently"
 DIR=$(_setup_repo)
 FILE="$DIR/notes.md"
