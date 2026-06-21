@@ -59,7 +59,7 @@
     {
       "kind": "skill",
       "name": "do-it-grill",
-      "description": "Use when hidden assumptions or user-only decisions need fact verification before planning, implementation, or closeout.",
+      "description": "Pressure-test the load-bearing premises and necessity of a plan before it hardens into code, commits, or claims. Use when hidden assumptions or user-only decisions gate planning, implementation, or closeout, or when asked to grill, challenge, or stress-test.",
       "origin": "do-it",
       "optional": false,
       "group": "mainline",
@@ -79,7 +79,7 @@
     {
       "kind": "skill",
       "name": "do-it-brainstorm",
-      "description": "Use when planning needs divergent product and architecture option mapping before grill converges on decisions.",
+      "description": "Map requirement shape and options through a product viewpoint and an architecture viewpoint before grill converges on decisions. Use when planning needs divergent option mapping, or when asked to brainstorm or 脑暴.",
       "origin": "do-it",
       "optional": false,
       "group": "on-demand",
@@ -264,7 +264,7 @@
     {
       "kind": "agent",
       "name": "code-quality-cleaner",
-      "description": "Use during do-it-review-loop for read-only maintainability review of redundancy, dead paths, weak abstractions, and cleanup risk.",
+      "description": "Use during do-it-review-loop for read-only maintainability and YAGNI review of redundancy, dead paths, single-use or speculative abstractions, reinvented stdlib, and cleanup risk.",
       "origin": "do-it",
       "optional": false,
       "source": "agents/code-quality-cleaner.toml",

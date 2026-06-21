@@ -2,7 +2,48 @@
 
 ## Unreleased
 
-- No unreleased changes.
+Theme: make installed agents write high-quality code by sharpening do-it's
+write-before → write-during → write-after quality spine, and compress the two
+heaviest skills so the agent actually reads them. The shared "write less"
+primitive is a single decision ladder, reused — not restated — across skills.
+
+### Added
+
+- `do-it-router` § Restraint now carries **the decision ladder** (does it need to
+  exist? → stdlib → native → existing dependency → one line → minimal custom),
+  with guardrails it never cuts. It is the shared anti-over-engineering primitive
+  that grill, brainstorm, the write-time lint, and the YAGNI review lens all
+  reference instead of each defining their own.
+- `do-it-review-loop` gains a **YAGNI lens** (`code-quality-cleaner`), default at
+  Heavy when a diff adds a new abstraction/export/dependency. It emits one-line
+  findings with a closed tag vocabulary (`delete:` / `stdlib:` / `native:` /
+  `yagni:` / `shrink:`), each carrying a severity, plus a quantified
+  `net: -<N> lines possible` / `Lean already. Ship.` verdict.
+
+### Changed
+
+- **grill** rewritten and slimmed (290 → 88-line core + a 52-line `references/`
+  file behind progressive disclosure). The core loop is stated once, at the top:
+  necessity first (decision-ladder rung 1), falsify cheaply by exploring code
+  instead of asking, ask one decision at a time with a recommended answer, on a
+  checkable-and-exhaustive completion criterion. The lens taxonomy,
+  rationalizations, red flags, severity, and common-mistakes lists moved to
+  `references/checks.md`; the grill-log artifact is de-ceremonied but retains the
+  same capability.
+- **brainstorm** rewritten and slimmed (293 → 110-line core + an 89-line
+  `references/artifact-format.md`). The two viewpoints (product + architecture)
+  now run **inline by default** and fan out to independent subagents only at
+  Heavy tier or on explicit request — capability unchanged, default cost removed.
+  Options map along the decision ladder with a deletion-over-addition bias; a
+  pick-a-branch classifier and a fog-of-war skip cut over-firing.
+- `anti-patterns-lint.sh` no-consumer family now also flags speculative
+  `export interface` / `type` / `abstract class` declarations nothing references,
+  framed as decision-ladder rung 1. The family set stays closed by design (per
+  § Restraint); richer YAGNI checks live in the on-demand review lens, not the
+  write-time hook.
+- `code-quality-cleaner` agent extended from maintainability-only to
+  maintainability + YAGNI/over-engineering, with a bounded checklist and the
+  tagged finding format above.
 
 ## 0.11.0
 

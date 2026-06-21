@@ -81,6 +81,18 @@ datastore, framework, runtime, or protocol. Loads
 and user confirmation step). Returns findings in the standard shape; a
 memory-pick without a fresh search is `Blocking`.
 
+### YAGNI lens
+
+Available at Standard tier (optional) and Heavy tier (default when the diff adds
+a new abstraction, export, dependency, or `Phase 2` scaffolding). Loads
+`code-quality-cleaner` (maintainability + over-engineering against the decision
+ladder, see `do-it-router` § Restraint). Returns one-line findings using its
+closed tag vocabulary (`delete:` / `stdlib:` / `native:` / `yagni:` / `shrink:`),
+each carrying a severity, plus a quantified `net: -<N> lines possible` /
+`Lean already. Ship.` verdict. The `anti-patterns-lint.sh` PostToolUse hook is an
+advisory write-time pre-filter for the unreferenced-export case; the lens is the
+source of truth and catches single-use abstractions the hook cannot see.
+
 ## Review intensity (graduated)
 
 Review intensity is the canonical axis for deciding how much review effort to
@@ -111,6 +123,7 @@ Review intensity is orthogonal to the tier:
 - **review-adversarial** (Heavy default for high-risk surface): parallel
   multi-lens — `reviewer` + `red-team-reviewer` + `spec-compliance-reviewer`
   (and `architecture-taste-reviewer` if research-first lens triggers,
+  `code-quality-cleaner` if the diff adds new abstraction/export surface,
   `do-it-comments-discipline` lens if comments changed). Use when:
   - Heavy tier with breaks_interface, crosses_packages, security-sensitive
     code, or migrations
@@ -167,7 +180,9 @@ Check every non-trivial diff through five axes before spending time on polish:
 - Contracts: do APIs, schemas, CLIs, generated outputs, docs, and consumers
   agree?
 - Maintainability: did the change add avoidable coupling, dead code, duplicate
-  logic, or unclear ownership?
+  logic, unclear ownership, or a single-use / speculative abstraction the
+  decision ladder would inline? (the YAGNI lens / `code-quality-cleaner` owns
+  the over-engineering call)
 - Verification: do the tests and commands actually prove the claim, or did they
   mock away the risky collaborator chain?
 

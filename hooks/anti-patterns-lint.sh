@@ -7,14 +7,22 @@
 #   case-list  — ≥10 consecutive added lines look like a bash case branch
 #                pattern (`*"..."*`); flags the "大段 case 语句吞所有变体"
 #                shape that should usually be data-driven.
-#   no-consumer — a freshly-added TS/JS top-level `export {const|function|class} <Name>`
-#                whose `<Name>` does not appear in any other .ts/.tsx/.js/.mjs/.cjs
-#                file under the repo.
+#   no-consumer — a freshly-added TS/JS top-level export whose `<Name>` does not
+#                appear in any other .ts/.tsx/.js/.mjs/.cjs file under the repo.
+#                Covers `const|let|var|function|class` AND the speculative-
+#                abstraction kinds `interface|type|abstract class` — an exported
+#                abstraction nobody references is decision-ladder rung 1 (does it
+#                need to exist?), the highest-signal YAGNI smell catchable at
+#                write time.
 #   copy-paste — a contiguous chunk of ≥5 non-trivial added lines whose first
 #                AND last lines both appear in another file inside the same
 #                directory.
 #
-# Like comments-lint.sh this hook is advisory only.
+# Like comments-lint.sh this hook is advisory only. The family set is
+# deliberately small and CLOSED: per do-it-router § Restraint, do not grow it
+# into an ever-longer anti-pattern list. Richer YAGNI review (single-impl
+# interfaces, one-product factories, pass-through wrappers, reinvented stdlib)
+# belongs to the on-demand do-it-review-loop YAGNI lens, not this write-time hook.
 
 set -uo pipefail
 
@@ -177,6 +185,8 @@ fi
 
 # ------------------------------------------------------------------------
 # Family 2: no-consumer — TS/JS top-level export with no other reference.
+# Includes the speculative-abstraction kinds (interface / type / abstract
+# class): an exported abstraction nobody references is decision-ladder rung 1.
 # ------------------------------------------------------------------------
 case "$FILE_PATH" in
   *.ts|*.tsx|*.js|*.jsx|*.mjs|*.cjs)
@@ -185,11 +195,12 @@ case "$FILE_PATH" in
     # which is not supported by BSD awk (macOS default). The regex matches:
     #   - `export const|let|var <name>`
     #   - `export function <name>` / `export async function <name>`
-    #   - `export class <name>`
+    #   - `export class <name>` / `export abstract class <name>`
+    #   - `export interface <name>` / `export type <name>`
     #   - `export default function <name>` / `export default class <name>`
     EXPORT_NAMES="$(printf '%s\n' "$ADDED_LINES" \
-      | grep -E '^[[:space:]]*export[[:space:]]+(default[[:space:]]+(async[[:space:]]+)?(function|class)|async[[:space:]]+function|const|let|var|function|class)[[:space:]]+[A-Za-z_][A-Za-z0-9_]*' \
-      | sed -E 's/^[[:space:]]*export[[:space:]]+(default[[:space:]]+)?(async[[:space:]]+function|function|class|const|let|var)[[:space:]]+([A-Za-z_][A-Za-z0-9_]*).*/\3/' \
+      | grep -E '^[[:space:]]*export[[:space:]]+(default[[:space:]]+(async[[:space:]]+)?(function|class)|async[[:space:]]+function|abstract[[:space:]]+class|const|let|var|function|class|interface|type)[[:space:]]+[A-Za-z_][A-Za-z0-9_]*' \
+      | sed -E 's/^[[:space:]]*export[[:space:]]+(default[[:space:]]+)?(async[[:space:]]+function|abstract[[:space:]]+class|function|class|const|let|var|interface|type)[[:space:]]+([A-Za-z_][A-Za-z0-9_]*).*/\3/' \
       | sort -u)"
     if [[ -n "$EXPORT_NAMES" ]]; then
       NO_CONSUMER_NAMES=""
@@ -213,7 +224,7 @@ case "$FILE_PATH" in
       done <<<"$EXPORT_NAMES"
       if [[ -n "$NO_CONSUMER_NAMES" ]]; then
         _record_family "no-consumer"
-        _append_detail "no-consumer: ${NO_CONSUMER_NAMES} (newly-exported but no other file references; consider whether the export is needed)"
+        _append_detail "no-consumer: ${NO_CONSUMER_NAMES} (newly-exported, no other file references it — decision ladder rung 1: does it need to exist, or can it be inlined or dropped?)"
       fi
     fi
     ;;
