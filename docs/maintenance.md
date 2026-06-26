@@ -111,7 +111,7 @@ When a skill changes, decide which kind of update it is:
 - do-it compatibility adapter that preserves a workflow idea while changing the
   installed name and wording
 - optional auxiliary support that is installed but not part of the default tier
-  flow (no skills are marked optional in 0.11.0)
+  flow (no skills are currently marked optional)
 
 For either kind:
 

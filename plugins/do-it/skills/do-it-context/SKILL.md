@@ -102,8 +102,10 @@ and planning. It differs from the other do-it homes:
   rarely changes).
 - **`.do-it/CONTEXT.md`** — per-session *factual* sediment (terms, invariants,
   relationships) that `do-it-grill` writes.
-- **`.do-it/handbook/`** — structural project docs (architecture, code map,
-  glossary, backlog).
+- **`.do-it/handbook/`** — stable project truth (invariants, architecture,
+  glossary) plus a worklog template.
+- **`.do-it/worklog/`** — daily or goal-scoped notes, evidence, decisions, and
+  reusable lessons that are not stable enough for the handbook.
 
 CLAUDE.md is the top of the convention ladder: a rule that has held across
 sessions and is about *how to work* (not a project fact) graduates here from
@@ -130,7 +132,8 @@ like the handbook bootstrap). A useful skeleton:
 ```
 
 Keep it short — CLAUDE.md is read every turn, so it competes for context budget.
-Detail belongs in `.do-it/handbook/` or `docs/`.
+Detail belongs in `.do-it/worklog/`, `.do-it/handbook/`, or `docs/` depending
+on whether it is daily history, stable project truth, or public documentation.
 
 ## Domain Glossary Mode (Standard+)
 

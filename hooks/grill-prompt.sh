@@ -123,6 +123,20 @@ do-it (existing code): this is an established codebase. Before editing, read the
   fi
 fi
 
+# Greenfield handbook bootstrap nudge: first Standard/Heavy code turn on a
+# project with no do-it context should create the handbook skeleton before
+# planning or editing, so later sessions do not re-derive the same facts.
+if [[ "$(do_it_session_state_get "$SESSION_ID" handbook_nudged)" != "1" ]]; then
+  _brown="$(do_it_session_state_get "$SESSION_ID" dim_brownfield)"
+  _touch="$(do_it_session_state_get "$SESSION_ID" dim_touches_code)"
+  if [[ "$_brown" == "0" && "$_touch" == "1" ]] && { [[ "$ADVISORY_TIER" == "Standard" || "$ADVISORY_TIER" == "Heavy" ]]; }; then
+    do_it_session_state_set "$SESSION_ID" handbook_nudged 1
+    _doit_advisory="${_doit_advisory}<system-reminder>
+do-it (handbook): this project has no .do-it/handbook/ or .do-it/CONTEXT.md yet. Load skill do-it-handbook and bootstrap the skeleton (additive, no overwrite) before planning or editing. Advisory — skip only if the user explicitly says this is a one-shot script.
+</system-reminder>"
+  fi
+fi
+
 # Same-session de-dup: if we already grilled and the user did not re-request,
 # stay quiet.
 if [[ "$RE_GRILL" -eq 0 ]]; then

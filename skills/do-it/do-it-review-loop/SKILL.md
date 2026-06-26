@@ -10,7 +10,23 @@ description: "Use when a delivered diff or worker result needs PR-style correctn
 Use this to find defects, scope drift, and maintainability risk before closeout.
 Review is findings-first and evidence-backed.
 
+**In one sentence:** freeze the scope, trace the proof path, read the diff, then emit a single batch of findings ranked by severity — no clean claim while a Blocking or Important finding is unresolved.
+
 **Mandatory trigger:** when tier is Heavy OR the prompt signals an interface-breaking change (router writes `dim_needs_review_loop=1`), this skill is required **before any "done" claim** — it does not apply to planning, grill, or discussion turns. The `verification-gate` Stop hook enforces the done-claim case: a transcript without a `review-loop` / `review-quick` / `review-deep` / `review-adversarial` mention will be blocked. See `do-it-router` § Mandatory-trigger escape clauses for the full contract. The fix path also runs on the complete finding batch — see `do-it-fix-loop` § Batch vs Pointwise Decision, which operates on the list emitted by the "Emit findings as a complete batch" step below.
+
+## Completion criterion
+
+Review is clean only when:
+
+- [ ] Scope is frozen to files, commit, range, or task.
+- [ ] The proof path (producer → contract → transport → consumer → surface → verification) has been mapped and checked.
+- [ ] The five axes (requirements, correctness, contracts, maintainability, verification) have been checked at the depth the tier requires.
+- [ ] The comments lens ran if comments changed; the YAGNI lens ran if the diff added a new abstraction, export, dependency, or `Phase 2` scaffolding.
+- [ ] Findings are emitted as one complete batch (`Blocking` / `Important` / `Opportunity`), ordered by severity.
+- [ ] Every `Blocking` or `Important` finding is either fixed, explicitly deferred with user confirmation, or sent to `do-it-fix-loop` with a written batch-vs-pointwise decision.
+- [ ] Verification evidence was inspected for freshness and surface coverage.
+
+If you cannot check an item, say so explicitly rather than silently skipping it.
 
 ## Tiers
 
@@ -64,14 +80,15 @@ multi-agent integration review. Heavy is parent-only unless explicitly assigned.
 
 ### Comments lens
 
-Triggered when the diff contains added/modified comments. Available at
-Standard tier (optional) and Heavy tier (default when comment changes are
-present). Loads `do-it-comments-discipline`. Returns findings in the standard
-finding shape (severity / location / cause class / required fix), where cause
-class is one of the comments-discipline categories (`what` / `history` /
-`task-ref` / `tombstone` / `orphan-todo` / `fix-narrative` /
-`stale-invariant` / `broken-reference`). The `comments-lint.sh` PostToolUse
-hook offers an advisory pre-filter; the lens is the source of truth.
+Required when the diff contains added/modified comments. At Standard tier it
+must run; at Heavy tier it is the default and may be skipped only with an
+explicit reason recorded in the review output. Loads `do-it-comments-discipline`.
+Returns findings in the standard finding shape (severity / location / cause
+class / required fix), where cause class is one of the comments-discipline
+categories (`what` / `history` / `task-ref` / `tombstone` / `orphan-todo` /
+`fix-narrative` / `stale-invariant` / `broken-reference`). The `comments-lint.sh`
+PostToolUse hook offers an advisory pre-filter; the lens is the source of truth
+and must still be run even when the hook is clean.
 
 ### Research-first lens
 
@@ -83,12 +100,14 @@ memory-pick without a fresh search is `Blocking`.
 
 ### YAGNI lens
 
-Available at Standard tier (optional) and Heavy tier (default when the diff adds
-a new abstraction, export, dependency, or `Phase 2` scaffolding). Loads
-`code-quality-cleaner` (maintainability + over-engineering against the decision
-ladder, see `do-it-router` § Restraint). Returns one-line findings using its
-closed tag vocabulary (`delete:` / `stdlib:` / `native:` / `yagni:` / `shrink:`),
-each carrying a severity, plus a quantified `net: -<N> lines possible` /
+Required when the diff adds a new abstraction, export, dependency, or `Phase 2`
+scaffolding. At Heavy tier it must run whenever those signals are present; at
+Standard tier it is required when any of those signals are present and may be
+skipped only with an explicit reason. Loads `code-quality-cleaner`
+(maintainability + over-engineering against the decision ladder, see
+`do-it-router` § Restraint). Returns one-line findings using its closed tag
+vocabulary (`delete:` / `stdlib:` / `native:` / `yagni:` / `shrink:`), each
+carrying a severity, plus a quantified `net: -<N> lines possible` /
 `Lean already. Ship.` verdict. The `anti-patterns-lint.sh` PostToolUse hook is an
 advisory write-time pre-filter for the unreferenced-export case; the lens is the
 source of truth and catches single-use abstractions the hook cannot see.
@@ -142,6 +161,10 @@ Default by tier + dimensions:
   security/migration tag) → review-adversarial
 - tier=Heavy other → review-deep + comments-lens
 
+Regardless of intensity, run the **comments lens** when comments changed and the
+**YAGNI lens** when the diff adds a new abstraction, export, dependency, or
+`Phase 2` scaffolding. A silent skip of a mandatory lens is a review finding.
+
 ### Inline self-review prompt (review-quick)
 
 Parent agent runs this prompt internally without spawning a subagent:
@@ -181,8 +204,9 @@ Check every non-trivial diff through five axes before spending time on polish:
   agree?
 - Maintainability: did the change add avoidable coupling, dead code, duplicate
   logic, unclear ownership, or a single-use / speculative abstraction the
-  decision ladder would inline? (the YAGNI lens / `code-quality-cleaner` owns
-  the over-engineering call)
+  decision ladder would inline? Use `do-it-codebase-design` to judge whether a
+  new module is deep or shallow; the YAGNI lens / `code-quality-cleaner` owns
+  the over-engineering call.
 - Verification: do the tests and commands actually prove the claim, or did they
   mock away the risky collaborator chain?
 

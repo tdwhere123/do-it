@@ -1,5 +1,5 @@
 {
-  "version": "0.11.0",
+  "version": "0.12.0",
   "migrations": [
     {
       "from": "0.4.x",
@@ -28,6 +28,10 @@
     {
       "from": "0.10.x",
       "actions": []
+    },
+    {
+      "from": "0.11.x",
+      "actions": []
     }
   ],
   "targets": {
@@ -44,12 +48,6 @@
           "kind": "file",
           "source": "hooks/anti-patterns-lint.sh",
           "target": "hooks/anti-patterns-lint.sh"
-        },
-        {
-          "name": "hooks-code-map-refresh",
-          "kind": "file",
-          "source": "hooks/code-map-refresh.sh",
-          "target": "hooks/code-map-refresh.sh"
         },
         {
           "name": "hooks-comments-lint",
@@ -106,6 +104,12 @@
             "f390a080b382575cb647650888ee6a2991fdf0df31b42316cfb1426f4eec9068",
             "c98ba4854b74185c4c4a5e8b3fe8400f7f73a96284f60c9980d7c1871c309cd7"
           ]
+        },
+        {
+          "name": "hooks-subagent-stance",
+          "kind": "file",
+          "source": "hooks/subagent-stance.sh",
+          "target": "hooks/subagent-stance.sh"
         },
         {
           "name": "hooks-verification-gate",
@@ -150,12 +154,6 @@
           "target": "hooks/anti-patterns-lint.sh"
         },
         {
-          "name": "hooks-code-map-refresh",
-          "kind": "file",
-          "source": "hooks/code-map-refresh.sh",
-          "target": "hooks/code-map-refresh.sh"
-        },
-        {
           "name": "hooks-comments-lint",
           "kind": "file",
           "source": "hooks/comments-lint.sh",
@@ -210,6 +208,12 @@
             "f390a080b382575cb647650888ee6a2991fdf0df31b42316cfb1426f4eec9068",
             "c98ba4854b74185c4c4a5e8b3fe8400f7f73a96284f60c9980d7c1871c309cd7"
           ]
+        },
+        {
+          "name": "hooks-subagent-stance",
+          "kind": "file",
+          "source": "hooks/subagent-stance.sh",
+          "target": "hooks/subagent-stance.sh"
         },
         {
           "name": "hooks-verification-gate",
@@ -436,6 +440,12 @@
       "name": "do-it-architecture-scan",
       "source": "skills/do-it/do-it-architecture-scan",
       "target": "skills/do-it-architecture-scan",
+      "origin": "do-it"
+    },
+    {
+      "name": "do-it-codebase-design",
+      "source": "skills/do-it/do-it-codebase-design",
+      "target": "skills/do-it-codebase-design",
       "origin": "do-it"
     },
     {

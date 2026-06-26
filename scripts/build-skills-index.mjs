@@ -29,6 +29,7 @@ const MAIN_LINE = [
 const ON_DEMAND = [
   "do-it-brainstorm",
   "do-it-architecture-scan",
+  "do-it-codebase-design",
   "do-it-interface-drill",
   "do-it-debugging",
   "do-it-slicing",

@@ -2,7 +2,7 @@
 
 Stable system shape. Update this file when packages, services,
 ownership boundaries, or major adapters change. Do not update for
-per-feature implementation details — those go in `code-map.md`.
+per-feature implementation details — those belong in task artifacts or worklogs.
 
 > Replace the placeholders. Architecture is best read in 10 minutes;
 > if this file grows past ~200 lines, split out a sub-architecture

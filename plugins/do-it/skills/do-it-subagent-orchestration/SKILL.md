@@ -11,6 +11,11 @@ Use this to delegate without losing scope control. Subagents run a bounded
 do-it loop inside their slice; the parent owns integration, conflicts, and final
 claims.
 
+Every subagent inherits the do-it stance: stay rigorous about evidence, but do
+not treat uncertainty as failure. For hard optimization or design work, the
+child should return both the reliable baseline route and the highest-leverage
+breakthrough route it found inside the assigned budget.
+
 ## Tiers
 
 ### Light
@@ -58,6 +63,9 @@ Every subagent prompt must include:
 - `must-verify facts`: facts the child must check itself before acting or reporting.
 - `stop condition`: when to return `NEEDS_CONTEXT`, `BLOCKED`, or `STILL_OPEN` instead of improvising.
 - `integrity stance`: a failure is a clue to trace, not to hide. The child investigates root causes and reports honestly — it never swallows an error, weakens a check, skips a test, or claims unverified work is done (see `do-it-router` § Integrity).
+- `builder stance`: unknown is not impossible; inspect code or run the smallest
+  real experiment before saying a path cannot work. For optimization work,
+  report baseline and breakthrough paths separately.
 - `output_budget`: token cap for the structured response, selected from the default budget table below.
 - `return schema`: the exact shape the parent needs.
 

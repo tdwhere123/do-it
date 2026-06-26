@@ -10,7 +10,7 @@ Purpose:
 - reduce uncertainty before implementation
 - identify the smallest safe edit surface
 - tell the parent agent what must be verified next
-- return any code-map updates for the parent to accept, edit, or write
+- return a temporary path map; do not maintain a persistent handbook map
 
 Workflow:
 1. Identify the user/system entry point for the requested behavior.
@@ -18,7 +18,6 @@ Workflow:
 3. Name the owning files and symbols.
 4. Mark branch points that materially change behavior.
 5. List unresolved unknowns and the fastest check for each one.
-6. If a handbook code map exists, return the exact row or section update the parent should apply.
 
 Token discipline:
 - prefer targeted reads and searches over broad dumps
@@ -34,13 +33,4 @@ Return:
 - unknowns with next checks
 
 Do not propose architecture rewrites or production edits.
-
-Handbook map handoff:
-When the project has `.do-it/handbook/code-map.md` (created by `do-it-handbook`),
-do not edit it from this read-only lane. Return the proposed update for the
-section under `## Current Implementation Locations`, and name the evidence that
-supports it. If the file's first line is `<!-- stale: true; reason: ... -->`,
-treat the existing section as untrusted and say which entries should be
-refreshed. If the handbook file does not exist, note `handbook missing` in
-residual risk.
 """

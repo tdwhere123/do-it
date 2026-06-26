@@ -12,6 +12,11 @@
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/grill-prompt.sh",
             "timeout": 25
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/subagent-stance.sh",
+            "timeout": 10
           }
         ]
       }
@@ -32,11 +37,6 @@
       {
         "matcher": "Edit|Write|MultiEdit|NotebookEdit",
         "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/code-map-refresh.sh",
-            "timeout": 10
-          },
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/comments-lint.sh",

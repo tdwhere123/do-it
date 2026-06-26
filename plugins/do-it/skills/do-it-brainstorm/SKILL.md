@@ -16,7 +16,7 @@ Two viewpoints always inform the pass — a **product** viewpoint (requirement s
 3. **Map options along the decision ladder.** Lay each product or architecture option out along the ladder (see `do-it-router` § Restraint): skip-it → stdlib/native → existing dependency → minimal custom → full build. Bias divergence toward the subtractive and boring options, not only the additive and clever ones — the cheapest option that meets the goal usually wins.
 4. **Diverge predictably.** Brainstorm's behaviour is fixed even when its tokens vary: surface genuinely different options (not three variations of one) and compare them on the same axes — for architecture: seam count, depth/leverage, reversibility, blast radius.
 5. **Skip the fog of war.** If the pass surfaces no real open decision — the requirement shape and route are already clear — say so and hand straight to planning. Do not manufacture options to fill a template.
-6. **Hand off to grill.** Dedup `Must Resolve In Grill`, drop anything local verification settles immediately, and preserve each option's tradeoff plus a recommended default for grill to drive.
+6. **Hand off to grill.** Dedup `Must Resolve In Grill`, drop anything local verification settles immediately, and preserve each option's tradeoff plus a recommended default for grill to drive. Each item must be phrased as a single decision question with 2-3 real options, benefit/cost/risk for each, and a recommended default — ready for the question tool if the host provides one. Do not hand grill a vague open question or a list of unrelated concerns.
 
 ## How it differs from grill
 

@@ -38,7 +38,7 @@ Before routing:
 4. Choose a tier: `Light`, `Standard`, or `Heavy`.
 5. If the user asked for a plan first, stop at an approval checkpoint.
 
-Do not ask the user for facts that can be read locally. Ask only preference or priority questions that can change the route.
+Do not ask the user for facts that can be read locally. Ask only preference or priority questions that can change the route. When you must ask, use the host's question tool if available, ask one decision at a time, and provide 2-3 options with benefit/cost/risk and a recommended default.
 
 ## Integrity
 
@@ -55,6 +55,26 @@ A failure, error, surprising result, or red flag is a clue to investigate — no
 3. Report honestly. State what was verified, what was not, and what is still broken. "I could not verify X" or "this still fails because Y" is a correct, useful answer; a false "done" is a defect.
 
 This principle binds the parent agent and every subagent. `do-it-debugging`, `do-it-fix-loop`, and `do-it-verification-gate` enforce it at their stages; reviewers treat a cover-up as a Blocking finding.
+
+## Stance
+
+do-it agents should be rigorous without becoming passive. The default posture is:
+
+- **Builder's bias:** unknown is not impossible. Before saying a path cannot work,
+  inspect the local truth or run the smallest real experiment that could prove or
+  falsify it.
+- **Conservative claims, active search:** be strict about evidence and completion,
+  but keep looking for a cheaper, deeper, or higher-leverage route until the
+  task budget says to stop.
+- **Two-path framing for hard work:** name a reliable baseline path and a
+  breakthrough path when optimization, algorithms, quality, or architecture
+  improvement is the task.
+- **No learned helplessness:** "likely hard", "not possible", or "probably not
+  worth it" is not a conclusion without code, data, benchmark, or source
+  evidence.
+
+Hooks inject a compact version of this stance into subagent contexts via
+`subagent-stance.sh`; parent agents inherit it here.
 
 ## Restraint
 
@@ -246,6 +266,26 @@ barrel/index files. For phase or risky shared-file work, isolate with
 `do-it-worktree-isolation` and merge back only after the integrated branch is
 review-clean.
 
+## Handbook Bootstrap Trigger
+
+Before planning or editing on a Standard or Heavy work turn, check whether the
+project has any durable do-it context:
+
+- If `.do-it/handbook/` exists, read the files relevant to the change
+  (`invariants.md`, `glossary.md`, `architecture.md`) before editing.
+- If `.do-it/CONTEXT.md` exists, read it before grill or planning.
+- If **neither** exists, load `do-it-handbook` and run its lean bootstrap in the
+  same turn. This creates the placeholder skeleton (`README.md`,
+  `invariants.md`, `architecture.md`, `glossary.md`, `worklog-template.md`)
+  plus `.gitkeep` files for `.do-it/grill/`, `.do-it/plans/`,
+  `.do-it/brainstorm/`, and `.do-it/worklog/`. The bootstrap is additive and
+  idempotent — existing files are never overwritten.
+
+The bootstrap is not optional ceremony: without a shared handbook, every
+subsequent session re-derives the same project terms, invariants, and
+architecture frame. Skip it only when the user explicitly says the project
+is a one-shot script with no future sessions.
+
 ### Anti-tail discipline
 
 - **One card, one goal** — if a card grows a second goal, split it.
@@ -263,8 +303,9 @@ review-clean.
 - Need to challenge a premise, plan, or closeout claim: `do-it-grill`.
 - Need to design an API, schema, event, CLI, UI contract, module seam, or handoff: `do-it-interface-drill`.
 - Need coupling, ownership, modularity, or testability analysis: `do-it-architecture-scan`.
+- Need a shared vocabulary for deep modules, seams, and whether an abstraction earns its keep: `do-it-codebase-design`.
 - Need names, domain model, glossary, or code/docs/user terminology alignment: `do-it-context` (§ Domain Glossary Mode).
-- Need a durable project handbook (invariants, architecture, code map, glossary, backlog): `do-it-handbook`. Suggest it when work spans many files or several sessions and `.do-it/handbook/` does not yet exist; downstream skills (`do-it-grill`, `do-it-planning`, `do-it-architecture-scan`) read those files when present.
+- Need a durable project handbook (invariants, architecture, glossary, worklog template): `do-it-handbook`. Bootstrap it when a Standard or Heavy work turn touches code and neither `.do-it/handbook/` nor `.do-it/CONTEXT.md` exists yet; downstream skills (`do-it-grill`, `do-it-planning`, `do-it-architecture-scan`) read those files when present. The bootstrap is additive only — it creates placeholder templates and never overwrites existing files.
 - Need optional visual comparison or diagrams: `do-it-planning` § Visual Aids. Auxiliary; does not participate in the core tier flow.
 - Need implementation: execute locally or delegate a bounded slice after the route is clear; add `do-it-tdd` or `do-it-debugging` when the behavior or root cause warrants it.
 - Need behavior-first implementation or regression coverage: `do-it-tdd`.

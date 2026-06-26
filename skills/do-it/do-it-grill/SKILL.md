@@ -7,9 +7,24 @@ description: "Pressure-test the load-bearing premises and necessity of a plan be
 
 Pressure-test reasoning before it hardens into code, commits, or claims. Verify the facts you can verify locally, challenge whether the work needs to exist at all, and surface the one decision that genuinely needs the user — then stop.
 
+**In one sentence:** be relentless — one premise at a time, falsify with code first, ask the user only when local truth cannot decide, and always offer a recommended default.
+
 `do-it-brainstorm` diverges (maps requirement shape and options) and runs first when both run; grill converges and never re-diverges. `do-it-review-loop` reviews a delivered diff; grill challenges whether that review is needed, sufficient, or honestly closed.
 
 ## The loop
+
+Run until every load-bearing premise is either verified against a source or logged as an explicit user decision — no execution-blocking unknown remains.
+
+### Completion criterion
+
+Grill is done only when:
+
+- [ ] Necessity has been checked (decision-ladder rung 1: does this need to exist?).
+- [ ] Every premise that could change the route is confirmed, refuted, or logged as a user decision.
+- [ ] Each user decision names 2-3 options, the tradeoffs, and the recommended default you chose.
+- [ ] The grill log (`.do-it/grill/<task>.md`) reflects the current state with citations or explicit user choices.
+
+If you reach a point where the next execution step depends on an unresolved user preference, stop and ask that one question. Do not proceed past an open decision.
 
 Run until every load-bearing premise is either verified against a source or logged as an explicit user decision — no execution-blocking unknown remains.
 
@@ -17,6 +32,18 @@ Run until every load-bearing premise is either verified against a source or logg
 2. **Pick the most load-bearing premise.** The single belief that, if wrong, changes the most downstream work. One at a time — do not dump a five-question template; that gets shallow, scattered answers.
 3. **Falsify it cheaply — explore, don't ask.** If `rg`, opening the file, or a quick test can settle it, do that and cite `path:line`. Treat every user claim about behavior ("X is already validated", "called from one place") as a premise to grep, not a fact; if the code disagrees, surface the disagreement with a citation.
 4. **Ask only for decisions — one at a time, with a recommended answer.** When local truth cannot decide a preference, priority, or scope tradeoff, ask one focused question: one or two sentences of why-it-matters-now, 2-3 real options with benefit/cost/risk, and your recommended default so the user has something concrete to accept or correct. If the user answers only part, record the settled part and ask the next smallest unresolved decision.
+
+### Question-tool discipline
+
+A "focused question" must be delivered as a single decision, not as a paragraph of three questions. If the host exposes a question tool (e.g. `question`), use it for every user decision. Each call must:
+
+- ask exactly one thing the next step depends on;
+- provide 2-3 real options, not one option dressed up three ways;
+- state the benefit, cost, and risk of each option in one line;
+- name a recommended default;
+- pause for the answer before asking the next question.
+
+Do not batch unresolved decisions into a single prose message. Do not ask "What do you think?" without options. Do not recommend an option unless you can also explain the tradeoff that makes it the default.
 5. **Record and sediment.** Log each result in `.do-it/grill/<task>.md` (§ Grill log). When a term or constraint gets clarified, append one declarative line to `.do-it/CONTEXT.md`.
 
 ## When to use / skip

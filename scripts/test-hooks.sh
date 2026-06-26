@@ -68,6 +68,14 @@ run_grill() {
   json_prompt "$session_id" "$prompt" "$cwd" | bash hooks/grill-prompt.sh
 }
 
+run_subagent_stance() {
+  local session_id="$1" prompt="$2" cwd="${3:-$REPO_ROOT}" transcript="${4:-$TMP_ROOT/agents/child.jsonl}"
+  mkdir -p "$(dirname "$transcript")"
+  json_prompt "$session_id" "$prompt" "$cwd" \
+    | jq --arg transcript "$transcript" '. + {transcript_path: $transcript}' \
+    | bash hooks/subagent-stance.sh
+}
+
 run_pretool() {
   local session_id="$1" cwd="$2" tool_name="$3" file_path="$4" content="${5:-x}"
   json_pretool "$session_id" "$cwd" "$tool_name" "$file_path" "$content" | bash hooks/grill-pretool.sh
@@ -76,12 +84,6 @@ run_pretool() {
 run_stop() {
   local session_id="$1" transcript_path="$2"
   json_stop "$session_id" "$transcript_path" | bash hooks/verification-gate.sh
-}
-
-run_code_map_refresh() {
-  local session_id="$1" cwd="$2" tool_name="$3" file_path="$4"
-  json_posttool "$session_id" "$cwd" "$tool_name" "$file_path" \
-    | bash hooks/code-map-refresh.sh
 }
 
 state_value() {
@@ -98,6 +100,11 @@ assert_empty() {
 assert_contains() {
   local haystack="$1" needle="$2" label="$3"
   [[ "$haystack" == *"$needle"* ]] || fail "$label: expected '$needle' in: $haystack"
+}
+
+assert_not_contains() {
+  local haystack="$1" needle="$2" label="$3"
+  [[ "$haystack" != *"$needle"* ]] || fail "$label: expected no '$needle' in: $haystack"
 }
 
 question_session="q-then-work"
@@ -154,11 +161,39 @@ run_router "$heavy_session" "Prepare the release schema migration"
 heavy_grill="$(run_grill "$heavy_session" "Prepare the release schema migration")"
 assert_contains "$heavy_grill" "do-it grill (Heavy" "Heavy two-signal prompt should grill"
 
+subagent_session="subagent-stance"
+subagent_out="$(run_subagent_stance "$subagent_session" "Fix the delegated test")"
+assert_contains "$subagent_out" "do-it subagent stance" "subagent context should get compact stance"
+subagent_repeat="$(run_subagent_stance "$subagent_session" "Continue delegated test")"
+assert_empty "$subagent_repeat" "subagent stance should be one-shot per session"
+parent_stance="$(json_prompt parent-stance "Fix src/a.ts" "$REPO_ROOT" | bash hooks/subagent-stance.sh)"
+assert_empty "$parent_stance" "parent context should not get subagent stance"
+
+# Handbook bootstrap nudge: first Heavy/Standard code turn in a greenfield
+# project should advise bootstrapping the handbook skeleton.
+greenfield_project="$TMP_ROOT/greenfield-project"
+mkdir -p "$greenfield_project"
+handbook_nudge_session="handbook-nudge"
+run_router "$handbook_nudge_session" "Fix the bug in src/auth.ts" "$greenfield_project"
+handbook_nudge_grill="$(run_grill "$handbook_nudge_session" "Fix the bug in src/auth.ts" "$greenfield_project")"
+assert_contains "$handbook_nudge_grill" "do-it (handbook)" "greenfield Standard code turn should nudge handbook bootstrap"
+[[ "$(state_value "$handbook_nudge_session" handbook_nudged)" == "1" ]] \
+  || fail "handbook nudge should set handbook_nudged=1"
+
+# Existing .do-it/CONTEXT.md should suppress the handbook nudge.
+brownfield_project="$TMP_ROOT/brownfield-project"
+mkdir -p "$brownfield_project/.do-it"
+touch "$brownfield_project/.do-it/CONTEXT.md"
+handbook_suppress_session="handbook-suppress"
+run_router "$handbook_suppress_session" "Implement the logging cleanup" "$brownfield_project"
+handbook_suppress_grill="$(run_grill "$handbook_suppress_session" "Implement the logging cleanup" "$brownfield_project")"
+assert_empty "$handbook_suppress_grill" "existing CONTEXT.md should suppress handbook nudge"
+
 filler="$(printf 'neutral %.0s' {1..70})"
 long_without_hint_session="long-without-hint"
 run_router "$long_without_hint_session" "schema $filler"
 long_without_hint_grill="$(run_grill "$long_without_hint_session" "schema $filler")"
-assert_empty "$long_without_hint_grill" "long Standard prompt without topical hint should not grill"
+assert_not_contains "$long_without_hint_grill" "do-it grill" "long Standard prompt without topical hint should not grill"
 
 long_with_hint_session="long-with-hint"
 run_router "$long_with_hint_session" "schema 方案 $filler"
@@ -201,48 +236,6 @@ existing_plan_session="existing-plan"
 run_router "$existing_plan_session" "Prepare the release schema migration" "$plan_project"
 run_pretool "$existing_plan_session" "$plan_project" "Edit" "$existing_plan" "local note without heading" \
   || fail "Existing plan partial edit should not require repeating ## Grill"
-
-# code-map-refresh: structural barrel edit marks code-map.md stale; non-structural
-# edit leaves it untouched; second structural edit replaces (does not stack) the
-# stale marker line.
-codemap_project="$TMP_ROOT/codemap-project"
-mkdir -p "$codemap_project/.do-it/handbook"
-codemap_file="$codemap_project/.do-it/handbook/code-map.md"
-cat > "$codemap_file" <<'MARKDOWN'
-# Code Map
-
-(placeholder)
-MARKDOWN
-
-codemap_session="codemap-refresh"
-
-run_code_map_refresh "$codemap_session" "$codemap_project" "Edit" \
-  "$codemap_project/packages/foo/src/index.ts"
-first_line="$(head -n 1 "$codemap_file")"
-[[ "$first_line" == "<!-- stale: true; reason: package barrel changed: packages/foo/src/index.ts -->" ]] \
-  || fail "code-map-refresh: barrel edit should prepend stale marker, got: $first_line"
-
-run_code_map_refresh "$codemap_session" "$codemap_project" "Edit" \
-  "$codemap_project/packages/foo/src/utils.ts"
-unchanged_first="$(head -n 1 "$codemap_file")"
-[[ "$unchanged_first" == "<!-- stale: true; reason: package barrel changed: packages/foo/src/index.ts -->" ]] \
-  || fail "code-map-refresh: non-structural edit should not touch existing marker, got: $unchanged_first"
-
-run_code_map_refresh "$codemap_session" "$codemap_project" "Edit" \
-  "$codemap_project/packages/bar/src/index.ts"
-replaced_first="$(head -n 1 "$codemap_file")"
-[[ "$replaced_first" == "<!-- stale: true; reason: package barrel changed: packages/bar/src/index.ts -->" ]] \
-  || fail "code-map-refresh: second barrel edit should replace marker, got: $replaced_first"
-stale_count="$(grep -c '<!-- stale: ' "$codemap_file" || true)"
-[[ "$stale_count" == "1" ]] \
-  || fail "code-map-refresh: stale marker should not stack, count was $stale_count"
-
-# Confirm hook is a no-op when the handbook does not exist.
-no_handbook_project="$TMP_ROOT/codemap-no-handbook"
-mkdir -p "$no_handbook_project"
-run_code_map_refresh "$codemap_session" "$no_handbook_project" "Edit" \
-  "$no_handbook_project/packages/foo/src/index.ts" \
-  || fail "code-map-refresh should exit 0 when handbook is missing"
 
 # Dim-aware grill suppression: Standard tier with uncertainty word but no code
 # object (`dim_touches_code=0`) should be treated as discussion and silenced.

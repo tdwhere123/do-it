@@ -101,7 +101,8 @@ GitHub's source tarball rather than the npm registry.
   `manifest.json`.
 - Codex installs to `CODEX_HOME`, which defaults to `~/.codex`.
 - Codex global hooks use `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, and
-  `Stop` to route, pressure-test, refresh code maps, and require verification.
+  `Stop` to route, pressure-test, inject subagent stance, lint advisory issues,
+  and require verification.
 
 Use a temporary Codex home when testing an install:
 
@@ -131,7 +132,7 @@ CODEX_HOME=/tmp/do-it-plugin-test codex plugin marketplace add /path/to/do-it
 ```
 
 The Codex plugin bundle lives at `plugins/do-it/` and is generated from
-`manifest.json`. It includes 20 skills and 23 agents.
+`manifest.json`. It includes 21 skills and 23 agents.
 
 For v1, pair plugin installation with `do-it setup` when you need enforced
 automatic hooks. Local `codex features list` currently reports
@@ -156,15 +157,16 @@ do-it doctor --target=claude
 
 The Claude target installs to `~/.claude/` by default; override with
 `CLAUDE_PLUGIN_ROOT_OVERRIDE`. The `--with-optional` flag installs any manifest
-skills marked optional (none are marked optional in 0.11.0).
+skills marked optional (none are currently marked optional).
 
 ## What It Installs
 
 - do-it-native skills for routing, grill, **brainstorm (multi-lens
   divergence)**, **handbook (project doc skeleton)**, context, planning,
-  slicing, interface / architecture / domain drills, sub-agent orchestration,
-  TDD, debugging, review, fix loops, verification, worktree isolation, branch
-  closeout, visual planning, and skill authoring.
+  slicing, interface / architecture / domain drills, **codebase design (deep-module
+  vocabulary)**, sub-agent orchestration, TDD, debugging, review, fix loops,
+  verification, worktree isolation, branch closeout, visual planning, and skill
+  authoring.
 - Portable Codex agent definitions for code mapping, plan challenge,
   correctness review, architecture review, red-team review, spec compliance,
   domain language, install/release review, documentation, testing,
@@ -173,9 +175,8 @@ skills marked optional (none are marked optional in 0.11.0).
   boundary, core goal, foundation, and extension shape, plus optional product,
   UX, end-user, ops, security, domain, and plan supplements.
 - Codex global hook assets and root `hooks.json` installed by `do-it setup`.
-  Hooks include a **PostToolUse `code-map-refresh`** that marks
-  `.do-it/handbook/code-map.md` stale on barrel / migration / route /
-  workspace-manifest edits.
+  Hooks include parent routing / grill nudges, a compact **subagent stance**
+  reminder, advisory comment/YAGNI lint, and completion verification gates.
 - Claude Code plugin assets, hooks, commands, and generated sub-agent
   definitions.
 - Copy-based installer and `doctor` commands that validate managed host files

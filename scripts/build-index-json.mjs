@@ -23,6 +23,7 @@ const SKILL_GROUPS = new Map([
   ["do-it-verification-gate", "mainline"],
   ["do-it-brainstorm", "on-demand"],
   ["do-it-architecture-scan", "on-demand"],
+  ["do-it-codebase-design", "on-demand"],
   ["do-it-interface-drill", "on-demand"],
   ["do-it-debugging", "on-demand"],
   ["do-it-slicing", "on-demand"],

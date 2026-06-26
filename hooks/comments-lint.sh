@@ -5,8 +5,8 @@
 # skill (history narrative, task references, orphan TODOs, tombstones, fix
 # narrative). Emits ONE advisory system-reminder per edit; never blocks.
 #
-# Wave 2 will register this in hooks.json. This file is independent and safe
-# to invoke directly via stdin for ad-hoc testing.
+# Registered in hooks.json as a PostToolUse advisory hook. This file is also
+# safe to invoke directly via stdin for ad-hoc testing.
 
 set -uo pipefail
 

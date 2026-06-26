@@ -1,17 +1,17 @@
 {
-  "version": "0.11.0",
+  "version": "0.12.0",
   "generated_at": "2026-05-24T15:12:54.935Z",
   "package": "@tdwhere/do-it",
   "repository": "https://github.com/tdwhere123/do-it",
   "domain": "agentic-workflow",
-  "total_skills": 20,
+  "total_skills": 21,
   "total_agents": 23,
   "coverage": {
     "skill_groups": {
       "index": 1,
       "mainline": 7,
       "maintenance": 3,
-      "on-demand": 9
+      "on-demand": 10
     },
     "optional_skills": []
   },
@@ -95,6 +95,16 @@
       "group": "on-demand",
       "source": "skills/do-it/do-it-architecture-scan",
       "target": "skills/do-it-architecture-scan"
+    },
+    {
+      "kind": "skill",
+      "name": "do-it-codebase-design",
+      "description": "Use when designing or restructuring a module, evaluating whether an abstraction earns its keep, finding clean seams, or when review-loop or architecture-scan needs a shared vocabulary for depth, leverage, and locality.",
+      "origin": "do-it",
+      "optional": false,
+      "group": "on-demand",
+      "source": "skills/do-it/do-it-codebase-design",
+      "target": "skills/do-it-codebase-design"
     },
     {
       "kind": "skill",
@@ -199,7 +209,7 @@
     {
       "kind": "skill",
       "name": "do-it-handbook",
-      "description": "Use when a project needs a durable `.do-it/handbook/` skeleton for architecture, invariants, glossary, code map, backlog, and runtime status.",
+      "description": "Use when a project needs a lean `.do-it/handbook/` for stable project truth plus `.do-it/worklog/` for daily or goal notes.",
       "origin": "do-it",
       "optional": false,
       "group": "maintenance",

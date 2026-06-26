@@ -9,6 +9,8 @@ description: "Use when a change touches multiple packages or surfaces and you ne
 
 Use this to integrate architecture thinking into delivery without letting refactor appetite block useful work. Architecture opportunities are expected, but they block only when they create correctness, safety, verification, or delivery risk.
 
+For the shared vocabulary of deep modules, seams, leverage, and locality, load `do-it-codebase-design`.
+
 ## When To Use
 
 Use before planning or finalizing work that touches:
