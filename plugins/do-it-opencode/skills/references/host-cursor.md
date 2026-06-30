@@ -1,20 +1,30 @@
 # Host Adapter: Cursor
 
 Medium hook depth: bootstrap + prompt gates + write-time quality + stop
-verification. Distribution is **plugin marketplace only** (no standalone CLI
-install path).
+verification. **Global install** via `do-it setup --target=cursor` copies the
+plugin bundle to `~/.cursor/plugins/do-it-cursor/` and registers
+`do-it-cursor@do-it` for the IDE. Marketplace install remains optional.
 
-## Install (planned / in progress)
+## Install
+
+```bash
+do-it setup --target=cursor
+do-it doctor --target=cursor
+```
+
+Override install root: `CURSOR_PLUGIN_ROOT_OVERRIDE=/path/to/plugin-root`.
+
+Layout after install:
 
 ```
-plugins/do-it-cursor/
+~/.cursor/plugins/do-it-cursor/
 ├── .cursor-plugin/plugin.json
 ├── skills/          # synced from skills/do-it/
 ├── agents/
 └── hooks/
-    ├── hooks.json
+    ├── hooks.json   # Cursor event mapping (install/cursor-hooks.json)
     ├── session-start.sh
-    └── write-quality-lint.sh   # symlink or copy of hooks/write-quality-lint.sh
+    └── write-quality-lint.sh
 ```
 
 Session state: `$CURSOR_PLUGIN_DATA/sessions/` (first in `do_it_session_dir`

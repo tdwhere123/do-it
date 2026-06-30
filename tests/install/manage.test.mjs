@@ -289,3 +289,44 @@ test("claude install preserves unrelated files in hooks directory", () => {
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
+
+test("cursor target installs plugin bundle with cursor hooks.json", () => {
+  const home = freshRoot("cursor-home");
+  const pluginRoot = path.join(home, "cursor-plugin");
+  try {
+    const result = runManage(["install", "--target=cursor"], {
+      HOME: home,
+      CURSOR_PLUGIN_ROOT_OVERRIDE: pluginRoot
+    });
+    assert.equal(result.status, 0, result.stderr);
+
+    const statePath = path.join(pluginRoot, ".do-it-install-state-cursor.json");
+    assert.ok(fs.existsSync(statePath), "cursor state file should exist");
+    assert.equal(
+      JSON.parse(fs.readFileSync(statePath, "utf8")).version,
+      MANIFEST_VERSION
+    );
+    assert.ok(
+      fs.existsSync(path.join(pluginRoot, ".cursor-plugin", "plugin.json")),
+      "cursor plugin manifest should be installed"
+    );
+    assert.ok(
+      fs.existsSync(path.join(pluginRoot, "hooks", "write-quality-lint.sh")),
+      "write-quality hook should be installed"
+    );
+
+    const hooksJson = JSON.parse(
+      fs.readFileSync(path.join(pluginRoot, "hooks", "hooks.json"), "utf8")
+    );
+    assert.equal(hooksJson.version, 1);
+    assert.ok(hooksJson.hooks.sessionStart, "cursor hooks should define sessionStart");
+
+    const registered = JSON.parse(
+      fs.readFileSync(path.join(home, ".claude", "plugins", "installed_plugins.json"), "utf8")
+    );
+    assert.ok(registered.plugins["do-it-cursor@do-it"], "plugin should be registered for Cursor");
+    assert.equal(registered.plugins["do-it-cursor@do-it"][0].installPath, pluginRoot);
+  } finally {
+    fs.rmSync(home, { recursive: true, force: true });
+  }
+});

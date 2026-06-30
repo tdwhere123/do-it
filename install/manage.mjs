@@ -29,7 +29,7 @@ function usage(stream = console.error) {
   stream("  setup    Run install, then doctor");
   stream("");
   stream("Options:");
-  stream("  --target=<name>   Pick install target (default: codex). Available: codex, claude.");
+  stream("  --target=<name>   Pick install target (default: codex). Available: codex, claude, cursor.");
   stream("  --with-optional   Include any skills marked optional in the manifest.");
   stream("  --session=<id>    With doctor: pretty-print session state (hook invocations, tier history) for the given session id.");
   stream("  --no-migrate      With install: refuse to silently migrate from an older install-state version (exit code 2).");
@@ -37,6 +37,7 @@ function usage(stream = console.error) {
   stream("Environment:");
   stream("  CODEX_HOME                    Override codex install root (default: $HOME/.codex)");
   stream("  CLAUDE_PLUGIN_ROOT_OVERRIDE   Override claude install root (default: $HOME/.claude)");
+  stream("  CURSOR_PLUGIN_ROOT_OVERRIDE   Override cursor plugin install root (default: $HOME/.cursor/plugins/do-it-cursor)");
   stream("  DO_IT_TARGET                  Set default target if --target is omitted");
   stream("  DO_IT_FORCE=1                 Replace existing files not marked as do-it managed");
 }
@@ -567,6 +568,28 @@ function runPreInstall() {
   }
 }
 
+function runPostInstall() {
+  for (const script of targetConfig.postInstall ?? []) {
+    const scriptPath = resolveRepoPath(script);
+    if (!fs.existsSync(scriptPath)) {
+      throw new Error(`Post-install script missing: ${script}`);
+    }
+    const result = spawnSync(process.execPath, [scriptPath], {
+      stdio: "inherit",
+      env: {
+        ...process.env,
+        DO_IT_INSTALL_ROOT: installRoot,
+        DO_IT_MANIFEST_VERSION: manifest.version,
+        DO_IT_TARGET: targetName
+      }
+    });
+    if (result.error) throw result.error;
+    if (result.status !== 0) {
+      throw new Error(`Post-install script failed: ${script} (exit ${result.status})`);
+    }
+  }
+}
+
 function runMigration(state) {
   if (noMigrate) {
     console.error(
@@ -645,6 +668,7 @@ function install() {
 
     writeInstallState();
     committed = true;
+    runPostInstall();
   } catch (error) {
     rollbackTransaction(transaction);
     throw error;
@@ -759,6 +783,9 @@ function sessionsBaseDir() {
   }
   if (process.env.CLAUDE_PLUGIN_DATA) {
     return path.join(process.env.CLAUDE_PLUGIN_DATA, "sessions");
+  }
+  if (process.env.CURSOR_PLUGIN_DATA) {
+    return path.join(process.env.CURSOR_PLUGIN_DATA, "sessions");
   }
   if (process.env.CODEX_HOME) {
     return path.join(process.env.CODEX_HOME, "do-it-data", "sessions");

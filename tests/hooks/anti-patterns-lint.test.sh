@@ -23,6 +23,13 @@ fi
 PASS=0
 FAIL=0
 
+export CLAUDE_PLUGIN_DATA="${TMPDIR:-/tmp}/do-it-antipatterns-test-$$"
+rm -rf "$CLAUDE_PLUGIN_DATA"
+mkdir -p "$CLAUDE_PLUGIN_DATA"
+trap 'rm -rf "$CLAUDE_PLUGIN_DATA"' EXIT
+
+unset CLAUDE_AGENT_CONTEXT CLAUDE_SUBAGENT CURSOR_SUBAGENT CURSOR_AGENT_CONTEXT OPENCODE_DATA CODEX_HOME DO_IT_HOOK_DATA CURSOR_PLUGIN_DATA
+
 _setup_repo() {
   local dir
   dir="$(mktemp -d -t doit-anti-patterns-XXXXXX)"
@@ -36,8 +43,8 @@ _setup_repo() {
 _run_hook() {
   local file="$1"
   local payload
-  payload=$(printf '{"tool_name":"Edit","tool_input":{"file_path":"%s"},"session_id":"test","cwd":"%s"}' \
-    "$file" "$(dirname "$file")")
+  payload=$(printf '{"tool_name":"Edit","tool_input":{"file_path":"%s"},"session_id":"test-%s","cwd":"%s"}' \
+    "$file" "$((RANDOM))" "$(dirname "$file")")
   printf '%s' "$payload" | bash "$HOOK" 2>/dev/null
 }
 

@@ -163,20 +163,29 @@ skills marked optional (none are currently marked optional).
 
 ## Cursor
 
-`do-it` ships as a **Cursor plugin marketplace** bundle only — there is no
-`do-it install --target=cursor` CLI path.
+`do-it` ships a Cursor plugin with the same global install flow as Codex and
+Claude:
+
+```bash
+do-it setup --target=cursor
+do-it doctor --target=cursor
+```
+
+This copies the built bundle to `~/.cursor/plugins/do-it-cursor/` (override with
+`CURSOR_PLUGIN_ROOT_OVERRIDE`) and registers `do-it-cursor@do-it` in your user
+plugin settings. Reload Cursor (**Developer: Reload Window**) after setup.
+
+Marketplace discovery remains available:
 
 ```text
 /plugin marketplace add tdwhere123/do-it
 /plugin install do-it-cursor
 ```
 
-The Cursor adapter uses a medium hook depth: `sessionStart` bootstrap,
+Cursor uses medium hook depth: `sessionStart` bootstrap,
 `beforeSubmitPrompt` routing/grill/stance, `preToolUse` plan gate,
 `postToolUse` / `afterFileEdit` advisory `write-quality-lint`, and `stop`
 verification gate. See [`docs/harness-adapter-matrix.md`](./docs/harness-adapter-matrix.md).
-
-Build or smoke the bundle from a checkout:
 
 ```bash
 npm run build:cursor-plugin

@@ -11,7 +11,7 @@ every host.
 |---|---|---|---|
 | **Codex** | `do-it setup` + marketplace | Full | Reference adapter; `CODEX_HOME/do-it-data` session state |
 | **Claude Code** | plugin + CLI | Full | `${CLAUDE_PLUGIN_ROOT}` hooks; `${CLAUDE_PLUGIN_DATA}` session state |
-| **Cursor** | plugin marketplace only | Medium | `sessionStart` bootstrap; `beforeSubmitPrompt` + `stop` gates; `postToolUse` / `afterFileEdit` quality lint |
+| **Cursor** | plugin marketplace + `do-it setup --target=cursor` | Medium | `sessionStart` bootstrap; `beforeSubmitPrompt` + `stop` gates; `postToolUse` / `afterFileEdit` quality lint |
 | **OpenCode** | `opencode.json` plugin | Medium | TS plugin: `experimental.chat.messages.transform` bootstrap; `tool.execute.before/after`; `session.idle` soft reminder |
 
 Workflow logic lives once in `skills/do-it/` and `hooks/`. Host-specific install

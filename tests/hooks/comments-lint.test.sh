@@ -20,8 +20,19 @@ if [[ ! -x "$HOOK" ]]; then
   fi
 fi
 
+export DO_IT_HOOK_DATA="${TMPDIR:-/tmp}/do-it-comments-test-$$"
+rm -rf "$DO_IT_HOOK_DATA"
+mkdir -p "$DO_IT_HOOK_DATA"
+trap 'rm -rf "$DO_IT_HOOK_DATA"' EXIT
+
+unset CLAUDE_PLUGIN_DATA CODEX_HOME CLAUDE_AGENT_CONTEXT CLAUDE_SUBAGENT CURSOR_SUBAGENT CURSOR_AGENT_CONTEXT CURSOR_PLUGIN_DATA OPENCODE_DATA
+
 PASS=0
 FAIL=0
+
+export CLAUDE_PLUGIN_DATA="${TMPDIR:-/tmp}/do-it-comments-test-$$"
+mkdir -p "$CLAUDE_PLUGIN_DATA"
+trap 'rm -rf "$CLAUDE_PLUGIN_DATA"' EXIT
 
 _setup_repo() {
   local dir
@@ -36,8 +47,9 @@ _setup_repo() {
 _run_hook() {
   local file="$1"
   local payload
-  payload=$(printf '{"tool_name":"Edit","tool_input":{"file_path":"%s"},"session_id":"test","cwd":"%s"}' \
-    "$file" "$(dirname "$file")")
+  local sid="test-session-$((RANDOM))"
+  payload=$(printf '{"tool_name":"Edit","tool_input":{"file_path":"%s"},"session_id":"%s","cwd":"%s"}' \
+    "$file" "$sid" "$(dirname "$file")")
   printf '%s' "$payload" | bash "$HOOK" 2>/dev/null
 }
 

@@ -265,6 +265,108 @@
         "scripts/build-claude-agents.mjs",
         "scripts/build-skills-index.mjs"
       ]
+    },
+    "cursor": {
+      "rootEnv": "CURSOR_PLUGIN_ROOT_OVERRIDE",
+      "rootDefault": "$HOME/.cursor/plugins/do-it-cursor",
+      "stateFile": ".do-it-install-state-cursor.json",
+      "agentSourceFrom": "dist/claude/agents",
+      "agentSourceExt": ".md",
+      "agentTargetExt": ".md",
+      "extras": [
+        {
+          "name": "cursor-plugin-meta",
+          "kind": "directory",
+          "source": "plugins/do-it-cursor/.cursor-plugin",
+          "target": ".cursor-plugin"
+        },
+        {
+          "name": "hooks-session-start",
+          "kind": "file",
+          "source": "hooks/session-start.sh",
+          "target": "hooks/session-start.sh"
+        },
+        {
+          "name": "hooks-write-quality-lint",
+          "kind": "file",
+          "source": "hooks/write-quality-lint.sh",
+          "target": "hooks/write-quality-lint.sh"
+        },
+        {
+          "name": "hooks-anti-patterns-lint",
+          "kind": "file",
+          "source": "hooks/anti-patterns-lint.sh",
+          "target": "hooks/anti-patterns-lint.sh"
+        },
+        {
+          "name": "hooks-comments-lint",
+          "kind": "file",
+          "source": "hooks/comments-lint.sh",
+          "target": "hooks/comments-lint.sh"
+        },
+        {
+          "name": "hooks-data",
+          "kind": "directory",
+          "source": "hooks/data",
+          "target": "hooks/data"
+        },
+        {
+          "name": "do-it-references",
+          "kind": "directory",
+          "source": "skills/do-it/references",
+          "target": "skills/references"
+        },
+        {
+          "name": "hooks-grill-pretool",
+          "kind": "file",
+          "source": "hooks/grill-pretool.sh",
+          "target": "hooks/grill-pretool.sh"
+        },
+        {
+          "name": "hooks-grill-prompt",
+          "kind": "file",
+          "source": "hooks/grill-prompt.sh",
+          "target": "hooks/grill-prompt.sh"
+        },
+        {
+          "name": "hooks-hooks-json",
+          "kind": "file",
+          "source": "install/cursor-hooks.json",
+          "target": "hooks/hooks.json"
+        },
+        {
+          "name": "hooks-lib",
+          "kind": "directory",
+          "source": "hooks/lib",
+          "target": "hooks/lib"
+        },
+        {
+          "name": "hooks-router",
+          "kind": "file",
+          "source": "hooks/router.sh",
+          "target": "hooks/router.sh"
+        },
+        {
+          "name": "hooks-subagent-stance",
+          "kind": "file",
+          "source": "hooks/subagent-stance.sh",
+          "target": "hooks/subagent-stance.sh"
+        },
+        {
+          "name": "hooks-verification-gate",
+          "kind": "file",
+          "source": "hooks/verification-gate.sh",
+          "target": "hooks/verification-gate.sh"
+        }
+      ],
+      "preInstall": [
+        "scripts/build-claude-agents.mjs",
+        "scripts/build-skills-index.mjs",
+        "scripts/build-cursor-plugin.mjs"
+      ],
+      "postInstall": [
+        "scripts/register-cursor-plugin.mjs"
+      ]
     }
   },
   "deprecatedTargets": [
