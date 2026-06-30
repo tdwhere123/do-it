@@ -185,6 +185,7 @@ Parent agent runs this prompt internally without spawning a subagent:
 > (no leading prose on the same line) so the verification-gate can see it:
 > use `inline-review: clean` when no findings, or
 > `inline-review: <one-line finding>` to flag a single Blocking issue.
+> **Note: If this turn modified an interface, contract, schema, or API (breaks_interface=1), the marker line MUST explicitly name the checked surface (e.g. `inline-review: interface clean` or `inline-review: contract is verified`).**
 > The legacy form `inline-review-clean: yes` is also accepted.
 
 The `verification-gate` Stop hook only honors the marker when it appears at

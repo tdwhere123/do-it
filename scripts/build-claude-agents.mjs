@@ -105,12 +105,12 @@ function buildClaudeAgent(toml) {
 }
 
 function writeFileAtomic(targetPath, content) {
-  const tempDir = path.join(repoRoot, ".do-it", "build-claude-agents");
-  fs.mkdirSync(tempDir, { recursive: true });
+  const targetDir = path.dirname(targetPath);
+  fs.mkdirSync(targetDir, { recursive: true });
 
   const tempPath = path.join(
-    tempDir,
-    `${path.basename(targetPath)}.${process.pid}.${crypto.randomUUID()}.tmp`
+    targetDir,
+    `.tmp-${path.basename(targetPath)}.${process.pid}.${crypto.randomUUID()}`
   );
 
   try {

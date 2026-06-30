@@ -116,19 +116,12 @@ function compileTypeScript() {
         stdio: "pipe"
       });
 
-  if (result.status === 0) return;
-
-  const distDir = path.join(pluginRoot, "dist");
-  fs.mkdirSync(distDir, { recursive: true });
-  for (const name of fs.readdirSync(path.join(pluginRoot, "src"))) {
-    if (!name.endsWith(".ts")) continue;
-    fs.copyFileSync(path.join(pluginRoot, "src", name), path.join(distDir, name.replace(/\.ts$/, ".js")));
+  if (result.status !== 0) {
+    console.error("TypeScript compilation failed:");
+    if (result.stdout) console.error(result.stdout.trim());
+    if (result.stderr) console.error(result.stderr.trim());
+    throw new Error("TypeScript compilation is required to build the OpenCode plugin.");
   }
-
-  console.warn(
-    "tsc unavailable or failed — copied src/*.ts to dist/*.js stubs; OpenCode/bun can still load TypeScript from src/"
-  );
-  if (result.stderr) console.warn(result.stderr.trim());
 }
 
 function main() {

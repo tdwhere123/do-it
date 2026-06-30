@@ -37,7 +37,7 @@ Parent-only unless explicitly assigned:
 
 - use for wave, phase, release, multi-agent, durable workflow, or cross-boundary planning;
 - lock scope, write ownership, non-goals, and integration ownership;
-- run grill, interface, architecture, vocabulary (do-it-context), or slicing drills as needed;
+- run grill, interface, architecture, vocabulary (`do-it-context`), or slicing drills as needed;
 - stop for approval if the user asked to confirm the plan.
 
 ## Planning Sequence

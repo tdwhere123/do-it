@@ -8,7 +8,7 @@
     {
       "name": "do-it-cursor",
       "description": "Workflow discipline plugin: skills and hooks auto-trigger via tier routing; no slash commands required.",
-      "version": "0.13.0",
+      "version": "0.13.1",
       "source": "./plugins/do-it-cursor",
       "author": {
         "name": "tdwhere123"

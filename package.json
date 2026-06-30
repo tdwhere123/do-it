@@ -1,6 +1,6 @@
 {
   "name": "@tdwhere/do-it",
-  "version": "0.13.0",
+  "version": "0.13.1",
   "description": "Installable AI coding workflow for Codex, Claude Code, Cursor, and OpenCode with risk-based routing, scoped sub-agents, and evidence-backed completion.",
   "type": "module",
   "license": "MIT",
@@ -68,7 +68,7 @@
     "build:opencode-plugin": "npm run build:generated && node scripts/build-opencode-plugin.mjs",
     "build:cursor-plugin": "npm run build:generated && node scripts/build-cursor-plugin.mjs && node scripts/validate-harness-matrix.mjs",
     "validate:harness-matrix": "node scripts/validate-harness-matrix.mjs",
-    "prepack": "npm run build:generated && node scripts/build-codex-plugin.mjs && node scripts/validate-agent-bundle.mjs",
+    "prepack": "npm run build:generated && node scripts/build-codex-plugin.mjs && node scripts/build-cursor-plugin.mjs && node scripts/build-opencode-plugin.mjs && node scripts/validate-agent-bundle.mjs && node scripts/validate-harness-matrix.mjs",
     "do-it": "node bin/do-it.mjs",
     "lint": "bash scripts/lint-hooks.sh",
     "lint-hooks": "bash scripts/lint-hooks.sh",

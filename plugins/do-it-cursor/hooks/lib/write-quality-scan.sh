@@ -195,7 +195,7 @@ wq_scan_antipattern_families() {
   esac
 
   local chunks_file copypaste_hit=0 copypaste_neighbor=""
-  chunks_file="$(mktemp 2>/dev/null || echo "/tmp/do-it-write-quality-$$")"
+  chunks_file="$(mktemp 2>/dev/null || echo "/tmp/do-it-write-quality-$$-$RANDOM")"
   printf '%s\n' "$WQ_ADDED_LINES" | awk '
     function flush() {
       if (size >= 5) {
@@ -221,13 +221,13 @@ wq_scan_antipattern_families() {
     local fa="$1" fb="$2"
     [[ -z "$fa" || -z "$fb" || "$fa" == "$fb" ]] && return 0
     local cand row
-    cand="$(_wq_timeout 5s git -C "$repo_root" grep -lF -- "$fa" "$rel_dir" 2>/dev/null \
+    cand="$(_wq_timeout 5s git -C "$repo_root" grep -lF -e "$fa" -- "$rel_dir" 2>/dev/null \
       | grep -vxF -- "$rel_file" \
       | head -n5 || true)"
     [[ -z "$cand" ]] && return 0
     while IFS= read -r row; do
       [[ -z "$row" ]] && continue
-      if _wq_timeout 5s git -C "$repo_root" grep -q -F -- "$fb" "$row" 2>/dev/null; then
+      if _wq_timeout 5s git -C "$repo_root" grep -q -F -e "$fb" -- "$row" 2>/dev/null; then
         copypaste_hit=1
         copypaste_neighbor="$row"
         return 0

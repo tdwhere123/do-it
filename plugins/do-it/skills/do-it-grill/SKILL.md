@@ -104,7 +104,7 @@ Use `confirmed`/`refuted` only for facts, `chosen`/`deferred`/`needs_user_decisi
 
 ## Reference
 
-The challenge taxonomy (eight lenses), the "I'm done grilling" rationalizations to push past, red flags that warrant another loop, severity definitions, and common mistakes live in `references/checks.md`. Load it when a grill stalls or you need the full lens set; the loop above is enough for the common case.
+The challenge taxonomy (eight lenses), the "I'm done grilling" rationalizations to push past, red flags that warrant another loop, severity definitions, and common mistakes live in [`references/checks.md`](references/checks.md). Load it when a grill stalls or you need the full lens set; the loop above is enough for the common case.
 
 ## Related skills
 

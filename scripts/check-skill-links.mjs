@@ -57,7 +57,7 @@ const REF = /`do-it-[a-z0-9]+(?:-[a-z0-9]+)*/g;
 
 // Markdown links and backtick paths to references/*.md
 const REF_MD_LINK =
-  /(?:\[[^\]]*\]\((\.\.\/)?references\/([a-z0-9-]+\.md)\)|`(?:\.\.\/)?references\/([a-z0-9-]+\.md)`)/g;
+  /(?:\[[^\]]*\]\((\.\.\/)?references\/([A-Za-z0-9_-]+\.md)\)|`(?:\.\.\/)?references\/([A-Za-z0-9_-]+\.md)`)/gi;
 
 function resolveReferencePath(skillName, refFile) {
   const shared = path.join(sharedRefsDir, refFile);

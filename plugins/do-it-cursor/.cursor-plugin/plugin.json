@@ -1,7 +1,7 @@
 {
   "name": "do-it-cursor",
   "displayName": "do-it",
-  "version": "0.13.0",
+  "version": "0.13.1",
   "description": "Installable AI coding workflow for Codex, Claude Code, Cursor, and OpenCode with risk-based routing, scoped sub-agents, and evidence-backed completion.",
   "author": {
     "name": "tdwhere123"

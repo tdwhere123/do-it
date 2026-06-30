@@ -97,7 +97,12 @@ _last_user_line="$(printf '%s\n' "$TAIL_BUF" \
   | grep -nE '"(type|role)"[[:space:]]*:[[:space:]]*"user"' \
   | tail -n1 | cut -d: -f1)"
 if [[ -n "$_last_user_line" ]]; then
-  CURRENT_TURN_BUF="$(printf '%s\n' "$TAIL_BUF" | tail -n +"$((_last_user_line + 1))")"
+  case "$_last_user_line" in
+    ''|*[!0-9]*) _last_user_line="" ;;
+  esac
+  if [[ -n "$_last_user_line" ]]; then
+    CURRENT_TURN_BUF="$(printf '%s\n' "$TAIL_BUF" | tail -n +"$((_last_user_line + 1))")"
+  fi
 fi
 
 # Detect completion claims in the last assistant message only.
