@@ -1,5 +1,5 @@
 {
-  "version": "0.12.0",
+  "version": "0.13.0",
   "generated_at": "2026-05-24T15:12:54.935Z",
   "package": "@tdwhere/do-it",
   "repository": "https://github.com/tdwhere123/do-it",
@@ -29,7 +29,7 @@
     {
       "kind": "skill",
       "name": "do-it-router",
-      "description": "Use when any non-trivial repo task needs Light, Standard, or Heavy tier selection, failure-mode forecast, path map, and the minimum useful do-it workflow before action.",
+      "description": "Use when any non-trivial repo task needs Light, Standard, or Heavy tier selection, failure-mode forecast, path map, and the minimum useful do-it workflow before action. 路由 / 分级 / 非平凡任务.",
       "origin": "do-it",
       "optional": false,
       "group": "mainline",

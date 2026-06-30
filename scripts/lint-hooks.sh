@@ -40,7 +40,7 @@ entry_points=(
   hooks/subagent-stance.sh
   hooks/grill-pretool.sh
   hooks/verification-gate.sh
-  hooks/comments-lint.sh
+  hooks/write-quality-lint.sh
 )
 
 # `-x` lets shellcheck follow `# shellcheck source=...` lines so the lib files

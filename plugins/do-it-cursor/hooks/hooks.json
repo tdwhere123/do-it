@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/session-start.sh",
+        "timeout": 25
+      }
+    ],
+    "beforeSubmitPrompt": [
+      {
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/router.sh",
+        "timeout": 25
+      },
+      {
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/grill-prompt.sh",
+        "timeout": 25
+      },
+      {
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/subagent-stance.sh",
+        "timeout": 10
+      }
+    ],
+    "preToolUse": [
+      {
+        "matcher": "Write",
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/grill-pretool.sh",
+        "timeout": 10
+      }
+    ],
+    "postToolUse": [
+      {
+        "matcher": "Write",
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/write-quality-lint.sh",
+        "timeout": 15
+      }
+    ],
+    "stop": [
+      {
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/verification-gate.sh",
+        "timeout": 25
+      }
+    ]
+  }
+}

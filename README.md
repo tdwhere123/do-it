@@ -8,9 +8,10 @@
 
 > Stop asking AI agents to remember process. Install it.
 
-`do-it` turns AI coding discipline into an installable workflow for Codex and
-Claude Code. It routes work by risk, delegates sub-agents with explicit
-contracts, and requires fresh evidence before an agent can claim done.
+`do-it` turns AI coding discipline into an installable workflow for **Codex**,
+**Claude Code**, **Cursor**, and **OpenCode**. It routes work by risk, delegates
+sub-agents with explicit contracts, and requires fresh evidence before an agent
+can claim done.
 
 This is the workflow I use every day for real project work. If it fits your
 style, use it. If something feels wrong, open an issue, send a PR, or fork it
@@ -70,8 +71,9 @@ works wins.
 It is wired into three points, not bolted on as a linter:
 
 - **Before** you write, `do-it-grill` opens with the necessity question.
-- **While** you write, the router's Restraint reflex and a non-blocking
-  write-time advisory flag speculative abstractions.
+- **While** you write, the advisory `write-quality-lint` hook flags comment
+  discipline, coarse anti-patterns, and integrity smells on newly-added lines
+  (one reminder per file; never blocks).
 - **After** you write, `do-it-review-loop`'s YAGNI lens tags what can be deleted,
   inlined, or replaced by stdlib.
 
@@ -159,6 +161,41 @@ The Claude target installs to `~/.claude/` by default; override with
 `CLAUDE_PLUGIN_ROOT_OVERRIDE`. The `--with-optional` flag installs any manifest
 skills marked optional (none are currently marked optional).
 
+## Cursor
+
+`do-it` ships as a **Cursor plugin marketplace** bundle only — there is no
+`do-it install --target=cursor` CLI path.
+
+```text
+/plugin marketplace add tdwhere123/do-it
+/plugin install do-it-cursor
+```
+
+The Cursor adapter uses a medium hook depth: `sessionStart` bootstrap,
+`beforeSubmitPrompt` routing/grill/stance, `preToolUse` plan gate,
+`postToolUse` / `afterFileEdit` advisory `write-quality-lint`, and `stop`
+verification gate. See [`docs/harness-adapter-matrix.md`](./docs/harness-adapter-matrix.md).
+
+Build or smoke the bundle from a checkout:
+
+```bash
+npm run build:cursor-plugin
+```
+
+## OpenCode
+
+`do-it` ships an OpenCode TypeScript plugin with transform-first bootstrap and
+selective bash bridges for pretool, write-quality, and verification gates.
+
+Copy `plugins/do-it-opencode/opencode.json.template` into your OpenCode config
+and point the plugin path at this repository's `plugins/do-it-opencode/`.
+Details: [`plugins/do-it-opencode/docs/README.opencode.md`](./plugins/do-it-opencode/docs/README.opencode.md).
+
+```bash
+npm run build:opencode-plugin
+npm run test-opencode
+```
+
 ## What It Installs
 
 - do-it-native skills for routing, grill, **brainstorm (multi-lens
@@ -176,9 +213,12 @@ skills marked optional (none are currently marked optional).
   UX, end-user, ops, security, domain, and plan supplements.
 - Codex global hook assets and root `hooks.json` installed by `do-it setup`.
   Hooks include parent routing / grill nudges, a compact **subagent stance**
-  reminder, advisory comment/YAGNI lint, and completion verification gates.
+  reminder, merged advisory **write-quality-lint** (comments + anti-patterns +
+  integrity families), and completion verification gates.
 - Claude Code plugin assets, hooks, commands, and generated sub-agent
   definitions.
+- Cursor plugin bundle under `plugins/do-it-cursor/` (marketplace only).
+- OpenCode TypeScript plugin under `plugins/do-it-opencode/`.
 - Copy-based installer and `doctor` commands that validate managed host files
   against `manifest.json`.
 - Root `index.json`, a generated machine-readable inventory of the do-it
@@ -307,6 +347,8 @@ hooks/           Host hook scripts
 index.json       Generated skill/agent discovery inventory
 install/         Installer, doctor, and shell wrapper entrypoints
 plugins/do-it/   Generated Codex plugin bundle
+plugins/do-it-cursor/   Generated Cursor plugin bundle
+plugins/do-it-opencode/ OpenCode TS plugin + hook bridge
 skills/custom/   Local skill examples that are not installed by default
 skills/do-it/    Installed do-it-native skill directories
 manifest.json    Install inventory and target paths
@@ -315,6 +357,19 @@ package.json     npm package metadata and CLI scripts
 
 The private `.do-it/` directory is for local plans, notes, and scratch
 artifacts. It is ignored by Git and is not installed.
+
+## Upgrading to 0.13.0
+
+`0.13.0` adds **four-host adapters** (Codex, Claude, Cursor, OpenCode) with one
+shared workflow kernel. Post-edit `comments-lint` and `anti-patterns-lint` merge
+into advisory `write-quality-lint` (single reminder per file; tier/DIM gated).
+UserPromptSubmit injection is compressed for Standard turns. Skills gain shared
+`references/` sheets (integrity, dimensions, write-quality families, per-host
+install notes). Cursor and OpenCode plugin bundles ship from
+`plugins/do-it-cursor/` and `plugins/do-it-opencode/`. Re-run `do-it setup` or
+refresh your plugin install so hosts load the new hook and reference files.
+
+Full adapter matrix: [`docs/harness-adapter-matrix.md`](./docs/harness-adapter-matrix.md).
 
 ## Upgrading to 0.10.0
 

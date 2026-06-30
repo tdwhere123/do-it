@@ -39,13 +39,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/comments-lint.sh",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/anti-patterns-lint.sh",
-            "timeout": 10
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/write-quality-lint.sh",
+            "timeout": 15
           }
         ]
       }

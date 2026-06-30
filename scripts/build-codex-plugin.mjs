@@ -151,6 +151,12 @@ function main() {
   copyManagedDir(skills, "skill");
   copyManagedDir(agents, "agent");
 
+  const refsSource = path.join(repoRoot, "skills", "do-it", "references");
+  if (!fs.existsSync(refsSource)) {
+    throw new Error(`references missing: ${path.relative(repoRoot, refsSource)}`);
+  }
+  fs.cpSync(refsSource, path.join(pluginRoot, "skills", "references"), { recursive: true });
+
   writeJsonAtomic(path.join(pluginManifestDir, "plugin.json"), buildPluginManifest());
   writeJsonAtomic(marketplacePath, buildMarketplace());
 

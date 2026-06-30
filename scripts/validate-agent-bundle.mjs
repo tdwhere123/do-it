@@ -252,7 +252,10 @@ function validateGeneratedAgents(sourceNames, errors) {
 
 function validateGeneratedSkills(manifest, errors) {
   const skills = manifest.skills ?? [];
-  const expectedSkillTargets = skills.map((skill) => basenameFromTarget(skill.target, "skills")).sort();
+  const expectedSkillTargets = [
+    ...skills.map((skill) => basenameFromTarget(skill.target, "skills")),
+    "references"
+  ].sort();
   const actualSkillTargets = listNames("plugins/do-it/skills").sort();
   compareSets("plugins/do-it/skills", expectedSkillTargets, actualSkillTargets, errors);
 
@@ -264,6 +267,12 @@ function validateGeneratedSkills(manifest, errors) {
     if (!pathsMatch(sourcePath, pluginPath)) {
       errors.push(`plugins/do-it/skills/${targetName} is not generated from ${skill.source}`);
     }
+  }
+
+  const refsSource = repoPath("skills/do-it/references");
+  const refsPlugin = repoPath("plugins/do-it/skills/references");
+  if (fs.existsSync(refsPlugin) && !pathsMatch(refsSource, refsPlugin)) {
+    errors.push("plugins/do-it/skills/references is not generated from skills/do-it/references");
   }
 }
 

@@ -77,6 +77,15 @@ jobs:
       - name: Ensure generated Codex plugin is committed
         run: git diff --exit-code -- .agents/plugins plugins/do-it
 
+      - name: Build Cursor plugin
+        run: npm run build:cursor-plugin
+
+      - name: Ensure generated Cursor plugin is committed
+        run: git diff --exit-code -- plugins/do-it-cursor .cursor-plugin
+
+      - name: Build OpenCode plugin
+        run: npm run build:opencode-plugin
+
   package-smoke:
     name: Package smoke
     runs-on: ubuntu-latest

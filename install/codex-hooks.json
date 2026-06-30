@@ -39,13 +39,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "DO_IT_HOOK_DATA=\"${CODEX_HOME:-$HOME/.codex}/do-it-data\" \"${CODEX_HOME:-$HOME/.codex}/hooks/comments-lint.sh\"",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": "DO_IT_HOOK_DATA=\"${CODEX_HOME:-$HOME/.codex}/do-it-data\" \"${CODEX_HOME:-$HOME/.codex}/hooks/anti-patterns-lint.sh\"",
-            "timeout": 10
+            "command": "DO_IT_HOOK_DATA=\"${CODEX_HOME:-$HOME/.codex}/do-it-data\" \"${CODEX_HOME:-$HOME/.codex}/hooks/write-quality-lint.sh\"",
+            "timeout": 15
           }
         ]
       }

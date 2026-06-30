@@ -1,5 +1,5 @@
 {
-  "version": "0.12.0",
+  "version": "0.13.0",
   "migrations": [
     {
       "from": "0.4.x",
@@ -32,6 +32,10 @@
     {
       "from": "0.11.x",
       "actions": []
+    },
+    {
+      "from": "0.12.x",
+      "actions": []
     }
   ],
   "targets": {
@@ -43,6 +47,12 @@
       "agentSourceExt": ".toml",
       "agentTargetExt": ".toml",
       "extras": [
+        {
+          "name": "hooks-write-quality-lint",
+          "kind": "file",
+          "source": "hooks/write-quality-lint.sh",
+          "target": "hooks/write-quality-lint.sh"
+        },
         {
           "name": "hooks-anti-patterns-lint",
           "kind": "file",
@@ -60,6 +70,12 @@
           "kind": "directory",
           "source": "hooks/data",
           "target": "hooks/data"
+        },
+        {
+          "name": "do-it-references",
+          "kind": "directory",
+          "source": "skills/do-it/references",
+          "target": "skills/references"
         },
         {
           "name": "hooks-grill-pretool",
@@ -148,6 +164,12 @@
           "target": ".claude-plugin"
         },
         {
+          "name": "hooks-write-quality-lint",
+          "kind": "file",
+          "source": "hooks/write-quality-lint.sh",
+          "target": "hooks/write-quality-lint.sh"
+        },
+        {
           "name": "hooks-anti-patterns-lint",
           "kind": "file",
           "source": "hooks/anti-patterns-lint.sh",
@@ -164,6 +186,12 @@
           "kind": "directory",
           "source": "hooks/data",
           "target": "hooks/data"
+        },
+        {
+          "name": "do-it-references",
+          "kind": "directory",
+          "source": "skills/do-it/references",
+          "target": "skills/references"
         },
         {
           "name": "hooks-grill-pretool",

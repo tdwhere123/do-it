@@ -5,6 +5,9 @@
 // tokens and fails if any names a skill or command that does not exist — a
 // broken reference left behind by a rename or deletion. Also flags a skill
 // directory that is not registered in manifest.json.
+//
+// Validates relative `../references/*.md` and `references/*.md` links from
+// SKILL.md files against skills/do-it/references/ and per-skill references/.
 
 import fs from "node:fs";
 import path from "node:path";
@@ -13,6 +16,7 @@ import { fileURLToPath } from "node:url";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const skillsDir = path.join(repoRoot, "skills/do-it");
+const sharedRefsDir = path.join(skillsDir, "references");
 const commandsDir = path.join(repoRoot, "commands");
 
 function listDir(dir, filterFn) {
@@ -21,9 +25,10 @@ function listDir(dir, filterFn) {
 }
 
 // A `do-it-*` token resolves if it names a skill directory or a command file.
-const skillNames = listDir(skillsDir, (name) =>
-  fs.statSync(path.join(skillsDir, name)).isDirectory()
-);
+const skillNames = listDir(skillsDir, (name) => {
+  if (name === "references") return false;
+  return fs.statSync(path.join(skillsDir, name)).isDirectory();
+});
 const commandNames = listDir(commandsDir, (name) => name.endsWith(".md")).map(
   (name) => name.replace(/\.md$/, "")
 );
@@ -50,6 +55,18 @@ for (const name of skillNames) {
 // `.do-it-install-state.json` do not register as skill references.
 const REF = /`do-it-[a-z0-9]+(?:-[a-z0-9]+)*/g;
 
+// Markdown links and backtick paths to references/*.md
+const REF_MD_LINK =
+  /(?:\[[^\]]*\]\((\.\.\/)?references\/([a-z0-9-]+\.md)\)|`(?:\.\.\/)?references\/([a-z0-9-]+\.md)`)/g;
+
+function resolveReferencePath(skillName, refFile) {
+  const shared = path.join(sharedRefsDir, refFile);
+  if (fs.existsSync(shared)) return shared;
+  const local = path.join(skillsDir, skillName, "references", refFile);
+  if (fs.existsSync(local)) return local;
+  return null;
+}
+
 for (const name of skillNames) {
   const skillFile = path.join(skillsDir, name, "SKILL.md");
   if (!fs.existsSync(skillFile)) {
@@ -65,6 +82,18 @@ for (const name of skillNames) {
     if (!validRefs.has(token)) {
       errors.push(
         `skills/do-it/${name}/SKILL.md references unknown skill/command \`${token}\``
+      );
+    }
+  }
+
+  const seenRefs = new Set();
+  for (const match of text.matchAll(REF_MD_LINK)) {
+    const refFile = match[2] ?? match[3];
+    if (!refFile || seenRefs.has(refFile)) continue;
+    seenRefs.add(refFile);
+    if (!resolveReferencePath(name, refFile)) {
+      errors.push(
+        `skills/do-it/${name}/SKILL.md references missing file references/${refFile}`
       );
     }
   }

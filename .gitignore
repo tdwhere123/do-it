@@ -2,4 +2,6 @@
 .do-it/runtime/
 .codex
 .codex/
-dist/
+/dist/
+node_modules/
+plugins/do-it-opencode/node_modules/

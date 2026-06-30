@@ -97,6 +97,22 @@ heading name.
 - External workflow material is rewritten into do-it terminology before it is
   installed.
 
+## Multi-Host Checklist
+
+Shared skills must stay host-neutral in the body:
+
+- No hard-coded tool names (`Bash`, `MultiEdit`) — use intent ("run verify",
+  "edit file") or point to [`../references/host-vocabulary.md`](../references/host-vocabulary.md).
+- Hook behavior references kernel script names (`write-quality-lint.sh`), not
+  host event names — per-host mapping lives in
+  [`../references/host-{codex,claude,cursor,opencode}.md`](../references/host-vocabulary.md).
+- Truth planes include `live-cursor` / `live-opencode` when install or hook
+  claims need host-specific proof.
+- Progressive disclosure: move Integrity, DIM, pointer, and quality-family detail
+  to `skills/do-it/references/` instead of bloating `SKILL.md`.
+- After edits, run `node scripts/check-skill-links.mjs` and hook tests when hooks
+  or references change.
+
 ## Common Rationalizations
 
 - *"The upstream skill already says this well."* — The installed package ships

@@ -193,12 +193,12 @@ filler="$(printf 'neutral %.0s' {1..70})"
 long_without_hint_session="long-without-hint"
 run_router "$long_without_hint_session" "schema $filler"
 long_without_hint_grill="$(run_grill "$long_without_hint_session" "schema $filler")"
-assert_not_contains "$long_without_hint_grill" "do-it grill" "long Standard prompt without topical hint should not grill"
+assert_not_contains "$long_without_hint_grill" "do-it grill" "long Standard prompt without code object should not grill"
 
 long_with_hint_session="long-with-hint"
 run_router "$long_with_hint_session" "schema 方案 $filler"
 long_with_hint_grill="$(run_grill "$long_with_hint_session" "schema 方案 $filler")"
-assert_contains "$long_with_hint_grill" "trigger: long-input" "long Standard prompt with topical hint should grill"
+assert_not_contains "$long_with_hint_grill" "do-it grill" "long Standard prompt alone should not grill (long-input trigger removed)"
 
 standard_edit_session="standard-edit"
 run_router "$standard_edit_session" "Implement the source cleanup"
@@ -256,7 +256,7 @@ run_router "$withcode_session" "release 我想确认 src/release.ts"
 [[ "$(state_value "$withcode_session" dim_touches_code)" == "1" ]] \
   || fail "release+file should set dim_touches_code=1"
 withcode_grill="$(run_grill "$withcode_session" "release 我想确认 src/release.ts")"
-assert_contains "$withcode_grill" "trigger: uncertainty" "Standard + uncertainty + dim_touches_code=1 should still grill"
+assert_contains "$withcode_grill" "do-it grill (uncertainty)" "Standard + uncertainty + dim_touches_code=1 should still grill"
 
 # ---- advisory nudges (plan-card reliability + existing-codebase) ----
 

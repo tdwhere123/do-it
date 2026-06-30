@@ -78,9 +78,16 @@ For each new or changed comment:
 
 Reject (rewrite or delete) when (1) fails, (2) is yes, (3) is no, or (4)/(5)/(6) fails.
 
-## Anti-Pattern Hook Keywords (advisory, reference only)
+## Write-Quality Families (advisory hook)
 
-`comments-lint` scans newly-added comment lines for these keyword families and emits one system-reminder per file. It never blocks. A hit does not automatically mean bad — the reviewer or next edit decides. Family names match the `cause class` slot in [`do-it-review-loop`](../do-it-review-loop/SKILL.md) so reviewer findings and hook reminders share vocabulary.
+Comment-related closed-set families (`history`, `fix-narrative`, `task-ref`,
+`orphan-todo`, `tombstone`, `what-comment`) and suppress syntax live in
+[`../references/write-quality-families.md`](../references/write-quality-families.md)
+§ Comments. The merged `write-quality-lint` hook scans newly-added lines; it
+never blocks. Family names match the `cause class` slot in
+[`do-it-review-loop`](../do-it-review-loop/SKILL.md).
+
+Keyword heuristics (reference only):
 
 - `history` (Chinese narrative): `修改了` `添加了` `新增了` `删除了` `去掉了` `之前是` `原来是` `改成` `曾经`
 - `history` (English narrative): `added` `previously` `used to` `changed to` `moved` plus bare `removed` / `deleted` (without trailing `:`)

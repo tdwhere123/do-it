@@ -57,7 +57,10 @@ Every subagent prompt must include:
 - `path map`: producer -> contract/event/schema -> transport/client -> state/query -> surface/operator action -> verification, or `not applicable`.
 - `readiness target`: fixture-ready, live-event-ready, operator-ready, docs-truth-ready, or install-ready.
 - `truth plane`: source-repo, task-worktree, integration-worktree, temp-install,
-  live-codex, live-claude, package-artifact, host-behavior, or external-blocked.
+  live-codex, live-claude, live-cursor, live-opencode, package-artifact,
+  host-behavior, or external-blocked. Use `live-<host>` when the slice must
+  prove host hook/install/runtime behavior — see
+  [`../references/host-vocabulary.md`](../references/host-vocabulary.md).
 - `lane status`: starts as `assigned`; parent updates it through `running`,
   `done_with_evidence`, `integrated`, or `blocking`.
 - `must-verify facts`: facts the child must check itself before acting or reporting.
@@ -76,10 +79,10 @@ Include this guardrail unless Heavy is explicitly assigned:
 ## Token Budget
 
 Free-form subagent output is the most common way the parent's context gets
-polluted. do-it keeps response budgets in this skill instead of in
-`agents/*.toml`, because Codex agent TOML only accepts the host-supported schema
-keys. The orchestrator must choose the matching budget below, propagate that cap
-into the child prompt, and enforce it on return.
+polluted. do-it keeps response budgets in this skill — not in host agent config
+files, which vary by platform and may not accept custom budget keys. The
+orchestrator must choose the matching budget below, propagate that cap into the
+child prompt, and enforce it on return.
 
 ### Caller responsibility
 

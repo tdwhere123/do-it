@@ -1,11 +1,14 @@
 # Release Notes
 
-This workflow bundle ships through three surfaces:
+This workflow bundle ships through five surfaces:
 
 1. Codex global setup for full automatic hooks and doctor-managed install.
 2. Codex plugin marketplace for first-class skills and agents discovery.
 3. Claude Code plugin marketplace for Claude-native hooks, commands, and
    generated agents.
+4. Cursor plugin marketplace (`plugins/do-it-cursor/`) for medium-depth hooks.
+5. OpenCode TypeScript plugin (`plugins/do-it-opencode/`) for transform bootstrap
+   and selective bash bridges.
 
 ## Baseline
 
@@ -71,6 +74,17 @@ checks currently show `codex_hooks=true`, `plugins=true`, and
 | Codex global setup | Yes, from `manifest.json` | Yes, TOML from `agents/` | CLI `do-it` only | Yes, root `hooks.json` plus do-it-managed files under `hooks/` | Yes, default target | `CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it setup` |
 | Codex plugin marketplace | Yes, generated under `plugins/do-it/skills/` | Yes, generated under `plugins/do-it/agents/` | No slash command surface | Not relied on while `plugin_hooks=false` | No direct doctor; pair with global setup for hooks | `npm run build:codex-plugin` then `CODEX_HOME=/tmp/do-it-plugin-test codex plugin marketplace add /path/to/do-it` |
 | Claude Code plugin | Yes, from `skills/do-it/` | Yes, generated Markdown under `dist/claude/agents/` | Yes, `commands/` | Yes, do-it-managed files under `hooks/`, including `hooks/hooks.json` | Yes, `--target=claude` | `CLAUDE_PLUGIN_ROOT_OVERRIDE=/tmp/do-it-claude-test npm exec --package . -- do-it setup --target=claude` |
+| Cursor plugin | Yes, under `plugins/do-it-cursor/skills/` | Yes, under `plugins/do-it-cursor/agents/` | No | Medium: `sessionStart`, `beforeSubmitPrompt`, `preToolUse`, `postToolUse`/`afterFileEdit`, `stop` | No CLI doctor; validate bundle | `npm run build:cursor-plugin` |
+| OpenCode plugin | Yes, under `plugins/do-it-opencode/skills/` | Yes, under `plugins/do-it-opencode/agents/` | No | Medium-Light: transform bootstrap, `tool.execute.before/after`, `session.idle` soft reminder | No CLI doctor | `npm run build:opencode-plugin && npm run test-opencode` |
+
+## 0.13.0
+
+- Four-host adapter matrix: Codex, Claude, Cursor, OpenCode share one workflow kernel.
+- Merged advisory `write-quality-lint` replaces dual PostToolUse `comments-lint` +
+  `anti-patterns-lint` (legacy wrappers exec into merged script for one release).
+- UserPromptSubmit chain compressed for Standard turns; tier/DIM gates write-quality.
+- Skills `references/` sheets externalized; harness matrix at `docs/harness-adapter-matrix.md`.
+- Cursor plugin marketplace bundle and OpenCode TS plugin ship from `plugins/`.
 
 ## Local Checkout Surface
 
@@ -124,22 +138,24 @@ release artifact.
 3. Run `npm run validate:agents`.
 4. Run `npm run build:claude-agents`.
 5. Run `npm run build:codex-plugin`.
-6. Run `CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it setup`.
-7. Run `CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it doctor`.
-8. Smoke the installed Codex hook commands for `UserPromptSubmit`,
+6. Run `npm run build:cursor-plugin`.
+7. Run `npm run build:opencode-plugin && npm run test-opencode`.
+8. Run `CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it setup`.
+9. Run `CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it doctor`.
+10. Smoke the installed Codex hook commands for `UserPromptSubmit`,
    `PreToolUse`, `PostToolUse`, and `Stop` against the temporary `CODEX_HOME`.
-9. Run `CODEX_HOME=/tmp/do-it-plugin-test codex plugin marketplace add /path/to/do-it`
+11. Run `CODEX_HOME=/tmp/do-it-plugin-test codex plugin marketplace add /path/to/do-it`
    or inspect the local marketplace registration manually.
-10. Run `CLAUDE_PLUGIN_ROOT_OVERRIDE=/tmp/do-it-claude-test npm exec --package . -- do-it setup --target=claude`.
-11. Run `npm pack --dry-run --json`.
-12. Confirm `docs/upstream-map.md` reflects the latest imports.
-13. Confirm `manifest.json` matches the on-disk inventory.
-14. Confirm `index.json`, `.agents/plugins/marketplace.json`,
-   `plugins/do-it/`, and `install/codex-hooks.json` are included in the
+12. Run `CLAUDE_PLUGIN_ROOT_OVERRIDE=/tmp/do-it-claude-test npm exec --package . -- do-it setup --target=claude`.
+13. Run `npm pack --dry-run --json`.
+14. Confirm `docs/upstream-map.md` reflects the latest imports.
+15. Confirm `manifest.json` matches the on-disk inventory.
+16. Confirm `index.json`, `.agents/plugins/marketplace.json`,
+   `plugins/do-it/`, `plugins/do-it-cursor/`, `plugins/do-it-opencode/`, and
+   `install/codex-hooks.json` are included in the package.
+17. Confirm the temporary/source-only rewrite material is not included in the
    package.
-15. Confirm the temporary/source-only rewrite material is not included in the
-   package.
-16. Confirm a simulated legacy upgrade can remove unmodified deprecated targets
+18. Confirm a simulated legacy upgrade can remove unmodified deprecated targets
    without `DO_IT_FORCE=1`.
 17. Confirm a simulated replacement failure preserves both current managed
    targets and deprecated legacy targets.

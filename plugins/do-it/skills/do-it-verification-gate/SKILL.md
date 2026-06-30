@@ -64,8 +64,9 @@ integration claims. Heavy is parent-only unless explicitly assigned.
 
 Use the smallest exact truth plane for each claim: `source-repo`,
 `task-worktree`, `integration-worktree`, `temp-install`, `live-codex`,
-`live-claude`, `package-artifact`, `host-behavior`, or `external-blocked`.
-Evidence from one plane does not prove another.
+`live-claude`, `live-cursor`, `live-opencode`, `package-artifact`,
+`host-behavior`, or `external-blocked`. Evidence from one plane does not prove
+another. Host-specific planes: [`../references/host-vocabulary.md`](../references/host-vocabulary.md).
 
 When a durable plan has an `Evidence Ledger`, verify against the matching row
 before closeout:

@@ -1,7 +1,7 @@
 {
   "name": "@tdwhere/do-it",
-  "version": "0.12.0",
-  "description": "Installable AI coding workflow for Codex and Claude Code with risk-based routing, scoped sub-agents, and evidence-backed completion.",
+  "version": "0.13.0",
+  "description": "Installable AI coding workflow for Codex, Claude Code, Cursor, and OpenCode with risk-based routing, scoped sub-agents, and evidence-backed completion.",
   "type": "module",
   "license": "MIT",
   "author": "tdwhere123",
@@ -31,6 +31,7 @@
   "files": [
     ".agents/plugins/",
     ".claude-plugin/",
+    ".cursor-plugin/",
     "agents/",
     "bin/",
     "commands/",
@@ -41,6 +42,8 @@
     "install/",
     "manifest.json",
     "plugins/do-it/",
+    "plugins/do-it-opencode/",
+    "plugins/do-it-cursor/",
     "README.zh-CN.md",
     "scripts/",
     "skills/custom/README.md",
@@ -60,13 +63,17 @@
     "build:generated": "node scripts/build-claude-agents.mjs && node scripts/build-skills-index.mjs && node scripts/build-index-json.mjs",
     "build:claude-agents": "npm run build:generated && node scripts/validate-agent-bundle.mjs",
     "build:codex-plugin": "npm run build:generated && node scripts/build-codex-plugin.mjs && node scripts/validate-agent-bundle.mjs",
+    "build:opencode-plugin": "npm run build:generated && node scripts/build-opencode-plugin.mjs",
+    "build:cursor-plugin": "npm run build:generated && node scripts/build-cursor-plugin.mjs && node scripts/validate-harness-matrix.mjs",
+    "validate:harness-matrix": "node scripts/validate-harness-matrix.mjs",
     "prepack": "npm run build:generated && node scripts/build-codex-plugin.mjs && node scripts/validate-agent-bundle.mjs",
     "do-it": "node bin/do-it.mjs",
     "lint": "bash scripts/lint-hooks.sh",
     "lint-hooks": "bash scripts/lint-hooks.sh",
-    "test-hooks": "bash scripts/test-hooks.sh && bash tests/hooks/router.test.sh && bash tests/hooks/comments-lint.test.sh && bash tests/hooks/anti-patterns-lint.test.sh && bash tests/hooks/verification-gate.test.sh && bash tests/hooks/common.test.sh",
+    "test-hooks": "bash scripts/test-hooks.sh && bash tests/hooks/router.test.sh && bash tests/hooks/write-quality-lint.test.sh && bash tests/hooks/comments-lint.test.sh && bash tests/hooks/anti-patterns-lint.test.sh && bash tests/hooks/verification-gate.test.sh && bash tests/hooks/common.test.sh",
     "test-install": "node --test tests/install/*.test.mjs",
-    "test": "npm run build:generated && npm run validate:agents && npm run check:skill-links && npm run lint-hooks && npm run test-hooks && npm run test-install"
+    "test-opencode": "npm run build:opencode-plugin && node --test tests/opencode/*.test.mjs",
+    "test": "npm run build:generated && npm run validate:agents && npm run check:skill-links && npm run lint-hooks && npm run test-hooks && npm run test-install && npm run build:cursor-plugin && npm run test-opencode"
   },
   "engines": {
     "node": ">=18"

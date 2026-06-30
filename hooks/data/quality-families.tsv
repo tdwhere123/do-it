@@ -1,0 +1,15 @@
+# Closed-set quality families for write-quality-lint.sh
+# Columns: id	category	description
+history	comments	Change narrative in comments
+fix-narrative	comments	Fix/bug narrative in comments
+task-ref	comments	External tracker or stage markers in comments
+orphan-todo	comments	TODO/FIXME without owner or colon
+tombstone	comments	removed:/deleted:/gone: tombstones
+what-comment	comments	Comments that restate obvious code
+case-list	anti-pattern	Large bash case branch lists
+no-consumer	anti-pattern	Exported symbol with no repo consumer
+copy-paste	anti-pattern	Duplicated multi-line block in same directory
+swallow-error	integrity	Empty catch or swallowed errors
+debug-leftover	maintainability	Debug prints left in non-test code
+test-weakened	integrity	Skipped or weakened tests
+edit-bloat	slicing	Single edit adds too many lines

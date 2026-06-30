@@ -1,0 +1,29 @@
+{
+  "name": "@tdwhere/do-it-opencode",
+  "version": "0.13.0",
+  "description": "OpenCode adapter for do-it workflow hooks and skills",
+  "type": "module",
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "files": [
+    "dist/",
+    "hooks/",
+    "skills/",
+    "agents/",
+    "docs/",
+    "opencode.json.template"
+  ],
+  "dependencies": {
+    "@opencode-ai/plugin": "^1.17.11"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -101,16 +101,23 @@ memory-pick without a fresh search is `Blocking`.
 ### YAGNI lens
 
 Required when the diff adds a new abstraction, export, dependency, or `Phase 2`
-scaffolding. At Heavy tier it must run whenever those signals are present; at
-Standard tier it is required when any of those signals are present and may be
-skipped only with an explicit reason. Loads `code-quality-cleaner`
-(maintainability + over-engineering against the decision ladder, see
+scaffolding — **or** when `write-quality-lint` flagged any family on files in the
+diff (`no-consumer`, `copy-paste`, `case-list`, `edit-bloat`, comment/YAGNI
+families). At Heavy tier it must run whenever those signals are present; at
+Standard tier it is required when any signal is present and may be skipped only
+with an explicit reason.
+
+For each L0 family flagged on a changed file, the lens MUST emit a finding or an
+explicit rebuttal — silent ignore is an Important finding. Load
+[`../references/write-quality-families.md`](../references/write-quality-families.md)
+for family definitions.
+
+Loads `code-quality-cleaner` (maintainability + decision ladder, see
 `do-it-router` § Restraint). Returns one-line findings using its closed tag
 vocabulary (`delete:` / `stdlib:` / `native:` / `yagni:` / `shrink:`), each
 carrying a severity, plus a quantified `net: -<N> lines possible` /
-`Lean already. Ship.` verdict. The `anti-patterns-lint.sh` PostToolUse hook is an
-advisory write-time pre-filter for the unreferenced-export case; the lens is the
-source of truth and catches single-use abstractions the hook cannot see.
+`Lean already. Ship.` verdict. The hook is advisory; the lens catches
+single-use abstractions and accepts/rejects each flagged family.
 
 ## Review intensity (graduated)
 
