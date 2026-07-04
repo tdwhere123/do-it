@@ -101,6 +101,24 @@ function copyHooks() {
   }
 }
 
+function opencodeDistIsCurrent() {
+  const distIndex = path.join(pluginRoot, "dist", "index.js");
+  const srcDir = path.join(pluginRoot, "src");
+  if (!fs.existsSync(distIndex) || !fs.existsSync(srcDir)) {
+    return false;
+  }
+
+  const distMtime = fs.statSync(distIndex).mtimeMs;
+  let srcMtime = 0;
+  for (const name of fs.readdirSync(srcDir)) {
+    if (!name.endsWith(".ts")) {
+      continue;
+    }
+    srcMtime = Math.max(srcMtime, fs.statSync(path.join(srcDir, name)).mtimeMs);
+  }
+  return srcMtime <= distMtime;
+}
+
 function ensureOpencodeDeps() {
   const pluginPkgDir = pluginRoot;
   const localTsc = path.join(pluginPkgDir, "node_modules", ".bin", "tsc");
@@ -108,10 +126,16 @@ function ensureOpencodeDeps() {
     return;
   }
 
-  const result = spawnSync("npm", ["install", "--no-audit", "--no-fund"], {
+  const result = spawnSync("npm", ["install", "--include=dev", "--no-audit", "--no-fund"], {
     cwd: pluginPkgDir,
     encoding: "utf8",
-    stdio: "pipe"
+    stdio: "pipe",
+    env: {
+      ...process.env,
+      NODE_ENV: "development",
+      npm_config_omit: "",
+      npm_config_production: "false"
+    }
   });
 
   if (result.status !== 0) {
@@ -123,9 +147,17 @@ function ensureOpencodeDeps() {
 }
 
 function compileTypeScript() {
+  if (opencodeDistIsCurrent()) {
+    return;
+  }
+
   const pluginPkgDir = pluginRoot;
   ensureOpencodeDeps();
   const localTsc = path.join(pluginPkgDir, "node_modules", ".bin", "tsc");
+  if (!fs.existsSync(localTsc)) {
+    throw new Error("typescript is required to compile the OpenCode plugin (run npm install in plugins/do-it-opencode)");
+  }
+
   const result = spawnSync(localTsc, ["-p", "tsconfig.json"], {
     cwd: pluginPkgDir,
     encoding: "utf8",
