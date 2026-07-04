@@ -336,6 +336,65 @@ case "$?" in
 esac
 
 # -------------------------------------------------------------------------
+echo "Case 18: completion false positive — 'this works well' + edits → silent"
+(
+  _isolate "/tmp/doit-test-gate-c18"
+  _set_state c18 tier Standard last_prompt_kind work
+  tx="$DO_IT_HOOK_DATA/tx.jsonl"
+  _build_transcript "$tx" "this works well for our use case" edit:1
+  out=$(_run_gate c18 "$tx" false)
+  [[ -z "$out" ]] || { echo "false positive block: $out" >&2; exit 11; }
+)
+case "$?" in
+  0)  _pass "'this works well' does not trigger completion gate" ;;
+  *)  _fail "completion pattern false-positive on 'works well'" ;;
+esac
+
+# -------------------------------------------------------------------------
+echo "Case 19: 'all set, task done' + edits → block (completion detected)"
+(
+  _isolate "/tmp/doit-test-gate-c19"
+  _set_state c19 tier Standard last_prompt_kind work
+  tx="$DO_IT_HOOK_DATA/tx.jsonl"
+  _build_transcript "$tx" "all set, task done" edit:1
+  out=$(_run_gate c19 "$tx" false)
+  case "$out" in
+    *'"decision":"block"'*) exit 0 ;;
+    *) echo "expected block: $out" >&2; exit 11 ;;
+  esac
+)
+case "$?" in
+  0)  _pass "'all set, task done' triggers gate" ;;
+  *)  _fail "completion phrase not detected" ;;
+esac
+
+# -------------------------------------------------------------------------
+echo "Case 20: skip-flag consumed and cleared after gate run"
+(
+  _isolate "/tmp/doit-test-gate-c20"
+  _set_state c20 tier Standard last_prompt_kind work
+  dir="$DO_IT_HOOK_DATA/sessions/c20"
+  mkdir -p "$dir"
+  now=$(date +%s)
+  printf '%s\n' "$now" > "$dir/skip-gate"
+  printf '%s\n' "$now" > "$dir/skip-router"
+  printf '%s\n' "$now" > "$dir/skip-grill"
+  tx="$DO_IT_HOOK_DATA/tx.jsonl"
+  _build_transcript "$tx" "all set, task done" edit:1
+  out=$(_run_gate c20 "$tx" false)
+  [[ -z "$out" ]] || { echo "skip should pass silently: $out" >&2; exit 11; }
+  for f in router grill gate; do
+    if [[ -f "$dir/skip-$f" ]]; then echo "skip-$f still present" >&2; exit 12; fi
+  done
+)
+case "$?" in
+  0)  _pass "gate skip consumed; all skip flags cleared" ;;
+  11) _fail "skip-flag path did not pass through" ;;
+  12) _fail "skip flags not cleared after gate" ;;
+  *)  _fail "skip lifecycle test failed (exit $?)" ;;
+esac
+
+# -------------------------------------------------------------------------
 echo
 if [[ "$FAIL" -gt 0 ]]; then
   echo "FAILED: $PASS passed, $FAIL failed" >&2

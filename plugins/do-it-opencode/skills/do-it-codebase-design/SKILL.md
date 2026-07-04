@@ -76,7 +76,7 @@ Apply these before adding or accepting a new module:
 ## Code quality hook-up
 
 - The **YAGNI lens** in `do-it-review-loop` flags rung-1 violations (does it need to exist?).
-- The **anti-patterns-lint** hook flags newly-exported symbols with no other-file consumer.
+- The **write-quality-lint** hook flags newly-exported symbols with no other-file consumer (legacy wrappers `anti-patterns-lint.sh` / `comments-lint.sh` exec into it).
 - This skill gives you the vocabulary to explain *why* those findings matter and what "done" looks like.
 
 ## Output

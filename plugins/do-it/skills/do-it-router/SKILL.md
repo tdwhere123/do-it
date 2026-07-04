@@ -1,298 +1,118 @@
 ---
 name: do-it-router
-description: "Use when any non-trivial repo task needs Light, Standard, or Heavy tier selection, failure-mode forecast, path map, and the minimum useful do-it workflow before action. 路由 / 分级 / 非平凡任务."
+description: "Use at the start of any non-trivial repo task: choose the Light / Standard / Heavy tier and the minimum useful do-it workflow before planning, editing, delegating, reviewing, or claiming done. 路由 / 分级 / 非平凡任务."
 ---
 
 # Do-It Router
 
 ## Purpose
 
-Use this as the front door for do-it-native work. It selects the smallest useful workflow, keeps current truth ahead of old plans, and routes to the planning or design skill that matches the risk.
-
-Upstream workflows are source material, not public names. Use do-it terms in handoffs and reports.
+Front door for do-it-native work: smallest useful workflow, current truth ahead of old plans, route to matching skills. Use do-it terms in handoffs — upstream workflow names are source material, not public names.
 
 ## Mandatory Activation
 
-For any non-trivial repository task, the parent agent MUST load this router before
-planning, editing, delegating, reviewing, verifying, committing, or claiming
-completion.
+For any non-trivial repository task, the parent agent MUST load this router before planning, editing, delegating, reviewing, verifying, committing, or claiming completion.
 
-This includes planning, slicing, implementation, debugging, review, fix-loop,
-verification, branch closeout, wave/phase work, task-card work, docs-truth work,
-interface design, architecture review, and multi-agent work.
+Skip only for truly trivial answers or pure status questions that do not plan, edit, review, verify, or close work — state the reason briefly.
 
-The router may be skipped only for truly trivial answers or pure status questions
-that do not plan, edit, review, verify, or close work. When skipped, state the
-reason briefly.
-
-After loading the router, announce the selected do-it skills and tier before
-continuing.
+After loading, announce selected do-it skills and tier before continuing.
 
 ## First Move
 
-Before routing:
+1. Read local instructions, user constraints, write ownership.
+2. Read `.do-it/runtime/pointer` if present (active slug → `.do-it/{brainstorm,grill,plans}/<slug>.md`). Skip when no `.do-it/`.
+3. Inspect current truth: files, docs, diffs, tests, plans, issues, runtime state.
+4. Choose tier: `Light`, `Standard`, or `Heavy`.
+5. If user asked for a plan first, stop at approval checkpoint.
 
-1. Read local instructions, user constraints, and write ownership.
-2. Read `.do-it/runtime/pointer` if it exists — it names the active task slug, and the matching `.do-it/{brainstorm,grill,plans}/<slug>.md` files carry the current task state. Skip this step only when no `.do-it/` directory is present (fresh project).
-3. Inspect current truth that could change the answer: files, docs, diffs, tests, plans, issues, task cards, or runtime state.
-4. Choose a tier: `Light`, `Standard`, or `Heavy`.
-5. If the user asked for a plan first, stop at an approval checkpoint.
-
-Do not ask the user for facts that can be read locally. Ask only preference or priority questions that can change the route. When you must ask, use the host's question tool if available, ask one decision at a time, and provide 2-3 options with benefit/cost/risk and a recommended default.
+Do not ask for locally readable facts. Preference questions: one at a time, 2–3 options with benefit/cost/risk and a default; use host question tool when available.
 
 ## Integrity
 
-Load [`../references/integrity.md`](../references/integrity.md) when debugging,
-fixing, reviewing, or verifying — it binds the parent and every subagent.
-`do-it-debugging`, `do-it-fix-loop`, and `do-it-verification-gate` enforce it
-at their stages; reviewers treat a cover-up as a Blocking finding.
+Load [`../references/integrity.md`](../references/integrity.md) when debugging, fixing, reviewing, or verifying. `do-it-debugging`, `do-it-fix-loop`, and `do-it-verification-gate` enforce at their stages; cover-up is Blocking in review.
 
 ## Stance
 
-do-it agents should be rigorous without becoming passive. The default posture is:
-
-- **Builder's bias:** unknown is not impossible. Before saying a path cannot work,
-  inspect the local truth or run the smallest real experiment that could prove or
-  falsify it.
-- **Conservative claims, active search:** be strict about evidence and completion,
-  but keep looking for a cheaper, deeper, or higher-leverage route until the
-  task budget says to stop.
-- **Two-path framing for hard work:** name a reliable baseline path and a
-  breakthrough path when optimization, algorithms, quality, or architecture
-  improvement is the task.
-- **No learned helplessness:** "likely hard", "not possible", or "probably not
-  worth it" is not a conclusion without code, data, benchmark, or source
-  evidence.
-
-Hooks inject a compact version of this stance into subagent contexts via
-`subagent-stance.sh`; parent agents inherit it here.
+Rigorous without passive: builder's bias (unknown ≠ impossible), conservative claims with active search, two-path framing for hard optimization, no learned helplessness without code/data evidence. Hooks inject compact stance via `subagent-stance.sh`.
 
 ## Restraint
 
-do-it favors the smallest change that earns its keep — fast *and* good, not more
-ceremony. Write-time checks live in the advisory `write-quality-lint` hook
-(closed-set families in [`../references/write-quality-families.md`](../references/write-quality-families.md));
-review-time YAGNI and integrity lenses live in `do-it-review-loop`. Hard
-done-claims stay in `verification-gate`.
+Smallest change that earns its keep. Write-time: advisory `write-quality-lint` ([`../references/write-quality-families.md`](../references/write-quality-families.md)). Review-time YAGNI/integrity: `do-it-review-loop`. Done-claims: `verification-gate`.
 
-When extending do-it or planning a project change:
-
-- Prefer advisory nudges over write-blocking gates.
-- Thin or reuse an existing skill before adding a new one; ask "will this keep
-  growing?" before adding a rule.
-- Before deleting code that looks unused, read git history and original intent.
-- Match process to risk: small work stays Light; only real risk earns planning,
-  review, and proof.
-
-### The decision ladder
-
-Walk down these rungs and stop at the first that holds:
-
-1. **Does it need to exist?** → skip speculative work.
-2. **Stdlib?** → use it.
-3. **Native platform feature?** → use it.
-4. **Installed dependency?** → use it.
-5. **One line?** → one line.
-6. Smallest custom code that works.
-
-`do-it-grill` opens with rung 1; `do-it-brainstorm` maps options; write-quality-lint
-flags skipped rungs at edit time. Never cut safety: trust boundaries, data-loss
-prevention, security, accessibility, or explicit user features.
+Decision ladder (6 rungs): need? → stdlib → native → dependency → one line → smallest custom code. Full ladder + anti-skip: [`../references/workflow-kernel.md`](../references/workflow-kernel.md).
 
 ## Orthogonal Dimensions
 
-Load [`../references/dimensions.md`](../references/dimensions.md) for the full
-dim table, hook vs agent consumption paths, mandatory-trigger escape clauses,
-and consumer table. Tier remains canonical; Light skips all dims.
+[`../references/dimensions.md`](../references/dimensions.md) — dim table, hook vs agent paths, escape clauses. Tier canonical; Light skips all dims.
 
 ## Task Pointer
 
-Load [`../references/task-pointer.md`](../references/task-pointer.md) for
-read/write/clear protocol. `.do-it/runtime/pointer` is a best-effort slug hint
-— always verify the matching artifact exists before trusting it.
+[`../references/task-pointer.md`](../references/task-pointer.md) — read/write/clear. Pointer is best-effort; verify artifact exists.
 
-## Required Risk Forecast
+## Failure-Mode Forecast And Path Map
 
-For every Standard or Heavy route, name the likely review-failure modes before
-planning or implementation. Use concrete classes, not vague "risk":
-
-- live-path gap: producer, transport, consumer, or surface is not actually wired;
-- state-machine gap: stale async completion, deletion, rollback, retry, replay,
-  idempotency, or concurrency can change the outcome;
-- contract drift: schema, enum, event, route, CLI, copy, or docs disagree;
-- synthetic proof: tests mock away the collaborator chain the task must prove;
-- operator gap: a capability exists but is not discoverable, actionable, or
-  understandable in the user workflow;
-- evidence drift: a report, worker result, or pre-merge run is older than the
-  branch or worktree being claimed.
-
-If no class fits, state `failure-mode forecast: none identified` and why.
-
-## Required Path Map
-
-For Standard or Heavy work that touches behavior, interfaces, runtime state, or
-surfaces, map the proof path before execution:
-
-`producer -> contract/event/schema -> transport/client -> state/query -> surface/operator action -> verification`
-
-Use the map to choose drills, tests, reviewers, and verification. If the work is
-docs-only or mechanical, state why a path map is not applicable.
+Standard/Heavy: required before planning or implementation. Classes, chain, N/A rules, output fields: [`../references/workflow-kernel.md`](../references/workflow-kernel.md).
 
 ## Tier Rules
 
 ### Light
 
-Use for small, local, low-risk work with one acceptance envelope.
-
-- one small deliverable or question;
-- one owner or a tiny file set;
-- no unclear architecture, interface, product, or release boundary;
-- local verification is enough.
-
-Flow: inspect -> compact plan -> act or answer -> targeted verification or evidence -> local review -> closeout.
+Small local low-risk work, one acceptance envelope. Flow: inspect → compact plan → act → targeted verification → local review → closeout.
 
 ### Standard
 
-Use for ordinary non-trivial work. This is the default tier for subagents unless the parent explicitly assigns another tier.
+Default for subagents. Multi-step, behavior change, review, or design choice. Inline modification map when bounded; durable plan cards for Heavy/explicit plan/handoffs. Review depth by risk. Subagents need write ownership, stop conditions, return evidence, forecast/path map when applicable. Bounded 1–3 file fixes without interface change: one-line forecast/path-map N/A per [`../references/workflow-kernel.md`](../references/workflow-kernel.md) § Tier precedents.
 
-- multi-step task, behavior change, review, or design choice;
-- use an inline modification map when the work is bounded; durable plan cards are for Heavy work, explicit plan requests, or handoffs that must survive the session;
-- review depth is selected by risk, not by a fixed `grill -> planning -> review` chain;
-- subagent work needs explicit write ownership, stop conditions, return evidence, and any required failure-mode forecast or path map.
-
-Flow: inspect -> classify -> use the narrow design drills needed -> inline map or light plan -> execute -> verify -> local or focused review by risk -> fix important findings -> closeout.
+Flow: inspect → classify → narrow drills → inline map or light plan → execute → verify → risk-selected review → fix → closeout.
 
 ### Heavy
 
-Use only in the parent agent unless a subagent is explicitly assigned Heavy.
+Parent-only unless subagent explicitly assigned Heavy. Wave, phase, gate, release, multi-agent, cross-boundary risk. Closeout needs review/fix-loop proof.
 
-- wave, phase, gate, release, or durable workflow policy;
-- multi-agent orchestration or shared-file integration;
-- cross-boundary interface, data model, storage, security, async, replay, migration, or architecture risk;
-- closeout requires review/fix-loop proof.
-
-Flow: scope lock -> deep truth scan -> grill/interface/architecture/domain drills as needed -> slice plan -> execution and right-sized review gates -> integrated verification -> closeout.
+Flow: scope lock → deep truth scan → drills as needed → slice plan → execution + review gates → integrated verification → closeout.
 
 ## Execution Pipeline
 
-Once the route is set, execute non-trivial work in this order (Light-tier
-mechanical edits skip most of it):
+Non-trivial order (Light mechanical edits skip most):
 
-1. Read the task card / inline map, the relevant `invariants.md`, and the
-   affected existing code before editing.
-2. Freeze scope from the card's Allowed Scope; map producer -> consumer for
-   multi-package or live-path work.
-3. Write or update tests first when practical (`do-it-tdd`).
-4. Implement the smallest change that satisfies the card, then verify with its
-   own commands.
-5. Run `do-it-review-loop` on the diff before marking done; sweep changed
-   contracts for doc/code drift.
+1. Read task card / inline map, `invariants.md`, affected code.
+2. Freeze scope; map producer → consumer for multi-package/live-path work.
+3. Tests first when practical (`do-it-tdd`).
+4. Smallest satisfying change; verify with slice commands.
+5. `do-it-review-loop` on diff before done; sweep contract/doc drift.
 
-For a wave (cards that land together) see `do-it-slicing`: run independent cards
-in parallel only when their **write sets do not overlap**; serialize shared
-barrel/index files. For phase or risky shared-file work, isolate with
-`do-it-worktree-isolation` and merge back only after the integrated branch is
-review-clean.
+Waves: `do-it-slicing` — parallel only when write sets disjoint; serialize shared barrels. Risky shared files: `do-it-worktree-isolation`.
 
-## Handbook Bootstrap Trigger
+## Handbook Bootstrap
 
-Before planning or editing on a Standard or Heavy work turn, check whether the
-project has any durable do-it context:
+Standard/Heavy work turn: if `.do-it/handbook/` exists, read relevant files; if `.do-it/CONTEXT.md` exists, read before grill/planning; if **neither**, load `do-it-handbook` lean bootstrap same turn (additive, idempotent). Skip only for explicit one-shot scripts.
 
-- If `.do-it/handbook/` exists, read the files relevant to the change
-  (`invariants.md`, `glossary.md`, `architecture.md`) before editing.
-- If `.do-it/CONTEXT.md` exists, read it before grill or planning.
-- If **neither** exists, load `do-it-handbook` and run its lean bootstrap in the
-  same turn. This creates the placeholder skeleton (`README.md`,
-  `invariants.md`, `architecture.md`, `glossary.md`, `worklog-template.md`)
-  plus `.gitkeep` files for `.do-it/grill/`, `.do-it/plans/`,
-  `.do-it/brainstorm/`, and `.do-it/worklog/`. The bootstrap is additive and
-  idempotent — existing files are never overwritten.
-
-The bootstrap is not optional ceremony: without a shared handbook, every
-subsequent session re-derives the same project terms, invariants, and
-architecture frame. Skip it only when the user explicitly says the project
-is a one-shot script with no future sessions.
-
-### Anti-tail discipline
-
-- **One card, one goal** — if a card grows a second goal, split it.
-- **No silent scope expansion** — a file outside Allowed Scope means update the
-  scope explicitly or open a backlog issue.
-- **No commit during a fix loop without re-running review** — partial fixes ship
-  under the cover of "addressed".
-- **No mocking the real collaborator chain** in integration tests unless the
-  card says so.
+Anti-tail: one card one goal; no silent scope expansion; no commit mid fix-loop without re-review; no mocking real collaborator chain unless card says so.
 
 ## Route Map
 
-- Need a plan or design handoff: `do-it-planning`.
-- Need independent vertical work slices: `do-it-slicing`.
-- Need to challenge a premise, plan, or closeout claim: `do-it-grill`.
-- Need to design an API, schema, event, CLI, UI contract, module seam, or handoff: `do-it-interface-drill`.
-- Need coupling, ownership, modularity, or testability analysis: `do-it-architecture-scan`.
-- Need a shared vocabulary for deep modules, seams, and whether an abstraction earns its keep: `do-it-codebase-design`.
-- Need names, domain model, glossary, or code/docs/user terminology alignment: `do-it-context` (§ Domain Glossary Mode).
-- Need a durable project handbook (invariants, architecture, glossary, worklog template): `do-it-handbook`. Bootstrap it when a Standard or Heavy work turn touches code and neither `.do-it/handbook/` nor `.do-it/CONTEXT.md` exists yet; downstream skills (`do-it-grill`, `do-it-planning`, `do-it-architecture-scan`) read those files when present. The bootstrap is additive only — it creates placeholder templates and never overwrites existing files.
-- Need optional visual comparison or diagrams: `do-it-planning` § Visual Aids. Auxiliary; does not participate in the core tier flow.
-- Need implementation: execute locally or delegate a bounded slice after the route is clear; add `do-it-tdd` or `do-it-debugging` when the behavior or root cause warrants it.
-- Need behavior-first implementation or regression coverage: `do-it-tdd`.
-- Need root-cause diagnosis before fixing: `do-it-debugging`.
-- Need delegated workers or reviewers: `do-it-subagent-orchestration`.
-- Need diff, task, or QA finding review: `do-it-review-loop`.
-- Need to repair review findings or regressions: `do-it-fix-loop`.
-- Need to prove a completion, install, merge, or fix claim: `do-it-verification-gate`.
-- Need isolated workspace or parallel lane setup: `do-it-worktree-isolation`.
-- Need branch, PR, merge, or cleanup closeout: `do-it-branch-closeout`.
-- Need to create or rewrite skills: `do-it-skill-authoring`.
-- Authoring or reviewing comments on a code edit: `do-it-comments-discipline`. The parent agent should apply it before writing comments; the PostToolUse `comments-lint` hook is advisory backup, and a Standard or Heavy review pass that touches comments should load it for the comments lens.
+- Diverge vs converge: [`../references/workflow-kernel.md`](../references/workflow-kernel.md) § Diverge vs Converge — brainstorm for options map; grill to converge; `plan-challenger` only as grill sub-lens.
+- Plan/handoff: `do-it-planning`. Slices: `do-it-slicing`. Challenge premise: `do-it-grill`.
+- API/schema/event/CLI/UI contract: `do-it-interface-drill`. Coupling/ownership: `do-it-architecture-scan`. Module seams: `do-it-codebase-design`.
+- Vocabulary/glossary: `do-it-context` § Domain Glossary Mode. Handbook: `do-it-handbook`. Visual compare: `do-it-planning` § Visual Aids (auxiliary).
+- Implement/delegate: local or `do-it-subagent-orchestration` after route clear; `do-it-tdd` / `do-it-debugging` when warranted.
+- Review: `do-it-review-loop`. Fix: `do-it-fix-loop`. Prove claims: `do-it-verification-gate`.
+- Worktree: `do-it-worktree-isolation`. Closeout: `do-it-branch-closeout`. Skills: `do-it-skill-authoring`. Comments: `do-it-comments-discipline`.
 
-Use the narrowest sequence that covers the risk. A small API rename may need only Standard interface drill plus delivery. A phase plan may need Heavy planning, slicing, grill, interface, architecture, and vocabulary passes.
+Narrowest sequence for the risk.
 
 ## Delegation Policy
 
-The parent owns routing, shared files, integration, final verification, and final claims. Subagents own only their delegated slice.
-
-Every subagent prompt should include:
-
-- tier, task, and exact ownership;
-- facts it may rely on and facts it must verify;
-- forbidden paths or shared files;
-- expected evidence and return shape;
-- failure-mode forecast and path map when the slice can fail through live wiring, state, contract drift, synthetic proof, operator UX, or evidence drift;
-- stop conditions for `NEEDS_CONTEXT` or `BLOCKED`;
-- reminder that other agents may be editing the codebase and unrelated edits must not be reverted.
+Parent owns routing, shared files, integration, final verification, claims. Subagent prompt: tier, scope, write ownership, forbidden paths, verified vs must-verify facts, evidence/return shape, forecast/path map when slice can fail through wiring/state/contracts/proof/UX/evidence, stop conditions (`NEEDS_CONTEXT` / `BLOCKED`), do not revert peer edits. Details: `do-it-subagent-orchestration`.
 
 ## Output Shape
 
-For routing or planning:
+**User-visible:** one line — tier + next action.
 
-- tier;
-- current facts that drove it;
-- failure-mode forecast for Standard/Heavy work;
-- path map or `not applicable` reason;
-- selected do-it skills;
-- next action;
-- stop condition or approval gate.
+**Internal routing/planning:** tier; driving facts; forecast; path map or N/A; selected skills; next action; stop/approval gate. Full field list: [`../references/workflow-kernel.md`](../references/workflow-kernel.md).
 
-For final delivery:
-
-- changed files;
-- verification run and outcome;
-- final-branch or current-worktree evidence for completion claims;
-- review/fix-loop status;
-- workflow steps used/skipped: brainstorm, grill, subagent, review, and
-  verification, with reasons for skipped relevant steps;
-- assumptions, skipped checks, or residual risk.
+**Final delivery:** changed files; verification; fresh branch/worktree evidence; review/fix-loop status; steps used/skipped with `skipped: <skill-or-hook> because <reason>`; residual risk.
 
 ## Common Mistakes
 
-- Starting planning, edits, subagents, review, verification, commit, or closeout
-  without first loading `do-it-router` for matching non-trivial repository work.
-- Routing Standard/Heavy work without a failure-mode forecast and path map.
-- Asking the user for facts that can be read locally.
-- Letting a subagent self-promote to Heavy without explicit assignment.
-- Applying Heavy workflow to a one-file mechanical edit.
-- Skipping review because verification passed.
-- Treating architecture opportunities as blockers without correctness or delivery risk.
-- Letting adapter terminology override do-it names, Codex tools, or repository instructions.
+Anti-skip rationalizations and red flags: [`../references/workflow-kernel.md`](../references/workflow-kernel.md) § Global Rationalizations / Red Flags.

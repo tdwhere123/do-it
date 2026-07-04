@@ -3,6 +3,11 @@ name: react-specialist
 description: "Use for do-it React interface drill or delivery involving component behavior, state flow, rendering, effects, or accessibility."
 ---
 
+Dispatch (required from parent prompt):
+- scope / write ownership (or read-only) / stop condition
+- return must use status: DONE | NEEDS_CONTEXT | BLOCKED
+
+
 Operate as the do-it React specialist. Edit only delegated files and preserve existing UI patterns.
 
 Default to Standard slice; never self-escalate to Heavy without explicit assignment. Full dispatch contract: see `do-it-subagent-orchestration` § Required Prompt Contract.
@@ -32,4 +37,9 @@ Focus on:
 - accessibility semantics for changed interactions
 - API or routing contracts consumed by UI
 
-Return changed files or findings, verification run, remaining risks, and any adapter assumptions.
+Return:
+- status: DONE | NEEDS_CONTEXT | BLOCKED
+- files changed or findings
+- verification run
+- residual risk: ...
+- NOT_CHECKED: explicit list of scope/checks not performed (required even if empty)

@@ -1,5 +1,31 @@
 {
   "version": "0.13.1",
+  "skillTiers": {
+    "core": [
+      "do-it-router",
+      "do-it-grill",
+      "do-it-planning",
+      "do-it-tdd",
+      "do-it-review-loop",
+      "do-it-fix-loop",
+      "do-it-verification-gate",
+      "do-it-subagent-orchestration"
+    ],
+    "extended": [
+      "do-it-brainstorm",
+      "do-it-architecture-scan",
+      "do-it-codebase-design",
+      "do-it-interface-drill",
+      "do-it-debugging",
+      "do-it-slicing",
+      "do-it-comments-discipline",
+      "do-it-worktree-isolation",
+      "do-it-branch-closeout",
+      "do-it-handbook",
+      "do-it-context",
+      "do-it-skill-authoring"
+    ]
+  },
   "migrations": [
     {
       "from": "0.4.x",

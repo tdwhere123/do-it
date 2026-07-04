@@ -237,6 +237,47 @@ case "$?" in
 esac
 
 # -------------------------------------------------------------------------
+echo "Case 11: partial skip writes only requested flags"
+(
+  _isolate_state "/tmp/doit-test-router-c11"
+  out=$(_run_router "skip grill please implement src/foo.ts" "c11-1")
+  [[ -z "$out" ]] || { printf 'unexpected output: %s\n' "$out" >&2; exit 11; }
+  skip_dir="$DO_IT_HOOK_DATA/sessions/c11-1"
+  [[ -f "$skip_dir/skip-grill" ]] || { echo "missing skip-grill" >&2; exit 12; }
+  if [[ -f "$skip_dir/skip-router" ]]; then echo "unexpected skip-router" >&2; exit 13; fi
+  if [[ -f "$skip_dir/skip-gate" ]]; then echo "unexpected skip-gate" >&2; exit 14; fi
+)
+case "$?" in
+  0)  _pass "skip grill writes grill flag only" ;;
+  11) _fail "partial skip produced output" ;;
+  12) _fail "skip-grill not written" ;;
+  13) _fail "skip-router wrongly written" ;;
+  14) _fail "skip-gate wrongly written" ;;
+  *)  _fail "unexpected exit $?" ;;
+esac
+
+# -------------------------------------------------------------------------
+echo "Case 12: Heavy then Light/question clears all dim_* to 0"
+(
+  _isolate_state "/tmp/doit-test-router-c12"
+  _run_router "重写 schema 涉及 breaking change 跨 frontend/ backend/" "c12-1" >/dev/null
+  state="$(_state_for c12-1)"
+  [[ "$(jq -r '.dim_needs_review_loop' "$state")" == "1" ]] || { cat "$state" >&2; exit 11; }
+  _run_router "这是什么？" "c12-1" >/dev/null
+  state="$(_state_for c12-1)"
+  for k in dim_touches_code dim_crosses_packages dim_breaks_interface dim_needs_tdd dim_needs_review_loop; do
+    v=$(jq -r --arg k "$k" '.[$k]' "$state")
+    [[ "$v" == "0" ]] || { echo "$k=$v expected 0 after Light question" >&2; exit 12; }
+  done
+)
+case "$?" in
+  0)  _pass "Heavy→Light question zeros all dim_* flags" ;;
+  11) _fail "Heavy prompt did not set dim_needs_review_loop=1" ;;
+  12) _fail "Light question did not clear dim_*" ;;
+  *)  _fail "Heavy→Light sequence failed (exit $?)" ;;
+esac
+
+# -------------------------------------------------------------------------
 echo
 if [[ "$FAIL" -gt 0 ]]; then
   echo "FAILED: $PASS passed, $FAIL failed" >&2

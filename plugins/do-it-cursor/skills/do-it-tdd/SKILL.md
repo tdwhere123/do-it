@@ -14,7 +14,7 @@ Core rule: one behavior at a time. For broad work, start with a vertical tracer
 bullet that proves the thinnest end-to-end path, then deepen behavior slice by
 slice.
 
-**Mandatory trigger:** if the prompt names behaviour-modifying intent (`implement` / `实现` / `add feature` / `fix bug` / `修复 bug` / `添加功能`) **and** also names a code object — file path, extension, fenced snippet, or technical noun — (router writes `dim_needs_tdd=1`), this skill is required for the behaviour change. The Light-tier escape clause is explicit: mechanical edits, docs-only repairs, generated output, or config edits where an executable RED test is not useful skip the RED step but must state why in the route announcement. See `do-it-router` § Mandatory-trigger escape clauses. For prompts whose root cause is unclear, `do-it-debugging` is the front door — it owns the falsification probe before any RED test is written.
+**Mandatory trigger:** if the prompt names behaviour-modifying intent (`implement` / `实现` / `add feature` / `fix bug` / `修复 bug` / `添加功能`) **and** also names a code object — file path, extension, fenced snippet, or technical noun — (router writes `dim_needs_tdd=1`), this skill is required for the behaviour change. The Light-tier escape clause is explicit: mechanical edits, docs-only repairs, generated output, or config edits where an executable RED test is not useful skip the RED step but must state why in the route announcement. See [`../references/dimensions.md`](../references/dimensions.md) § Mandatory-Trigger Escape Clauses. For prompts whose root cause is unclear, `do-it-debugging` is the front door — it owns the falsification probe before any RED test is written.
 
 ## Tiers
 

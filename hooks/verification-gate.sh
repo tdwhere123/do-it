@@ -16,6 +16,7 @@
 #   - for Light-tier edit turns, require an inline-review marker before the
 #     fresh-evidence check. Inline review covers code correctness/comment
 #     discipline; fresh evidence covers the verification command.
+#   - clear all skip flags on every exit path (single-turn skip lifecycle).
 
 set -uo pipefail
 
@@ -32,15 +33,20 @@ STOP_HOOK_ACTIVE="$(do_it_json_get "$RAW_INPUT" stop_hook_active)"
 
 do_it_session_state_inc "$SESSION_ID" hook_invocations verification_gate
 
+_gate_finish() {
+  do_it_clear_skip "$SESSION_ID"
+  exit "${1:-0}"
+}
+
 # Recursion guard: do not re-block when a previous Stop hook already blocked.
 if [[ "$STOP_HOOK_ACTIVE" == "true" ]]; then
   do_it_debug verification-gate "decision=skip-recursion"
-  exit 0
+  _gate_finish 0
 fi
 
 if do_it_check_skip "$SESSION_ID" gate; then
   do_it_debug verification-gate "decision=skip-flag"
-  exit 0
+  _gate_finish 0
 fi
 
 # Question turns: router tagged state.last_prompt_kind=question; never gate.
@@ -48,11 +54,11 @@ LAST_PROMPT_KIND="$(do_it_session_state_get "$SESSION_ID" last_prompt_kind)"
 GRILLED_FLAG="$(do_it_session_state_get "$SESSION_ID" grilled)"
 if [[ "$LAST_PROMPT_KIND" == "question" ]] || [[ -z "$LAST_PROMPT_KIND" && "$GRILLED_FLAG" == "skip-question" ]]; then
   do_it_debug verification-gate "decision=skip-question"
-  exit 0
+  _gate_finish 0
 fi
 
 if [[ -z "$TRANSCRIPT_PATH" || ! -f "$TRANSCRIPT_PATH" ]]; then
-  exit 0
+  _gate_finish 0
 fi
 
 # Window for "did this turn touch files / did it run verification". The window
@@ -62,7 +68,7 @@ fi
 TAIL_LINES=400
 TAIL_BUF="$(tail -n "$TAIL_LINES" "$TRANSCRIPT_PATH" 2>/dev/null || true)"
 if [[ -z "$TAIL_BUF" ]]; then
-  exit 0
+  _gate_finish 0
 fi
 
 # Pull the *last* assistant message text only. With jq this is precise — an
@@ -106,18 +112,18 @@ if [[ -n "$_last_user_line" ]]; then
 fi
 
 # Detect completion claims in the last assistant message only.
-COMPLETION_PATTERN='(完成|done|passed|已修|通过|fixed|works|all set|success|完工)'
+COMPLETION_PATTERN='(完成|已修|通过|完工|\bdone\b|\bpassed\b|\bfixed\b|\ball set\b|it works|works now|successfully)'
 if ! printf '%s' "$LAST_ASSISTANT_TEXT" | grep -qiE "$COMPLETION_PATTERN"; then
   do_it_debug verification-gate "decision=no-completion-language"
-  exit 0
+  _gate_finish 0
 fi
 
-# No-edit pass-through: if the current turn has no Edit/Write/MultiEdit
-# tool_use, this is a discussion turn — do not gate it.
-EDIT_TOOL_PATTERN='"name"[[:space:]]*:[[:space:]]*"(Edit|Write|MultiEdit|NotebookEdit)"'
+# No-edit pass-through: if the current turn has no edit tool_use, this is a
+# discussion turn — do not gate it.
+EDIT_TOOL_PATTERN='"name"[[:space:]]*:[[:space:]]*"(Edit|Write|MultiEdit|NotebookEdit|StrReplace|EditNotebook)"'
 if ! printf '%s' "$CURRENT_TURN_BUF" | grep -qiE "$EDIT_TOOL_PATTERN"; then
   do_it_debug verification-gate "decision=no-edits"
-  exit 0
+  _gate_finish 0
 fi
 
 # review-quick inline-review for Light tier: when the router classified this
@@ -156,7 +162,7 @@ if [[ "$TIER" == "Light" ]]; then
     INLINE_REASON="do-it gate: code changed and completion was claimed without an inline self-review. Review the diff for correctness regressions, missing tests, boundary error handling, and comment discipline, then emit one line starting with the \`inline-review:\` marker stating clean or a finding. Bypass: say 'skip gate' or run /do-it-skip gate."
     do_it_debug verification-gate "decision=block reason=no-inline-review tier=Light"
     do_it_emit_block "$INLINE_REASON"
-    exit 0
+    _gate_finish 0
   fi
   do_it_debug verification-gate "decision=have-inline-review tier=Light"
 fi
@@ -186,7 +192,7 @@ if [[ "$DIM_BREAKS_INTERFACE" == "1" ]]; then
     REASON_IFACE="do-it gate: this turn changed an interface, schema, or API but the \`inline-review:\` line does not name the surface. Re-run an interface-drill review and re-emit the marker line naming the interface, contract, schema, or api you checked. Bypass: say 'skip gate' or run /do-it-skip gate."
     do_it_debug verification-gate "decision=block reason=breaks-interface-no-attestation"
     do_it_emit_block "$REASON_IFACE"
-    exit 0
+    _gate_finish 0
   fi
   do_it_debug verification-gate "decision=have-interface-attestation"
 fi
@@ -197,7 +203,7 @@ if [[ "$DIM_NEEDS_REVIEW_LOOP" == "1" ]]; then
     REASON_REVIEW="do-it gate: this turn needs a review-loop (Heavy tier or interface-breaking change) but no review trace is present in it. Run do-it-review-loop on the delivered surface before claiming done. Bypass: say 'skip gate' or run /do-it-skip gate."
     do_it_debug verification-gate "decision=block reason=needs-review-loop-no-trace"
     do_it_emit_block "$REASON_REVIEW"
-    exit 0
+    _gate_finish 0
   fi
   do_it_debug verification-gate "decision=have-review-loop-trace"
 fi
@@ -215,11 +221,11 @@ EVIDENCE_PATTERN+='|go[[:space:]]+(test|run|build|vet)'
 
 if printf '%s' "$CURRENT_TURN_BUF" | grep -qiE "$EVIDENCE_PATTERN"; then
   do_it_debug verification-gate "decision=have-evidence"
-  exit 0
+  _gate_finish 0
 fi
 
 REASON="do-it gate: completion was claimed but this turn ran no verification. Run the verification command (tests, build, lint, or type-check) and cite its output before claiming done. Bypass: say 'skip gate' or run /do-it-skip gate."
 
 do_it_debug verification-gate "decision=block reason=no-evidence"
 do_it_emit_block "$REASON"
-exit 0
+_gate_finish 0

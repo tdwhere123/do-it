@@ -76,7 +76,7 @@ Run independent lenses in parallel when the host supports it. If delegation is u
 
 ## Research-first (new architectural surface)
 
-When an option introduces a new architectural surface (new dependency / datastore / framework / protocol), the architecture viewpoint must surface ≥2 real alternatives with a recency check before recommending one — do NOT batch-ask the user three generic questions. Hand the specific candidate-choice as a `Must Resolve In Grill` item; grill picks the highest-leverage one and asks. Out of scope here: bug fixes, refactors of existing code, incremental changes within a module.
+When an option introduces a new architectural surface (new dependency / datastore / framework / protocol), **mark it in brainstorm output** — do not duplicate candidate rules here. Execution and Research block requirements defer to `do-it-planning` § Research-First Comparison. Brainstorm only flags whether the task touches a new architectural surface and surfaces ≥2 named alternatives as a `Must Resolve In Grill` item when material. Out of scope: bug fixes, refactors of existing code, incremental changes within a module.
 
 ## Artifact
 

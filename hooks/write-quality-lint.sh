@@ -39,7 +39,7 @@ fi
 do_it_session_state_inc "$SESSION_ID" hook_invocations write_quality_lint
 
 case "$TOOL_NAME" in
-  Edit|Write|MultiEdit) ;;
+  Edit|Write|MultiEdit|NotebookEdit|StrReplace|EditNotebook) ;;
   *)
     do_it_debug write-quality-lint "decision=skip reason=tool-not-edit tool=$TOOL_NAME"
     exit 0

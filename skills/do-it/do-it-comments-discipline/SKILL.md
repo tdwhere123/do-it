@@ -120,7 +120,7 @@ When narrative truly is the right shape — for example, a file-scope historical
   suggested fix: rewrite as invariant — "// invariant: only Ed25519 keys are accepted; RSA is rejected at boot."
 ```
 
-`category` is the same slot `do-it-review-loop` calls `cause class`. `severity: Blocking` is reserved for comments asserting falsehoods (stale invariants, dangling `see also:`).
+`category` is the same slot as `cause_class` in [`workflow-kernel.md`](../references/workflow-kernel.md) § Finding Schema. `severity: Blocking` is reserved for comments asserting falsehoods (stale invariants, dangling `see also:`).
 
 ## Verification (pass criteria)
 

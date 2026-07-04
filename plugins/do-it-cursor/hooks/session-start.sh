@@ -20,7 +20,7 @@ Non-trivial repo work: load skill do-it-router first — choose tier, read curre
 
 Skip hooks when appropriate: yolo, skip grill, 直接做, 我已经想清楚, or /do-it-skip (grill|router|gate|all). Pure Q&A or status-only turns skip router pressure.
 
-Verification-gate blocks done / passed / 完成 claims without fresh command evidence in the turn.
+Verification-gate blocks done / passed / 完成 claims without fresh command evidence in the turn (Stop hook is a soft transcript check — cite real command output in your reply).
 EOF
 
 if [[ -n "${CURSOR_PLUGIN_ROOT:-}" ]]; then

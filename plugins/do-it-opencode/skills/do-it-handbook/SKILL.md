@@ -77,7 +77,7 @@ Do **not**:
 | `do-it-context` | `.do-it/CONTEXT.md` (active sediment) | `glossary.md` (long-stable terms) |
 | `do-it-architecture-scan` | inline review output | `architecture.md`, `invariants.md` |
 | `do-it-grill` | `.do-it/grill/<task>.md` | `invariants.md`, `glossary.md` |
-| `do-it-review-loop` | `.do-it/review/<task>.md` | `invariants.md` |
+| `do-it-review-loop` | review protocol / findings (inline or parent agent consumption) | `invariants.md` |
 
 `do-it-planning` owns the task-card layout itself, `do-it-review-loop` owns the
 review protocol, and `do-it-subagent-orchestration` owns the dispatch contract —
@@ -102,8 +102,8 @@ This rule is enforced by the agent during `do-it-context` writes, not by tooling
 ## Maintenance
 
 When and how to update each handbook or worklog file. The per-session sediment
-(`.do-it/CONTEXT.md`) and per-task artifacts (`.do-it/grill/`, `.do-it/plans/`,
-`.do-it/review/`) live outside the handbook.
+(`.do-it/CONTEXT.md`) and per-task artifacts (`.do-it/grill/`, `.do-it/plans/`)
+live outside the handbook.
 
 Update triggers:
 

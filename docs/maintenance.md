@@ -9,8 +9,9 @@ make durable edits.
 Working rule:
 
 1. Edit the maintained repository copy.
-2. Deploy it with `./install/install.sh`.
-3. Validate it with `./install/doctor.sh`.
+2. Deploy with `do-it setup` (or `npm exec --package . -- do-it setup` from a
+   checkout). `./install/install.sh` remains for legacy/compat workflows.
+3. Validate it with `do-it doctor` (or `./install/doctor.sh` for legacy/compat).
 4. Avoid hand-editing deployed files under `~/.codex`.
 
 Exception: for an intentional live-global rebaseline, copy only
@@ -95,6 +96,8 @@ protects future upgrades is missing.
 | Codex global setup | Managed from `manifest.json` | TOML from `agents/` | CLI `do-it` | Enforced through root `hooks.json` plus do-it-managed files under `hooks/` | Default target | `CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it setup` |
 | Codex plugin marketplace | Generated under `plugins/do-it/skills/` | Generated under `plugins/do-it/agents/` | None | Do not rely on plugin hooks while `plugin_hooks=false` | None; use global setup for doctor | `npm run build:codex-plugin` and `CODEX_HOME=/tmp/do-it-plugin-test codex plugin marketplace add /path/to/do-it` |
 | Claude Code plugin | Same maintained `skills/do-it/` source | Generated Markdown under `dist/claude/agents/` | `commands/` | Do-it-managed files under `hooks/`, including `hooks/hooks.json` | `--target=claude` | `CLAUDE_PLUGIN_ROOT_OVERRIDE=/tmp/do-it-claude-test npm exec --package . -- do-it setup --target=claude` |
+| Cursor plugin | Generated under `plugins/do-it-cursor/skills/` | Generated under `plugins/do-it-cursor/agents/` | None | Medium: `sessionStart`, `beforeSubmitPrompt`, `preToolUse`, `postToolUse`/`afterFileEdit`, `stop` | `--target=cursor` | `npm run build:cursor-plugin` and `CURSOR_PLUGIN_ROOT_OVERRIDE=/tmp/do-it-cursor-test npm exec --package . -- do-it setup --target=cursor` |
+| OpenCode plugin | Generated under `plugins/do-it-opencode/skills/` | Generated under `plugins/do-it-opencode/agents/` | None | Medium-Light: transform bootstrap, `tool.execute.before/after`, `session.idle` soft reminder | No CLI doctor | `npm run build:opencode-plugin && npm run test-opencode` (manual `opencode.json` registration may be required) |
 
 Deprecated legacy skill targets use the same safety rule: install removes them
 only when they are marked as do-it-managed in the state file or when
@@ -250,6 +253,55 @@ the same `agents/*.toml` source-of-truth. The Claude target adds:
 - **Hook behavior change:** edit the relevant `hooks/*.sh`. Hook scripts must
   remain bash, jq-only, and degrade silently (exit 0) on unexpected input.
 
+## Cursor Plugin Target
+
+As of 0.13.0, do-it ships a Cursor plugin alongside Codex and Claude. Both
+targets share the same `manifest.json`, `skills/do-it/*/SKILL.md`, and
+`agents/*.toml` source-of-truth. The Cursor target adds:
+
+- `plugins/do-it-cursor/.cursor-plugin/plugin.json` — plugin metadata for
+  marketplace discovery and `do-it setup --target=cursor`.
+- `plugins/do-it-cursor/skills/` and `plugins/do-it-cursor/agents/` — generated
+  from manifest inventory.
+- `plugins/do-it-cursor/hooks/` — Cursor event mapping (`sessionStart`,
+  `beforeSubmitPrompt`, `preToolUse`, `postToolUse`/`afterFileEdit`, `stop`).
+- `scripts/build-cursor-plugin.mjs` — the only supported way to refresh the
+  generated Cursor bundle.
+
+### Maintaining the Cursor Target
+
+- **Inventory or wording change:** edit source under `skills/do-it/` or
+  `agents/`, then run `npm run build:cursor-plugin`. Do not hand-edit
+  `plugins/do-it-cursor/skills/` or `plugins/do-it-cursor/agents/`.
+- **Hook change:** edit kernel scripts under `hooks/` and Cursor mapping under
+  `install/cursor-hooks.json`; regenerate with `npm run build:cursor-plugin`.
+- **Install verification:** `CURSOR_PLUGIN_ROOT_OVERRIDE=/tmp/do-it-cursor-test
+  npm exec --package . -- do-it setup --target=cursor` followed by
+  `do-it doctor --target=cursor`.
+
+## OpenCode Plugin Target
+
+As of 0.13.0, do-it also ships an OpenCode TypeScript plugin. It shares the
+same skill and agent sources but maps hooks through OpenCode events instead of
+Claude/Codex shell hooks.
+
+- `plugins/do-it-opencode/` — generated skills, agents, and TS plugin bridge.
+- `scripts/build-opencode-plugin.mjs` — the only supported way to refresh the
+  OpenCode bundle.
+- Operators may need to register the plugin manually in project or user
+  `opencode.json` — see
+  [`skills/do-it/references/host-opencode.md`](../skills/do-it/references/host-opencode.md).
+
+### Maintaining the OpenCode Target
+
+- **Inventory or wording change:** edit source skills/agents, then run
+  `npm run build:opencode-plugin`.
+- **Hook bridge change:** edit `plugins/do-it-opencode/` sources and kernel
+  scripts under `hooks/`; rerun `npm run build:opencode-plugin &&
+  npm run test-opencode`.
+- **Install verification:** `npm run build:opencode-plugin && npm run
+  test-opencode` (no CLI doctor target yet).
+
 ## Codex Plugin Target
 
 As of the Codex plugin v1 line, the repo also exposes a Codex marketplace
@@ -283,10 +335,14 @@ Generated artifact rules:
 
 - Do not hand-edit `plugins/do-it/skills/`, `plugins/do-it/agents/`,
   `plugins/do-it/.codex-plugin/plugin.json`, `.agents/plugins/marketplace.json`,
+  `plugins/do-it-cursor/skills/`, `plugins/do-it-cursor/agents/`,
+  `plugins/do-it-opencode/skills/`, `plugins/do-it-opencode/agents/`,
   `dist/claude/agents/`, or `dist/claude/skills/_index.md`.
 - Skill source is `skills/do-it/`; Codex plugin output is regenerated with
   `npm run build:codex-plugin`.
 - Claude agent output is regenerated with `npm run build:claude-agents`.
+- Cursor plugin output is regenerated with `npm run build:cursor-plugin`.
+- OpenCode plugin output is regenerated with `npm run build:opencode-plugin`.
 - The lazy skill index is regenerated by install preflight or
   `node scripts/build-skills-index.mjs`; package/install checks should catch
   stale generated inventory.

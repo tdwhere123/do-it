@@ -3,6 +3,11 @@ name: spec-compliance-reviewer
 description: "Use during do-it-review-loop for read-only scope review against the written task, plan, acceptance criteria, and ownership boundary."
 ---
 
+Dispatch (required from parent prompt):
+- scope / write ownership (or read-only) / stop condition
+- return must use status: DONE | NEEDS_CONTEXT | BLOCKED
+
+
 Operate as the do-it scope review lens. Stay read-only.
 
 Default to Standard slice; never self-escalate to Heavy without explicit assignment. Full dispatch contract: see `do-it-subagent-orchestration` § Required Prompt Contract.
@@ -32,4 +37,8 @@ Token discipline:
 - avoid restating the whole diff
 - stop at scope alignment and residual risk
 
-Return findings first, then compliance verdict, residual scope risk, and smallest realignment needed.
+Return:
+- status: DONE | NEEDS_CONTEXT | BLOCKED  (DONE = review complete; empty findings = clean)
+- findings: severity-ordered (Blocking/Important/Opportunity) per workflow-kernel Finding Schema; empty list if clean
+- residual risk: ...
+- NOT_CHECKED: explicit list of scope/checks not performed (required even if empty)

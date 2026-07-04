@@ -53,8 +53,8 @@ Every subagent prompt must include:
 - `write ownership`: allowed directories/files, or `read-only`.
 - `forbidden paths`: files, dirs, generated outputs, or user-owned edits to avoid.
 - `current truth`: facts the parent verified and the child may rely on.
-- `failure-mode forecast`: expected failure classes the child must actively cover or refute.
-- `path map`: producer -> contract/event/schema -> transport/client -> state/query -> surface/operator action -> verification, or `not applicable`.
+- `failure-mode forecast`: classes the child must cover — [`../references/workflow-kernel.md`](../references/workflow-kernel.md) § Failure-Mode Forecast Classes.
+- `path map`: [`../references/workflow-kernel.md`](../references/workflow-kernel.md) § Path Map Chain, or `not applicable`.
 - `readiness target`: fixture-ready, live-event-ready, operator-ready, docs-truth-ready, or install-ready.
 - `truth plane`: source-repo, task-worktree, integration-worktree, temp-install,
   live-codex, live-claude, live-cursor, live-opencode, package-artifact,
@@ -64,7 +64,7 @@ Every subagent prompt must include:
 - `lane status`: starts as `assigned`; parent updates it through `running`,
   `done_with_evidence`, `integrated`, or `blocking`.
 - `must-verify facts`: facts the child must check itself before acting or reporting.
-- `stop condition`: when to return `NEEDS_CONTEXT`, `BLOCKED`, or `STILL_OPEN` instead of improvising.
+- `stop condition`: when to return `NEEDS_CONTEXT` or `BLOCKED` instead of improvising.
 - `integrity stance`: a failure is a clue to trace, not to hide. The child investigates root causes and reports honestly — it never swallows an error, weakens a check, skips a test, or claims unverified work is done (see `do-it-router` § Integrity).
 - `builder stance`: unknown is not impossible; inspect code or run the smallest
   real experiment before saying a path cannot work. For optimization work,
@@ -156,16 +156,16 @@ Implementation/debugging workers return:
 
 Review/drill workers return:
 
-- status: `CLEAR`, `FINDINGS`, `STILL_OPEN`, `NEEDS_CONTEXT`, or `BLOCKED`;
+- status: `DONE`, `NEEDS_CONTEXT`, or `BLOCKED` (`CLEAR` / `FINDINGS` / `STILL_OPEN` deprecated — use `DONE` with findings list; open work → `BLOCKED` or `NEEDS_CONTEXT`);
 - scope reviewed;
-- findings ordered by `Blocking`, `Important`, `Opportunity`;
+- findings ordered by `Blocking`, `Important`, `Opportunity` per [`../references/workflow-kernel.md`](../references/workflow-kernel.md) § Finding Schema; empty list if clean;
 - evidence for each finding;
-- cause class when known;
+- cause_class when known;
 - commands or inspections run;
 - facts verified;
 - assumptions;
 - residual risk;
-- `NOT_CHECKED`: explicit scope or checks not performed.
+- `NOT_CHECKED`: explicit scope or checks not performed (required even if empty).
 
 ## Parent Duties
 
@@ -187,7 +187,7 @@ Do not dispatch, or stop the lane, when:
 - write ownership overlaps another active worker or user-owned edit;
 - the parent cannot state current truth, failure-mode forecast, or readiness target;
 - the child needs credentials, network, destructive cleanup, or branch actions not granted;
-- the child returns `NEEDS_CONTEXT`, `BLOCKED`, `STILL_OPEN`, or budget overrun.
+- the child returns `NEEDS_CONTEXT`, `BLOCKED`, or budget overrun.
 
 ## Common Rationalizations
 

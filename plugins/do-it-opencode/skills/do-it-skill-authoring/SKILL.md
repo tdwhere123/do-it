@@ -62,6 +62,8 @@ Stop before editing or publishing a skill when:
 
 ## Minimum Skill Anatomy
 
+Finding and review returns must follow [`../references/workflow-kernel.md`](../references/workflow-kernel.md) § Finding Schema.
+
 Every installed do-it skill should include, or intentionally inherit from a
 nearby skill:
 
