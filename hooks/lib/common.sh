@@ -312,14 +312,13 @@ do_it_parse_skip_targets() {
       return 0
       ;;
   esac
-  # Bare /do-it-skip — not doc paths like commands/do-it-skip.md
-  case "$lc" in
-    *"do-it-skip.md"*|*"commands/do-it-skip"*) ;;
-    *"/do-it-skip"*)
-      printf '%s\n' "router grill gate"
-      return 0
-      ;;
-  esac
+
+  # Bare /do-it-skip command — require word boundary so doc paths like
+  # commands/do-it-skip.md do not trigger a full escape.
+  if [[ "$lc" =~ /do-it-skip([[:space:]]|$) ]]; then
+    printf '%s\n' "router grill gate"
+    return 0
+  fi
 
   if declare -p DO_IT_ESCAPE_WORDS >/dev/null 2>&1; then
     if do_it_prompt_has_any "$prompt" DO_IT_ESCAPE_WORDS; then

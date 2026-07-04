@@ -246,6 +246,9 @@ echo "Case 11: partial skip writes only requested flags"
   [[ -f "$skip_dir/skip-grill" ]] || { echo "missing skip-grill" >&2; exit 12; }
   if [[ -f "$skip_dir/skip-router" ]]; then echo "unexpected skip-router" >&2; exit 13; fi
   if [[ -f "$skip_dir/skip-gate" ]]; then echo "unexpected skip-gate" >&2; exit 14; fi
+  state="$(_state_for c11-1)"
+  [[ -f "$state" ]] || { echo "missing state after partial skip" >&2; exit 15; }
+  [[ "$(jq -r '.tier' "$state")" == "Standard" ]] || { cat "$state" >&2; exit 16; }
 )
 case "$?" in
   0)  _pass "skip grill writes grill flag only" ;;
@@ -253,6 +256,8 @@ case "$?" in
   12) _fail "skip-grill not written" ;;
   13) _fail "skip-router wrongly written" ;;
   14) _fail "skip-gate wrongly written" ;;
+  15) _fail "partial skip did not refresh tier state" ;;
+  16) _fail "partial skip tier not Standard" ;;
   *)  _fail "unexpected exit $?" ;;
 esac
 
