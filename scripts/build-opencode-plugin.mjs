@@ -147,6 +147,12 @@ function ensureOpencodeDeps() {
 }
 
 function compileTypeScript() {
+  const distIndex = path.join(pluginRoot, "dist", "index.js");
+  const lifecycle = process.env.npm_lifecycle_event || "";
+  // npm pack/prepack cannot reliably install typescript devDeps; trust committed dist.
+  if (fs.existsSync(distIndex) && (lifecycle === "prepack" || lifecycle === "pack")) {
+    return;
+  }
   if (opencodeDistIsCurrent()) {
     return;
   }
