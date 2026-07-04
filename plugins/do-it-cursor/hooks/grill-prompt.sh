@@ -214,7 +214,7 @@ if [[ "$TIER" == "Heavy" ]]; then
   MSG="<system-reminder>
 do-it grill (Heavy, trigger: ${TRIGGER}). Before planning or code: (1) check necessity — does this need to exist, or does an existing capability already cover it? (2) verify the one load-bearing premise against local files and cite path:line — never ask the user for facts you can read; (3) if a genuine user decision remains, ask exactly one question with 2-3 options and a recommended default. Record decisions in .do-it/grill/<task>.md when durable planning is used.
 
-Skip: say 'skip grill' (or yolo / 直接做 / /do-it-skip grill) and announce \`skipped: grill because <reason>\`.
+Skip grill only: say 'skip grill' or /do-it-skip grill and announce \`skipped: grill because <reason>\`. Full escape (router+grill+gate): yolo / 直接做 / /do-it-skip.
 </system-reminder>"
 else
   MSG="<system-reminder>
