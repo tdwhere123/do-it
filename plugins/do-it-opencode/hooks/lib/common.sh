@@ -290,15 +290,30 @@ do_it_parse_skip_targets() {
     seen="${seen} ${flag}"
   }
 
-  case "$lc" in
-    *"/do-it-skip gate"*|*"skip gate"*) _do_it_skip_add gate ;;
-  esac
-  case "$lc" in
-    *"/do-it-skip grill"*|*"skip grill"*|*"不用 grill"*|*"不用grill"*) _do_it_skip_add grill ;;
-  esac
-  case "$lc" in
-    *"/do-it-skip router"*|*"skip router"*) _do_it_skip_add router ;;
-  esac
+  _do_it_skip_phrase_intended() {
+    local phrase="$1"
+    [[ "$lc" == *"$phrase"* ]] || return 1
+    case "$lc" in
+      *"don't $phrase"*|*"do not $phrase"*|*"not $phrase"*|\
+      *"无需 $phrase"*|*"无需$phrase"*|*"不要 $phrase"*|*"不要$phrase"*|\
+      *"别 $phrase"*|*"别$phrase"*)
+        return 1
+        ;;
+    esac
+    return 0
+  }
+
+  if _do_it_skip_phrase_intended "/do-it-skip gate" || _do_it_skip_phrase_intended "skip gate"; then
+    _do_it_skip_add gate
+  fi
+  if _do_it_skip_phrase_intended "/do-it-skip grill" \
+     || _do_it_skip_phrase_intended "skip grill" \
+     || [[ "$lc" == *"不用 grill"* || "$lc" == *"不用grill"* ]]; then
+    _do_it_skip_add grill
+  fi
+  if _do_it_skip_phrase_intended "/do-it-skip router" || _do_it_skip_phrase_intended "skip router"; then
+    _do_it_skip_add router
+  fi
 
   if ((${#targets[@]} > 0)); then
     printf '%s\n' "${targets[*]}"

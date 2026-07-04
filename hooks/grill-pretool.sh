@@ -21,6 +21,9 @@ CWD="$(do_it_json_get "$RAW_INPUT" cwd)"
 TOOL_NAME="$(do_it_json_get "$RAW_INPUT" tool_name)"
 TRANSCRIPT_PATH="$(do_it_json_get "$RAW_INPUT" transcript_path)"
 FILE_PATH="$(do_it_json_get_nested "$RAW_INPUT" tool_input.file_path)"
+if [[ -z "$FILE_PATH" ]]; then
+  FILE_PATH="$(do_it_json_get_nested "$RAW_INPUT" tool_input.path)"
+fi
 
 # Subagent context: bail before any state mutation. Subagents in a Heavy
 # parent session are running their own delegated slice and must not be

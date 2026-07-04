@@ -264,6 +264,8 @@ echo "Case 8: do_it_parse_skip_targets — partial vs full skip"
   done
   out=$(do_it_parse_skip_targets "see commands/do-it-skip.md for bypass docs")
   [[ -z "$out" ]] || { echo "doc path wrongly full-skipped: $out" >&2; exit 86; }
+  out=$(do_it_parse_skip_targets "please don't skip grill on this turn")
+  [[ -z "$out" ]] || { echo "negated skip wrongly parsed: $out" >&2; exit 87; }
 )
 case "$?" in
   0)  _pass "parse_skip_targets honors partial merge and full skip" ;;
@@ -273,6 +275,7 @@ case "$?" in
   84) _fail "merged partial wrongly included router" ;;
   85) _fail "full skip missing a target" ;;
   86) _fail "commands/do-it-skip.md path triggered full skip" ;;
+  87) _fail "negated skip phrase triggered partial skip" ;;
   *)  _fail "subshell crashed (exit=$?)" ;;
 esac
 
