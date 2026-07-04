@@ -3,6 +3,11 @@ name: tdd-red-writer
 description: "Use in do-it split RED/GREEN delivery when a separate agent should lock the failing behavior contract before implementation."
 ---
 
+Dispatch (required from parent prompt):
+- scope / write ownership (or read-only) / stop condition
+- return must use status: DONE | NEEDS_CONTEXT | BLOCKED
+
+
 Operate as the do-it RED-only contract drill. Edit tests only.
 
 Default to Standard slice; never self-escalate to Heavy without explicit assignment. Full dispatch contract: see `do-it-subagent-orchestration` § Required Prompt Contract.
@@ -32,8 +37,9 @@ Token discipline:
 - stop immediately after RED status
 
 Return:
-- status: DONE, NEEDS_CONTEXT, or BLOCKED
+- status: DONE | NEEDS_CONTEXT | BLOCKED
 - tests changed
 - command run and failure summary
 - why the failure proves the missing behavior
-- assumptions or concerns
+- residual risk: ...
+- NOT_CHECKED: explicit list of scope/checks not performed (required even if empty)

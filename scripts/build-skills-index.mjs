@@ -7,6 +7,11 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  CORE_SKILLS,
+  EXTENDED_MAINTENANCE,
+  EXTENDED_ON_DEMAND
+} from "./skill-tiers.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, "..");
@@ -15,35 +20,10 @@ const manifestPath = path.join(repoRoot, "manifest.json");
 const outDir = path.join(repoRoot, "dist", "claude", "skills");
 const outFile = path.join(outDir, "_index.md");
 
-// Curated bucket order. Names not listed fall through to "其他".
-const MAIN_LINE = [
-  "do-it-router",
-  "do-it-grill",
-  "do-it-planning",
-  "do-it-tdd",
-  "do-it-review-loop",
-  "do-it-fix-loop",
-  "do-it-verification-gate"
-];
-
-const ON_DEMAND = [
-  "do-it-brainstorm",
-  "do-it-architecture-scan",
-  "do-it-codebase-design",
-  "do-it-interface-drill",
-  "do-it-debugging",
-  "do-it-slicing",
-  "do-it-comments-discipline",
-  "do-it-worktree-isolation",
-  "do-it-branch-closeout",
-  "do-it-subagent-orchestration"
-];
-
-const HANDBOOK = [
-  "do-it-handbook",
-  "do-it-context",
-  "do-it-skill-authoring"
-];
+// Bucket order from scripts/skill-tiers.mjs (core = mainline).
+const MAIN_LINE = [...CORE_SKILLS];
+const ON_DEMAND = [...EXTENDED_ON_DEMAND];
+const HANDBOOK = [...EXTENDED_MAINTENANCE];
 
 function parseFrontmatter(text) {
   // Minimal YAML frontmatter parser: only `name:` and `description:` (single

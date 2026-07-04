@@ -5,6 +5,26 @@ verification. **Global install** via `do-it setup --target=cursor` copies the
 plugin bundle to `~/.cursor/plugins/do-it-cursor/` and registers
 `do-it-cursor@do-it` for the IDE. Marketplace install remains optional.
 
+## Skill Bundle (Core Only)
+
+The Cursor plugin registers **8 core skills** only:
+
+`do-it-router`, `do-it-grill`, `do-it-planning`, `do-it-tdd`,
+`do-it-review-loop`, `do-it-fix-loop`, `do-it-verification-gate`,
+`do-it-subagent-orchestration`.
+
+`skills/do-it/references/` is always copied alongside (shared kernel — not a
+registered skill). **Extended** skills (brainstorm, architecture-scan,
+codebase-design, interface-drill, debugging, slicing, comments-discipline,
+worktree-isolation, branch-closeout, handbook, context, skill-authoring) remain
+in the full repo and Codex/Claude installs — not in the Cursor plugin bundle.
+
+When Route Map or hooks point at an extended skill, load it from the repository
+source or run full `do-it setup` for a non-Cursor target; tell the user if the
+skill is not present in the plugin install.
+
+Tier source of truth: `scripts/skill-tiers.mjs` (`CORE_SKILLS` / `EXTENDED_SKILLS`).
+
 ## Install
 
 ```bash
@@ -19,7 +39,7 @@ Layout after install:
 ```
 ~/.cursor/plugins/do-it-cursor/
 ├── .cursor-plugin/plugin.json
-├── skills/          # synced from skills/do-it/
+├── skills/          # core 8 skills + references/ (see host-cursor.md)
 ├── agents/
 └── hooks/
     ├── hooks.json   # Cursor event mapping (install/cursor-hooks.json)
@@ -34,15 +54,13 @@ search order).
 
 **Medium** — subset of full kernel:
 
-| Event | Scripts | Notes |
-|---|---|---|
-| `sessionStart` | `session-start.sh` | Light bootstrap; skills index hint |
-| `beforeSubmitPrompt` | `router.sh` → `grill-prompt.sh` → `subagent-stance.sh` | Same simplified chain as Codex |
-| `preToolUse` | `grill-pretool.sh` | Heavy / durable plan gate |
-| `postToolUse` / `afterFileEdit` | `write-quality-lint.sh` | Single advisory reminder |
-| `stop` | `verification-gate.sh` | Hard done-claim block |
-
-No NotebookEdit matcher until Cursor exposes an equivalent event.
+| Event | Scripts | Matcher | Notes |
+|---|---|---|---|
+| `sessionStart` | `session-start.sh` | — | Light bootstrap; skills index hint |
+| `beforeSubmitPrompt` | `router.sh` → `grill-prompt.sh` → `subagent-stance.sh` | — | Same simplified chain as Codex |
+| `preToolUse` | `grill-pretool.sh` | `StrReplace\|Write\|EditNotebook` | Heavy / durable plan gate |
+| `postToolUse` / `afterFileEdit` | `write-quality-lint.sh` | `StrReplace\|Write\|EditNotebook` | Single advisory reminder |
+| `stop` | `verification-gate.sh` | — | Hard done-claim block |
 
 ## Tool Mapping
 

@@ -49,7 +49,7 @@ Parent-only unless explicitly assigned:
 5. Classify tier: `Light`, `Standard`, or `Heavy`; add task class
    `task`, `wave`, or `phase` when delivery shape matters.
 6. State goal, non-goals, acceptance evidence, and residual unknowns.
-7. For Standard/Heavy work, add a failure-mode forecast and the proof path map.
+7. For Standard/Heavy work, add failure-mode forecast and path map per [`../references/workflow-kernel.md`](../references/workflow-kernel.md).
 8. Run a decision coverage check: every grill decision, brainstorm
    `Must Resolve`, requirement, or source-audit item that affects execution is
    either mapped to a plan slice, verified as already satisfied, or explicitly
@@ -139,12 +139,8 @@ project-truth files rather than inventing a one-off structure.
 
 For Standard and Heavy plans, include:
 
-- `Failure-Mode Forecast`: concrete expected failure classes such as live-path
-  gap, state-machine gap, contract drift, synthetic proof, operator gap, or
-  evidence drift.
-- `Path Map`: `producer -> contract/event/schema -> transport/client ->
-  state/query -> surface/operator action -> verification`, or a clear reason it
-  is not applicable.
+- `Failure-Mode Forecast`: see [`../references/workflow-kernel.md`](../references/workflow-kernel.md) § Failure-Mode Forecast Classes (`none identified` when N/A).
+- `Path Map`: same reference § Path Map Chain, or `not applicable` with reason.
 - `Readiness Target`: one of `fixture-ready`, `live-event-ready`,
   `operator-ready`, `docs-truth-ready`, or `install-ready`; do not let a
   lower readiness level imply a higher one.
@@ -248,7 +244,7 @@ sketches in `.do-it/visual/` are enough.
 - Tier and task class.
 - Goal and non-goals.
 - Current facts discovered locally.
-- Failure-mode forecast and path map.
+- Failure-mode forecast and path map ([`../references/workflow-kernel.md`](../references/workflow-kernel.md)).
 - Readiness target and final evidence required.
 - Open decisions, if any.
 - Recommended approach and rejected alternatives.
@@ -259,7 +255,7 @@ sketches in `.do-it/visual/` are enough.
 
 ## Common Mistakes
 
-- Omitting failure-mode forecast or path map for non-trivial behavior, interface, runtime, or surface work.
+- Omitting failure-mode forecast or path map for non-trivial behavior, interface, runtime, or surface work (see [`../references/workflow-kernel.md`](../references/workflow-kernel.md)).
 - Letting a user decision, brainstorm handoff item, or requirement disappear
   between discussion and the executable plan.
 - Asking where files live before searching.
@@ -296,7 +292,6 @@ Before treating a plan as ready:
 
 - local facts were inspected and separated from assumptions;
 - non-goals and ownership boundaries are explicit;
-- Standard/Heavy plans include failure-mode forecast, path map or not-applicable
-  reason, readiness target, and final evidence;
+- Standard/Heavy plans include failure-mode forecast and path map per [`../references/workflow-kernel.md`](../references/workflow-kernel.md), plus readiness target and final evidence;
 - multi-slice plans include dependency order and checkpoints;
 - every verification item names the behavior or artifact it proves.

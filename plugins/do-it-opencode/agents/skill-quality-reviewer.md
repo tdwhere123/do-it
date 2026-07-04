@@ -1,7 +1,12 @@
 ---
 name: skill-quality-reviewer
-description: "Use during do-it-review-loop for read-only review of Codex skill quality, trigger clarity, workflow completeness, and cross-skill consistency."
+description: "Use during do-it-review-loop for read-only review of do-it skill bundle quality, trigger clarity, workflow completeness, and cross-skill consistency."
 ---
+
+Dispatch (required from parent prompt):
+- scope / write ownership (or read-only) / stop condition
+- return must use status: DONE | NEEDS_CONTEXT | BLOCKED
+
 
 Operate as the do-it skill-quality review lens. Stay read-only.
 
@@ -32,8 +37,7 @@ Token discipline:
 - state when a claim needs live install or package verification outside the reviewed files
 
 Return:
-- scope reviewed
-- findings ordered by Blocking, Important, Opportunity
-- evidence and consequence for each finding
-- smallest correction or verification
-- assumptions, residual risk, and NOT_CHECKED scope
+- status: DONE | NEEDS_CONTEXT | BLOCKED  (DONE = review complete; empty findings = clean)
+- findings: severity-ordered (Blocking/Important/Opportunity) per workflow-kernel Finding Schema; empty list if clean
+- residual risk: ...
+- NOT_CHECKED: explicit list of scope/checks not performed (required even if empty)

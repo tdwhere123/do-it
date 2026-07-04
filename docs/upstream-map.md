@@ -27,6 +27,9 @@ runtime-specific assumptions do not leak into new Codex installs.
 | `do-it-verification-gate` | evidence-before-claims closeout | Absorbs legacy verification discipline and makes success claims depend on fresh commands or explicit evidence. |
 | `do-it-worktree-isolation` | workspace isolation | Absorbs git-worktree setup and current-worktree safety into a do-it support skill. |
 | `do-it-branch-closeout` | branch/PR/merge finish | Absorbs development-branch finish checks, commit/PR evidence, and cleanup choices. |
+| `do-it-handbook` | lean handbook + worklog bootstrap | Seeds `.do-it/handbook/` and `.do-it/worklog/` templates; promotes stable facts from worklogs without owning per-task review artifacts. |
+| `do-it-codebase-design` | depth/leverage/locality vocabulary for design and review | Shared module-depth, seam, and YAGNI vocabulary for architecture-scan, review-loop, and explicit design calls — not a routing gate. |
+| `do-it-comments-discipline` | comment anchors/invariants/cross-file refs, not narrative | Checks comments as anchors, invariants, cross-file references, or tool directives; pairs with write-quality-lint and review-loop comments lens. |
 | `do-it-planning` § Visual Aids | optional planning companion | Absorbs the older visual brainstorming helper as an optional `.do-it/visual` support path, not a core workflow gate. (Folded in from the former `do-it-visual-planning` skill; the browser companion was retired.) |
 | `do-it-skill-authoring` | skill creation and maintenance | Absorbs progressive-disclosure skill writing and repo-managed skill validation. |
 
@@ -87,6 +90,7 @@ as do-it-native gates, not as a replacement state machine:
 | Agent | do-it Role | Notes |
 |---|---|---|
 | `architect-reviewer` | architecture scan | Reviews boundaries, dependency direction, rollout risk, and durable design tradeoffs. |
+| `architecture-taste-reviewer` | research-first compliance audit | Audits plans/diffs that introduce new dependencies, datastores, frameworks, or protocols for research-first compliance before merge claims. |
 | `architecture-strategist` | brainstorm architecture core | Maps foundation, extension modules, stage closure, boundaries, and verification route before grill convergence. |
 | `ceo-reviewer` | supplemental business brainstorm lens | Reviews board-level value, market window, revenue path, pivot cost, and opportunity cost only when task-fit. |
 | `code-mapper` | path map | Builds ownership, call-path, branch-point, and unknown maps before edits. |
@@ -111,10 +115,13 @@ as do-it-native gates, not as a replacement state machine:
 
 ## Adapter Notes
 
-- Codex global setup and Claude Code are first-class install targets; Codex
-  plugin marketplace discovery is generated under `plugins/do-it/` and should
-  be paired with global setup when enforced hooks are required. Other agent
-  runtimes (Cursor, OpenCode, Copilot CLI, Gemini) can be added via a new
+- Codex global setup, Claude Code, Cursor, and OpenCode are first-class install
+  targets (0.13+). Codex plugin marketplace discovery is generated under
+  `plugins/do-it/` and should be paired with global setup when enforced hooks
+  are required. OpenCode may require manual `opencode.json` plugin registration
+  in addition to the generated bundle — see
+  [`skills/do-it/references/host-opencode.md`](../skills/do-it/references/host-opencode.md).
+  Other agent runtimes (Copilot CLI, Gemini) can be added via a new
   `manifest.targets.<name>` block. See `docs/maintenance.md` for target and
   plugin maintenance rules.
 - Each host should reuse the same do-it roles and translate only mechanics:

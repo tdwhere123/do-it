@@ -23,7 +23,7 @@ Use before planning or finalizing work that touches:
 - subagent orchestration, handoff boundaries, or shared-file ownership;
 - large files, duplicated logic, or repeated review churn.
 
-**Mandatory trigger:** if the prompt names ≥2 top-level package segments (router writes `dim_crosses_packages=1`), this skill is required. Light-tier escape clause applies — see `do-it-router` § Mandatory-trigger escape clauses; if the cross-package mention is purely textual (e.g. paths inside docs/README), the inline Light version is sufficient, and the escape reason must be stated in the route announcement.
+**Mandatory trigger:** if the prompt names ≥2 top-level package segments (router writes `dim_crosses_packages=1`), this skill is required. Light-tier escape clause applies — see [`../references/dimensions.md`](../references/dimensions.md) § Mandatory-Trigger Escape Clauses; if the cross-package mention is purely textual (e.g. paths inside docs/README), the inline Light version is sufficient, and the escape reason must be stated in the route announcement.
 
 For a tiny local edit, run the same lens briefly and avoid a separate architecture report.
 

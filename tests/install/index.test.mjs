@@ -15,16 +15,24 @@ function readJson(relativePath) {
 }
 
 test("build-index-json creates a reproducible skill and agent inventory", () => {
+  // generated_at is refreshed on every build by design; pin it via the
+  // documented env override so the byte-equality check stays meaningful.
+  const pinnedEnv = {
+    ...process.env,
+    DO_IT_INDEX_GENERATED_AT: "2026-01-01T00:00:00.000Z"
+  };
   const first = spawnSync(process.execPath, [indexScript], {
     cwd: repoRoot,
-    encoding: "utf8"
+    encoding: "utf8",
+    env: pinnedEnv
   });
   assert.equal(first.status, 0, first.stderr);
   const firstText = fs.readFileSync(indexPath, "utf8");
 
   const second = spawnSync(process.execPath, [indexScript], {
     cwd: repoRoot,
-    encoding: "utf8"
+    encoding: "utf8",
+    env: pinnedEnv
   });
   assert.equal(second.status, 0, second.stderr);
   assert.equal(fs.readFileSync(indexPath, "utf8"), firstText);
@@ -48,6 +56,13 @@ test("build-index-json creates a reproducible skill and agent inventory", () => 
   assert.equal(reviewer?.kind, "agent");
   assert.equal(reviewer?.source, "agents/reviewer.toml");
   assert.match(reviewer?.description ?? "", /review/i);
+
+  // Restore a real timestamp so the tracked index.json does not keep the pin.
+  const restore = spawnSync(process.execPath, [indexScript], {
+    cwd: repoRoot,
+    encoding: "utf8"
+  });
+  assert.equal(restore.status, 0, restore.stderr);
 });
 
 test("removed install migration note is not referenced by shipped docs", () => {

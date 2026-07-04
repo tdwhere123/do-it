@@ -26,8 +26,6 @@ Grill is done only when:
 
 If you reach a point where the next execution step depends on an unresolved user preference, stop and ask that one question. Do not proceed past an open decision.
 
-Run until every load-bearing premise is either verified against a source or logged as an explicit user decision — no execution-blocking unknown remains.
-
 1. **Necessity first.** Before grilling *how*, grill *whether*: does this need to exist, or does an existing capability already cover it? This is the decision ladder's rung 1 (see `do-it-router` § Restraint) and is usually the most load-bearing premise.
 2. **Pick the most load-bearing premise.** The single belief that, if wrong, changes the most downstream work. One at a time — do not dump a five-question template; that gets shallow, scattered answers.
 3. **Falsify it cheaply — explore, don't ask.** If `rg`, opening the file, or a quick test can settle it, do that and cite `path:line`. Treat every user claim about behavior ("X is already validated", "called from one place") as a premise to grep, not a fact; if the code disagrees, surface the disagreement with a citation.

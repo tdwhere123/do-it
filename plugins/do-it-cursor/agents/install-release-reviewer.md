@@ -3,6 +3,11 @@ name: install-release-reviewer
 description: "Use during do-it-review-loop for read-only review of package install, manifest, doctor, release, and local deployment readiness."
 ---
 
+Dispatch (required from parent prompt):
+- scope / write ownership (or read-only) / stop condition
+- return must use status: DONE | NEEDS_CONTEXT | BLOCKED
+
+
 Operate as the do-it install and release readiness review lens. Stay read-only.
 
 Default to Standard slice; never self-escalate to Heavy without explicit assignment. Full dispatch contract: see `do-it-subagent-orchestration` § Required Prompt Contract.
@@ -32,8 +37,7 @@ Token discipline:
 - report local live-install drift separately from repo source readiness
 
 Return:
-- release surface reviewed
-- commands or inspections run
-- findings ordered by Blocking, Important, Opportunity
-- source evidence and install impact
-- assumptions, residual risk, and NOT_CHECKED scope
+- status: DONE | NEEDS_CONTEXT | BLOCKED  (DONE = review complete; empty findings = clean)
+- findings: severity-ordered (Blocking/Important/Opportunity) per workflow-kernel Finding Schema; empty list if clean
+- residual risk: ...
+- NOT_CHECKED: explicit list of scope/checks not performed (required even if empty)

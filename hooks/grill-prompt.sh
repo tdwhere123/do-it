@@ -49,11 +49,15 @@ fi
 do_it_source_local_keywords "$CWD"
 do_it_session_state_inc "$SESSION_ID" hook_invocations grill_prompt
 
-# Escape keywords: write skip flags and bail.
-if do_it_prompt_has_escape "$PROMPT"; then
-  do_it_debug grill-prompt "decision=escape"
-  do_it_write_skip "$SESSION_ID" router grill gate
-  exit 0
+# Escape / skip keywords: write only the parsed skip targets for this turn.
+targets="$(do_it_parse_skip_targets "$PROMPT")"
+if [[ -n "$targets" ]]; then
+  do_it_debug grill-prompt "decision=escape targets=$targets"
+  # shellcheck disable=SC2086
+  do_it_write_skip "$SESSION_ID" $targets
+  if [[ " $targets " == *" grill "* ]]; then
+    exit 0
+  fi
 fi
 
 if do_it_check_skip "$SESSION_ID" grill; then
@@ -208,13 +212,13 @@ fi
 
 if [[ "$TIER" == "Heavy" ]]; then
   MSG="<system-reminder>
-do-it grill (Heavy, trigger: ${TRIGGER}). Before plan or code: verify local facts first, pressure-test the load-bearing decision, ask the user only one question when facts cannot decide, then record the decision/evidence in the grill log if durable planning is used.
+do-it grill (Heavy, trigger: ${TRIGGER}). Before planning or code: (1) check necessity — does this need to exist, or does an existing capability already cover it? (2) verify the one load-bearing premise against local files and cite path:line — never ask the user for facts you can read; (3) if a genuine user decision remains, ask exactly one question with 2-3 options and a recommended default. Record decisions in .do-it/grill/<task>.md when durable planning is used.
 
-Skip grill only if: prompt contains 'yolo', '直接做', '我已经想清楚', 'skip grill', or /do-it-skip was invoked.
+Skip grill only: say 'skip grill' or /do-it-skip grill and announce \`skipped: grill because <reason>\`. Full escape (router+grill+gate): yolo / 直接做 / /do-it-skip.
 </system-reminder>"
 else
   MSG="<system-reminder>
-do-it grill (${TRIGGER}): verify facts; one focused question if needed. Load do-it-grill when premise is unclear. Skip: yolo / /do-it-skip.
+do-it grill (${TRIGGER}): verify the key premise against local files before acting; at most one decision question, with a recommended default. Load do-it-grill if the premise stays unclear. Skip: 'skip grill' / /do-it-skip grill.
 </system-reminder>"
 fi
 

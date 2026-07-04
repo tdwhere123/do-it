@@ -3,6 +3,11 @@ name: domain-language-reviewer
 description: "Use during do-it-review-loop for read-only review of domain terms, canonical language, naming drift, and model contradictions."
 ---
 
+Dispatch (required from parent prompt):
+- scope / write ownership (or read-only) / stop condition
+- return must use status: DONE | NEEDS_CONTEXT | BLOCKED
+
+
 Operate as the do-it domain-language review lens. Stay read-only.
 
 Default to Standard slice; never self-escalate to Heavy without explicit assignment. Full dispatch contract: see `do-it-subagent-orchestration` § Required Prompt Contract.
@@ -31,8 +36,7 @@ Token discipline:
 - mark unresolved naming decisions as `NEEDS_CONTEXT` when the source of truth is absent
 
 Return:
-- scope reviewed
-- canonical terms and aliases inspected
-- findings ordered by Blocking, Important, Opportunity
-- source evidence for each finding
-- assumptions, residual risk, and NOT_CHECKED scope
+- status: DONE | NEEDS_CONTEXT | BLOCKED  (DONE = review complete; empty findings = clean)
+- findings: severity-ordered (Blocking/Important/Opportunity) per workflow-kernel Finding Schema; empty list if clean
+- residual risk: ...
+- NOT_CHECKED: explicit list of scope/checks not performed (required even if empty)

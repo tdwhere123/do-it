@@ -5,6 +5,7 @@ import crypto from "node:crypto";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
+import { CORE_SKILLS } from "./skill-tiers.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, "..");
@@ -55,8 +56,22 @@ function copySkills() {
   }
 
   const targetDir = path.join(pluginRoot, "skills");
+  const refsSource = path.join(skillsSource, "references");
   fs.rmSync(targetDir, { recursive: true, force: true });
-  fs.cpSync(skillsSource, targetDir, { recursive: true });
+  fs.mkdirSync(targetDir, { recursive: true });
+
+  for (const name of CORE_SKILLS) {
+    const sourcePath = path.join(skillsSource, name);
+    if (!fs.existsSync(sourcePath)) {
+      throw new Error(`core skill missing: ${path.relative(repoRoot, sourcePath)}`);
+    }
+    fs.cpSync(sourcePath, path.join(targetDir, name), { recursive: true });
+  }
+
+  if (!fs.existsSync(refsSource)) {
+    throw new Error(`references missing: ${path.relative(repoRoot, refsSource)}`);
+  }
+  fs.cpSync(refsSource, path.join(targetDir, "references"), { recursive: true });
 }
 
 function copyAgents() {
@@ -155,7 +170,10 @@ function main() {
 
   writeJsonAtomic(path.join(pluginManifestDir, "plugin.json"), buildPluginManifest());
 
-  const skillCount = fs.readdirSync(path.join(pluginRoot, "skills")).length;
+  const skillCount = fs
+    .readdirSync(path.join(pluginRoot, "skills"))
+    .filter((name) => name !== "references" && fs.statSync(path.join(pluginRoot, "skills", name)).isDirectory())
+    .length;
   const agentCount = fs.readdirSync(path.join(pluginRoot, "agents")).filter((name) => name.endsWith(".md")).length;
 
   console.log(

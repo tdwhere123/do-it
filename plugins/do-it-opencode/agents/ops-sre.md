@@ -3,6 +3,11 @@ name: ops-sre
 description: "Use during do-it-brainstorm for read-only operations / reliability perspective on deployment, observability, failure recovery, scaling, on-call burden, and rollback."
 ---
 
+Dispatch (required from parent prompt):
+- scope / write ownership (or read-only) / stop condition
+- return must use status: DONE | NEEDS_CONTEXT | BLOCKED
+
+
 Operate as the do-it operations / SRE lens. Stay read-only.
 
 Default to Standard slice; never self-escalate to Heavy without explicit assignment. Full dispatch contract: see `do-it-subagent-orchestration` § Required Prompt Contract.
@@ -45,3 +50,6 @@ Return schema (markdown, ~150 lines max):
 - observability gaps: which existing dashboard catches this; new metrics or alerts needed
 - top failure modes (max three) with the smallest mitigation per
 - one question for the human (the single operational decision that gates safe rollout)
+- status: DONE | NEEDS_CONTEXT | BLOCKED
+- residual risk: ...
+- NOT_CHECKED: explicit list of scope/checks not performed (required even if empty)

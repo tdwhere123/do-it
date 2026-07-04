@@ -1,6 +1,6 @@
 {
   "version": "0.13.1",
-  "generated_at": "2026-05-24T15:12:54.935Z",
+  "generated_at": "2026-07-04T05:29:25.126Z",
   "package": "@tdwhere/do-it",
   "repository": "https://github.com/tdwhere123/do-it",
   "domain": "agentic-workflow",
@@ -9,9 +9,9 @@
   "coverage": {
     "skill_groups": {
       "index": 1,
-      "mainline": 7,
+      "mainline": 8,
       "maintenance": 3,
-      "on-demand": 10
+      "on-demand": 9
     },
     "optional_skills": []
   },
@@ -29,7 +29,7 @@
     {
       "kind": "skill",
       "name": "do-it-router",
-      "description": "Use when any non-trivial repo task needs Light, Standard, or Heavy tier selection, failure-mode forecast, path map, and the minimum useful do-it workflow before action. 路由 / 分级 / 非平凡任务.",
+      "description": "Use at the start of any non-trivial repo task: choose the Light / Standard / Heavy tier and the minimum useful do-it workflow before planning, editing, delegating, reviewing, or claiming done. 路由 / 分级 / 非平凡任务.",
       "origin": "do-it",
       "optional": false,
       "group": "mainline",
@@ -142,7 +142,7 @@
       "description": "Use when delegated agents need exact scope, write ownership, forbidden paths, must-verify facts, stop condition, and return schema.",
       "origin": "do-it",
       "optional": false,
-      "group": "on-demand",
+      "group": "mainline",
       "source": "skills/do-it/do-it-subagent-orchestration",
       "target": "skills/do-it-subagent-orchestration"
     },
@@ -328,7 +328,7 @@
     {
       "kind": "agent",
       "name": "plan-challenger",
-      "description": "Use during do-it-grill to challenge assumptions, scope, acceptance criteria, alternatives, and routing before implementation.",
+      "description": "Use during do-it-grill as a grill sub-lens only to challenge scope, acceptance, and routing — not a standalone brainstorm substitute.",
       "origin": "do-it",
       "optional": false,
       "source": "agents/plan-challenger.toml",
@@ -364,7 +364,7 @@
     {
       "kind": "agent",
       "name": "reviewer",
-      "description": "Use during do-it-review-loop for PR-style correctness review of behavior regressions, security issues, contracts, and missing tests.",
+      "description": "Use during do-it-review-loop for PR-style correctness review of behavior regressions, contracts, and missing tests.",
       "origin": "do-it",
       "optional": false,
       "source": "agents/reviewer.toml",
@@ -409,7 +409,7 @@
     {
       "kind": "agent",
       "name": "skill-quality-reviewer",
-      "description": "Use during do-it-review-loop for read-only review of Codex skill quality, trigger clarity, workflow completeness, and cross-skill consistency.",
+      "description": "Use during do-it-review-loop for read-only review of do-it skill bundle quality, trigger clarity, workflow completeness, and cross-skill consistency.",
       "origin": "do-it",
       "optional": false,
       "source": "agents/skill-quality-reviewer.toml",

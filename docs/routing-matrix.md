@@ -1,5 +1,7 @@
 # do-it Routing Matrix
 
+> **Maintainer policy:** This document is for maintainers and policy authors — not required reading every turn. Runtime behavior comes from hooks session state, each skill's `SKILL.md`, and generated `skills/_index.md`. Failure-mode classes and path-map chain: [`skills/do-it/references/workflow-kernel.md`](../skills/do-it/references/workflow-kernel.md). Tier routing: `do-it-router` SKILL.
+
 This document is the public policy source for choosing do-it planning,
 implementation, review, and closeout intensity.
 
@@ -112,6 +114,8 @@ rebuilds it from each `skills/do-it/<name>/SKILL.md` frontmatter and
 
 ## Core Skills
 
+**Cursor plugin bundle:** the 8 skills in `manifest.json` `skillTiers.core` / `scripts/skill-tiers.mjs` — router, grill, planning, tdd, review-loop, fix-loop, verification-gate, subagent-orchestration. Extended skills remain in full Codex/Claude installs.
+
 - `do-it-router`: classifies the work into Light, Standard, or Heavy, names
   the minimum useful agent set, forecasts likely failure modes, and keeps the
   parent agent responsible for scope.
@@ -201,8 +205,8 @@ Every implementation-ready handoff should name:
 - write ownership and restricted paths
 - discovered facts that matter
 - success criteria
-- failure-mode forecast
-- path map or `not applicable` reason
+- failure-mode forecast — see [`workflow-kernel.md`](../skills/do-it/references/workflow-kernel.md)
+- path map or `not applicable` reason — same reference
 - readiness target (`fixture-ready`, `live-event-ready`, `operator-ready`, `docs-truth-ready`, or `install-ready`)
 - truth plane (`source-repo`, `task-worktree`, `integration-worktree`,
   `temp-install`, `live-codex`, `live-claude`, `package-artifact`,
@@ -241,7 +245,7 @@ the specific requirement.
 
 Default for `Standard` work:
 
-1. Make a modification map, failure-mode forecast, and proof path map before production edits.
+1. Make a modification map; add failure-mode forecast and proof path map per [`workflow-kernel.md`](../skills/do-it/references/workflow-kernel.md) before production edits.
 2. If comments will be authored or changed, load `do-it-comments-discipline`
    before editing; `comments-lint` is advisory backup, not the first gate.
 3. Write or tighten the smallest failing test when behavior is changed.
@@ -271,7 +275,7 @@ separate agent before implementation:
 Use for `Heavy` work:
 
 1. Freeze route, non-goals, acceptance criteria, readiness target, and final evidence with `do-it-planning`.
-2. Use `do-it-grill` to challenge the decision tree, failure-mode forecast, and path map before implementation.
+2. Use `do-it-grill` to challenge the decision tree and forecast/path map ([`workflow-kernel.md`](../skills/do-it/references/workflow-kernel.md)) before implementation.
 3. Use `do-it-slicing` to define lanes and shared-file ownership.
 4. Run `do-it-interface-drill`, `do-it-architecture-scan`, and
    `do-it-context` § Domain Glossary Mode only where their evidence will change the plan.
@@ -284,11 +288,7 @@ Use for `Heavy` work:
   risk.
 - Standard tasks use local review by default; add at most one focused reviewer
   when a concrete failure mode is not locally reviewable.
-- Every non-trivial review starts with decision and proof-path coverage:
-  request/plan/grill decisions -> producer -> contract -> transport/client ->
-  consumer/surface -> verification. Missing coverage, unwired implementation,
-  unused delivered surface, hidden truth-plane drift, or synthetic proof is a
-  review finding when it can make the work wrong, unused, or unverifiable.
+- Every non-trivial review starts with decision and proof-path coverage per [`workflow-kernel.md`](../skills/do-it/references/workflow-kernel.md) and [`review-lenses.md`](../skills/do-it/references/review-lenses.md). Missing coverage, unwired implementation, unused delivered surface, hidden truth-plane drift, or synthetic proof is a review finding when it can make the work wrong, unused, or unverifiable.
 - Heavy release, workflow, or policy work defaults to two lenses: one
   skill/policy quality lens and one install/release readiness lens.
 - Add more than two lenses only for migration, security, broad public
@@ -342,7 +342,7 @@ Every subagent prompt should include:
 - the scope and non-goals;
 - write ownership and restricted paths;
 - the current facts it may rely on and the facts it must verify itself;
-- the failure-mode forecast, path map, and readiness target for the slice;
+- the failure-mode forecast, path map, and readiness target for the slice (forecast/path map: [`workflow-kernel.md`](../skills/do-it/references/workflow-kernel.md));
 - the truth plane and initial lane status for the slice;
 - the integrity stance and output budget from `do-it-subagent-orchestration`;
 - the expected loop: inspect, plan, execute or review, verify when applicable,

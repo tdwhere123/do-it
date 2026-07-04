@@ -23,14 +23,14 @@
     ],
     "preToolUse": [
       {
-        "matcher": "Write",
+        "matcher": "StrReplace|Write|EditNotebook",
         "command": "${CURSOR_PLUGIN_ROOT}/hooks/grill-pretool.sh",
         "timeout": 10
       }
     ],
     "postToolUse": [
       {
-        "matcher": "Write",
+        "matcher": "StrReplace|Write|EditNotebook",
         "command": "${CURSOR_PLUGIN_ROOT}/hooks/write-quality-lint.sh",
         "timeout": 15
       }

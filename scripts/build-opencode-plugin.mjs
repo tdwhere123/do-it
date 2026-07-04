@@ -101,20 +101,74 @@ function copyHooks() {
   }
 }
 
-function compileTypeScript() {
+function opencodeDistIsCurrent() {
+  const distIndex = path.join(pluginRoot, "dist", "index.js");
+  const srcDir = path.join(pluginRoot, "src");
+  if (!fs.existsSync(distIndex) || !fs.existsSync(srcDir)) {
+    return false;
+  }
+
+  const distMtime = fs.statSync(distIndex).mtimeMs;
+  let srcMtime = 0;
+  for (const name of fs.readdirSync(srcDir)) {
+    if (!name.endsWith(".ts")) {
+      continue;
+    }
+    srcMtime = Math.max(srcMtime, fs.statSync(path.join(srcDir, name)).mtimeMs);
+  }
+  return srcMtime <= distMtime;
+}
+
+function ensureOpencodeDeps() {
   const pluginPkgDir = pluginRoot;
   const localTsc = path.join(pluginPkgDir, "node_modules", ".bin", "tsc");
-  const result = fs.existsSync(localTsc)
-    ? spawnSync(localTsc, ["-p", "tsconfig.json"], {
-        cwd: pluginPkgDir,
-        encoding: "utf8",
-        stdio: "pipe"
-      })
-    : spawnSync("npx", ["-y", "typescript", "tsc", "-p", "tsconfig.json"], {
-        cwd: pluginPkgDir,
-        encoding: "utf8",
-        stdio: "pipe"
-      });
+  if (fs.existsSync(localTsc)) {
+    return;
+  }
+
+  const result = spawnSync("npm", ["install", "--include=dev", "--no-audit", "--no-fund"], {
+    cwd: pluginPkgDir,
+    encoding: "utf8",
+    stdio: "pipe",
+    env: {
+      ...process.env,
+      NODE_ENV: "development",
+      npm_config_omit: "",
+      npm_config_production: "false"
+    }
+  });
+
+  if (result.status !== 0) {
+    console.error("OpenCode plugin dependency install failed:");
+    if (result.stdout) console.error(result.stdout.trim());
+    if (result.stderr) console.error(result.stderr.trim());
+    throw new Error("npm install is required to compile the OpenCode plugin.");
+  }
+}
+
+function compileTypeScript() {
+  const distIndex = path.join(pluginRoot, "dist", "index.js");
+  const lifecycle = process.env.npm_lifecycle_event || "";
+  // npm pack/prepack cannot reliably install typescript devDeps; trust committed dist.
+  if (fs.existsSync(distIndex) && (lifecycle === "prepack" || lifecycle === "pack")) {
+    return;
+  }
+  if (opencodeDistIsCurrent()) {
+    return;
+  }
+
+  const pluginPkgDir = pluginRoot;
+  ensureOpencodeDeps();
+  const localTsc = path.join(pluginPkgDir, "node_modules", ".bin", "tsc");
+  if (!fs.existsSync(localTsc)) {
+    throw new Error("typescript is required to compile the OpenCode plugin (run npm install in plugins/do-it-opencode)");
+  }
+
+  const result = spawnSync(localTsc, ["-p", "tsconfig.json"], {
+    cwd: pluginPkgDir,
+    encoding: "utf8",
+    stdio: "pipe"
+  });
 
   if (result.status !== 0) {
     console.error("TypeScript compilation failed:");

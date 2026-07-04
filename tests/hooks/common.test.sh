@@ -236,6 +236,110 @@ case "$?" in
 esac
 
 # -------------------------------------------------------------------------
+echo "Case 8: do_it_parse_skip_targets — partial vs full skip"
+(
+  _isolate_env "/tmp/doit-test-parse-skip"
+  source "$COMMON"
+  source "$REPO_ROOT/hooks/lib/keywords.sh"
+  out=$(do_it_parse_skip_targets "please skip grill only")
+  [[ "$out" == "grill" ]] || { echo "got: $out" >&2; exit 81; }
+  out=$(do_it_parse_skip_targets "skip grill and skip gate thanks")
+  case "$out" in
+    *grill*) ;;
+    *) exit 82 ;;
+  esac
+  case "$out" in
+    *gate*) ;;
+    *) exit 83 ;;
+  esac
+  case "$out" in
+    *router*) exit 84 ;;
+  esac
+  out=$(do_it_parse_skip_targets "yolo 直接做")
+  for f in router grill gate; do
+    case " $out " in
+      *" $f "*) ;;
+      *) echo "missing $f in: $out" >&2; exit 85 ;;
+    esac
+  done
+  out=$(do_it_parse_skip_targets "see commands/do-it-skip.md for bypass docs")
+  [[ -z "$out" ]] || { echo "doc path wrongly full-skipped: $out" >&2; exit 86; }
+  out=$(do_it_parse_skip_targets "please don't skip grill on this turn")
+  [[ -z "$out" ]] || { echo "negated skip wrongly parsed: $out" >&2; exit 87; }
+)
+case "$?" in
+  0)  _pass "parse_skip_targets honors partial merge and full skip" ;;
+  81) _fail "skip grill did not yield grill only" ;;
+  82) _fail "merged partial missing grill" ;;
+  83) _fail "merged partial missing gate" ;;
+  84) _fail "merged partial wrongly included router" ;;
+  85) _fail "full skip missing a target" ;;
+  86) _fail "commands/do-it-skip.md path triggered full skip" ;;
+  87) _fail "negated skip phrase triggered partial skip" ;;
+  *)  _fail "subshell crashed (exit=$?)" ;;
+esac
+
+# -------------------------------------------------------------------------
+echo "Case 9: do_it_prompt_is_question — narrowed suffix (no bare 吗/呢)"
+(
+  _isolate_env "/tmp/doit-test-question"
+  source "$COMMON"
+  source "$REPO_ROOT/hooks/lib/keywords.sh"
+  if do_it_prompt_is_question "帮我改一下好吗"; then exit 91; fi
+  if ! do_it_prompt_is_question "这是什么？"; then exit 92; fi
+)
+case "$?" in
+  0)  _pass "好吗 not question; 这是什么？ is question" ;;
+  91) _fail "帮我改一下好吗 wrongly classified as question" ;;
+  92) _fail "这是什么？ not classified as question" ;;
+  *)  _fail "subshell crashed (exit=$?)" ;;
+esac
+
+# -------------------------------------------------------------------------
+echo "Case 10: legacy empty skip flag expires by mtime"
+(
+  _isolate_env "/tmp/doit-test-skip-ttl"
+  source "$COMMON"
+  dir="$(do_it_session_dir skip-ttl-test)"
+  mkdir -p "$dir"
+  : > "$dir/skip-gate"
+  touch -t 200001010000 "$dir/skip-gate"
+  if do_it_check_skip skip-ttl-test gate; then exit 101; fi
+  [[ ! -f "$dir/skip-gate" ]] || exit 102
+  : > "$dir/skip-gate"
+  if ! do_it_check_skip skip-ttl-test gate; then exit 103; fi
+)
+case "$?" in
+  0)  _pass "stale empty skip removed; fresh empty skip honored" ;;
+  101) _fail "stale empty skip still honored" ;;
+  102) _fail "stale empty skip file not deleted" ;;
+  103) _fail "fresh empty skip not honored" ;;
+  *)  _fail "subshell crashed (exit=$?)" ;;
+esac
+
+# -------------------------------------------------------------------------
+echo "Case 11: do_it_clear_skip removes all skip flags"
+(
+  _isolate_env "/tmp/doit-test-clear-skip"
+  source "$COMMON"
+  do_it_write_skip clear-test router grill gate
+  dir="$(do_it_session_dir clear-test)"
+  for f in router grill gate; do
+    [[ -f "$dir/skip-$f" ]] || exit 111
+  done
+  do_it_clear_skip clear-test
+  for f in router grill gate; do
+    if [[ -f "$dir/skip-$f" ]]; then exit 112; fi
+  done
+)
+case "$?" in
+  0)  _pass "clear_skip removes router/grill/gate flags" ;;
+  111) _fail "write_skip did not create flags" ;;
+  112) _fail "clear_skip left a flag behind" ;;
+  *)  _fail "subshell crashed (exit=$?)" ;;
+esac
+
+# -------------------------------------------------------------------------
 echo
 echo "Summary: $PASS passed, $FAIL failed"
 if [[ "$FAIL" -gt 0 ]]; then

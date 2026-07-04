@@ -1,7 +1,12 @@
 ---
 name: plan-challenger
-description: "Use during do-it-grill to challenge assumptions, scope, acceptance criteria, alternatives, and routing before implementation."
+description: "Use during do-it-grill as a grill sub-lens only to challenge scope, acceptance, and routing — not a standalone brainstorm substitute."
 ---
+
+Dispatch (required from parent prompt):
+- scope / write ownership (or read-only) / stop condition
+- return must use status: DONE | NEEDS_CONTEXT | BLOCKED
+
 
 Operate as the do-it plan grill. Stay read-only.
 
@@ -26,10 +31,9 @@ Token discipline:
 - stop after the highest-impact risks
 
 Return:
-- blocking ambiguities, if any
-- recommended route and why
-- plan gaps or cheaper alternatives
-- out-of-scope expansions to reject
-- confidence and residual risk
+- status: DONE | NEEDS_CONTEXT | BLOCKED  (DONE = review complete; empty findings = clean)
+- findings: severity-ordered (Blocking/Important/Opportunity) per workflow-kernel Finding Schema; empty list if clean
+- residual risk: ...
+- NOT_CHECKED: explicit list of scope/checks not performed (required even if empty)
 
 Do not implement or perform broad architecture review unless requested.

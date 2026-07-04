@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
+import { CORE_SKILLS } from "./skill-tiers.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, "..");
@@ -347,6 +348,63 @@ function validateIndexJson(pkg, manifest, errors) {
   }
 }
 
+function validateCursorPlugin(pkg, errors) {
+  const cursorPluginPath = "plugins/do-it-cursor/.cursor-plugin/plugin.json";
+  if (!fs.existsSync(repoPath(cursorPluginPath))) {
+    errors.push(
+      `${cursorPluginPath} is missing; run npm run build:cursor-plugin before validate:agents`
+    );
+    return;
+  }
+
+  const cursorPlugin = readJson(cursorPluginPath);
+  if (cursorPlugin.version !== pkg.version) {
+    errors.push(
+      `${cursorPluginPath} version ${cursorPlugin.version} does not match package.json ${pkg.version}`
+    );
+  }
+
+  const claudeAgentFiles = listNames("dist/claude/agents", ".md");
+  const cursorAgentFiles = listNames("plugins/do-it-cursor/agents", ".md");
+  const claudeAgentNames = claudeAgentFiles.map((file) => file.replace(/\.md$/, ""));
+  const cursorAgentNames = cursorAgentFiles.map((file) => file.replace(/\.md$/, ""));
+  compareSets("plugins/do-it-cursor/agents", claudeAgentNames, cursorAgentNames, errors);
+
+  for (const name of claudeAgentNames) {
+    const claudePath = repoPath(`dist/claude/agents/${name}.md`);
+    const cursorPath = repoPath(`plugins/do-it-cursor/agents/${name}.md`);
+    if (!fs.existsSync(cursorPath)) continue;
+    if (!sameFile(claudePath, cursorPath)) {
+      errors.push(
+        `plugins/do-it-cursor/agents/${name}.md is not byte-equal to dist/claude/agents/${name}.md`
+      );
+    }
+  }
+
+  const allowedSkillDirs = [...CORE_SKILLS, "references"].sort();
+  const actualSkillDirs = listNames("plugins/do-it-cursor/skills").sort();
+  compareSets("plugins/do-it-cursor/skills", allowedSkillDirs, actualSkillDirs, errors);
+
+  for (const name of CORE_SKILLS) {
+    const sourcePath = repoPath(`skills/do-it/${name}`);
+    const cursorPath = repoPath(`plugins/do-it-cursor/skills/${name}`);
+    if (!fs.existsSync(cursorPath)) continue;
+    if (!pathsMatch(sourcePath, cursorPath)) {
+      errors.push(
+        `plugins/do-it-cursor/skills/${name} is not generated from skills/do-it/${name}`
+      );
+    }
+  }
+
+  const refsSource = repoPath("skills/do-it/references");
+  const refsCursor = repoPath("plugins/do-it-cursor/skills/references");
+  if (fs.existsSync(refsCursor) && !pathsMatch(refsSource, refsCursor)) {
+    errors.push(
+      "plugins/do-it-cursor/skills/references is not generated from skills/do-it/references"
+    );
+  }
+}
+
 function main() {
   const pkg = readJson("package.json");
   const manifest = readJson("manifest.json");
@@ -357,6 +415,7 @@ function main() {
   validateGeneratedAgents(sourceNames, errors);
   validateGeneratedSkills(manifest, errors);
   validateIndexJson(pkg, manifest, errors);
+  validateCursorPlugin(pkg, errors);
 
   if (errors.length > 0) {
     console.error(`validate-agent-bundle: ${errors.length} failure(s)`);
@@ -364,7 +423,9 @@ function main() {
     process.exit(1);
   }
 
-  console.log(`validated ${sourceNames.length} Codex agent TOML files and generated plugin inventory`);
+  console.log(
+    `validated ${sourceNames.length} Codex agent TOML files, generated plugin inventory, and Cursor plugin bundle`
+  );
 }
 
 main();

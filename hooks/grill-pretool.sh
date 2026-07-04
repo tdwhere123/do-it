@@ -21,6 +21,9 @@ CWD="$(do_it_json_get "$RAW_INPUT" cwd)"
 TOOL_NAME="$(do_it_json_get "$RAW_INPUT" tool_name)"
 TRANSCRIPT_PATH="$(do_it_json_get "$RAW_INPUT" transcript_path)"
 FILE_PATH="$(do_it_json_get_nested "$RAW_INPUT" tool_input.file_path)"
+if [[ -z "$FILE_PATH" ]]; then
+  FILE_PATH="$(do_it_json_get_nested "$RAW_INPUT" tool_input.path)"
+fi
 
 # Subagent context: bail before any state mutation. Subagents in a Heavy
 # parent session are running their own delegated slice and must not be
@@ -39,7 +42,7 @@ if do_it_check_skip "$SESSION_ID" grill; then
 fi
 
 case "$TOOL_NAME" in
-  Edit|Write|MultiEdit) ;;
+  Edit|Write|MultiEdit|NotebookEdit|StrReplace|EditNotebook) ;;
   *) exit 0 ;;
 esac
 
@@ -102,7 +105,7 @@ case "$REL_PATH" in
   src/*|packages/*|apps/*)
     if [[ "$PLAN_GATE_REQUIRED" == "1" ]]; then
       PLANS_DIR="$PROJECT_ROOT/.do-it/plans"
-      if [[ ! -d "$PLANS_DIR" ]] || [[ -z "$(ls -A "$PLANS_DIR" 2>/dev/null)" ]]; then
+      if ! ls "$PLANS_DIR"/*.md >/dev/null 2>&1; then
         do_it_debug grill-pretool "decision=block reason=src-without-plan path=$REL_PATH tier=$TIER durable=$DURABLE_PLAN_REQUIRED"
         echo "do-it grill-pretool: Heavy or explicit durable-plan work has no .do-it/plans/* file. Land a plan card before editing src/packages/apps, or bypass with /do-it-skip grill." >&2
         exit 2

@@ -1,0 +1,13 @@
+# prompt	expected	notes
+你觉得这个方案怎么样？	tier:Light	pure question → Light
+typo in README.md	tier:Light	short prompt + light signal typo
+修改 README 里的拼写错误	tier:Light	short + 拼写 light signal
+实现 src/auth.ts 的登录	tier:Standard	intent verb + code object
+fix bug in hooks/router.sh	tier:Standard	English intent + path
+重写 schema 涉及 breaking change 跨 frontend/ backend/	tier:Heavy	≥2 heavy signals
+迁移 database schema 并 rewrite API	tier:Heavy	two heavy signals EN
+帮我改一下好吗	tier:Light;kind:work	imperative+好吗 without ? — not question kind
+你好吗？	tier:Light;kind:question	question with 吗
+yolo 直接做	skip:router,grill,gate	full escape — no tier write
+skip gate please implement src/foo.ts	skip:gate;tier:Standard	partial skip gate still refreshes tier/dims
+这是什么？	tier:Light;kind:question	short question

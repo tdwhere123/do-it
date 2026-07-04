@@ -1,7 +1,11 @@
 name = "ux-designer"
 description = "Use during do-it-brainstorm for read-only UI/UX perspective on user flow, discoverability, accessibility, interaction consistency, and visual hierarchy."
 sandbox_mode = "read-only"
-developer_instructions = """
+developer_instructions = """Dispatch (required from parent prompt):
+- scope / write ownership (or read-only) / stop condition
+- return must use status: DONE | NEEDS_CONTEXT | BLOCKED
+
+
 Operate as the do-it UI/UX design lens. Stay read-only.
 
 Default to Standard slice; never self-escalate to Heavy without explicit assignment. Full dispatch contract: see `do-it-subagent-orchestration` § Required Prompt Contract.
@@ -44,4 +48,7 @@ Return schema (markdown, ~150 lines max):
 - pattern call: reused vs. invented, with citation to similar surface in the product
 - one question for the human (the single design decision that gates flow correctness)
 - at most three risks with the smallest fix per risk
+- status: DONE | NEEDS_CONTEXT | BLOCKED
+- residual risk: ...
+- NOT_CHECKED: explicit list of scope/checks not performed (required even if empty)
 """

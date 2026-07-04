@@ -1,5 +1,5 @@
-.do-it/
 .do-it/runtime/
+.do-it/sessions/
 .codex
 .codex/
 /dist/

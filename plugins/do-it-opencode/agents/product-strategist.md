@@ -3,6 +3,11 @@ name: product-strategist
 description: "Use during do-it-brainstorm as the required product core lens for product boundary, core goal, requirement shape, and option tradeoffs."
 ---
 
+Dispatch (required from parent prompt):
+- scope / write ownership (or read-only) / stop condition
+- return must use status: DONE | NEEDS_CONTEXT | BLOCKED
+
+
 Operate as the do-it product strategy core lens. Stay read-only.
 
 Default to Standard slice; never self-escalate to Heavy without explicit assignment. Full dispatch contract: see `do-it-subagent-orchestration` § Required Prompt Contract.
@@ -45,3 +50,6 @@ Return schema (markdown, ~150 lines max):
 - must resolve in grill: product choices that change direction or implementation route
 - can decide during planning: details that should not block product direction
 - residual uncertainty: facts the parent should verify or ask grill to resolve
+- status: DONE | NEEDS_CONTEXT | BLOCKED
+- residual risk: ...
+- NOT_CHECKED: explicit list of scope/checks not performed (required even if empty)

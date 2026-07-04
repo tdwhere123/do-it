@@ -83,6 +83,16 @@ before closeout:
 Evidence must be fresh, local to the claim, and tied to the current
 branch/worktree.
 
+### Hook layer vs skill discipline
+
+The Stop-hook (`verification-gate.sh`) performs a **soft / transcript-heuristic**
+check: it substring-matches the session transcript for completion language,
+edit tools, and command names that *look like* verification (e.g. `pnpm test`,
+`vitest`). Mentioning a command in prose can satisfy the hook even if the
+command did not actually run. **Do not treat hook pass as proof** — real evidence
+discipline is this skill: run the command on the current branch/worktree, read
+exit code and output, and cite that result in your closeout.
+
 - Prefer commands that exercise the changed surface over broad commands that can
   pass while the changed path is untested.
 - Treat worker reports, old CI, memory, and generated diffs as supporting

@@ -42,6 +42,17 @@ json_pretool() {
     '{session_id: $sid, cwd: $cwd, tool_name: $tool, tool_input: {file_path: $file_path, content: $content, new_string: $content}}'
 }
 
+json_pretool_path() {
+  local session_id="$1" cwd="$2" tool_name="$3" path="$4" content="${5:-}"
+  jq -nc \
+    --arg sid "$session_id" \
+    --arg cwd "$cwd" \
+    --arg tool "$tool_name" \
+    --arg path "$path" \
+    --arg content "$content" \
+    '{session_id: $sid, cwd: $cwd, tool_name: $tool, tool_input: {path: $path, content: $content, new_string: $content}}'
+}
+
 json_stop() {
   local session_id="$1" transcript_path="$2"
   jq -nc --arg sid "$session_id" --arg transcript "$transcript_path" \
@@ -219,6 +230,13 @@ heavy_edit_session="heavy-edit"
 run_router "$heavy_edit_session" "Prepare the release schema migration"
 if run_pretool "$heavy_edit_session" "$REPO_ROOT" "Write" "$REPO_ROOT/src/example.js" "x" >/dev/null 2>&1; then
   fail "Heavy source edit without .do-it/plans should be blocked"
+fi
+
+heavy_path_session="heavy-edit-path"
+run_router "$heavy_path_session" "Prepare the release schema migration"
+if json_pretool_path "$heavy_path_session" "$REPO_ROOT" "StrReplace" "$REPO_ROOT/src/example.js" "x" \
+     | bash hooks/grill-pretool.sh >/dev/null 2>&1; then
+  fail "Heavy StrReplace via tool_input.path should be blocked without plan"
 fi
 
 plan_project="$TMP_ROOT/project"

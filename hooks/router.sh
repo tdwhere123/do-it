@@ -44,11 +44,16 @@ do_it_prompt_requires_durable_plan() {
   return 1
 }
 
-# Escape keywords: write skip flags for ALL hooks and pass through.
-if do_it_prompt_has_escape "$PROMPT"; then
-  do_it_debug router "decision=escape session=$SESSION_ID"
-  do_it_write_skip "$SESSION_ID" router grill gate
-  exit 0
+# Escape / skip keywords: write only the parsed skip targets for this turn.
+targets="$(do_it_parse_skip_targets "$PROMPT")"
+if [[ -n "$targets" ]]; then
+  do_it_debug router "decision=escape session=$SESSION_ID targets=$targets"
+  # shellcheck disable=SC2086
+  do_it_write_skip "$SESSION_ID" $targets
+  # Partial skip (e.g. gate only) must still refresh tier/dim_* for this turn.
+  case " $targets " in
+    *" router "*) exit 0 ;;
+  esac
 fi
 
 # Honor pre-existing skip flag.
@@ -150,6 +155,8 @@ do_it_session_state_set "$SESSION_ID" port_intent "$port_intent"
 # existing skills key off; downstream skills may read these additive booleans
 # when choosing TDD, review, or interface intensity. Light skips dimension
 # evaluation because discussion and mechanical turns do not benefit from it.
+# Always write all five dim_* keys every turn (Light → all 0) so a prior Heavy
+# turn cannot leave stale dimension flags in session state.
 DIM_TOUCHES_CODE=0
 DIM_CROSSES_PACKAGES=0
 DIM_BREAKS_INTERFACE=0

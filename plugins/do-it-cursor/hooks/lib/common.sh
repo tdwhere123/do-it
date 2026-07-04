@@ -186,9 +186,9 @@ do_it_skip_flag_path() {
   printf '%s/skip-%s' "$(do_it_session_dir "$session_id")" "$flag"
 }
 
-# Skip-flag TTL in seconds. Flags written as a unix timestamp expire after
-# this many seconds; legacy empty flags are treated as no-TTL (always valid)
-# so older session dirs do not break.
+# Skip-flag TTL in seconds (backup safety net). Primary lifecycle: verification-
+# gate Stop hook clears all skip flags after each turn; TTL only covers leaks when
+# Stop did not run (legacy empty files use file mtime; timestamped files use body).
 DO_IT_SKIP_TTL_SECONDS="${DO_IT_SKIP_TTL_SECONDS:-300}"
 
 # Age (in days) past which an inactive session directory is pruned by
@@ -197,31 +197,41 @@ DO_IT_SKIP_TTL_SECONDS="${DO_IT_SKIP_TTL_SECONDS:-300}"
 DO_IT_SESSION_TTL_DAYS="${DO_IT_SESSION_TTL_DAYS:-7}"
 
 # Test if skip flag is set. 0 = present (and not expired), 1 = absent.
-# Empty flag files are honored as legacy "no-TTL, always valid". Flag files
-# whose body is a unix timestamp older than DO_IT_SKIP_TTL_SECONDS are deleted
-# and treated as absent.
+# Empty legacy flag files expire by file mtime after DO_IT_SKIP_TTL_SECONDS.
+# Timestamped flag files expire when body age exceeds DO_IT_SKIP_TTL_SECONDS.
 do_it_check_skip() {
   local session_id="$1" flag="$2"
   local p
   p="$(do_it_skip_flag_path "$session_id" "$flag")"
   [[ -f "$p" ]] || return 1
-  # Empty file → legacy behavior: always valid.
+  local ts now age mtime
+  now=$(date +%s 2>/dev/null)
   if [[ ! -s "$p" ]]; then
+    mtime=$(stat -c %Y "$p" 2>/dev/null || stat -f %m "$p" 2>/dev/null || echo "")
+    if [[ -z "$mtime" || -z "$now" ]]; then
+      rm -f "$p" 2>/dev/null || true
+      return 1
+    fi
+    age=$((now - mtime))
+    if (( age < 0 )); then
+      return 0
+    fi
+    if (( age > DO_IT_SKIP_TTL_SECONDS )); then
+      rm -f "$p" 2>/dev/null || true
+      return 1
+    fi
     return 0
   fi
-  local ts now age
   ts="$(head -n1 "$p" 2>/dev/null | tr -dc '0-9')"
   if [[ -z "$ts" ]]; then
-    # Unparseable content; treat as legacy.
-    return 0
+    rm -f "$p" 2>/dev/null || true
+    return 1
   fi
-  now=$(date +%s 2>/dev/null)
   if [[ -z "$now" ]]; then
     return 0
   fi
   age=$((now - ts))
   if (( age < 0 )); then
-    # Clock went backwards — be conservative and honor the flag.
     return 0
   fi
   if (( age > DO_IT_SKIP_TTL_SECONDS )); then
@@ -251,6 +261,85 @@ do_it_write_skip() {
       : > "$dir/skip-${flag}" 2>/dev/null || true
     fi
   done
+}
+
+# Remove all skip flags for a session (router / grill / gate). Called after the
+# Stop verification-gate consumes or finishes a turn so skip scope stays one turn.
+do_it_clear_skip() {
+  local session_id="$1"
+  local dir flag
+  dir="$(do_it_session_dir "$session_id")"
+  for flag in router grill gate; do
+    rm -f "$dir/skip-${flag}" 2>/dev/null || true
+  done
+}
+
+# Parse skip targets from a prompt. Prints a space-separated deduped list on stdout
+# (router, grill, gate). Partial targets win over full-skip escape words.
+do_it_parse_skip_targets() {
+  local prompt="$1"
+  local lc targets=() t seen=""
+  lc="$(do_it_lc "$prompt")"
+
+  _do_it_skip_add() {
+    local flag="$1"
+    case " $seen " in
+      *" $flag "*) return 0 ;;
+    esac
+    targets+=("$flag")
+    seen="${seen} ${flag}"
+  }
+
+  _do_it_skip_phrase_intended() {
+    local phrase="$1"
+    [[ "$lc" == *"$phrase"* ]] || return 1
+    case "$lc" in
+      *"don't $phrase"*|*"do not $phrase"*|*"not $phrase"*|\
+      *"无需 $phrase"*|*"无需$phrase"*|*"不要 $phrase"*|*"不要$phrase"*|\
+      *"别 $phrase"*|*"别$phrase"*)
+        return 1
+        ;;
+    esac
+    return 0
+  }
+
+  if _do_it_skip_phrase_intended "/do-it-skip gate" || _do_it_skip_phrase_intended "skip gate"; then
+    _do_it_skip_add gate
+  fi
+  if _do_it_skip_phrase_intended "/do-it-skip grill" \
+     || _do_it_skip_phrase_intended "skip grill" \
+     || [[ "$lc" == *"不用 grill"* || "$lc" == *"不用grill"* ]]; then
+    _do_it_skip_add grill
+  fi
+  if _do_it_skip_phrase_intended "/do-it-skip router" || _do_it_skip_phrase_intended "skip router"; then
+    _do_it_skip_add router
+  fi
+
+  if ((${#targets[@]} > 0)); then
+    printf '%s\n' "${targets[*]}"
+    return 0
+  fi
+
+  case "$lc" in
+    *"/do-it-skip all"*|*"yolo"*|*"just do it"*|*"直接做"*|\
+    *"我已经想清楚"*|*"skip do-it"*|*"随便聊"*|*"先聊聊"*|*"just thinking"*)
+      printf '%s\n' "router grill gate"
+      return 0
+      ;;
+  esac
+
+  # Bare /do-it-skip command — require word boundary so doc paths like
+  # commands/do-it-skip.md do not trigger a full escape.
+  if [[ "$lc" =~ /do-it-skip([[:space:]]|$) ]]; then
+    printf '%s\n' "router grill gate"
+    return 0
+  fi
+
+  if declare -p DO_IT_ESCAPE_WORDS >/dev/null 2>&1; then
+    if do_it_prompt_has_any "$prompt" DO_IT_ESCAPE_WORDS; then
+      printf '%s\n' "router grill gate"
+    fi
+  fi
 }
 
 # Prune session directories untouched for more than DO_IT_SESSION_TTL_DAYS.
@@ -353,9 +442,9 @@ do_it_prompt_has_any() {
   esac
 }
 
-# Convenience wrapper for the escape-word table.
+# Convenience wrapper: non-empty parse result means an escape/skip target matched.
 do_it_prompt_has_escape() {
-  do_it_prompt_has_any "$1" DO_IT_ESCAPE_WORDS
+  [[ -n "$(do_it_parse_skip_targets "$1")" ]]
 }
 
 # Detect whether the hook is running inside a subagent / delegated agent
@@ -467,7 +556,7 @@ do_it_prompt_has_code_object() {
 # Detect whether the current turn is a question / discussion (router caps at
 # Light, grill hook suppressed). Triggered by:
 #   - any term in DO_IT_QUESTION_HINTS
-#   - prompt ends with `?`, `？`, 吗, or 呢 (after trimming whitespace)
+#   - prompt ends with `?`, `？`, `吗？`, `呢？`, `吗?`, or `呢?` (after trim)
 do_it_prompt_is_question() {
   local prompt="$1"
   if do_it_prompt_has_any "$prompt" DO_IT_QUESTION_HINTS; then
@@ -477,7 +566,7 @@ do_it_prompt_is_question() {
   trimmed="${trimmed%[[:space:]]}"
   trimmed="${trimmed%[[:space:]]}"
   case "$trimmed" in
-    *'?'|*'？'|*'吗'|*'呢') return 0 ;;
+    *'?'|*'？'|*'吗？'|*'呢？'|*'吗?'|*'呢?') return 0 ;;
   esac
   return 1
 }

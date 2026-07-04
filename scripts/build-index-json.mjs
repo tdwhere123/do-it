@@ -5,6 +5,12 @@ import crypto from "node:crypto";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
+import {
+  CORE_SKILLS,
+  EXTENDED_MAINTENANCE,
+  EXTENDED_ON_DEMAND,
+  validateManifestSkillTiers
+} from "./skill-tiers.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, "..");
@@ -14,26 +20,9 @@ const outFile = path.join(repoRoot, "index.json");
 
 const SKILL_GROUPS = new Map([
   ["do-it-skills-index", "index"],
-  ["do-it-router", "mainline"],
-  ["do-it-grill", "mainline"],
-  ["do-it-planning", "mainline"],
-  ["do-it-tdd", "mainline"],
-  ["do-it-review-loop", "mainline"],
-  ["do-it-fix-loop", "mainline"],
-  ["do-it-verification-gate", "mainline"],
-  ["do-it-brainstorm", "on-demand"],
-  ["do-it-architecture-scan", "on-demand"],
-  ["do-it-codebase-design", "on-demand"],
-  ["do-it-interface-drill", "on-demand"],
-  ["do-it-debugging", "on-demand"],
-  ["do-it-slicing", "on-demand"],
-  ["do-it-comments-discipline", "on-demand"],
-  ["do-it-worktree-isolation", "on-demand"],
-  ["do-it-branch-closeout", "on-demand"],
-  ["do-it-subagent-orchestration", "on-demand"],
-  ["do-it-handbook", "maintenance"],
-  ["do-it-context", "maintenance"],
-  ["do-it-skill-authoring", "maintenance"]
+  ...CORE_SKILLS.map((name) => [name, "mainline"]),
+  ...EXTENDED_ON_DEMAND.map((name) => [name, "on-demand"]),
+  ...EXTENDED_MAINTENANCE.map((name) => [name, "maintenance"])
 ]);
 
 function repoPath(relativePath) {
@@ -52,19 +41,9 @@ function normalizeRepoUrl(pkg) {
   );
 }
 
-function readExistingGeneratedAt() {
+function resolveGeneratedAt() {
   if (process.env.DO_IT_INDEX_GENERATED_AT) {
     return process.env.DO_IT_INDEX_GENERATED_AT;
-  }
-
-  try {
-    const existing = readJson(outFile);
-    if (typeof existing.generated_at === "string" && existing.generated_at) {
-      return existing.generated_at;
-    }
-  } catch {
-    // First generation gets a timestamp; subsequent runs preserve it so the
-    // tracked generated file stays reproducible.
   }
 
   return new Date().toISOString();
@@ -223,6 +202,10 @@ function main() {
     errors.push(`manifest version ${manifest.version} does not match package version ${pkg.version}`);
   }
 
+  for (const error of validateManifestSkillTiers(manifest)) {
+    errors.push(error);
+  }
+
   const skillEntries = (manifest.skills ?? []).map((entry) => buildSkillEntry(entry, errors));
   const agentEntries = (manifest.agents ?? []).map((entry) => buildAgentEntry(entry, errors));
 
@@ -234,7 +217,7 @@ function main() {
 
   const index = {
     version: manifest.version,
-    generated_at: readExistingGeneratedAt(),
+    generated_at: resolveGeneratedAt(),
     package: pkg.name,
     repository: normalizeRepoUrl(pkg),
     domain: "agentic-workflow",
