@@ -306,8 +306,16 @@ do_it_parse_skip_targets() {
   fi
 
   case "$lc" in
-    *"/do-it-skip all"*|*"/do-it-skip"*|*"yolo"*|*"just do it"*|*"直接做"*|\
+    *"/do-it-skip all"*|*"yolo"*|*"just do it"*|*"直接做"*|\
     *"我已经想清楚"*|*"skip do-it"*|*"随便聊"*|*"先聊聊"*|*"just thinking"*)
+      printf '%s\n' "router grill gate"
+      return 0
+      ;;
+  esac
+  # Bare /do-it-skip — not doc paths like commands/do-it-skip.md
+  case "$lc" in
+    *"do-it-skip.md"*|*"commands/do-it-skip"*) ;;
+    *"/do-it-skip"*)
       printf '%s\n' "router grill gate"
       return 0
       ;;

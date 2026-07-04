@@ -55,7 +55,9 @@ if [[ -n "$targets" ]]; then
   do_it_debug grill-prompt "decision=escape targets=$targets"
   # shellcheck disable=SC2086
   do_it_write_skip "$SESSION_ID" $targets
-  exit 0
+  if [[ " $targets " == *" grill "* ]]; then
+    exit 0
+  fi
 fi
 
 if do_it_check_skip "$SESSION_ID" grill; then

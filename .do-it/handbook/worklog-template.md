@@ -5,8 +5,8 @@ Copy to `.do-it/worklog/YYYY-MM-DD.md` or `.do-it/worklog/<goal-slug>.md`.
 ```markdown
 # <goal one-liner>
 
-**Date:** YYYY-MM-DD  
-**Tier:** Light | Standard | Heavy  
+**Date:** YYYY-MM-DD
+**Tier:** Light | Standard | Heavy
 **Status:** active | blocked | done
 
 ## Intent

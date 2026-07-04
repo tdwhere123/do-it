@@ -9,5 +9,5 @@ fix bug in hooks/router.sh	tier:Standard	English intent + path
 帮我改一下好吗	tier:Light;kind:work	imperative+好吗 without ? — not question kind
 你好吗？	tier:Light;kind:question	question with 吗
 yolo 直接做	skip:router,grill,gate	full escape — no tier write
-skip gate please implement src/foo.ts	skip:gate	partial skip gate only — router exits before tier write
+skip gate please implement src/foo.ts	skip:gate;tier:Standard	partial skip gate still refreshes tier/dims
 这是什么？	tier:Light;kind:question	short question

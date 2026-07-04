@@ -50,7 +50,10 @@ if [[ -n "$targets" ]]; then
   do_it_debug router "decision=escape session=$SESSION_ID targets=$targets"
   # shellcheck disable=SC2086
   do_it_write_skip "$SESSION_ID" $targets
-  exit 0
+  # Partial skip (e.g. gate only) must still refresh tier/dim_* for this turn.
+  if [[ " $targets " == *" router "* ]]; then
+    exit 0
+  fi
 fi
 
 # Honor pre-existing skip flag.

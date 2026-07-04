@@ -257,6 +257,28 @@ case "$?" in
 esac
 
 # -------------------------------------------------------------------------
+echo "Case 11b: partial skip gate still routes tier/dims"
+(
+  _isolate_state "/tmp/doit-test-router-c11b"
+  out=$(_run_router "skip gate please implement src/foo.ts" "c11b-1")
+  [[ -z "$out" ]] || { printf 'unexpected output: %s\n' "$out" >&2; exit 11; }
+  skip_dir="$DO_IT_HOOK_DATA/sessions/c11b-1"
+  [[ -f "$skip_dir/skip-gate" ]] || { echo "missing skip-gate" >&2; exit 12; }
+  if [[ -f "$skip_dir/skip-router" ]]; then echo "unexpected skip-router" >&2; exit 13; fi
+  state="$(_state_for c11b-1)"
+  got=$(jq -r '.tier // ""' "$state")
+  [[ "$got" == "Standard" ]] || { echo "tier=$got expected Standard" >&2; cat "$state" >&2; exit 14; }
+)
+case "$?" in
+  0)  _pass "skip gate writes gate flag and refreshes tier" ;;
+  11) _fail "partial skip gate produced output" ;;
+  12) _fail "skip-gate not written" ;;
+  13) _fail "skip-router wrongly written" ;;
+  14) _fail "tier not refreshed on partial skip gate" ;;
+  *)  _fail "unexpected exit $?" ;;
+esac
+
+# -------------------------------------------------------------------------
 echo "Case 12: Heavy then Light/question clears all dim_* to 0"
 (
   _isolate_state "/tmp/doit-test-router-c12"
