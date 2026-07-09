@@ -326,6 +326,30 @@ test("cursor target installs plugin bundle with cursor hooks.json", () => {
     );
     assert.ok(registered.plugins["do-it-cursor@do-it"], "plugin should be registered for Cursor");
     assert.equal(registered.plugins["do-it-cursor@do-it"][0].installPath, pluginRoot);
+
+    const coreSkills = [...(manifest.skillTiers?.core ?? [])].sort();
+    const installedSkillDirs = fs
+      .readdirSync(path.join(pluginRoot, "skills"), { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name)
+      .sort();
+    assert.deepEqual(
+      installedSkillDirs.filter((name) => name !== "references"),
+      coreSkills,
+      "cursor install should ship core skill directories only"
+    );
+    assert.ok(
+      !fs.existsSync(path.join(pluginRoot, "skills", "do-it-brainstorm")),
+      "extended skill do-it-brainstorm must not install for cursor"
+    );
+    assert.ok(
+      fs.existsSync(path.join(pluginRoot, "skills", "references")),
+      "shared references/ should install for cursor"
+    );
+    assert.ok(
+      fs.existsSync(path.join(pluginRoot, "skills", "_index.md")),
+      "skills index should still install for cursor discovery"
+    );
   } finally {
     fs.rmSync(home, { recursive: true, force: true });
   }

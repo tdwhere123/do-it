@@ -164,7 +164,7 @@ skills marked optional (none are currently marked optional).
 ## Cursor
 
 `do-it` ships a Cursor plugin with the same global install flow as Codex and
-Claude:
+Claude, but a **smaller skill surface**:
 
 ```bash
 do-it setup --target=cursor
@@ -174,6 +174,13 @@ do-it doctor --target=cursor
 This copies the built bundle to `~/.cursor/plugins/do-it-cursor/` (override with
 `CURSOR_PLUGIN_ROOT_OVERRIDE`) and registers `do-it-cursor@do-it` in your user
 plugin settings. Reload Cursor (**Developer: Reload Window**) after setup.
+
+Cursor installs the **8 core skills** from `manifest.skillTiers.core` /
+`scripts/skill-tiers.mjs` (`do-it-router`, `do-it-grill`, `do-it-planning`,
+`do-it-tdd`, `do-it-review-loop`, `do-it-fix-loop`, `do-it-verification-gate`,
+`do-it-subagent-orchestration`), plus the skills index and shared
+`references/` sheets. The 12 extended skills stay on Codex, Claude, OpenCode,
+and in this repository — not in the Cursor plugin bundle.
 
 Marketplace discovery remains available:
 
@@ -207,12 +214,23 @@ npm run test-opencode
 
 ## What It Installs
 
+Skill matrix (21 skills total in `manifest.json`; tiers in
+`scripts/skill-tiers.mjs`):
+
+| Host | Skills installed |
+|---|---|
+| Codex (CLI / plugin) | Full tree — 8 core + 12 extended |
+| Claude Code | Full tree — 8 core + 12 extended |
+| OpenCode | Full tree — 8 core + 12 extended |
+| Cursor | **Core 8 only**, plus skills index and `references/` |
+
 - do-it-native skills for routing, grill, **brainstorm (multi-lens
   divergence)**, **handbook (project doc skeleton)**, context, planning,
   slicing, interface / architecture / domain drills, **codebase design (deep-module
   vocabulary)**, sub-agent orchestration, TDD, debugging, review, fix loops,
-  verification, worktree isolation, branch closeout, visual planning, and skill
-  authoring.
+  verification, worktree isolation, branch closeout, and skill authoring.
+  Extended skills (brainstorm, handbook, drills, closeout, authoring, …) are
+  part of the full tree; Cursor gets the core loop only.
 - Portable Codex agent definitions for code mapping, plan challenge,
   correctness review, architecture review, red-team review, spec compliance,
   domain language, install/release review, documentation, testing,
@@ -224,9 +242,11 @@ npm run test-opencode
   Hooks include parent routing / grill nudges, a compact **subagent stance**
   reminder, merged advisory **write-quality-lint** (comments + anti-patterns +
   integrity families), and completion verification gates.
-- Claude Code plugin assets, hooks, commands, and generated sub-agent
-  definitions.
-- Cursor plugin bundle under `plugins/do-it-cursor/` (marketplace only).
+- Claude Code plugin assets, hooks, slash commands under `commands/`
+  (`do-it-skip`, `do-it-brainstorm`, `do-it-handbook`), and generated
+  sub-agent definitions.
+- Cursor plugin bundle under `plugins/do-it-cursor/` (core skills + hooks;
+  CLI setup or marketplace).
 - OpenCode TypeScript plugin under `plugins/do-it-opencode/`.
 - Copy-based installer and `doctor` commands that validate managed host files
   against `manifest.json`.
@@ -289,12 +309,16 @@ Full routing policy: [`docs/routing-matrix.md`](./docs/routing-matrix.md).
 ## What You Do Not Need To Remember
 
 - No slash command vocabulary for the automatic path. Codex global setup and
-  the Claude Code plugin install hooks at the host lifecycle points where they
-  matter.
+  the Claude / Cursor / OpenCode adapters install hooks at the host lifecycle
+  points where they matter. Claude also ships optional slash commands under
+  `commands/` (`/do-it-skip`, `/do-it-brainstorm`, `/do-it-handbook`); you do
+  not need them for the automatic path.
 - No external orchestration runtime. Sub-agent control lives in
   `do-it-subagent-orchestration`, which is just a skill.
-- One-turn bypass. Include `yolo`, `直接做`, `skip grill`, or `/do-it-skip` in
-  the prompt to disable hooks for that turn only.
+- One-turn bypass (see `commands/do-it-skip.md`). Full escape for that turn:
+  `yolo`, `just do it`, `直接做`, `我已经想清楚`, `skip do-it`, `随便聊`,
+  `先聊聊`, `just thinking`, or `/do-it-skip`. Partial escape: `skip grill` /
+  `不用 grill`, `skip router`, `skip gate` (or `/do-it-skip grill|router|gate`).
 
 ## Alternative Install Sources
 
@@ -302,7 +326,7 @@ For a packed local release artifact:
 
 ```bash
 npm pack
-npm install -g ./tdwhere-do-it-0.10.0.tgz
+npm install -g ./tdwhere-do-it-0.13.1.tgz
 do-it setup
 ```
 
@@ -339,9 +363,11 @@ Installation into Codex happens only when the operator runs `do-it setup` or
 
 Before sending hook changes for review, run `npm run lint` (shellcheck via
 `scripts/lint-hooks.sh`). `npm test` runs agent schema / generated-inventory
-validation, hook lint, and the hook regression suite in `scripts/test-hooks.sh`.
-CI runs the Node matrix, generated-agent build check, Codex and Claude install
-smoke tests, and package dry run on push and PR.
+validation, Cursor and OpenCode plugin builds, hook lint, the hook regression
+suite in `scripts/test-hooks.sh`, install tests, and OpenCode tests. CI runs
+the Node matrix, generated-agent build check, Codex / Claude install smoke
+tests, Cursor and OpenCode plugin build gates (`npm run build:cursor-plugin`,
+`npm run build:opencode-plugin`), and package dry run on push and PR.
 
 ## Repository Layout
 
@@ -367,6 +393,19 @@ package.json     npm package metadata and CLI scripts
 The private `.do-it/` directory is for local plans, notes, and scratch
 artifacts. It is ignored by Git and is not installed.
 
+## Upgrading to 0.13.1
+
+`0.13.1` is a hotfix on the four-host line: safer `verification-gate` turn
+slicing, hardened write-quality scan edge cases, corrected skill `references/`
+links, required OpenCode `tsc` on build, and `prepack` that expands Cursor /
+OpenCode plugin builds. Re-run `do-it setup` (or refresh the host plugin) so
+installed hooks and reference sheets match the package.
+
+After `0.13.1`, main also landed the PR #4 skill-tier audit (Cursor **core-8**
+bundle, shared `skillTiers`, escape vocabulary). That work is still under
+Unreleased in [`CHANGELOG.md`](./CHANGELOG.md) until the next version bump —
+re-run `do-it setup --target=cursor` on current main to pick it up.
+
 ## Upgrading to 0.13.0
 
 `0.13.0` adds **four-host adapters** (Codex, Claude, Cursor, OpenCode) with one
@@ -379,6 +418,14 @@ install notes). Cursor and OpenCode plugin bundles ship from
 refresh your plugin install so hosts load the new hook and reference files.
 
 Full adapter matrix: [`docs/harness-adapter-matrix.md`](./docs/harness-adapter-matrix.md).
+
+## Upgrading to 0.12.0
+
+`0.12.0` adds `do-it-codebase-design`, tightens grill/review completion
+criteria, auto-bootstraps handbook on Standard/Heavy greenfield code turns,
+simplifies handbook templates, adds the `subagent-stance` hook, and removes
+`code-map-refresh`. Re-run `do-it setup` so hosts drop the removed hook and
+pick up the new skill.
 
 ## Upgrading to 0.10.0
 
