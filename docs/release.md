@@ -74,8 +74,16 @@ checks currently show `codex_hooks=true`, `plugins=true`, and
 | Codex global setup | Yes, from `manifest.json` | Yes, TOML from `agents/` | CLI `do-it` only | Yes, root `hooks.json` plus do-it-managed files under `hooks/` | Yes, default target | `CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it setup` |
 | Codex plugin marketplace | Yes, generated under `plugins/do-it/skills/` | Yes, generated under `plugins/do-it/agents/` | No slash command surface | Not relied on while `plugin_hooks=false` | No direct doctor; pair with global setup for hooks | `npm run build:codex-plugin` then `CODEX_HOME=/tmp/do-it-plugin-test codex plugin marketplace add /path/to/do-it` |
 | Claude Code plugin | Yes, from `skills/do-it/` | Yes, generated Markdown under `dist/claude/agents/` | Yes, `commands/` | Yes, do-it-managed files under `hooks/`, including `hooks/hooks.json` | Yes, `--target=claude` | `CLAUDE_PLUGIN_ROOT_OVERRIDE=/tmp/do-it-claude-test npm exec --package . -- do-it setup --target=claude` |
-| Cursor plugin | Yes, under `plugins/do-it-cursor/skills/` | Yes, under `plugins/do-it-cursor/agents/` | No | Medium: `sessionStart`, `beforeSubmitPrompt`, `preToolUse`, `postToolUse`/`afterFileEdit`, `stop` | Yes, `--target=cursor` | `do-it setup --target=cursor` |
+| Cursor plugin | Core 8 only (`CORE_SKILLS` / `manifest.skillTiers.core`) under `plugins/do-it-cursor/skills/` (+ `references/`) | Yes, under `plugins/do-it-cursor/agents/` | No | Medium: `sessionStart`, `beforeSubmitPrompt`, `preToolUse`, `postToolUse`/`afterFileEdit`, `stop` | Yes, `--target=cursor` | `do-it setup --target=cursor` |
 | OpenCode plugin | Yes, under `plugins/do-it-opencode/skills/` | Yes, under `plugins/do-it-opencode/agents/` | No | Medium-Light: transform bootstrap, `tool.execute.before/after`, `session.idle` soft reminder | No CLI doctor | `npm run build:opencode-plugin && npm run test-opencode` |
+
+## 0.13.1
+
+- Hotfix on the four-host line: safer `verification-gate` turn slicing, hardened
+  write-quality scan edge cases, corrected skill `references/` links.
+- OpenCode build requires `tsc`; `prepack` expands Cursor and OpenCode plugin builds.
+- Cursor core-8 skill tier and escape-vocabulary audit landed after this tag on
+  main (PR #4); see CHANGELOG Unreleased until the next version bump.
 
 ## 0.13.0
 
@@ -128,7 +136,7 @@ npm pack
 ```
 
 Use the generated tarball with `npm install --global` or
-`npm exec --package ./tdwhere-do-it-0.10.0.tgz -- do-it setup` when testing a
+`npm exec --package ./tdwhere-do-it-0.13.1.tgz -- do-it setup` when testing a
 release artifact.
 
 ## Release Checklist
@@ -157,16 +165,16 @@ release artifact.
    package.
 18. Confirm a simulated legacy upgrade can remove unmodified deprecated targets
    without `DO_IT_FORCE=1`.
-17. Confirm a simulated replacement failure preserves both current managed
+19. Confirm a simulated replacement failure preserves both current managed
    targets and deprecated legacy targets.
-18. Confirm `doctor` fails when `.do-it-install-state.json` is missing or stale.
-19. Confirm no machine-local files were added to the package.
-20. Confirm the release instructions describe copy-based install behavior only,
+20. Confirm `doctor` fails when `.do-it-install-state.json` is missing or stale.
+21. Confirm no machine-local files were added to the package.
+22. Confirm the release instructions describe copy-based install behavior only,
    not symlink-based deployment.
-21. Confirm Codex-installed `agents/*.toml` do not contain unsupported fields
+23. Confirm Codex-installed `agents/*.toml` do not contain unsupported fields
    such as `model`, `model_reasoning_effort`, `claude_model`, or
    `output_budget`, and that `npm run build:claude-agents` generates Claude
    agent frontmatter without concrete model pins.
-22. For release/install claims, record source, package, temp-install, live
+24. For release/install claims, record source, package, temp-install, live
    Codex, live Claude, and host-behavior truth planes separately; do not call
    the workflow synced until live doctor or setup evidence exists.

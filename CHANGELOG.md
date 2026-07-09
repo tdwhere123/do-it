@@ -6,6 +6,8 @@ Theme: make installed agents write high-quality code by sharpening do-it's
 write-before → write-during → write-after quality spine, and compress the two
 heaviest skills so the agent actually reads them. The shared "write less"
 primitive is a single decision ladder, reused — not restated — across skills.
+Also lands the post-0.13.1 workflow audit (PR #4): Cursor core skill tier,
+shared skill-tier source, and thinner workflow-kernel / review-lens surfaces.
 
 ### Added
 
@@ -19,6 +21,14 @@ primitive is a single decision ladder, reused — not restated — across skills
   findings with a closed tag vocabulary (`delete:` / `stdlib:` / `native:` /
   `yagni:` / `shrink:`), each carrying a severity, plus a quantified
   `net: -<N> lines possible` / `Lean already. Ship.` verdict.
+- `scripts/skill-tiers.mjs` + `manifest.skillTiers` — single source for
+  **CORE_SKILLS** (8) vs **EXTENDED** (12). Cursor plugin build and
+  `do-it setup --target=cursor` install the core bundle only (plus skills index
+  and `references/` via extras); Codex, Claude, and OpenCode still get the full
+  skill tree.
+- Partial escape targets for `/do-it-skip` and prompt keywords (`grill` /
+  `router` / `gate`), with full-escape vocabulary documented in
+  `commands/do-it-skip.md`.
 
 ### Changed
 
@@ -44,6 +54,67 @@ primitive is a single decision ladder, reused — not restated — across skills
 - `code-quality-cleaner` agent extended from maintainability-only to
   maintainability + YAGNI/over-engineering, with a bounded checklist and the
   tagged finding format above.
+- Workflow-kernel / review-lens material externalized so host adapters share a
+  thinner contract surface; routing golden tests cover tier and escape behavior.
+
+## 0.13.1
+
+### Fixed
+
+- `verification-gate` turn slicing: guard against invalid user line numbers so
+  a bad transcript offset cannot widen the evidence window incorrectly.
+- `write-quality` scan hardened for copy-paste `git grep` and temp-path
+  fallback edge cases.
+- Skill `references/` link targets corrected so progressive-disclosure sheets
+  resolve from installed skill paths.
+
+### Changed
+
+- OpenCode plugin build requires `tsc` (no silent skip when compile is needed).
+- `prepack` expands Cursor and OpenCode plugin builds alongside the Codex
+  plugin and agent-bundle validation.
+
+## 0.13.0
+
+### Added
+
+- Four-host adapters: Codex, Claude Code, Cursor, and OpenCode share one
+  workflow kernel. Cursor marketplace bundle under `plugins/do-it-cursor/`;
+  OpenCode TypeScript plugin under `plugins/do-it-opencode/`.
+- Shared skill `references/` sheets (integrity, dimensions, write-quality
+  families, per-host install notes).
+- Harness adapter matrix at `docs/harness-adapter-matrix.md`.
+
+### Changed
+
+- PostToolUse `comments-lint` and `anti-patterns-lint` merge into advisory
+  `write-quality-lint` (single reminder per file; tier/DIM gated). Legacy
+  wrappers exec into the merged script for one release.
+- UserPromptSubmit injection compressed for Standard turns.
+
+## 0.12.0
+
+### Added
+
+- `do-it-codebase-design` skill — deep-module vocabulary (module, interface,
+  seam, adapter, leverage, locality), wired into router, architecture-scan,
+  and review-loop.
+- `subagent-stance` UserPromptSubmit hook — compact stance reminder for
+  delegated work.
+
+### Changed
+
+- `do-it-grill` and `do-it-review-loop` tightened with leading words and
+  checkable completion criteria.
+- Handbook auto-bootstrap on Standard/Heavy greenfield code turns.
+- Handbook simplified to stable project truth (invariants / architecture /
+  glossary) plus worklog template; backlog / code-map / runtime-status
+  templates removed.
+- `code-mapper` returns temporary path maps only (no handbook write claim).
+
+### Removed
+
+- `code-map-refresh` PostToolUse hook.
 
 ## 0.11.0
 

@@ -62,7 +62,8 @@ agent 动手之前，先把任务分成 `Light`、`Standard` 或 `Heavy`。
 它接在三个点上，而不是事后挂一个 linter：
 
 - **写之前**，`do-it-grill` 第一问就是必要性拷问。
-- **写之中**，router 的 Restraint 反射 + 一个非阻塞的写时 advisory 标出投机抽象。
+- **写之中**，旁路 `write-quality-lint` hook 标出注释纪律、粗粒度反模式和
+  integrity 气味（每文件一条提醒；从不阻塞）。
 - **写之后**，`do-it-review-loop` 的 YAGNI 镜头给出「可删 / 可内联 / 可用 stdlib 替代」
   的标签化发现。
 
@@ -141,11 +142,11 @@ do-it doctor --target=claude
 ```
 
 Claude target 默认装到 `~/.claude/`；用 `CLAUDE_PLUGIN_ROOT_OVERRIDE` 改根目录。
-`--with-optional` 会安装 manifest 中标记为 optional 的 skill（0.11.0 没有 optional skill）。
+`--with-optional` 会安装 manifest 中标记为 optional 的 skill（当前没有 optional skill）。
 
 ## Cursor
 
-`do-it` 提供 Cursor 插件，全局安装方式与 Codex / Claude 相同：
+`do-it` 提供 Cursor 插件，全局安装方式与 Codex / Claude 相同，但 **skill 面更小**：
 
 ```bash
 do-it setup --target=cursor
@@ -155,6 +156,13 @@ do-it doctor --target=cursor
 安装目标为 `~/.cursor/plugins/do-it-cursor/`（可用 `CURSOR_PLUGIN_ROOT_OVERRIDE`
 覆盖），并在用户级插件设置中注册 `do-it-cursor@do-it`。安装后请在 Cursor 执行
 **Developer: Reload Window**。
+
+Cursor 只安装 `manifest.skillTiers.core` / `scripts/skill-tiers.mjs` 中的
+**8 个核心 skill**（`do-it-router`、`do-it-grill`、`do-it-planning`、
+`do-it-tdd`、`do-it-review-loop`、`do-it-fix-loop`、`do-it-verification-gate`、
+`do-it-subagent-orchestration`），外加 skills index 与共享 `references/`。
+其余 12 个扩展 skill 仍在 Codex、Claude、OpenCode 以及本仓库完整树中，
+不进入 Cursor 插件包。
 
 仍可通过插件市场发现：
 
@@ -188,11 +196,21 @@ npm run test-opencode
 
 ## 它会安装什么
 
+Skill 矩阵（`manifest.json` 共 21 个 skill；分层见 `scripts/skill-tiers.mjs`）：
+
+| Host | 安装的 skill |
+|---|---|
+| Codex（CLI / plugin） | 完整树 — 8 核心 + 12 扩展 |
+| Claude Code | 完整树 — 8 核心 + 12 扩展 |
+| OpenCode | 完整树 — 8 核心 + 12 扩展 |
+| Cursor | **仅核心 8 个**，外加 skills index 与 `references/` |
+
 - do-it 原生 skill：路由、grill、**brainstorm（多视角发散）**、
   **handbook（项目文档骨架）**、context、planning、slicing、interface /
   architecture / domain drills、**codebase design（深度模块词汇）**、子智能体
   编排、TDD、调试、review、fix loop、verification、worktree 隔离、分支收口、
-  视觉规划、skill 编写。
+  skill 编写。扩展 skill（brainstorm、handbook、drills、closeout、authoring
+  等）属于完整树；Cursor 只装核心闭环。
 - 可移植的 Codex agent 定义：代码路径映射、计划挑战、正确性审查、架构审查、
   红队审查、规格合规、领域语言、安装/发布审查、文档、测试、语言专项，以及
   **brainstorm 视角**：必选的 `product-strategist` / `architecture-strategist`
@@ -201,8 +219,10 @@ npm run test-opencode
 - Codex 全局 hook 资产和由 `do-it setup` 安装到根目录的 `hooks.json`。Hook
   包含父级路由 / grill 提示、轻量的 **subagent stance** 提醒、合并旁路
   **write-quality-lint**（comments + anti-patterns + integrity 族），以及完成验证闸。
-- Claude Code 插件资产、hooks、commands 和生成后的子 agent 定义。
-- Cursor 插件包：`plugins/do-it-cursor/`（仅 marketplace）。
+- Claude Code 插件资产、hooks、`commands/` 下的斜杠命令（`do-it-skip`、
+  `do-it-brainstorm`、`do-it-handbook`），以及生成后的子 agent 定义。
+- Cursor 插件包：`plugins/do-it-cursor/`（核心 skill + hooks；CLI setup 或
+  marketplace）。
 - OpenCode TypeScript 插件：`plugins/do-it-opencode/`。
 - 基于复制的安装器和 `doctor` 命令，用 `manifest.json` 校验受管 host 文件。
 - 可从本地 checkout、打包产物、GitHub 仓库或 GitHub 终端安装使用的发布入口，
@@ -254,12 +274,16 @@ flowchart TD
 
 ## 不需要你记住的事
 
-- 自动路径不需要背斜杠命令。Codex 全局 setup 和 Claude Code plugin 会在
-  合适的 host lifecycle 事件上安装 hooks。
+- 自动路径不需要背斜杠命令。Codex 全局 setup 以及 Claude / Cursor / OpenCode
+  适配器会在合适的 host lifecycle 事件上安装 hooks。Claude 另有可选斜杠命令
+  （`/do-it-skip`、`/do-it-brainstorm`、`/do-it-handbook`）；走自动路径时不必
+  记住它们。
 - 没有外部 orchestration runtime。子 agent 的控制就在
   `do-it-subagent-orchestration` 这个 skill 里。
-- 一次性跳过：在 prompt 里写 `yolo` / `直接做` / `skip grill` /
-  `/do-it-skip` 即可关掉这一轮 hook。
+- 一次性跳过（见 `commands/do-it-skip.md`）。整轮全跳过：`yolo`、
+  `just do it`、`直接做`、`我已经想清楚`、`skip do-it`、`随便聊`、`先聊聊`、
+  `just thinking`，或 `/do-it-skip`。部分跳过：`skip grill` / `不用 grill`、
+  `skip router`、`skip gate`（或 `/do-it-skip grill|router|gate`）。
 
 ## 其它安装方式
 
@@ -267,7 +291,7 @@ flowchart TD
 
 ```bash
 npm pack
-npm install -g ./tdwhere-do-it-0.10.0.tgz
+npm install -g ./tdwhere-do-it-0.13.1.tgz
 do-it setup
 ```
 
@@ -302,8 +326,10 @@ npm run do-it -- doctor
 
 修改 hook 之前提交 review 前，运行 `npm run lint`（通过 `scripts/lint-hooks.sh`
 跑 shellcheck）。`npm test` 会跑 agent schema / generated-inventory 校验、
-hook lint，以及 `scripts/test-hooks.sh` 里的 hook 回归测试。CI 会在 push /
-PR 上跑 Node 矩阵、生成 agent 检查、Codex 和 Claude 安装 smoke test，以及
+Cursor / OpenCode 插件构建、hook lint、`scripts/test-hooks.sh` 回归、安装测试
+以及 OpenCode 测试。CI 会在 push / PR 上跑 Node 矩阵、生成 agent 检查、
+Codex / Claude 安装 smoke test、Cursor 与 OpenCode 插件构建门禁
+（`npm run build:cursor-plugin`、`npm run build:opencode-plugin`），以及
 package dry run。
 
 ## 仓库结构
@@ -318,7 +344,9 @@ docs/            路由、维护、来源映射和发布说明
 hooks/           Host hook 脚本
 index.json       生成后的 skill/agent 发现清单
 install/         安装器、doctor 和 shell wrapper 入口
-plugins/do-it/   生成后的 Codex plugin bundle
+plugins/do-it/          生成后的 Codex plugin bundle
+plugins/do-it-cursor/   生成后的 Cursor plugin bundle（核心 skill）
+plugins/do-it-opencode/ OpenCode TS 插件与 hook 桥接
 skills/custom/   默认不安装的本地 skill 示例
 skills/do-it/    会被安装的 do-it 原生 skill 目录
 manifest.json    安装清单和目标路径
@@ -326,6 +354,37 @@ package.json     npm 包元数据和 CLI scripts
 ```
 
 私有 `.do-it/` 目录用于本地计划、笔记和临时材料。它被 Git 忽略，也不会被安装。
+
+## 升级到 0.13.1
+
+`0.13.1` 是四宿主线上的 hotfix：更安全的 `verification-gate` turn 切片、
+加固的 write-quality 扫描边界、修正的 skill `references/` 链接、OpenCode
+构建要求 `tsc`，以及 `prepack` 扩展 Cursor / OpenCode 插件构建。请重新运行
+`do-it setup`（或刷新宿主插件），让已安装的 hook 与 reference 与包一致。
+
+`0.13.1` 之后，main 还合入了 PR #4 的 skill 分层审计（Cursor **核心 8**
+包、共享 `skillTiers`、escape 词表）。这些仍记在
+[`CHANGELOG.md`](./CHANGELOG.md) 的 Unreleased，直到下次版本 bump ——
+在当前 main 上请重新运行 `do-it setup --target=cursor` 才能拿到。
+
+## 升级到 0.13.0
+
+`0.13.0` 增加 **四宿主适配器**（Codex、Claude、Cursor、OpenCode）与共享
+workflow kernel。写后 `comments-lint` 与 `anti-patterns-lint` 合并为旁路
+`write-quality-lint`（每文件一条提醒；按 tier/DIM 门控）。Standard 轮次的
+UserPromptSubmit 注入被压缩。Skill 增加共享 `references/`（integrity、
+dimensions、write-quality 族、分宿主安装说明）。Cursor 与 OpenCode 插件包从
+`plugins/do-it-cursor/`、`plugins/do-it-opencode/` 发布。请重新运行
+`do-it setup` 或刷新插件安装，让宿主加载新的 hook 与 reference。
+
+完整适配矩阵：[`docs/harness-adapter-matrix.md`](./docs/harness-adapter-matrix.md)。
+
+## 升级到 0.12.0
+
+`0.12.0` 增加 `do-it-codebase-design`，收紧 grill/review 完成判据，在
+Standard/Heavy 绿地代码轮次自动引导 handbook，简化 handbook 模板，增加
+`subagent-stance` hook，并移除 `code-map-refresh`。请重新运行 `do-it setup`，
+让宿主去掉已删除 hook 并装上新 skill。
 
 ## 升级到 0.10.0
 
