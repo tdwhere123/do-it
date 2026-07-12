@@ -69,6 +69,7 @@
     "build:codex-plugin": "npm run build:generated && node scripts/build-codex-plugin.mjs && node scripts/validate-agent-bundle.mjs",
     "build:opencode-plugin": "npm run build:generated && node scripts/build-opencode-plugin.mjs",
     "build:cursor-plugin": "npm run build:generated && node scripts/build-cursor-plugin.mjs && node scripts/validate-cursor-plugin.mjs && node scripts/validate-harness-matrix.mjs",
+    "install:cursor-local": "npm run build:cursor-plugin && node scripts/install-cursor-local.mjs",
     "validate:harness-matrix": "node scripts/validate-harness-matrix.mjs",
     "validate:quality-families": "node scripts/validate-quality-families.mjs",
     "validate:legacy-names": "node scripts/validate-legacy-names.mjs",

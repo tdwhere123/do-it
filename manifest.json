@@ -274,7 +274,7 @@
     },
     "cursor": {
       "rootEnv": "CURSOR_PLUGIN_ROOT_OVERRIDE",
-      "rootDefault": "$HOME/.cursor/plugins/do-it-cursor",
+      "rootDefault": "$HOME/.cursor/plugins/local/do-it-cursor",
       "stateFile": ".do-it-install-state-cursor.json",
       "agentSourceFrom": "dist/claude/agents",
       "agentSourceExt": ".md",

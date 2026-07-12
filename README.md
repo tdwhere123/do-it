@@ -133,9 +133,17 @@ Cursor has an official marketplace
 ([cursor.com/marketplace](https://cursor.com/marketplace)), but **`do-it` is not
 listed there yet**. Until it is submitted/reviewed, use:
 
-1. **Local (recommended today):** symlink or copy `plugins/do-it-cursor/` →
-   `~/.cursor/plugins/local/do-it-cursor`, then **Developer: Reload Window**.
-2. **CLI mirror:** `do-it setup --target=cursor` then reload.
+1. **Local (recommended today):**
+   ```bash
+   npm run build:cursor-plugin
+   node scripts/install-cursor-local.mjs
+   ```
+   then **Developer: Reload Window**. This copies into
+   `~/.cursor/plugins/local/do-it-cursor` as a **real directory** (Cursor
+   rejects external symlinks). On Windows+WSL the script also mirrors into
+   `%USERPROFILE%\.cursor\plugins\local\` when it can see that profile.
+2. **CLI setup:** `do-it setup --target=cursor` then reload (same
+   `…/plugins/local/do-it-cursor` path).
 3. **Team Import (no public listing needed):** Dashboard → Plugins → Import
    from Repo → `https://github.com/tdwhere123/do-it` (reads
    `.cursor-plugin/marketplace.json`).

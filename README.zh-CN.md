@@ -112,8 +112,17 @@ Codex plugin bundle 位于 `plugins/do-it/`（由 `manifest.json` 生成）：
 
 Cursor **有**官方公开市场（[cursor.com/marketplace](https://cursor.com/marketplace)），但 **`do-it` 目前尚未上架**。在提交并通过审核前，请用：
 
-1. **本地（今日推荐）：** 将 `plugins/do-it-cursor/` 符号链接或复制到 `~/.cursor/plugins/local/do-it-cursor`，然后 **Developer: Reload Window**。
-2. **CLI 镜像：** `do-it setup --target=cursor` 后 Reload。
+1. **本地（今日推荐）：**
+   ```bash
+   npm run build:cursor-plugin
+   node scripts/install-cursor-local.mjs
+   ```
+   然后 **Developer: Reload Window**。脚本会把插件**真实拷贝**到
+   `~/.cursor/plugins/local/do-it-cursor`（Cursor **拒绝**指向 `local/` 外的
+   symlink）。Windows + WSL 下还会尽量镜像到
+   `%USERPROFILE%\.cursor\plugins\local\`。
+2. **CLI setup：** `do-it setup --target=cursor` 后 Reload（同一
+   `…/plugins/local/do-it-cursor` 路径）。
 3. **团队 Import（不必公开上架）：** Dashboard → Plugins → Import from Repo → `https://github.com/tdwhere123/do-it`（读取 `.cursor-plugin/marketplace.json`）。
 4. **日后公开上架：** 提交到 [cursor.com/marketplace/publish](https://cursor.com/marketplace/publish)。
 

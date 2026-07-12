@@ -33,31 +33,43 @@ Cursor **does** have an official public marketplace
 
 **Status (checked against the public marketplace):** `do-it` / `do-it-cursor` is
 **not** listed on cursor.com/marketplace yet. Until it is reviewed/listed,
-use local install, CLI mirror, or Team Import below. To list publicly, submit
+use local install, CLI setup, or Team Import below. To list publicly, submit
 at [cursor.com/marketplace/publish](https://cursor.com/marketplace/publish).
 
 ### What works today (local / CLI)
 
-**Option A — local plugin directory** (recommended for personal use / before
-public listing):
+**Option A — local plugin directory** (official path from
+[Cursor plugins docs](https://cursor.com/docs/plugins)):
 
-Symlink or copy the built plugin bundle to:
+```bash
+npm run build:cursor-plugin
+node scripts/install-cursor-local.mjs
+# then Developer: Reload Window
+```
+
+This **copies** `plugins/do-it-cursor/` into:
 
 ```text
 ~/.cursor/plugins/local/do-it-cursor
 ```
 
-Point the symlink at `plugins/do-it-cursor/` in a cloned `tdwhere123/do-it`
-repo (or copy that directory). Then **Developer: Reload Window**.
+as a **real directory**. Do **not** symlink the repo here — Cursor rejects
+symlink targets outside `~/.cursor/plugins/local/` (security validation), even
+though older docs suggested `ln -s`.
 
-**Option B — CLI mirror** (optional; same bundle as `plugins/do-it-cursor/`):
+**Windows + WSL:** Cursor running as a Windows app reads
+`%USERPROFILE%\.cursor\plugins\local\`, not the Linux `$HOME/.cursor`. The
+install script also mirrors into detected Windows profiles under `/mnt/c/Users/…`.
+Alternatively open the project with **Remote-WSL** so Linux `~/.cursor` is used.
+
+**Option B — CLI setup** (same official local path):
 
 ```bash
 do-it setup --target=cursor
 do-it doctor --target=cursor
 ```
 
-Writes to `~/.cursor/plugins/do-it-cursor/` by default. Override install root:
+Default install root is `$HOME/.cursor/plugins/local/do-it-cursor`. Override with
 `CURSOR_PLUGIN_ROOT_OVERRIDE=/path/to/plugin-root`.
 
 Reload Cursor (**Developer: Reload Window**) after either option.
@@ -84,10 +96,9 @@ plugins/do-it-cursor/.cursor-plugin/plugin.json
 ### Layout after install
 
 ```
-~/.cursor/plugins/local/do-it-cursor/   # local symlink/copy
-# or
-~/.cursor/plugins/do-it-cursor/         # CLI mirror default
+~/.cursor/plugins/local/do-it-cursor/   # real copy (not an external symlink)
 ├── .cursor-plugin/plugin.json
+├── assets/logo.svg
 ├── skills/          # full 8 skills + references/
 ├── agents/
 └── hooks/

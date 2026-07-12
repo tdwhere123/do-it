@@ -37,7 +37,7 @@ function usage(stream = console.error) {
   stream("Environment:");
   stream("  CODEX_HOME                    Override codex install root (default: $HOME/.codex)");
   stream("  CLAUDE_PLUGIN_ROOT_OVERRIDE   Override claude install root (default: $HOME/.claude)");
-  stream("  CURSOR_PLUGIN_ROOT_OVERRIDE   Override cursor plugin install root (default: $HOME/.cursor/plugins/do-it-cursor)");
+  stream("  CURSOR_PLUGIN_ROOT_OVERRIDE   Override cursor plugin install root (default: $HOME/.cursor/plugins/local/do-it-cursor)");
   stream("  DO_IT_TARGET                  Set default target if --target is omitted");
   stream("  DO_IT_FORCE=1                 Replace existing files not marked as do-it managed");
 }
