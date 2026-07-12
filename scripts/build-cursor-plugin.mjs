@@ -151,6 +151,7 @@ function buildPluginManifest() {
       "do-it"
     ],
     category: "Coding",
+    logo: "assets/logo.svg",
     skills: "./skills/",
     agents: "./agents/",
     hooks: "./hooks/hooks.json"
