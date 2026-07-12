@@ -18,6 +18,17 @@
     "do-it"
   ],
   "skills": "./skills/do-it",
-  "agents": "./dist/claude/agents",
+  "agents": [
+    "./dist/claude/agents/architecture-strategist.md",
+    "./dist/claude/agents/code-mapper.md",
+    "./dist/claude/agents/code-quality-cleaner.md",
+    "./dist/claude/agents/documentation-engineer.md",
+    "./dist/claude/agents/plan-challenger.md",
+    "./dist/claude/agents/product-strategist.md",
+    "./dist/claude/agents/red-team-reviewer.md",
+    "./dist/claude/agents/reviewer.md",
+    "./dist/claude/agents/spec-compliance-reviewer.md",
+    "./dist/claude/agents/tdd-red-writer.md"
+  ],
   "hooks": "./hooks/hooks.json"
 }
