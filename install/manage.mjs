@@ -141,15 +141,9 @@ function adaptEntry(entry, kind) {
   return { kind, ...entry, source, target };
 }
 
-const coreSkillNames = new Set(manifest.skillTiers?.core ?? []);
-
 function skillAllowedForTarget(entry) {
   if (!(withOptional || !entry.optional)) return false;
-  // Cursor ships the core skill tier only (see scripts/skill-tiers.mjs /
-  // plugins/do-it-cursor). Keep the skills index so discovery still works.
-  if (targetName === "cursor" && coreSkillNames.size > 0) {
-    return entry.name === "do-it-skills-index" || coreSkillNames.has(entry.name);
-  }
+  // Cursor ships the full skill set (same as Codex/Claude/OpenCode).
   return true;
 }
 

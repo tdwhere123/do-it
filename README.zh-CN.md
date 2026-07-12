@@ -117,7 +117,7 @@ Cursor **有**官方公开市场（[cursor.com/marketplace](https://cursor.com/m
 3. **团队 Import（不必公开上架）：** Dashboard → Plugins → Import from Repo → `https://github.com/tdwhere123/do-it`（读取 `.cursor-plugin/marketplace.json`）。
 4. **日后公开上架：** 提交到 [cursor.com/marketplace/publish](https://cursor.com/marketplace/publish)。
 
-Cursor 只装 **5 个核心 skill**（`do-it-router`、`do-it-code-quality`、`do-it-review`、`do-it-decide`、`do-it-verify`），外加 skills index 与 `references/`。扩展 skill 仍在 Codex、Claude、OpenCode。
+Cursor 装 **完整 8 个 skill**（`do-it-router`、`do-it-code-quality`、`do-it-review`、`do-it-decide`、`do-it-verify`，以及 `do-it-handbook`、`do-it-context`、`do-it-skill-authoring`），外加 skills index 与 `references/`——与 Codex、Claude、OpenCode 相同。
 
 中等 hook 深度：`sessionStart`、`beforeSubmitPrompt`（router / Heavy grill / stance）、`postToolUse` / `afterFileEdit` 旁路 `write-quality-lint`、`stop` 验证闸。详见 [`docs/harness-adapter-matrix.md`](./docs/harness-adapter-matrix.md)。
 
@@ -161,8 +161,7 @@ Skill 矩阵（`manifest.json` 共 8 个 skill；分层见 `scripts/skill-tiers.
 
 | Host | 安装的 skill |
 |---|---|
-| Codex / Claude / OpenCode | 完整树 — 5 核心 + 3 扩展 |
-| Cursor | **仅核心 5 个**，外加 skills index 与 `references/` |
+| Codex / Claude / Cursor / OpenCode | 完整树 — 5 核心 + 3 扩展 |
 
 - 意涵分桶 skill：`do-it-router`、`do-it-code-quality`（写码主防线）、
   `do-it-review`（审查 + 修复）、`do-it-decide`（压测 / 发散 / 计划 / 切片）、

@@ -4,10 +4,10 @@ import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
-import { CORE_SKILLS, EXTENDED_MAINTENANCE } from "./skill-tiers.mjs";
+import { ALL_SKILLS, CORE_SKILLS, EXTENDED_MAINTENANCE } from "./skill-tiers.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const allSkills = [...CORE_SKILLS, ...EXTENDED_MAINTENANCE];
+const allSkills = [...ALL_SKILLS];
 
 function readJson(relativePath) {
   const fullPath = path.join(repoRoot, relativePath);
@@ -66,7 +66,7 @@ function main() {
   assertCursorHooks("install/cursor-hooks.json");
   assertCursorHooks("plugins/do-it-cursor/hooks/hooks.json");
   readJson("plugins/do-it-cursor/.cursor-plugin/plugin.json");
-  assertEqualSets("Cursor core skill bundle", listSkillDirs("plugins/do-it-cursor/skills"), CORE_SKILLS);
+  assertEqualSets("Cursor skill bundle", listSkillDirs("plugins/do-it-cursor/skills"), allSkills);
   assertEqualSets("Codex skill bundle", listSkillDirs("plugins/do-it/skills"), allSkills);
   assertEqualSets("OpenCode skill bundle", listSkillDirs("plugins/do-it-opencode/skills"), allSkills);
 

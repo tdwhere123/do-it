@@ -8,7 +8,7 @@ Stable shape of the **do-it** repo — not a file inventory.
 | --- | --- | --- |
 | Codex | `plugins/do-it/` | All skills |
 | Claude Code | `.claude-plugin/` + `dist/claude/` | All skills |
-| Cursor | `plugins/do-it-cursor/` | Core only + `references/` + core `_index.md` |
+| Cursor | `plugins/do-it-cursor/` | Full `ALL_SKILLS` + `references/` + `_index.md` |
 | OpenCode | `plugins/do-it-opencode/` | Adapter-specific |
 
 One maintained skill tree (`skills/do-it/`); hosts consume builds, not forks.

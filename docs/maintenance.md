@@ -96,7 +96,7 @@ protects future upgrades is missing.
 | Codex plugin marketplace | Generated under `plugins/do-it/skills/` | Generated under `plugins/do-it/agents/` | None | Plugin hooks (trust under `/hooks`) | Optional via CLI | `npm run build:codex-plugin` and `CODEX_HOME=/tmp/do-it-plugin-test codex plugin marketplace add /path/to/do-it` then `codex plugin add do-it@tdwhere-do-it` |
 | Codex CLI setup (legacy) | Managed from `manifest.json` | TOML from `agents/` | CLI `do-it` | Root `hooks.json` plus do-it-managed files under `hooks/` | Default target | `CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it setup` |
 | Claude Code plugin | Same maintained `skills/do-it/` source | Generated Markdown under `dist/claude/agents/` | `commands/` | Do-it-managed files under `hooks/`, including `hooks/hooks.json` | `--target=claude` | `CLAUDE_PLUGIN_ROOT_OVERRIDE=/tmp/do-it-claude-test npm exec --package . -- do-it setup --target=claude` |
-| Cursor plugin | Core 5 from `CORE_SKILLS` / `manifest.skillTiers.core` under `plugins/do-it-cursor/skills/` (+ `references/`) | Generated under `plugins/do-it-cursor/agents/` | None | Medium: `sessionStart`, `beforeSubmitPrompt`, `postToolUse`/`afterFileEdit`, `stop` (no `grill-pretool`) | `--target=cursor` | `npm run build:cursor-plugin`; symlink `plugins/do-it-cursor` to `~/.cursor/plugins/local/do-it-cursor` (or `do-it setup --target=cursor`); Reload Window |
+| Cursor plugin | Full 8 from `ALL_SKILLS` under `plugins/do-it-cursor/skills/` (+ `references/`) | Generated under `plugins/do-it-cursor/agents/` | None | Medium: `sessionStart`, `beforeSubmitPrompt`, `postToolUse`/`afterFileEdit`, `stop` (no `grill-pretool`) | `--target=cursor` | `npm run build:cursor-plugin`; symlink `plugins/do-it-cursor` to `~/.cursor/plugins/local/do-it-cursor` (or `do-it setup --target=cursor`); Reload Window |
 | OpenCode plugin | Generated under `plugins/do-it-opencode/skills/` | Generated under `plugins/do-it-opencode/agents/` | None | Medium-Light: transform bootstrap, `tool.execute.after`, `session.idle` soft reminder | No CLI doctor | `npm run build:opencode-plugin && npm run test-opencode` (manual `opencode.json` registration may be required) |
 
 Deprecated legacy skill targets use the same safety rule: install removes them
@@ -255,16 +255,15 @@ the same `agents/*.toml` source-of-truth. The Claude target adds:
 ## Cursor Plugin Target
 
 As of 0.13.0, do-it ships a Cursor plugin alongside Codex and Claude. Skill and
-agent sources remain `skills/do-it/*/SKILL.md` and `agents/*.toml`, but Cursor
-does **not** install the full skill inventory. The Cursor target adds:
+agent sources remain `skills/do-it/*/SKILL.md` and `agents/*.toml`. The Cursor
+target installs the **full** skill inventory (`ALL_SKILLS`) and adds:
 
 - `plugins/do-it-cursor/.cursor-plugin/plugin.json` — plugin metadata for
   local path install (`~/.cursor/plugins/local/do-it-cursor`), Team Import from
   Repo, public marketplace when listed, and `do-it setup --target=cursor`.
-- `plugins/do-it-cursor/skills/` — generated from **`CORE_SKILLS`** in
-  `scripts/skill-tiers.mjs` (mirrored by `manifest.skillTiers.core`), not from
-  the full `manifest.skills[]` list. Shared `references/` and the skills index
-  are included via extras.
+- `plugins/do-it-cursor/skills/` — generated from **`ALL_SKILLS`** in
+  `scripts/skill-tiers.mjs` (core + extended), including shared `references/`
+  and the skills index via extras.
 - `plugins/do-it-cursor/agents/` — generated agent bundle for the Cursor host.
 - `plugins/do-it-cursor/hooks/` — Cursor event mapping (`sessionStart`,
   `beforeSubmitPrompt`, `postToolUse`/`afterFileEdit`, `stop`). No

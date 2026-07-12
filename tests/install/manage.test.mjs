@@ -406,7 +406,10 @@ test("cursor target installs plugin bundle with cursor hooks.json", () => {
       "cursor setup must not write Claude plugin registries"
     );
 
-    const coreSkills = [...(manifest.skillTiers?.core ?? [])].sort();
+    const allSkills = [
+      ...(manifest.skillTiers?.core ?? []),
+      ...(manifest.skillTiers?.extended ?? [])
+    ].sort();
     const installedSkillDirs = fs
       .readdirSync(path.join(pluginRoot, "skills"), { withFileTypes: true })
       .filter((entry) => entry.isDirectory())
@@ -414,12 +417,12 @@ test("cursor target installs plugin bundle with cursor hooks.json", () => {
       .sort();
     assert.deepEqual(
       installedSkillDirs.filter((name) => name !== "references"),
-      coreSkills,
-      "cursor install should ship core skill directories only"
+      allSkills,
+      "cursor install should ship the full skill set"
     );
     assert.ok(
-      !fs.existsSync(path.join(pluginRoot, "skills", "do-it-brainstorm")),
-      "extended skill do-it-brainstorm must not install for cursor"
+      fs.existsSync(path.join(pluginRoot, "skills", "do-it-handbook")),
+      "extended skill do-it-handbook must install for cursor"
     );
     assert.ok(
       fs.existsSync(path.join(pluginRoot, "skills", "references")),

@@ -8,7 +8,7 @@ Canonical terms for the **do-it** project. Prefer these in skills, agents, and h
 | --- | --- |
 | **tier** | `Light` \| `Standard` \| `Heavy` — workflow ceremony level; canonical label from router |
 | **DIM** | Orthogonal boolean (`dim_touches_code`, `dim_crosses_packages`, …) — narrows intensity, not tier |
-| **core skill** | Entry in `CORE_SKILLS`; bundled in Cursor plugin |
+| **core skill** | Entry in `CORE_SKILLS`; part of every host plugin bundle |
 | **extended skill** | On-demand or maintenance; full install on Codex/Claude only |
 
 ## Workflow phases

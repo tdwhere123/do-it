@@ -11,16 +11,16 @@ Rules that do not bend for speed. Violations are Blocking in review.
 | `hooks/` | Enforcement scripts (router, grill-prompt, verification-gate, write-quality) |
 | `manifest.json` + `package.json` | Published inventory and version |
 | `plugins/do-it/` | Codex plugin build output from source |
-| `plugins/do-it-cursor/` | Cursor plugin build (core skills + agents from `dist/claude/`) |
+| `plugins/do-it-cursor/` | Cursor plugin build (full skills + agents from `dist/claude/`) |
 | `dist/claude/` | Generated Claude/Cursor agent markdown from TOML |
 
 **Never** hand-edit generated plugin trees to “fix” drift — rebuild from source.
 
 ## Skill tiers (0.14+)
 
-- **Core** (`scripts/skill-tiers.mjs` `CORE_SKILLS`): `do-it-router`, `do-it-code-quality`, `do-it-review`, `do-it-decide`, `do-it-verify` — shipped in the Cursor plugin.
-- **Extended maintenance**: `do-it-handbook`, `do-it-context`, `do-it-skill-authoring` — Codex/Claude/OpenCode; not Cursor-bundled.
-- Pre-0.14 process skills (`grill`, `planning`, `review-loop`, `fix-loop`, `verification-gate` skill, `subagent-orchestration`, …) are **retired** — see `CHANGELOG.md`.
+- **Core** (`scripts/skill-tiers.mjs` `CORE_SKILLS`): `do-it-router`, `do-it-code-quality`, `do-it-review`, `do-it-decide`, `do-it-verify`.
+- **Extended maintenance**: `do-it-handbook`, `do-it-context`, `do-it-skill-authoring`.
+- All four host plugins ship **`ALL_SKILLS`** (core + extended). Pre-0.14 process skills (`grill`, `planning`, `review-loop`, `fix-loop`, `verification-gate` skill, `subagent-orchestration`, …) are **retired** — see `CHANGELOG.md`.
 
 ## Workflow gates
 

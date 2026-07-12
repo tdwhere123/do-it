@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Single source of truth for core vs extended do-it skills.
-// Cursor plugin bundles core only; Codex/Claude/OpenCode install all skills.
+// All four host plugins (Codex / Claude / Cursor / OpenCode) ship ALL_SKILLS.
+// CORE vs EXTENDED remains a conceptual tier for docs and routing emphasis.
 // Meaning-centric buckets (not process pipeline): route / code-quality / review /
 // decide / verify + persistence/maintenance.
 

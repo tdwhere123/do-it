@@ -72,6 +72,8 @@ Agents reduced to **10** (from ~23). Retained set absorbs merged lenses:
 ### Install
 
 - **Plugin marketplace is primary** for Codex, Claude Code, Cursor, and OpenCode.
+- Cursor ships the **full 8 skills** (`ALL_SKILLS`), same as the other hosts
+  (no longer a core-5-only subset).
 - `do-it setup` is optional / legacy (doctor, temp-home smoke, migration).
 - Removed the v1 guidance to pair Codex plugin install with global setup because
   `plugin_hooks=false`.

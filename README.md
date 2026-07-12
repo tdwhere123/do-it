@@ -142,9 +142,10 @@ listed there yet**. Until it is submitted/reviewed, use:
 4. **Public listing later:** submit at
    [cursor.com/marketplace/publish](https://cursor.com/marketplace/publish).
 
-Cursor gets the **5 core skills** (`do-it-router`, `do-it-code-quality`,
-`do-it-review`, `do-it-decide`, `do-it-verify`) plus skills index and
-`references/`. Extended skills ship on Codex, Claude, and OpenCode.
+Cursor gets the **full 8 skills** (`do-it-router`, `do-it-code-quality`,
+`do-it-review`, `do-it-decide`, `do-it-verify`, plus `do-it-handbook`,
+`do-it-context`, `do-it-skill-authoring`) with skills index and `references/`
+— the same set as Codex, Claude, and OpenCode.
 
 Medium hook depth: `sessionStart`, `beforeSubmitPrompt` (router / Heavy grill /
 stance), `postToolUse` / `afterFileEdit` advisory `write-quality-lint`, and
@@ -197,8 +198,7 @@ Skill matrix (8 skills in `manifest.json`; tiers in `scripts/skill-tiers.mjs`):
 
 | Host | Skills installed |
 |---|---|
-| Codex / Claude / OpenCode | Full tree — 5 core + 3 extended |
-| Cursor | **Core 5 only**, plus skills index and `references/` |
+| Codex / Claude / Cursor / OpenCode | Full tree — 5 core + 3 extended |
 
 - Meaning-bucket skills: `do-it-router`, `do-it-code-quality` (write defense),
   `do-it-review` (review + fix), `do-it-decide` (pressure-test / diverge /

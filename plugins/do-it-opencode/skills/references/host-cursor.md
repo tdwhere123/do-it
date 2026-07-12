@@ -4,19 +4,20 @@ Medium hook depth: bootstrap + prompt gates + write-time quality + stop
 verification. Install via local plugin path, CLI mirror, or Cursor marketplace
 when listed.
 
-## Skill Bundle (Core Only)
+## Skill Bundle
 
-The Cursor plugin registers **5 core skills** only:
+The Cursor plugin registers the **full skill set** (same as Codex / Claude /
+OpenCode):
 
 `do-it-router`, `do-it-code-quality`, `do-it-review`, `do-it-decide`,
-`do-it-verify`.
+`do-it-verify`, plus extended `do-it-handbook`, `do-it-context`,
+`do-it-skill-authoring`.
 
 `skills/do-it/references/` is always copied alongside (shared kernel — not a
-registered skill). **Extended** skills (`do-it-handbook`, `do-it-context`,
-`do-it-skill-authoring`) remain in the full repo and Codex/Claude/OpenCode
-installs — not in the Cursor plugin bundle.
+registered skill).
 
-Tier source of truth: `scripts/skill-tiers.mjs` (`CORE_SKILLS` / `EXTENDED_SKILLS`).
+Tier labels (`CORE_SKILLS` / `EXTENDED_SKILLS` in `scripts/skill-tiers.mjs`)
+remain conceptual; Cursor no longer ships a core-only subset.
 
 ## Install
 
@@ -87,7 +88,7 @@ plugins/do-it-cursor/.cursor-plugin/plugin.json
 # or
 ~/.cursor/plugins/do-it-cursor/         # CLI mirror default
 ├── .cursor-plugin/plugin.json
-├── skills/          # core 5 skills + references/
+├── skills/          # full 8 skills + references/
 ├── agents/
 └── hooks/
     ├── hooks.json

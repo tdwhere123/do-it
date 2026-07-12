@@ -5,7 +5,7 @@ import crypto from "node:crypto";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
-import { CORE_SKILLS } from "./skill-tiers.mjs";
+import { ALL_SKILLS } from "./skill-tiers.mjs";
 import { rewritePluginReferenceLinks } from "./lib/rewrite-plugin-ref-links.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
@@ -61,10 +61,10 @@ function copySkills() {
   fs.rmSync(targetDir, { recursive: true, force: true });
   fs.mkdirSync(targetDir, { recursive: true });
 
-  for (const name of CORE_SKILLS) {
+  for (const name of ALL_SKILLS) {
     const sourcePath = path.join(skillsSource, name);
     if (!fs.existsSync(sourcePath)) {
-      throw new Error(`core skill missing: ${path.relative(repoRoot, sourcePath)}`);
+      throw new Error(`skill missing: ${path.relative(repoRoot, sourcePath)}`);
     }
     fs.cpSync(sourcePath, path.join(targetDir, name), { recursive: true });
   }
@@ -75,10 +75,10 @@ function copySkills() {
   fs.cpSync(refsSource, path.join(targetDir, "references"), { recursive: true });
   rewritePluginReferenceLinks(path.join(targetDir, "references"));
 
-  const indexSource = path.join(repoRoot, "dist", "claude", "skills", "_index.core.md");
+  const indexSource = path.join(repoRoot, "dist", "claude", "skills", "_index.md");
   if (!fs.existsSync(indexSource)) {
     throw new Error(
-      "dist/claude/skills/_index.core.md missing — run `node scripts/build-skills-index.mjs`"
+      "dist/claude/skills/_index.md missing — run `node scripts/build-skills-index.mjs`"
     );
   }
   fs.copyFileSync(indexSource, path.join(targetDir, "_index.md"));

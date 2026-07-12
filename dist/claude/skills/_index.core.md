@@ -7,9 +7,9 @@
 
 # do-it skills index
 
-Cursor core bundle — load on demand with the Skill tool + skill name.
+Core-only listing (docs/diffs) — load on demand with the Skill tool + skill name.
 
-## Core (shipped in this plugin)
+## Core
 
 - **do-it-router** — starting any non-trivial repo task: pick Light / Standard / Heavy tier, then s…
 - **do-it-code-quality** — writing or designing code: name premise and blast radius, deepen modules at se…

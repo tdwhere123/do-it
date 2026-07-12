@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
-import { CORE_SKILLS } from "./skill-tiers.mjs";
+import { ALL_SKILLS } from "./skill-tiers.mjs";
 import { rewriteReferenceMarkdown } from "./lib/rewrite-plugin-ref-links.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
@@ -406,11 +406,11 @@ function validateCursorPlugin(pkg, errors) {
     }
   }
 
-  const allowedSkillDirs = [...CORE_SKILLS, "references", "_index.md"].sort();
+  const allowedSkillDirs = [...ALL_SKILLS, "references", "_index.md"].sort();
   const actualSkillDirs = listNames("plugins/do-it-cursor/skills").sort();
   compareSets("plugins/do-it-cursor/skills", allowedSkillDirs, actualSkillDirs, errors);
 
-  for (const name of CORE_SKILLS) {
+  for (const name of ALL_SKILLS) {
     const sourcePath = repoPath(`skills/do-it/${name}`);
     const cursorPath = repoPath(`plugins/do-it-cursor/skills/${name}`);
     if (!fs.existsSync(cursorPath)) continue;
@@ -430,12 +430,12 @@ function validateCursorPlugin(pkg, errors) {
   }
 
   const cursorIndex = repoPath("plugins/do-it-cursor/skills/_index.md");
-  const generatedIndex = repoPath("dist/claude/skills/_index.core.md");
+  const generatedIndex = repoPath("dist/claude/skills/_index.md");
   if (!fs.existsSync(cursorIndex)) {
     errors.push("plugins/do-it-cursor/skills/_index.md is missing");
   } else if (fs.existsSync(generatedIndex) && !sameFile(generatedIndex, cursorIndex)) {
     errors.push(
-      "plugins/do-it-cursor/skills/_index.md is not byte-equal to dist/claude/skills/_index.core.md"
+      "plugins/do-it-cursor/skills/_index.md is not byte-equal to dist/claude/skills/_index.md"
     );
   }
 }

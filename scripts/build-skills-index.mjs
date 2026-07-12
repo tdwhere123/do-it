@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Build a compact `_index.md` for lazy skill loading.
 // Source of truth: each `skills/do-it/<name>/SKILL.md` frontmatter `description`
-// field. Also emits `_index.core.md` for the Cursor core-only plugin bundle.
+// field. Also emits `_index.core.md` (core-only listing) for docs/diffs;
+// host plugins use the full `_index.md`.
 
 import fs from "node:fs";
 import path from "node:path";
@@ -100,14 +101,14 @@ function writeIndex({ coreOnly, orphans }) {
     "# do-it skills index",
     "",
     coreOnly
-      ? "Cursor core bundle — load on demand with the Skill tool + skill name."
+      ? "Core-only listing (docs/diffs) — load on demand with the Skill tool + skill name."
       : "Load on demand with the Skill tool + skill name. Do not read every skill up front.",
     ""
   ].join("\n");
 
   const sections = [
     renderBucket(
-      coreOnly ? "Core (shipped in this plugin)" : "Core (router picks from these)",
+      coreOnly ? "Core" : "Core (router picks from these)",
       mainLine
     ),
     renderBucket("On demand", onDemand),
