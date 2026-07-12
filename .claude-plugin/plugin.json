@@ -29,6 +29,5 @@
     "./dist/claude/agents/reviewer.md",
     "./dist/claude/agents/spec-compliance-reviewer.md",
     "./dist/claude/agents/tdd-red-writer.md"
-  ],
-  "hooks": "./hooks/hooks.json"
+  ]
 }
