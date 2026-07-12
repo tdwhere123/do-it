@@ -1,6 +1,6 @@
 # Review Lenses
 
-Detail for `do-it-review-loop`. Load when running comments, research-first, YAGNI, or deep axis checks.
+Detail for `do-it-review`. Load when running comments, research-first, YAGNI, or deep axis checks.
 
 ## Review Axes
 
@@ -9,7 +9,7 @@ Check every non-trivial diff through five axes before polish:
 - **Requirements:** task, non-goals, acceptance evidence.
 - **Correctness:** wrong behavior on real inputs, state, timing, failure paths.
 - **Contracts:** APIs, schemas, CLIs, generated outputs, docs, consumers agree.
-- **Maintainability:** avoidable coupling, dead code, duplicate logic, unclear ownership, single-use abstractions the decision ladder would inline (`do-it-codebase-design` for module depth; YAGNI lens for over-engineering).
+- **Maintainability:** avoidable coupling, dead code, duplicate logic, unclear ownership, single-use abstractions the decision ladder would inline (`do-it-code-quality` for module depth; YAGNI lens for over-engineering).
 - **Verification:** tests and commands prove the claim, or mock away the risky collaborator chain.
 
 ## Proof Path Coverage
@@ -53,7 +53,7 @@ Inspect evidence itself:
 
 **When:** diff contains added/modified comments. Standard: must run. Heavy: default; skip only with explicit reason in review output.
 
-Loads `do-it-comments-discipline`. Finding shape: severity / location / cause class / required fix. Cause classes: `what` / `history` / `task-ref` / `tombstone` / `orphan-todo` / `fix-narrative` / `stale-invariant` / `broken-reference`.
+Loads comment rules from `do-it-code-quality` § Comments. Finding shape: severity / location / cause class / required fix. Cause classes: `what` / `history` / `task-ref` / `tombstone` / `orphan-todo` / `fix-narrative` / `stale-invariant` / `broken-reference`.
 
 `comments-lint.sh` is advisory pre-filter; lens is source of truth even when hook is clean.
 
@@ -61,7 +61,7 @@ Loads `do-it-comments-discipline`. Finding shape: severity / location / cause cl
 
 **When:** Heavy tier and plan/diff introduces new dependency, datastore, framework, runtime, or protocol.
 
-Loads `architecture-taste-reviewer`. **Audit duty only:** verify the plan's Research trail exists — search action, ≥2 candidates with recency signals, user confirmation or `PENDING USER CONFIRMATION`. Rule body lives in `do-it-planning` § Research-First Comparison; do not re-derive candidate rules here.
+Loads `architecture-strategist` / plan research trail when present. **Audit duty only:** verify the plan's Research trail exists — search action, ≥2 candidates with recency signals, user confirmation or `PENDING USER CONFIRMATION`. Rule body lives in `do-it-decide` plan-card guidance; do not re-derive candidate rules here.
 
 Findings use standard shape. Memory-pick without fresh search is `Blocking`.
 

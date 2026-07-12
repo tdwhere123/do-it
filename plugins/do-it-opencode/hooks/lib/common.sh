@@ -70,12 +70,13 @@ _do_it_ensure_runtime_gitignore() {
 # Resolution order:
 #   1. $CURSOR_PLUGIN_DATA/sessions   (Cursor plugin data)
 #   2. $CLAUDE_PLUGIN_DATA/sessions   (host-provided plugin data)
-#   3. $DO_IT_HOOK_DATA/sessions      (legacy override)
-#   4. $OPENCODE_DATA/sessions        (OpenCode plugin data)
-#   5. $CODEX_HOME/do-it-data/sessions
-#   6. <git repo root>/.do-it/runtime/sessions
-#   7. ${TMPDIR:-/tmp}/do-it-sessions
-# A writable check guards (1)/(2)/(3) so an unwritable mount silently falls
+#   3. $PLUGIN_DATA/sessions          (Codex plugin data; also set via DO_IT_HOOK_DATA in hooks.json)
+#   4. $DO_IT_HOOK_DATA/sessions      (explicit override / wrapped PLUGIN_DATA)
+#   5. $OPENCODE_DATA/sessions        (OpenCode plugin data)
+#   6. $CODEX_HOME/do-it-data/sessions
+#   7. <git repo root>/.do-it/runtime/sessions
+#   8. ${TMPDIR:-/tmp}/do-it-sessions
+# A writable check guards (1)–(4) so an unwritable mount silently falls
 # through. The repo-root path also ensures `.do-it/runtime/` is gitignored.
 do_it_session_dir() {
   local session_id_in="${1:-}"
@@ -138,6 +139,12 @@ do_it_session_dir() {
   fi
   if [[ -z "$base" && -n "${CLAUDE_PLUGIN_DATA:-}" ]]; then
     candidate="${CLAUDE_PLUGIN_DATA%/}/sessions"
+    if mkdir -p "$candidate" 2>/dev/null && [[ -w "$candidate" ]]; then
+      base="$candidate"
+    fi
+  fi
+  if [[ -z "$base" && -n "${PLUGIN_DATA:-}" ]]; then
+    candidate="${PLUGIN_DATA%/}/sessions"
     if mkdir -p "$candidate" 2>/dev/null && [[ -w "$candidate" ]]; then
       base="$candidate"
     fi

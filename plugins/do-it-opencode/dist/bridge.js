@@ -111,27 +111,6 @@ export function readSessionTier(sessionId, cwd) {
         return "";
     return readTierFromStateDir(dir);
 }
-export function shouldRunGrillPretool(sessionId, cwd) {
-    const tier = readSessionTier(sessionId, cwd);
-    if (tier === "Heavy")
-        return true;
-    const dir = resolveSessionStateDir(sessionId, cwd);
-    if (!dir)
-        return false;
-    const kvPath = path.join(dir, "state.kv");
-    if (fs.existsSync(kvPath)) {
-        const text = fs.readFileSync(kvPath, "utf8");
-        if (/^durable_plan_required=1$/m.test(text))
-            return true;
-    }
-    try {
-        const state = JSON.parse(fs.readFileSync(path.join(dir, "state.json"), "utf8"));
-        return state.durable_plan_required === 1 || state.durable_plan_required === "1";
-    }
-    catch {
-        return false;
-    }
-}
 export function spawnHook(hooksDir, scriptName, payload) {
     const scriptPath = path.join(hooksDir, scriptName);
     if (!fs.existsSync(scriptPath)) {

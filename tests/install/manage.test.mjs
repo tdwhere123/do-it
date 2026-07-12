@@ -7,6 +7,7 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -233,6 +234,80 @@ test("re-install from an older state version triggers a backed-up migration", ()
   }
 });
 
+test("0.13 hard-delete migration removes managed retired skill and agent", () => {
+  const root = freshRoot("retire-managed");
+  try {
+    assert.equal(runManage(["install"], { CODEX_HOME: root }).status, 0);
+    const statePath = path.join(root, ".do-it-install-state.json");
+    const state = JSON.parse(fs.readFileSync(statePath, "utf8"));
+    const retiredSkill = path.join(root, "skills", "do-it-planning");
+    const retiredAgent = path.join(root, "agents", "architect-reviewer.toml");
+    fs.mkdirSync(retiredSkill, { recursive: true });
+    fs.writeFileSync(path.join(retiredSkill, "SKILL.md"), "legacy skill\n");
+    fs.mkdirSync(path.dirname(retiredAgent), { recursive: true });
+    fs.writeFileSync(retiredAgent, "name = \"architect-reviewer\"\n");
+    state.version = "0.13.1";
+    state.entries["skills/do-it-planning"] = {
+      kind: "skill", name: "do-it-planning",
+      hash: crypto.createHash("sha256").update("SKILL.md\0legacy skill\n\0").digest("hex")
+    };
+    state.entries["agents/architect-reviewer.toml"] = {
+      kind: "agent", name: "architect-reviewer",
+      hash: crypto.createHash("sha256").update("name = \"architect-reviewer\"\n").digest("hex")
+    };
+    fs.writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`);
+
+    const result = runManage(["install"], { CODEX_HOME: root });
+    assert.equal(result.status, 0, result.stderr);
+    assert.ok(!fs.existsSync(retiredSkill), "managed retired skill should be removed");
+    assert.ok(!fs.existsSync(retiredAgent), "managed retired agent should be removed");
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("0.13 migration blocks modified retired paths without partial changes", () => {
+  const root = freshRoot("retire-modified");
+  try {
+    assert.equal(runManage(["install"], { CODEX_HOME: root }).status, 0);
+    const statePath = path.join(root, ".do-it-install-state.json");
+    const state = JSON.parse(fs.readFileSync(statePath, "utf8"));
+    state.version = "0.13.1";
+    const retiredSkill = path.join(root, "skills", "do-it-planning");
+    fs.mkdirSync(retiredSkill, { recursive: true });
+    fs.writeFileSync(path.join(retiredSkill, "SKILL.md"), "user modified content\n");
+    fs.writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`);
+
+    const result = runManage(["install"], { CODEX_HOME: root });
+    assert.notEqual(result.status, 0, "unknown retired content should block migration");
+    assert.match(result.stderr, /Refusing to remove existing deprecated skill target/);
+    assert.ok(fs.existsSync(retiredSkill), "modified retired path must remain");
+    assert.equal(JSON.parse(fs.readFileSync(statePath, "utf8")).version, "0.13.1", "state is unchanged");
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("DO_IT_FORCE removes a modified retired path", () => {
+  const root = freshRoot("retire-force");
+  try {
+    assert.equal(runManage(["install"], { CODEX_HOME: root }).status, 0);
+    const statePath = path.join(root, ".do-it-install-state.json");
+    const state = JSON.parse(fs.readFileSync(statePath, "utf8"));
+    state.version = "0.13.1";
+    const retiredSkill = path.join(root, "skills", "do-it-planning");
+    fs.mkdirSync(retiredSkill, { recursive: true });
+    fs.writeFileSync(path.join(retiredSkill, "SKILL.md"), "user modified content\n");
+    fs.writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`);
+
+    const result = runManage(["install"], { CODEX_HOME: root, DO_IT_FORCE: "1" });
+    assert.equal(result.status, 0, result.stderr);
+    assert.ok(!fs.existsSync(retiredSkill));
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("codex and claude targets install into independent state files", () => {
   const codexRoot = freshRoot("codex-sym");
   const claudeRoot = freshRoot("claude-sym");
@@ -322,10 +397,14 @@ test("cursor target installs plugin bundle with cursor hooks.json", () => {
     assert.ok(hooksJson.hooks.sessionStart, "cursor hooks should define sessionStart");
 
     const registered = JSON.parse(
-      fs.readFileSync(path.join(home, ".claude", "plugins", "installed_plugins.json"), "utf8")
+      fs.readFileSync(path.join(home, ".cursor", "plugins", "do-it-cursor-install.json"), "utf8")
     );
-    assert.ok(registered.plugins["do-it-cursor@do-it"], "plugin should be registered for Cursor");
-    assert.equal(registered.plugins["do-it-cursor@do-it"][0].installPath, pluginRoot);
+    assert.equal(registered.id, "do-it-cursor");
+    assert.equal(registered.installPath, pluginRoot);
+    assert.ok(
+      !fs.existsSync(path.join(home, ".claude", "plugins", "installed_plugins.json")),
+      "cursor setup must not write Claude plugin registries"
+    );
 
     const coreSkills = [...(manifest.skillTiers?.core ?? [])].sort();
     const installedSkillDirs = fs

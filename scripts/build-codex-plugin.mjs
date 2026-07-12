@@ -5,6 +5,7 @@ import crypto from "node:crypto";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
+import { rewritePluginReferenceLinks } from "./lib/rewrite-plugin-ref-links.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, "..");
@@ -98,19 +99,21 @@ function buildPluginManifest() {
       "do-it"
     ],
     skills: "./skills/",
+    agents: "./agents/",
+    hooks: "./hooks/hooks.json",
     interface: {
       displayName: "do-it",
-      shortDescription: "Risk-routed workflow discipline for Codex.",
+      shortDescription: "Meaning-centric workflow discipline for Codex.",
       longDescription:
-        "Install do-it skills and agents for risk-based routing, scoped delegation, review loops, and evidence-backed completion. Run do-it setup for enforced global hooks.",
+        "Install do-it via the Codex plugin marketplace. Skills cover route, code-quality, review, decide, and verify. Plugin-bundled hooks enforce quality lint and verification; trust them in /hooks after install.",
       developerName: "tdwhere123",
       category: "Coding",
-      capabilities: ["Skills", "Agents"],
+      capabilities: ["Skills", "Agents", "Hooks"],
       websiteURL: "https://github.com/tdwhere123/do-it",
       defaultPrompt: [
-        "Use do-it-router for this repository task.",
-        "Review this change with do-it-review-loop.",
-        "Close this branch with do-it-verification-gate."
+        "Use do-it-router to pick Light/Standard/Heavy, then self-select meaning skills.",
+        "Write with do-it-code-quality (premise, blast radius, bounded chain).",
+        "Review with do-it-review; close with do-it-verify."
       ],
       brandColor: "#2563EB"
     }
@@ -156,13 +159,92 @@ function main() {
     throw new Error(`references missing: ${path.relative(repoRoot, refsSource)}`);
   }
   fs.cpSync(refsSource, path.join(pluginRoot, "skills", "references"), { recursive: true });
+  rewritePluginReferenceLinks(path.join(pluginRoot, "skills", "references"));
+
+  // Plugin-bundled hooks (official Codex plugin hooks path).
+  const hooksSource = path.join(repoRoot, "hooks");
+  const hooksTarget = path.join(pluginRoot, "hooks");
+  fs.rmSync(hooksTarget, { recursive: true, force: true });
+  fs.mkdirSync(hooksTarget, { recursive: true });
+  for (const name of [
+    "hooks.json",
+    "router.sh",
+    "grill-prompt.sh",
+    "subagent-stance.sh",
+    "write-quality-lint.sh",
+    "verification-gate.sh",
+    "anti-patterns-lint.sh",
+    "comments-lint.sh",
+    "session-start.sh"
+  ]) {
+    const src = path.join(hooksSource, name);
+    if (fs.existsSync(src)) fs.cpSync(src, path.join(hooksTarget, name));
+  }
+  fs.cpSync(path.join(hooksSource, "lib"), path.join(hooksTarget, "lib"), { recursive: true });
+  fs.cpSync(path.join(hooksSource, "data"), path.join(hooksTarget, "data"), { recursive: true });
+
+  // Codex plugin hooks should use PLUGIN_ROOT / PLUGIN_DATA, not Claude env only.
+  const pluginHooksJson = {
+    hooks: {
+      UserPromptSubmit: [
+        {
+          hooks: [
+            {
+              type: "command",
+              command:
+                'DO_IT_HOOK_DATA="${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-/tmp/do-it-data}}" "${PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}/hooks/router.sh"',
+              timeout: 25
+            },
+            {
+              type: "command",
+              command:
+                'DO_IT_HOOK_DATA="${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-/tmp/do-it-data}}" "${PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}/hooks/grill-prompt.sh"',
+              timeout: 25
+            },
+            {
+              type: "command",
+              command:
+                'DO_IT_HOOK_DATA="${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-/tmp/do-it-data}}" "${PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}/hooks/subagent-stance.sh"',
+              timeout: 10
+            }
+          ]
+        }
+      ],
+      PostToolUse: [
+        {
+          matcher: "Edit|Write|MultiEdit|NotebookEdit",
+          hooks: [
+            {
+              type: "command",
+              command:
+                'DO_IT_HOOK_DATA="${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-/tmp/do-it-data}}" "${PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}/hooks/write-quality-lint.sh"',
+              timeout: 15
+            }
+          ]
+        }
+      ],
+      Stop: [
+        {
+          hooks: [
+            {
+              type: "command",
+              command:
+                'DO_IT_HOOK_DATA="${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-/tmp/do-it-data}}" "${PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}/hooks/verification-gate.sh"',
+              timeout: 25
+            }
+          ]
+        }
+      ]
+    }
+  };
+  writeJsonAtomic(path.join(hooksTarget, "hooks.json"), pluginHooksJson);
 
   writeJsonAtomic(path.join(pluginManifestDir, "plugin.json"), buildPluginManifest());
   writeJsonAtomic(marketplacePath, buildMarketplace());
 
   console.log(
     `built Codex plugin -> ${path.relative(repoRoot, pluginRoot)} ` +
-      `(${skills.length} skills, ${agents.length} agents, optional: ${optionalSkills.join(", ") || "none"})`
+      `(${skills.length} skills, ${agents.length} agents, hooks: yes, optional: ${optionalSkills.join(", ") || "none"})`
   );
 }
 

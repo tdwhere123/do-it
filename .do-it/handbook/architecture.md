@@ -8,7 +8,7 @@ Stable shape of the **do-it** repo — not a file inventory.
 | --- | --- | --- |
 | Codex | `plugins/do-it/` | All skills |
 | Claude Code | `.claude-plugin/` + `dist/claude/` | All skills |
-| Cursor | `plugins/do-it-cursor/` | Core only + `references/` |
+| Cursor | `plugins/do-it-cursor/` | Core only + `references/` + core `_index.md` |
 | OpenCode | `plugins/do-it-opencode/` | Adapter-specific |
 
 One maintained skill tree (`skills/do-it/`); hosts consume builds, not forks.
@@ -25,7 +25,7 @@ manifest.json  →  build-index-json.mjs  →  index.json
 
 ## Hook chain (enforcement)
 
-User prompt → **router.sh** (tier + 5 DIM flags) → **grill-prompt.sh** (premise pressure) → tool hooks (write-quality-lint, comments-lint, anti-patterns) → **verification-gate.sh** on Stop (done-claim markers, review trace).
+User prompt → **router.sh** (tier + 5 DIM flags) → **grill-prompt.sh** (Heavy-only premise pressure, or explicit grill) → tool hooks (`write-quality-lint`) → **verification-gate.sh** on Stop (**evidence-only**: fresh Bash/Shell proof after edits; `apply_patch` counts as an edit).
 
 Hooks read session state via `hooks/lib/common.sh`; agents infer DIM from prompt prose (see `references/dimensions.md`).
 
@@ -34,13 +34,13 @@ Hooks read session state via `hooks/lib/common.sh`; agents infer DIM from prompt
 `do-it-router/SKILL.md` stays ≤160 lines; shared definitions live in `references/workflow-kernel.md`:
 
 - failure-mode forecast classes and path map chain
-- Diverge vs Converge (brainstorm / grill / plan-challenger)
+- Diverge vs Converge (`do-it-decide` modes; `plan-challenger` as converge sub-lens)
 - Finding Schema and Skip Announcement
 - tier precedents for forecast/path-map N/A
 
 ## Subagent model
 
-23 agents in `agents/*.toml`; orchestration contract in `do-it-subagent-orchestration`. Review lenses detailed in `references/review-lenses.md`.
+10 agents in `agents/*.toml`; parent **Delegation Contract** in the router / parent prompt plus thin **`subagent-stance`** hook — no separate orchestration skill. Review lenses detailed in `references/review-lenses.md`.
 
 ## Project meta directories
 

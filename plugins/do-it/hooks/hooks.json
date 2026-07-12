@@ -1,0 +1,48 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "DO_IT_HOOK_DATA=\"${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-/tmp/do-it-data}}\" \"${PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}/hooks/router.sh\"",
+            "timeout": 25
+          },
+          {
+            "type": "command",
+            "command": "DO_IT_HOOK_DATA=\"${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-/tmp/do-it-data}}\" \"${PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}/hooks/grill-prompt.sh\"",
+            "timeout": 25
+          },
+          {
+            "type": "command",
+            "command": "DO_IT_HOOK_DATA=\"${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-/tmp/do-it-data}}\" \"${PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}/hooks/subagent-stance.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "DO_IT_HOOK_DATA=\"${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-/tmp/do-it-data}}\" \"${PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}/hooks/write-quality-lint.sh\"",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "DO_IT_HOOK_DATA=\"${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-/tmp/do-it-data}}\" \"${PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}/hooks/verification-gate.sh\"",
+            "timeout": 25
+          }
+        ]
+      }
+    ]
+  }
+}

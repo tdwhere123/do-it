@@ -38,7 +38,6 @@ entry_points=(
   hooks/router.sh
   hooks/grill-prompt.sh
   hooks/subagent-stance.sh
-  hooks/grill-pretool.sh
   hooks/verification-gate.sh
   hooks/write-quality-lint.sh
 )

@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 # do-it grill (UserPromptSubmit half).
-# Triggers when the current tier and prompt shape justify decision pressure:
-# Heavy always, Standard when uncertain / explicitly requested / long with a
-# planning hint. Light never auto-grills.
+# Meaning-centric slim: injects on Heavy tier only, or when the user explicitly
+# requests grill / pressure-test. Standard stays silent (no compact pointer).
+# Light never auto-grills.
 #
 # Current grill prompt scope:
 #   - once a session is already grilled, skip repeated reminders unless the user
 #     explicitly asks to re-grill;
 #   - skip question and discussion turns via router state plus direct detection;
-#   - Standard-tier turns receive a compact decision-check pointer, while
-#     Heavy-tier turns receive the fuller fact-first grill reminder.
+#   - Heavy-tier turns receive the fuller fact-first grill reminder; explicit
+#     grill on any tier uses the same reminder shape.
 
 set -uo pipefail
 
@@ -105,7 +105,7 @@ if [[ "$(do_it_session_state_get "$SESSION_ID" plan_nudged)" != "1" \
    && ! ls "${CWD}/.do-it/plans/"*.md >/dev/null 2>&1; then
   do_it_session_state_set "$SESSION_ID" plan_nudged 1
   _doit_advisory="${_doit_advisory}<system-reminder>
-do-it planning: grill has converged and this is durable-plan work, but no .do-it/plans/<slug>.md exists yet. Load do-it-planning to land the plan card (acceptance criteria, failure-mode forecast, path map) before implementing. Advisory — skip only if an inline modification map fully covers the work.
+do-it decide: this is durable coordination work, but no plan card exists yet. Use do-it-decide to record only the goal, acceptance evidence, failure-mode forecast, and path map that another worker or session needs. Advisory — proceed inline when the modification map already covers the work.
 </system-reminder>"
 fi
 
@@ -123,20 +123,6 @@ do-it (existing code): this looks like port / restore / reintroduce work. Before
     do_it_session_state_set "$SESSION_ID" brownfield_nudged 1
     _doit_advisory="${_doit_advisory}<system-reminder>
 do-it (existing code): this is an established codebase. Before editing, read the file/area you are changing and reuse its existing patterns, names, and invariants (.do-it/CONTEXT.md and handbook if present) rather than assuming greenfield. Advisory.
-</system-reminder>"
-  fi
-fi
-
-# Greenfield handbook bootstrap nudge: first Standard/Heavy code turn on a
-# project with no do-it context should create the handbook skeleton before
-# planning or editing, so later sessions do not re-derive the same facts.
-if [[ "$(do_it_session_state_get "$SESSION_ID" handbook_nudged)" != "1" ]]; then
-  _brown="$(do_it_session_state_get "$SESSION_ID" dim_brownfield)"
-  _touch="$(do_it_session_state_get "$SESSION_ID" dim_touches_code)"
-  if [[ "$_brown" == "0" && "$_touch" == "1" ]] && { [[ "$ADVISORY_TIER" == "Standard" || "$ADVISORY_TIER" == "Heavy" ]]; }; then
-    do_it_session_state_set "$SESSION_ID" handbook_nudged 1
-    _doit_advisory="${_doit_advisory}<system-reminder>
-do-it (handbook): this project has no .do-it/handbook/ or .do-it/CONTEXT.md yet. Load skill do-it-handbook and bootstrap the skeleton (additive, no overwrite) before planning or editing. Advisory — skip only if the user explicitly says this is a one-shot script.
 </system-reminder>"
   fi
 fi
@@ -164,69 +150,19 @@ if [[ "$TIER" == "Heavy" ]]; then
   TRIGGER="heavy-tier"
 fi
 
+# Meaning-centric slim: grill injects only on Heavy (or explicit "grill").
+# Standard stays silent so small engineering work is not ceremony-taxed.
 if [[ -z "$TRIGGER" && "$EXPLICIT_GRILL" -eq 1 ]]; then
   TRIGGER="explicit"
 fi
-if [[ -z "$TRIGGER" && "$TIER" == "Light" ]]; then
-  do_it_debug grill-prompt "decision=no-trigger tier=$TIER reason=light"
-  _emit_advisory_exit
-fi
-if [[ -z "$TRIGGER" && "$TIER" == "Standard" ]] && do_it_prompt_has_any "$PROMPT" DO_IT_UNCERTAINTY_WORDS; then
-  TRIGGER="uncertainty"
-fi
-if [[ -z "$TRIGGER" && "$TIER" == "Standard" && "$(do_it_session_state_get "$SESSION_ID" dim_breaks_interface)" == "1" ]]; then
-  TRIGGER="interface-change"
-fi
-
-# Dimension-aware suppression: an implicit trigger on a Standard turn that did
-# not name any code object is almost always a discussion turn. Demote unless
-# the user explicitly asked to grill. dim_touches_code is written by the
-# router only for Standard / Heavy; Heavy ignores this check via the
-# heavy-tier early return above.
-if [[ -n "$TRIGGER" && "$TIER" == "Standard" && "$EXPLICIT_GRILL" -eq 0 ]]; then
-  TOUCHES_CODE="$(do_it_session_state_get "$SESSION_ID" dim_touches_code)"
-  if [[ "$TOUCHES_CODE" != "1" ]]; then
-    do_it_debug grill-prompt "decision=no-trigger tier=Standard reason=dim-touches-code-zero original-trigger=${TRIGGER}"
-    _emit_advisory_exit
-  fi
-fi
-
 if [[ -z "$TRIGGER" ]]; then
-  do_it_debug grill-prompt "decision=no-trigger tier=$TIER"
+  do_it_debug grill-prompt "decision=no-trigger tier=$TIER reason=heavy-or-explicit-only"
   _emit_advisory_exit
 fi
 
-# Heavy-tier turns get a fuller fact-first reminder; everyone else gets the
-# pointer-mode compressed reminder.
-#
-# When .do-it/brainstorm/<task>.md exists with `status: open` for the current
-# project, append a convergence-mode pointer so grill consumes that artifact
-# instead of restarting divergence. Light tier ignores brainstorm by design.
-
-BRAINSTORM_OPEN=0
-if [[ "$TIER" != "Light" && -d "${CWD}/.do-it/brainstorm" ]]; then
-  if grep -lZ -E '^status:[[:space:]]*open[[:space:]]*$' "${CWD}/.do-it/brainstorm"/*.md >/dev/null 2>&1; then
-    BRAINSTORM_OPEN=1
-  fi
-fi
-
-if [[ "$TIER" == "Heavy" ]]; then
-  MSG="<system-reminder>
-do-it grill (Heavy, trigger: ${TRIGGER}). Before planning or code: (1) check necessity — does this need to exist, or does an existing capability already cover it? (2) verify the one load-bearing premise against local files and cite path:line — never ask the user for facts you can read; (3) if a genuine user decision remains, ask exactly one question with 2-3 options and a recommended default. Record decisions in .do-it/grill/<task>.md when durable planning is used.
-
-Skip grill only: say 'skip grill' or /do-it-skip grill and announce \`skipped: grill because <reason>\`. Full escape (router+grill+gate): yolo / 直接做 / /do-it-skip.
+MSG="<system-reminder>
+do-it grill (trigger: ${TRIGGER}). Before planning or code: (1) necessity — does this need to exist? (2) verify the load-bearing premise against local files (path:line); (3) at most one user decision question with 2-3 options and a default. Prefer do-it-decide. Skip: 'skip grill' / /do-it-skip grill. Full escape: yolo / /do-it-skip.
 </system-reminder>"
-else
-  MSG="<system-reminder>
-do-it grill (${TRIGGER}): verify the key premise against local files before acting; at most one decision question, with a recommended default. Load do-it-grill if the premise stays unclear. Skip: 'skip grill' / /do-it-skip grill.
-</system-reminder>"
-fi
-
-if [[ "$BRAINSTORM_OPEN" -eq 1 ]]; then
-  MSG="${MSG}<system-reminder>
-do-it grill convergence: .do-it/brainstorm/ has at least one task with status: open. Read its 'Open decisions for grill' section, rank by route-impact, resolve each via the grill log, then flip brainstorm status to converged. See do-it-grill 'Convergence after brainstorm'.
-</system-reminder>"
-fi
 
 do_it_session_state_set "$SESSION_ID" grilled 1
 do_it_debug grill-prompt "decision=emit tier=$TIER trigger=$TRIGGER mode=$([ "$TIER" = "Heavy" ] && echo full || echo pointer)"

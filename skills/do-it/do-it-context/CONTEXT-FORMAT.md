@@ -1,6 +1,6 @@
 # `.do-it/CONTEXT.md` Format
 
-This is the canonical shape for the per-project context file consumed by `do-it-grill`, `do-it-planning`, and other workflow skills. Keep the file terse, declarative, and under ~200 lines.
+This is the canonical shape for the per-project context file consumed by `do-it-decide`, `do-it-code-quality`, `do-it-review`, and other meaning skills. Keep the file terse, declarative, and under ~200 lines.
 
 ## Sections
 
@@ -30,9 +30,9 @@ This is the canonical shape for the per-project context file consumed by `do-it-
 
 ## Terms
 
-- **prompt** (aliases: input, request, message): the raw text the user typed in the current Claude Code turn before any hook expansion. Distinct from `system-reminder` which the hooks emit.
-- **session_id**: the Claude Code conversation identifier; stable across compaction; resets across `/clear`.
-- **tier**: one of Light / Standard / Heavy as classified by `hooks/router.sh`. Influences which downstream skills auto-activate.
+- **prompt** (aliases: input, request, message): the raw text the user typed in the current host turn before any hook expansion. Distinct from `system-reminder` which supported hooks emit.
+- **session_id**: the host conversation identifier; its lifetime is host-defined.
+- **tier**: one of Light / Standard / Heavy as classified by `hooks/router.sh`. It adjusts scrutiny and informs applicable meaning skills.
 
 ## Invariants
 

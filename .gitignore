@@ -2,6 +2,14 @@
 .do-it/sessions/
 .codex
 .codex/
-/dist/
+# Ignore generated dist, but keep Claude agent markdown for marketplace git installs
+# (parent dirs must be un-ignored before children — git rule).
+/dist/*
+!/dist/claude/
+/dist/claude/*
+!/dist/claude/agents/
+!/dist/claude/agents/**
+!/dist/claude/skills/
+!/dist/claude/skills/**
 node_modules/
 plugins/do-it-opencode/node_modules/

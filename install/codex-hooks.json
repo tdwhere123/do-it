@@ -21,18 +21,6 @@
         ]
       }
     ],
-    "PreToolUse": [
-      {
-        "matcher": "Edit|Write|MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "DO_IT_HOOK_DATA=\"${CODEX_HOME:-$HOME/.codex}/do-it-data\" \"${CODEX_HOME:-$HOME/.codex}/hooks/grill-pretool.sh\"",
-            "timeout": 10
-          }
-        ]
-      }
-    ],
     "PostToolUse": [
       {
         "matcher": "Edit|Write|MultiEdit|NotebookEdit",

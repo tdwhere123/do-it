@@ -3,25 +3,51 @@
 Reference adapter for do-it hooks and install. Other hosts mirror this gate set
 with different event names.
 
-## Install
+## Install (plugin-first)
+
+Register the marketplace, then install the plugin (or use the TUI `/plugins` flow):
 
 ```bash
-do-it setup          # copies skills, hooks, agents per manifest.json
-do-it doctor         # verifies hook hashes and paths
+codex plugin marketplace add tdwhere123/do-it
+codex plugin add do-it@tdwhere-do-it
 ```
 
-- Hooks: `$CODEX_HOME/hooks/` (default `~/.codex/hooks/`)
-- Session state: `$CODEX_HOME/do-it-data/sessions/` via `DO_IT_HOOK_DATA`
-- Hook config: [`install/codex-hooks.json`](../../../install/codex-hooks.json)
+`codex plugin marketplace add` only registers the marketplace — it does not
+install the plugin. Marketplace name `tdwhere-do-it` and plugin name `do-it`
+come from `.agents/plugins/marketplace.json`.
+
+After install, **trust plugin hooks** under `/hooks` (plugin hooks are skipped
+until trusted). The plugin bundle ships skills, agents, and hooks together
+(`plugins/do-it/`, generated from `manifest.json`).
+
+Local smoke from a checkout (use a temp `CODEX_HOME` if needed):
+
+```bash
+CODEX_HOME=/tmp/do-it-plugin-test codex plugin marketplace add /path/to/do-it
+CODEX_HOME=/tmp/do-it-plugin-test codex plugin add do-it@tdwhere-do-it
+```
+
+Optional / legacy global copy (doctor, temp-home smoke, migration):
+
+```bash
+do-it setup
+do-it doctor
+```
+
+- Plugin hooks: paths resolve via `PLUGIN_ROOT` / `PLUGIN_DATA` inside the
+  Codex plugin bundle
+- Legacy global hooks (if using setup): `$CODEX_HOME/hooks/` + root
+  `hooks.json` from [`install/codex-hooks.json`](../../../install/codex-hooks.json)
+- Session state: plugin data dir, or `$CODEX_HOME/do-it-data/sessions/` via
+  `DO_IT_HOOK_DATA` for legacy global installs
 
 ## Hook Depth
 
-**Full** — all kernel hooks wired in `codex-hooks.json`:
+**Full** — kernel hooks wired without `grill-pretool`:
 
 | Event | Scripts |
 |---|---|
-| `UserPromptSubmit` | `router.sh` → `grill-prompt.sh` → `subagent-stance.sh` |
-| `PreToolUse` (Edit\|Write\|MultiEdit) | `grill-pretool.sh` |
+| `UserPromptSubmit` | `router.sh` → `grill-prompt.sh` (Heavy-only) → `subagent-stance.sh` |
 | `PostToolUse` (Edit\|Write\|MultiEdit\|NotebookEdit) | `write-quality-lint.sh` |
 | `Stop` | `verification-gate.sh` |
 
@@ -33,7 +59,7 @@ do-it doctor         # verifies hook hashes and paths
 | Edit | `Edit`, `Write`, `apply_patch` |
 | Verify | `Shell` (tests, lint, doctor) |
 | Delegate | `Task` with agent TOML under `agents/` |
-| Load skill | Codex skill discovery / project skills dir |
+| Load skill | Codex skill discovery / plugin skills |
 
 ## Truth Plane
 
@@ -42,7 +68,8 @@ or CLI behavior — not merely on repo file contents.
 
 ## Notes
 
-- `DO_IT_HOOK_DATA` is set in every codex-hooks.json command prefix.
+- Prefer plugin hooks; do not require pairing marketplace install with global
+  `do-it setup` for skills/hooks.
 - Subagent detection uses host env vars consumed by `hooks/lib/common.sh`.
 - Default environment assumed in public docs; adapter terms live here, not in
   shared skill bodies.

@@ -8,9 +8,9 @@ authoritative.
 
 | Action | Owner | Shape |
 |---|---|---|
-| Read | `do-it-planning` when it needs to extend instead of fork a task; `do-it-router` § First Move when an active task exists | `cat .do-it/runtime/pointer` — one line, no trailing newline |
-| Write | `do-it-planning` when creating `.do-it/plans/<slug>.md`; `do-it-brainstorm` when creating `.do-it/brainstorm/<slug>.md` | `mkdir -p .do-it/runtime && printf '%s' "<slug>" > .do-it/runtime/pointer` |
-| Clear | `do-it-branch-closeout` when the branch is merged, discarded, or otherwise closed | `mkdir -p .do-it/runtime && printf '%s' "<closed>" > .do-it/runtime/pointer` (or `rm` the file) |
+| Read | `do-it-decide` when it needs to extend instead of fork a task; `do-it-router` § First Move when an active task exists | `cat .do-it/runtime/pointer` — one line, no trailing newline |
+| Write | `do-it-decide` when creating `.do-it/plans/<slug>.md` or `.do-it/brainstorm/<slug>.md` | `mkdir -p .do-it/runtime && printf '%s' "<slug>" > .do-it/runtime/pointer` |
+| Clear | `do-it-verify` when the branch is merged, discarded, or otherwise closed | `mkdir -p .do-it/runtime && printf '%s' "<closed>" > .do-it/runtime/pointer` (or `rm` the file) |
 
 ## Rules
 

@@ -22,16 +22,26 @@ and reshape it for your own agent setup.
 ### Route the work
 
 Every prompt is classified as `Light`, `Standard`, or `Heavy` before the agent
-starts acting.
+starts acting. The router then names which **meaning buckets** to load — not a
+fixed pipeline.
 
 - `Light`: small local edits, docs tweaks, one-off checks.
-- `Standard`: normal non-trivial engineering work.
+- `Standard`: normal non-trivial engineering work — load buckets only when the
+  task needs them.
 - `Heavy`: releases, architecture changes, cross-module policy, public
-  workflow changes, or multi-agent delivery.
+  workflow changes, or multi-agent delivery — `do-it-decide` pressure-test is
+  the default.
 
-The point is not more ceremony. The point is matching the process to the risk:
-small work should stay small, and risky work should not skip planning, review,
-or proof.
+| Bucket | Skill | When |
+|---|---|---|
+| Write defense | `do-it-code-quality` | Editing code — scope, TDD, debugging, contracts |
+| Decide | `do-it-decide` | Options unclear, load-bearing premises, durable plan |
+| Review | `do-it-review` | Delivered diff needs scrutiny and repair |
+| Verify | `do-it-verify` | Before done / ready / merge claims |
+
+The point is not more ceremony. Small work stays small; Standard work does not
+carry a mandatory brainstorm → grill → plan → review chain; Heavy earns the
+full decide budget by default.
 
 ### Contract the delegation
 
@@ -70,251 +80,186 @@ works wins.
 
 It is wired into three points, not bolted on as a linter:
 
-- **Before** you write, `do-it-grill` opens with the necessity question.
-- **While** you write, the advisory `write-quality-lint` hook flags comment
-  discipline, coarse anti-patterns, and integrity smells on newly-added lines
-  (one reminder per file; never blocks).
-- **After** you write, `do-it-review-loop`'s YAGNI lens tags what can be deleted,
-  inlined, or replaced by stdlib.
+- **Before** you write, `do-it-decide` opens with the necessity question when
+  premises are load-bearing (Heavy default).
+- **While** you write, `do-it-code-quality` plus the advisory
+  `write-quality-lint` hook flag comment discipline, coarse anti-patterns, and
+  integrity smells on newly-added lines (one reminder per file; never blocks).
+- **After** you write, `do-it-review` tags what can be deleted, inlined, or
+  replaced by stdlib, then fixes Blocking/Important findings.
 
 Safety is never what gets cut: trust-boundary validation, data-loss handling,
 security, and accessibility stay in.
 
-## Codex Global Setup
+## Install (plugin-first)
 
-Recommended when you want the full automatic workflow in Codex: skills,
-agents, global hooks, and `doctor` managed from one explicit command.
+Primary path is **plugin-first**, but each host has a **different** official
+install UX. Plugin bundles ship skills, agents, and hooks together.
 
-Install the CLI globally from this GitHub repository, then run setup:
-
-```bash
-npm install -g https://github.com/tdwhere123/do-it/archive/refs/heads/main.tar.gz
-do-it setup
-```
-
-This uses `npm` as the terminal installer, but the package is downloaded from
-GitHub's source tarball rather than the npm registry.
-
-`do-it setup` runs `do-it install` followed by `do-it doctor`.
-
-- `do-it install` copies managed skills, agents, hook scripts, and Codex root
-  `hooks.json` into the target host.
-- `do-it doctor` checks that installed files and install state match
-  `manifest.json`.
-- Codex installs to `CODEX_HOME`, which defaults to `~/.codex`.
-- Codex global hooks use `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, and
-  `Stop` to route, pressure-test, inject subagent stance, lint advisory issues,
-  and require verification.
-
-Use a temporary Codex home when testing an install:
-
-```bash
-CODEX_HOME=/tmp/do-it-codex-test do-it setup
-```
-
-The installer will not silently replace user-owned skill or agent files. If it
-finds a target that is not already marked as do-it-managed, it stops. Set
-`DO_IT_FORCE=1` only when you intentionally want the package to replace those
-targets.
-
-## Codex Plugin Marketplace
-
-`do-it` also publishes a Codex plugin marketplace shape for first-class
-discovery of its skills and agents:
+### Codex
 
 ```bash
 codex plugin marketplace add tdwhere123/do-it
+codex plugin add do-it@tdwhere-do-it
 ```
 
-For a local checkout smoke test, use the checkout path as the marketplace
-source with a temporary `CODEX_HOME`:
+`codex plugin marketplace add` only registers the marketplace — it does not
+install the plugin. After install, **trust the plugin hooks** under `/hooks` so
+routing, Heavy grill nudge, subagent stance, write-quality lint, and the
+verification gate run automatically.
+
+Local checkout smoke test (use a temp `CODEX_HOME` if needed):
 
 ```bash
 CODEX_HOME=/tmp/do-it-plugin-test codex plugin marketplace add /path/to/do-it
+CODEX_HOME=/tmp/do-it-plugin-test codex plugin add do-it@tdwhere-do-it
 ```
 
-The Codex plugin bundle lives at `plugins/do-it/` and is generated from
-`manifest.json`. It includes 21 skills and 23 agents.
+The Codex plugin bundle lives at `plugins/do-it/` (generated from
+`manifest.json`): 8 skills and 10 agents, plus plugin-local hooks.
 
-For v1, pair plugin installation with `do-it setup` when you need enforced
-automatic hooks. Local `codex features list` currently reports
-`codex_hooks=true`, `plugins=true`, and `plugin_hooks=false`, so plugin-local
-hooks are not the enforcement substrate.
-
-## Claude Code
-
-`do-it` also ships as a Claude Code plugin. Install via the plugin marketplace:
+### Claude Code
 
 ```text
 /plugin marketplace add tdwhere123/do-it
-/plugin install do-it
+/plugin install do-it@do-it
 ```
 
-Or use the CLI target when not using marketplace:
+### Cursor
 
-```bash
-do-it install --target=claude
-do-it doctor --target=claude
-```
+**Cursor does not use Claude Code `/plugin …` slash commands.**
 
-The Claude target installs to `~/.claude/` by default; override with
-`CLAUDE_PLUGIN_ROOT_OVERRIDE`. The `--with-optional` flag installs any manifest
-skills marked optional (none are currently marked optional).
+Cursor has an official marketplace
+([cursor.com/marketplace](https://cursor.com/marketplace)), but **`do-it` is not
+listed there yet**. Until it is submitted/reviewed, use:
 
-## Cursor
+1. **Local (recommended today):** symlink or copy `plugins/do-it-cursor/` →
+   `~/.cursor/plugins/local/do-it-cursor`, then **Developer: Reload Window**.
+2. **CLI mirror:** `do-it setup --target=cursor` then reload.
+3. **Team Import (no public listing needed):** Dashboard → Plugins → Import
+   from Repo → `https://github.com/tdwhere123/do-it` (reads
+   `.cursor-plugin/marketplace.json`).
+4. **Public listing later:** submit at
+   [cursor.com/marketplace/publish](https://cursor.com/marketplace/publish).
 
-`do-it` ships a Cursor plugin with the same global install flow as Codex and
-Claude, but a **smaller skill surface**:
+Cursor gets the **5 core skills** (`do-it-router`, `do-it-code-quality`,
+`do-it-review`, `do-it-decide`, `do-it-verify`) plus skills index and
+`references/`. Extended skills ship on Codex, Claude, and OpenCode.
 
-```bash
-do-it setup --target=cursor
-do-it doctor --target=cursor
-```
+Medium hook depth: `sessionStart`, `beforeSubmitPrompt` (router / Heavy grill /
+stance), `postToolUse` / `afterFileEdit` advisory `write-quality-lint`, and
+`stop` verification gate. See
+[`docs/harness-adapter-matrix.md`](./docs/harness-adapter-matrix.md).
 
-This copies the built bundle to `~/.cursor/plugins/do-it-cursor/` (override with
-`CURSOR_PLUGIN_ROOT_OVERRIDE`) and registers `do-it-cursor@do-it` in your user
-plugin settings. Reload Cursor (**Developer: Reload Window**) after setup.
+### OpenCode
 
-Cursor installs the **8 core skills** from `manifest.skillTiers.core` /
-`scripts/skill-tiers.mjs` (`do-it-router`, `do-it-grill`, `do-it-planning`,
-`do-it-tdd`, `do-it-review-loop`, `do-it-fix-loop`, `do-it-verification-gate`,
-`do-it-subagent-orchestration`), plus the skills index and shared
-`references/` sheets. The 12 extended skills stay on Codex, Claude, OpenCode,
-and in this repository — not in the Cursor plugin bundle.
-
-Marketplace discovery remains available:
-
-```text
-/plugin marketplace add tdwhere123/do-it
-/plugin install do-it-cursor
-```
-
-Cursor uses medium hook depth: `sessionStart` bootstrap,
-`beforeSubmitPrompt` routing/grill/stance, `preToolUse` plan gate,
-`postToolUse` / `afterFileEdit` advisory `write-quality-lint`, and `stop`
-verification gate. See [`docs/harness-adapter-matrix.md`](./docs/harness-adapter-matrix.md).
-
-```bash
-npm run build:cursor-plugin
-```
-
-## OpenCode
-
-`do-it` ships an OpenCode TypeScript plugin with transform-first bootstrap and
-selective bash bridges for pretool, write-quality, and verification gates.
-
-Copy `plugins/do-it-opencode/opencode.json.template` into your OpenCode config
-and point the plugin path at this repository's `plugins/do-it-opencode/`.
-Details: [`plugins/do-it-opencode/docs/README.opencode.md`](./plugins/do-it-opencode/docs/README.opencode.md).
+OpenCode loads plugins from the `"plugin"` array in `opencode.json`. **Local
+path is primary today:**
 
 ```bash
 npm run build:opencode-plugin
+cd plugins/do-it-opencode && npm install   # once, if dependencies are missing
+```
+
+Register the built plugin directory with an absolute path in project or global
+`opencode.json` (see
+[`plugins/do-it-opencode/docs/README.opencode.md`](./plugins/do-it-opencode/docs/README.opencode.md)).
+
+When `@tdwhere/do-it-opencode` is published to npm, OpenCode can auto-install it
+from the `"plugin"` array at startup — use the local path until then.
+
+```bash
 npm run test-opencode
 ```
 
+### Optional / legacy: `do-it setup`
+
+CLI setup remains for doctor checks, temp-home smoke tests, and migration from
+older global installs. It is **not** the recommended first install. Prefer the
+plugin marketplace; use setup only to mirror or migrate — do not run plugin
+install and a live global skill tree at the same time.
+
+```bash
+npm install -g https://github.com/tdwhere123/do-it/archive/refs/heads/main.tar.gz
+do-it setup                  # Codex legacy global copy
+do-it setup --target=claude  # optional CLI mirror of the Claude plugin
+do-it setup --target=cursor  # optional CLI mirror of the Cursor plugin
+do-it doctor
+```
+
+`DO_IT_FORCE=1` only when you intentionally replace unmarked skill/agent
+targets. Prefer a temporary home (`CODEX_HOME=…`, `CLAUDE_PLUGIN_ROOT_OVERRIDE=…`,
+`CURSOR_PLUGIN_ROOT_OVERRIDE=…`) when testing.
+
 ## What It Installs
 
-Skill matrix (21 skills total in `manifest.json`; tiers in
-`scripts/skill-tiers.mjs`):
+Skill matrix (8 skills in `manifest.json`; tiers in `scripts/skill-tiers.mjs`):
 
 | Host | Skills installed |
 |---|---|
-| Codex (CLI / plugin) | Full tree — 8 core + 12 extended |
-| Claude Code | Full tree — 8 core + 12 extended |
-| OpenCode | Full tree — 8 core + 12 extended |
-| Cursor | **Core 8 only**, plus skills index and `references/` |
+| Codex / Claude / OpenCode | Full tree — 5 core + 3 extended |
+| Cursor | **Core 5 only**, plus skills index and `references/` |
 
-- do-it-native skills for routing, grill, **brainstorm (multi-lens
-  divergence)**, **handbook (project doc skeleton)**, context, planning,
-  slicing, interface / architecture / domain drills, **codebase design (deep-module
-  vocabulary)**, sub-agent orchestration, TDD, debugging, review, fix loops,
-  verification, worktree isolation, branch closeout, and skill authoring.
-  Extended skills (brainstorm, handbook, drills, closeout, authoring, …) are
-  part of the full tree; Cursor gets the core loop only.
-- Portable Codex agent definitions for code mapping, plan challenge,
-  correctness review, architecture review, red-team review, spec compliance,
-  domain language, install/release review, documentation, testing,
-  language-specific drills, and **brainstorm lenses**: the required
-  `product-strategist` / `architecture-strategist` cores for product
-  boundary, core goal, foundation, and extension shape, plus optional product,
-  UX, end-user, ops, security, domain, and plan supplements.
-- Codex global hook assets and root `hooks.json` installed by `do-it setup`.
-  Hooks include parent routing / grill nudges, a compact **subagent stance**
-  reminder, merged advisory **write-quality-lint** (comments + anti-patterns +
-  integrity families), and completion verification gates.
-- Claude Code plugin assets, hooks, slash commands under `commands/`
-  (`do-it-skip`, `do-it-brainstorm`, `do-it-handbook`), and generated
-  sub-agent definitions.
-- Cursor plugin bundle under `plugins/do-it-cursor/` (core skills + hooks;
-  CLI setup or marketplace).
-- OpenCode TypeScript plugin under `plugins/do-it-opencode/`.
-- Copy-based installer and `doctor` commands that validate managed host files
-  against `manifest.json`.
-- Root `index.json`, a generated machine-readable inventory of the do-it
-  skills and agents for external discovery, marketplace tooling, and coverage
-  checks.
-- A release surface that works from a local checkout, a packed tarball, a
-  GitHub repository, a GitHub-backed terminal install, or a Codex plugin
-  marketplace.
+- Meaning-bucket skills: `do-it-router`, `do-it-code-quality` (write defense),
+  `do-it-review` (review + fix), `do-it-decide` (pressure-test / diverge /
+  plan / slice), `do-it-verify` (evidence + closeout), plus extended
+  `do-it-handbook`, `do-it-context`, `do-it-skill-authoring`.
+- Ten portable agents: decide lenses (`product-strategist`,
+  `architecture-strategist`, `plan-challenger`), write lenses (`code-mapper`,
+  `code-quality-cleaner`, `tdd-red-writer`), review lenses (`reviewer`,
+  `red-team-reviewer`, `spec-compliance-reviewer`), and
+  `documentation-engineer`.
+- Plugin-bundled hooks on all four hosts: router, Heavy-only `grill-prompt`,
+  `subagent-stance`, advisory `write-quality-lint`, and `verification-gate`.
+  No `grill-pretool` plan gate.
+- Claude slash commands under `commands/` (`do-it-skip`, `do-it-handbook`); no legacy workflow command aliases.
+- Copy-based installer / `doctor` for optional CLI targets and migration.
+- Root `index.json` for external discovery and coverage checks.
 
 ## The Flow
 
 ```mermaid
 flowchart TD
     P[UserPromptSubmit] --> R[do-it-router<br/>classify Light / Standard / Heavy]
-    R --> M{multi-lens<br/>angle needed?}
-    M -- yes --> BR[do-it-brainstorm<br/>product + architecture cores<br/>plus task-fit supplements]
-    M -- no --> G
-    BR --> G{premise stable?}
-    G -- no --> GR[do-it-grill<br/>truth-check; converges<br/>Must Resolve items]
-    G -- yes --> T{tier}
-    GR --> T
-    T -- Light --> L[execute]
-    T -- Standard --> S[inline modification map -> execute<br/>review only when risky]
-    T -- Heavy --> H[plan -> slicing -> drills -><br/>subagent orchestration -> review-loop -> fix-loop]
-    L --> PG{Edit / Write?}
-    S --> PG
-    H --> PG
-    PG -- Heavy or explicit --> PGY[PreToolUse: durable plan gate]
-    PG -- otherwise --> V[Stop]
-    PGY --> V
+    R --> B{meaning buckets}
+    B --> CQ[do-it-code-quality<br/>when editing code]
+    B --> D[do-it-decide<br/>when options / plan needed]
+    B --> RV[do-it-review<br/>when diff needs review]
+    B --> VY[do-it-verify<br/>before done claims]
+    CQ --> E[execute]
+    D --> E
+    E --> WQ[PostToolUse: write-quality-lint]
+    WQ --> V[Stop]
+    RV --> V
+    VY --> V
     V --> VG[verification-gate:<br/>fresh evidence required]
-    VG --> D[done]
+    VG --> Done[done]
 ```
 
 In practice:
 
-1. `do-it-router` classifies the task and records routing state; routine
-   Standard/Heavy turns do not emit a visible router banner.
-2. `do-it-brainstorm` is used for product, architecture, workflow, and
-   release-adjacent work when the route needs divergent lenses. It runs the
-   product and architecture cores **inline by default**, fanning out to
-   independent subagents only at Heavy tier or on explicit request. It maps
-   options along the decision ladder with a deletion-over-addition bias, then
-   adds only the task-fit supplements needed for UX, end-user, ops, security,
-   domain language, or plan-risk questions.
-3. `do-it-grill` fires when the premise needs pressure-testing. It opens with
-   the necessity question — does this need to exist at all? — then falsifies the
-   load-bearing premises by exploring code instead of asking. When a brainstorm
-   artifact exists, grill enters convergence mode and resolves
-   `Must Resolve In Grill` instead of restarting divergence.
-4. `Light`, `Standard`, and `Heavy` use different flows, not the same flow at
-   different intensities.
-5. Heavy or explicitly durable work can be blocked at the write boundary
-   until a plan exists.
-6. The stop gate checks for fresh evidence before completion claims.
+1. `do-it-router` classifies the task and names which meaning buckets to load
+   (or skip with a reason). No mandatory skill chain.
+2. `do-it-code-quality` is the main defense while writing: scope/blast radius,
+   comments, deep modules, TDD when behavior changes, debugging, contracts.
+3. `do-it-decide` pressure-tests load-bearing premises (Heavy default), diverges
+   briefly when options are unclear, writes the shortest useful plan, and slices
+   only when the work is large.
+4. `do-it-review` reviews the delivered surface and repairs Blocking/Important
+   findings before closeout.
+5. `do-it-verify` requires fresh evidence before done / ready / merge claims;
+   host hooks reinforce that rule where the host can enforce it, otherwise they remind.
 
 Full routing policy: [`docs/routing-matrix.md`](./docs/routing-matrix.md).
 
 ## What You Do Not Need To Remember
 
-- No slash command vocabulary for the automatic path. Codex global setup and
-  the Claude / Cursor / OpenCode adapters install hooks at the host lifecycle
-  points where they matter. Claude also ships optional slash commands under
-  `commands/` (`/do-it-skip`, `/do-it-brainstorm`, `/do-it-handbook`); you do
-  not need them for the automatic path.
-- No external orchestration runtime. Sub-agent control lives in
-  `do-it-subagent-orchestration`, which is just a skill.
+- No slash command vocabulary for the automatic path. Plugin hooks fire at the
+  host lifecycle points where they matter. Claude also ships optional slash
+  commands under `commands/` (`/do-it-skip`, `/do-it-handbook`); you do not need
+  them for the automatic path.
+- No external orchestration runtime. Delegation is a plain-text parent contract
+  plus the `subagent-stance` hook — there is no separate orchestration skill.
 - One-turn bypass (see `commands/do-it-skip.md`). Full escape for that turn:
   `yolo`, `just do it`, `直接做`, `我已经想清楚`, `skip do-it`, `随便聊`,
   `先聊聊`, `just thinking`, or `/do-it-skip`. Partial escape: `skip grill` /
@@ -326,13 +271,13 @@ For a packed local release artifact:
 
 ```bash
 npm pack
-npm install -g ./tdwhere-do-it-0.13.1.tgz
-do-it setup
+npm install -g ./tdwhere-do-it-0.14.0.tgz
+do-it setup   # optional / legacy global copy
 ```
 
 ## Local Development
 
-From a checkout, use the package entrypoint:
+From a checkout, use the package entrypoint for doctor / migration smoke tests:
 
 ```bash
 npm exec --package . -- do-it setup
@@ -358,7 +303,7 @@ managed install behavior:
 ```
 
 This package does not use npm lifecycle scripts to modify `~/.codex`.
-Installation into Codex happens only when the operator runs `do-it setup` or
+Optional CLI install happens only when the operator runs `do-it setup` or
 `do-it install`.
 
 Before sending hook changes for review, run `npm run lint` (shellcheck via
@@ -393,191 +338,56 @@ package.json     npm package metadata and CLI scripts
 The private `.do-it/` directory is for local plans, notes, and scratch
 artifacts. It is ignored by Git and is not installed.
 
-## Upgrading to 0.13.1
+## How 0.14 works (current)
 
-`0.13.1` is a hotfix on the four-host line: safer `verification-gate` turn
-slicing, hardened write-quality scan edge cases, corrected skill `references/`
-links, required OpenCode `tsc` on build, and `prepack` that expands Cursor /
-OpenCode plugin builds. Re-run `do-it setup` (or refresh the host plugin) so
-installed hooks and reference sheets match the package.
+`0.14` is the meaning-centric line. Process is **not** a fixed skill pipeline.
 
-After `0.13.1`, main also landed the PR #4 skill-tier audit (Cursor **core-8**
-bundle, shared `skillTiers`, escape vocabulary). That work is still under
-Unreleased in [`CHANGELOG.md`](./CHANGELOG.md) until the next version bump —
-re-run `do-it setup --target=cursor` on current main to pick it up.
+### Meaning buckets (not a ceremony chain)
 
-## Upgrading to 0.13.0
+| Bucket | Skill | Role |
+|---|---|---|
+| Route | `do-it-router` | Pick Light / Standard / Heavy; name buckets to load or skip |
+| Write | `do-it-code-quality` | Premise, blast radius, deep modules, TDD, debug, contracts |
+| Decide | `do-it-decide` | Pressure-test, diverge, shortest plan, slice when large |
+| Review | `do-it-review` | Standards ∥ Spec axes; fix Blocking/Important; re-review |
+| Verify | `do-it-verify` | Fresh evidence before done / ready / merge; branch closeout |
+| Persist | `do-it-handbook`, `do-it-context` | Project truth + glossary (extended hosts) |
+| Meta | `do-it-skill-authoring` | Authoring do-it skills themselves |
 
-`0.13.0` adds **four-host adapters** (Codex, Claude, Cursor, OpenCode) with one
-shared workflow kernel. Post-edit `comments-lint` and `anti-patterns-lint` merge
-into advisory `write-quality-lint` (single reminder per file; tier/DIM gated).
-UserPromptSubmit injection is compressed for Standard turns. Skills gain shared
-`references/` sheets (integrity, dimensions, write-quality families, per-host
-install notes). Cursor and OpenCode plugin bundles ship from
-`plugins/do-it-cursor/` and `plugins/do-it-opencode/`. Re-run `do-it setup` or
-refresh your plugin install so hosts load the new hook and reference files.
+**Standard** self-selects buckets. There is no mandatory brainstorm → grill → plan
+chain. **Heavy** (or explicit “grill”) is when `grill-prompt` injects premise
+pressure via `do-it-decide`.
 
-Full adapter matrix: [`docs/harness-adapter-matrix.md`](./docs/harness-adapter-matrix.md).
+### Hooks (quality, not theater)
 
-## Upgrading to 0.12.0
+| Hook | Behavior |
+|---|---|
+| `router` | Tier + orthogonal DIM signals into session state |
+| `grill-prompt` | **Heavy or explicit only** — Standard stays silent |
+| `subagent-stance` | Compact integrity stance for workers |
+| `write-quality-lint` | Advisory PostToolUse families (never blocks) |
+| `verification-gate` | **Evidence-only** Stop check: after edits, completion language needs a fresh relevant `Bash`/`Shell` command this turn (`apply_patch` counts as an edit on Codex) |
 
-`0.12.0` adds `do-it-codebase-design`, tightens grill/review completion
-criteria, auto-bootstraps handbook on Standard/Heavy greenfield code turns,
-simplifies handbook templates, adds the `subagent-stance` hook, and removes
-`code-map-refresh`. Re-run `do-it setup` so hosts drop the removed hook and
-pick up the new skill.
+`grill-pretool` is gone. The gate does **not** require review-loop markers.
 
-## Upgrading to 0.10.0
+### Install truth
 
-`0.10.0` is a workflow reliability release. It keeps the skill surface stable
-while tightening the actual work loop: durable plans can carry an Evidence
-Ledger, readiness claims name their truth plane, review verifies the full proof
-path, subagent lanes have parent-owned status, and closeout keeps source,
-package, temp install, live install, and host behavior distinct.
+Plugin-first on all four hosts. Refresh the marketplace plugin (and trust Codex
+`/hooks`) so skills and hooks match the package. Optional `do-it setup` is for
+doctor / migration / temp-home smoke — pick **either** plugin **or** legacy
+global copy, not both.
 
-Agent templates are now model-agnostic. Source `agents/*.toml` files no longer
-pin concrete models or reasoning-effort fields, and Claude generated agents
-inherit the running host model by default.
+Cursor CLI setup writes only under `~/.cursor` (not `~/.claude`).
 
-## Upgrading to 0.9.0
+### Upgrading from pre-0.14
 
-`0.9.0` is a reliability and discipline release. Install-state migration logic
-moves into `install/migrate.mjs` with full test coverage (`npm run
-test-install`); an unknown migration action now fails loud instead of leaving a
-half-migrated state; `do-it install` and `doctor` report the install-state
-version of every target so Codex/Claude version drift is visible. The
-`verification-gate` Stop hook scopes its edit/evidence/review-loop detection to
-the current turn — an earlier turn's trace can no longer pass a later
-unverified turn — and its block reasons are rewritten as short
-single-instruction sentences. `do_it_emit_block` / `do_it_emit_context` keep
-emitting valid JSON without `jq`. Stale session directories are pruned after 7
-days. `do-it-router` gains an `Integrity` section — a failure is a clue to
-trace, not a symptom to hide — referenced by `do-it-debugging`,
-`do-it-fix-loop`, `do-it-verification-gate`, and the subagent dispatch
-contract. The CI test job now also runs on macOS. If a machine has a
-cached `0.8.0` plugin, reinstall or refresh so the host loads the new hook and
-skill files.
+1. Refresh the host plugin (or optional `do-it setup` for legacy mirrors).
+2. Trust Codex plugin hooks under `/hooks` after refresh.
+3. Drop retired skill names from personal prompts/rules — see the migration
+   table in [`CHANGELOG.md`](./CHANGELOG.md).
 
-## Upgrading to 0.8.0
-
-`0.8.0` finishes activating the five `dim_*` orthogonal dimensions introduced
-in 0.7.0 — each dimension now has at least one named consumer (`grill-prompt`,
-`verification-gate`, or a mandatory-trigger sentence inside the matching skill).
-A new advisory PostToolUse hook `anti-patterns-lint` flags large bash
-`case` lists, newly-exported JS/TS symbols with no other-file consumer, and
-≥5-line code blocks duplicated from a same-directory neighbour — never blocks,
-single `system-reminder` per file. `do-it-fix-loop` defaults to "collect all
-findings → root-cause → batch or pointwise" instead of see-one-fix-one;
-`do-it-review-loop` correspondingly emits findings as a complete batch.
-`.do-it/runtime/pointer` records the active task slug so a fresh turn can
-recover state. `do-it-comments-discipline` SKILL is trimmed from 373 → 119
-lines. 23 sub-agent TOMLs drop their duplicated `Common protocol:` block in
-favour of a single reference to `do-it-subagent-orchestration`. If a machine
-has a cached `0.7.3` plugin, reinstall or refresh so the host loads the new
-hook and skill files.
-
-## Upgrading to 0.7.3
-
-`0.7.3` makes the router state-only for routine Standard/Heavy turns. The
-router records tier and dimensions for downstream hooks, while visible
-pressure-test guidance remains in `grill-prompt` when a real grill trigger
-fires. It also tightens workflow accountability in review, closeout, comments,
-and brainstorm/grill guidance. If a machine has a cached `0.7.2` plugin,
-reinstall or refresh the plugin so the host loads the new hook and skill files.
-
-## Upgrading to 0.7.2
-
-`0.7.2` fixes Claude Code plugin hook compatibility with macOS's bundled Bash
-3.2. If a machine has a cached `0.7.1` plugin, reinstall or refresh the plugin
-so Claude loads the compatible hook files.
-
-## Upgrading to 0.7.1
-
-`do-it install` handles the full upgrade. No project-level migration is
-required.
-
-**Hook noise reduction.** Light tier is now fully silent. Standard tier
-requires both an intent-verb and a code-object match before injecting workflow
-guidance. Subagents do not receive nested hook injection. SESSION_ID
-validation rejects LF and control characters at the session boundary.
-
-**Session persistence.** Session state moves from `/tmp` to
-`.do-it/runtime/`. Skip tokens have a 5-minute TTL. A self-contained
-`.gitignore` is written at install time. When `flock` is unavailable, PID-
-tagged temp files and atomic `mv` prevent state corruption.
-
-**Research-first architecture decisions.** `architecture-strategist` now
-requires a live search and at least two concrete candidates before
-recommending. A new `architecture-taste-reviewer` agent audits brainstorm
-output for research compliance. Search results are treated as an untrusted
-boundary to prevent prompt injection.
-
-**Comments discipline.** Five comment types are allowed — type annotation,
-`@anchor`, `see also`, invariant, tool directive — and six are forbidden —
-narrative, history, task-reference, tombstone, orphan-TODO, what-comment. A
-`comments-lint` PostToolUse hook provides advisory reminders. Agents should
-apply `do-it-comments-discipline` before authoring comments, and the
-`review-loop` comments lens is the acceptance gate.
-
-**Anti-pattern lint.** A second advisory PostToolUse hook
-`anti-patterns-lint` flags three coarse code-quality anti-patterns on the
-lines an edit just added: large bash `case` lists (≥10 consecutive
-`*"..."*` branches), newly-exported JS/TS symbols with no other-file
-consumer, and ≥5-line code blocks duplicated from a same-directory
-neighbour. Like `comments-lint` it never blocks and emits a single
-`system-reminder` per edit; suppress per-edit with the literal string
-`anti-patterns-lint-allow` in the new lines.
-
-**Decision and proof-path coverage.** Grill now asks one load-bearing decision
-at a time with context, options, tradeoffs, and a recommended default. Review
-starts from the user goal and proof path before local diff snippets, so missing
-decision coverage, unwired implementation, unused delivered surfaces, and
-synthetic proof become review findings.
-
-**Router dimension orthogonality.** Five `dim_*` booleans (`touches_code`,
-`crosses_packages`, `breaks_interface`, `needs_tdd`, `needs_review_loop`) are
-written to session state per task. Tier classification is unchanged; the
-booleans drive which workflow steps fire.
-
-**Workflow accountability.** Hook reminders are not proof that the workflow ran.
-For non-trivial work, closeout should state which brainstorm, grill, subagent,
-review, and verification steps were used or skipped, with the reason.
-
-**Graduated review.** Three review depths: `review-quick`, `review-deep`,
-`review-adversarial`. The verification gate on Light tier with edits now emits
-an inline-review marker to prevent a self-satisfying replay claim.
-
-**Lazy skill loading.** A generated `dist/claude/skills/_index.md` (~720
-tokens) replaces the large skill catalogue previously injected by the router.
-Skills load on demand.
-
-**Subagent token budgets.** Codex agent TOML stays schema-clean: no
-`output_budget`, `claude_model`, or other host-private keys. Response budgets
-live in `do-it-subagent-orchestration` and must be passed in the parent prompt.
-
-**Model-agnostic agents.** Agent templates do not pin concrete model names or
-reasoning-effort fields. Codex TOML stays portable, and Claude generated agents
-inherit the running host model unless a tested host compatibility fallback is
-needed.
-
-**Evidence ledger and truth planes.** Heavy, release/install, multi-agent, and
-explicit durable-plan work records claim rows in the plan's verification
-section. Source repo, worktree, package artifact, temp install, live Codex, live
-Claude, and host behavior are separate truth planes.
-
-**Subagent lane status.** Parent agents track delegated lanes as `assigned`,
-`running`, `done_with_evidence`, `integrated`, or `blocking`. Worker `DONE`
-does not become a final claim until the parent inspects, reviews, and verifies
-the integrated surface.
-
-**Test coverage.** Regression cases in `tests/hooks/` cover `common`,
-`router`, `verification-gate` (incl. DIM consumers), `comments-lint`, and
-`anti-patterns-lint`. `scripts/test-hooks.sh` also exercises dim-aware
-grill suppression.
-
-Debugging hooks: `DO_IT_DEBUG=1` makes each hook emit one stderr line per
-decision (escape / skip / question / tier / trigger / evidence). Inspect
-session state with `do-it doctor --session=<id>`.
+Older release notes (0.13.x and earlier) live only in `CHANGELOG.md`. Do not
+treat historical skill names there as current law.
 
 ## Standing On Shoulders
 
@@ -588,8 +398,8 @@ high-quality projects already proved out:
   collaboration model.
 - [`mattpocock/skills`](https://github.com/mattpocock/skills): skill packaging
   and discovery, and the prompt-convergence hygiene (leading words over adjective
-  triads, one decision at a time, checkable completion criteria) that shaped the
-  grill and brainstorm rewrites.
+  triads, one decision at a time, checkable completion criteria) that shaped
+  `do-it-decide` pressure-test and diverge modes.
 - [`addyosmani/agent-skills`](https://github.com/addyosmani/agent-skills):
   production-skill anatomy, anti-rationalization, and evidence-first method
   discipline.
@@ -623,14 +433,16 @@ Useful release checks:
 git diff --check
 npm test
 npm run validate:agents
-npm run build:claude-agents
 npm run build:codex-plugin
-CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it setup
-CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it doctor
+npm run build:cursor-plugin
 CODEX_HOME=/tmp/do-it-plugin-test codex plugin marketplace add /path/to/do-it
-CLAUDE_PLUGIN_ROOT_OVERRIDE=/tmp/do-it-claude-test npm exec --package . -- do-it setup --target=claude
+CODEX_HOME=/tmp/do-it-plugin-test codex plugin add do-it@tdwhere-do-it
+CLAUDE_PLUGIN_ROOT_OVERRIDE=/tmp/do-it-claude-test npm exec --package . -- do-it doctor --target=claude
 npm pack --dry-run --json
 ```
+
+Prefer marketplace / plugin smoke first; optional `do-it setup` is for legacy
+CLI mirrors and migration only.
 
 ## Contributing
 

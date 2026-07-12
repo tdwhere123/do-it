@@ -1,10 +1,9 @@
 # Glossary
 
 Long-stable vocabulary used across the codebase, handbook, and task
-cards. Per-session sediment lives in `.do-it/CONTEXT.md`; entries
-graduate here after they have held across at least three sessions
-without revision (see the term-promotion rule in `do-it-handbook`
-SKILL).
+cards. Active terse context lives in `.do-it/CONTEXT.md`; promote a term
+here once it is durable project vocabulary (see the term-ownership rule
+in `do-it-handbook` SKILL).
 
 ## Format
 
@@ -39,10 +38,9 @@ Avoid:
 `do-it-router` to size the workflow for a task. See `do-it-router`.
 
 **Blocking / Important / Opportunity** — Severity used in review
-findings. See `do-it-review-loop`.
+findings. See `do-it-review`.
 
-**Grill / Brainstorm** — Convergent (`do-it-grill`) and divergent
-(`do-it-brainstorm`) reasoning passes that run before planning.
+**Decide modes** — `do-it-decide` offers Grill when a premise or preference gates the route, Diverge when alternatives are genuinely unclear, and a plan card only when durable coordination needs it.
 
 ## Anti-Glossary (Terms To Avoid)
 

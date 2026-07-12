@@ -1,0 +1,3 @@
+# Nested plugin dependencies are installed by the OpenCode plugin itself.
+# Do not ship a checkout's node_modules inside the root package artifact.
+plugins/do-it-opencode/node_modules/

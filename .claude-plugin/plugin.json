@@ -1,7 +1,7 @@
 {
   "name": "do-it",
-  "description": "Workflow discipline plugin for Claude Code: tier routing, premise grilling, verification gates. Skills auto-trigger via hooks—no slash commands required.",
-  "version": "0.13.1",
+  "description": "Meaning-centric engineering plugin for Claude Code: tier routing, advisory write-quality, focused review, and evidence-backed completion.",
+  "version": "0.14.0",
   "author": {
     "name": "tdwhere123"
   },
@@ -16,5 +16,8 @@
     "verification",
     "premise-grilling",
     "do-it"
-  ]
+  ],
+  "skills": "./skills/do-it",
+  "agents": "./dist/claude/agents",
+  "hooks": "./hooks/hooks.json"
 }

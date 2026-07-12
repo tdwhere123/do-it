@@ -1,25 +1,13 @@
 #!/usr/bin/env bash
-# Smoke tests for hooks/verification-gate.sh — locks in:
-#   - Recursion guard (STOP_HOOK_ACTIVE=true)
-#   - No-transcript pass-through
-#   - No-completion-language pass-through
-#   - No-edit-this-turn pass-through
-#   - Question-turn pass-through
-#   - Light-tier inline-review block (B3 fix: marker line-anchored, gate's own
-#     block reason cannot self-satisfy on replay)
-#   - Light-tier inline-review pass-through when marker present
-#   - Standard tier no-evidence block
-#   - Standard tier evidence pass-through
-#
-# Usage: bash tests/hooks/verification-gate.test.sh
-# Exits non-zero on first failure; prints "ok: <N> tests" on success.
+# Claim-integrity regression tests for hooks/verification-gate.sh.
+# Completion after edits needs fresh, relevant evidence; workflow markers and
+# arbitrary shell commands never count as proof.
 
 set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 GATE="$REPO_ROOT/hooks/verification-gate.sh"
-
-[[ -x "$GATE" ]] || { echo "FAIL: gate not executable at $GATE" >&2; exit 1; }
+[[ -x "$GATE" || -f "$GATE" ]] || { echo "FAIL: missing $GATE" >&2; exit 1; }
 
 PASS=0
 FAIL=0
@@ -34,371 +22,230 @@ _isolate() {
   unset DO_IT_DEBUG
 }
 
-# Write state.json for a session_id.
 _set_state() {
-  # args: sid key value [key value]...
   local sid="$1"; shift
   local dir="$DO_IT_HOOK_DATA/sessions/$sid"
   mkdir -p "$dir"
-  local jq_args=() obj='{}'
+  local obj='{}'
   while (( $# >= 2 )); do
-    obj=$(jq -nc --arg k "$1" --arg v "$2" --argjson cur "$obj" '$cur + {($k): $v}')
+    obj=$(jq -nc --arg k "$1" --arg v "$2" --argjson current "$obj" '$current + {($k): $v}')
     shift 2
   done
   printf '%s' "$obj" > "$dir/state.json"
 }
 
-# Build a fake transcript JSONL containing assistant text + optionally tool_use.
-# args: <out-path> <assistant-text> [edit:1] [bash:1]
-_build_transcript() {
-  local out="$1" text="$2" edit="${3:-}" bash="${4:-}"
-  : > "$out"
-  if [[ "$edit" == "edit:1" || "$bash" == "edit:1" ]]; then
-    jq -nc '{type:"assistant", message:{content:[{type:"tool_use", name:"Edit", input:{file_path:"/tmp/x.ts"}}]}}' >> "$out"
-  fi
-  if [[ "$edit" == "bash:1" || "$bash" == "bash:1" ]]; then
-    jq -nc '{type:"assistant", message:{content:[{type:"tool_use", name:"Bash", input:{command:"pnpm test"}}]}}' >> "$out"
-  fi
-  jq -nc --arg t "$text" '{type:"assistant", message:{content:[{type:"text", text:$t}]}}' >> "$out"
+_append_edit() {
+  jq -nc '{type:"assistant",message:{content:[{type:"tool_use",name:"Edit",input:{file_path:"/tmp/x.ts"}}]}}'
 }
 
-# Run gate; capture stdout + exit code.
+_append_bash() {
+  jq -nc --arg command "$1" '{type:"assistant",message:{content:[{type:"tool_use",name:"Bash",input:{command:$command}}]}}'
+}
+
+_append_shell() {
+  jq -nc --arg command "$1" '{type:"assistant",message:{content:[{type:"tool_use",name:"Shell",input:{command:$command}}]}}'
+}
+
+_append_apply_patch() {
+  jq -nc '{type:"assistant",message:{content:[{type:"tool_use",name:"apply_patch",input:{patch:"*** Update File: /tmp/x.ts"}}]}}'
+}
+
+_append_text() {
+  jq -nc --arg text "$1" '{type:"assistant",message:{content:[{type:"text",text:$text}]}}'
+}
+
+_append_user() {
+  jq -nc --arg text "$1" '{type:"user",message:{content:[{type:"text",text:$text}]}}'
+}
+
 _run_gate() {
-  # args: sid transcript [stop_hook_active]
   local sid="$1" transcript="$2" stop_active="${3:-false}"
-  local payload
-  payload=$(jq -nc --arg s "$sid" --arg t "$transcript" --arg a "$stop_active" \
-    '{session_id: $s, transcript_path: $t, stop_hook_active: ($a == "true")}')
-  printf '%s' "$payload" | bash "$GATE"
+  jq -nc --arg sid "$sid" --arg transcript "$transcript" --arg active "$stop_active" \
+    '{session_id:$sid, transcript_path:$transcript, stop_hook_active:($active == "true")}' \
+    | bash "$GATE"
+}
+
+assert_silent() {
+  local label="$1" output="$2"
+  if [[ -z "$output" ]]; then _pass "$label"; else _fail "$label (unexpected: $output)"; fi
+}
+
+assert_block() {
+  local label="$1" output="$2" needle="$3"
+  if [[ "$output" == *'"decision":"block"'* && "$output" == *"$needle"* ]]; then
+    _pass "$label"
+  else
+    _fail "$label (got: $output)"
+  fi
 }
 
 # -------------------------------------------------------------------------
-echo "Case 1: STOP_HOOK_ACTIVE=true → recursion skip"
+echo "Case 1: recursion guard"
 (
-  _isolate "/tmp/doit-test-gate-c1"
+  _isolate /tmp/doit-gate-c1
   _set_state c1 tier Standard last_prompt_kind work
   tx="$DO_IT_HOOK_DATA/tx.jsonl"
-  _build_transcript "$tx" "task done"
-  out=$(_run_gate c1 "$tx" true)
-  [[ -z "$out" ]] || { echo "leaked output: $out" >&2; exit 11; }
+  _append_edit > "$tx"
+  _append_text "task done" >> "$tx"
+  [[ -z "$(_run_gate c1 "$tx" true)" ]]
 )
-case "$?" in
-  0)  _pass "stop_hook_active true → silent" ;;
-  *)  _fail "recursion guard regressed" ;;
-esac
+case "$?" in 0) _pass "recursion guard is silent";; *) _fail "recursion guard";; esac
 
 # -------------------------------------------------------------------------
-echo "Case 2: no transcript_path → silent"
+echo "Case 2: discussion and no-edit pass-through"
 (
-  _isolate "/tmp/doit-test-gate-c2"
-  _set_state c2 tier Standard last_prompt_kind work
-  out=$(_run_gate c2 "/nonexistent/path.jsonl" false)
-  [[ -z "$out" ]] || { echo "leaked: $out" >&2; exit 11; }
-)
-case "$?" in 0) _pass "missing transcript → silent" ;; *) _fail "transcript guard regressed" ;; esac
-
-# -------------------------------------------------------------------------
-echo "Case 3: question-turn → silent regardless of completion language"
-(
-  _isolate "/tmp/doit-test-gate-c3"
-  _set_state c3 tier Light last_prompt_kind question
+  _isolate /tmp/doit-gate-c2
+  _set_state c2 tier Light last_prompt_kind question
   tx="$DO_IT_HOOK_DATA/tx.jsonl"
-  _build_transcript "$tx" "I think we are done here." edit:1
-  out=$(_run_gate c3 "$tx" false)
-  [[ -z "$out" ]] || { echo "leaked: $out" >&2; exit 11; }
+  _append_edit > "$tx"
+  _append_text "task done" >> "$tx"
+  [[ -z "$(_run_gate c2 "$tx")" ]]
 )
-case "$?" in 0) _pass "question-turn pass-through" ;; *) _fail "question-turn regressed" ;; esac
+case "$?" in 0) _pass "question turn is silent";; *) _fail "question turn";; esac
+
+(
+  _isolate /tmp/doit-gate-c3
+  _set_state c3 tier Standard last_prompt_kind work
+  tx="$DO_IT_HOOK_DATA/tx.jsonl"
+  _append_text "all done explaining" > "$tx"
+  [[ -z "$(_run_gate c3 "$tx")" ]]
+)
+case "$?" in 0) _pass "no-edit turn is silent";; *) _fail "no-edit turn";; esac
 
 # -------------------------------------------------------------------------
-echo "Case 4: no completion language → silent"
+echo "Case 3: completion without proof blocks"
 (
-  _isolate "/tmp/doit-test-gate-c4"
+  _isolate /tmp/doit-gate-c4
   _set_state c4 tier Standard last_prompt_kind work
   tx="$DO_IT_HOOK_DATA/tx.jsonl"
-  _build_transcript "$tx" "Here is some explanation but no completion claim." edit:1
-  out=$(_run_gate c4 "$tx" false)
-  [[ -z "$out" ]] || { echo "leaked: $out" >&2; exit 11; }
+  _append_edit > "$tx"
+  _append_text "task done" >> "$tx"
+  out=$(_run_gate c4 "$tx")
+  [[ "$out" == *'fresh, relevant current-turn proof'* ]]
 )
-case "$?" in 0) _pass "no completion language → silent" ;; *) _fail "completion-language guard regressed" ;; esac
+case "$?" in 0) _pass "no evidence blocks";; *) _fail "no evidence block";; esac
 
 # -------------------------------------------------------------------------
-echo "Case 5: no edits this turn → silent (pure discussion done)"
+echo "Case 4: arbitrary Bash and workflow words are not evidence"
 (
-  _isolate "/tmp/doit-test-gate-c5"
-  _set_state c5 tier Standard last_prompt_kind work
+  _isolate /tmp/doit-gate-c5
+  _set_state c5 tier Standard last_prompt_kind work dim_breaks_interface 1 dim_needs_review_loop 1
   tx="$DO_IT_HOOK_DATA/tx.jsonl"
-  _build_transcript "$tx" "All done with the explanation."  # no edit:1
-  out=$(_run_gate c5 "$tx" false)
-  [[ -z "$out" ]] || { echo "leaked: $out" >&2; exit 11; }
+  _append_edit > "$tx"
+  _append_bash "pwd && git status" >> "$tx"
+  _append_text $'ran do-it-review and inline-review: clean\ntask done' >> "$tx"
+  out=$(_run_gate c5 "$tx")
+  [[ "$out" == *'fresh, relevant current-turn proof'* ]]
 )
-case "$?" in 0) _pass "no edits + done → silent" ;; *) _fail "no-edit guard regressed" ;; esac
+case "$?" in 0) _pass "pwd and marker prose do not pass";; *) _fail "ritual evidence block";; esac
 
 # -------------------------------------------------------------------------
-echo "Case 6: Light + edits + done + no inline-review marker → BLOCK"
+echo "Case 5: relevant command and focused inspection pass"
 (
-  _isolate "/tmp/doit-test-gate-c6"
-  _set_state c6 tier Light last_prompt_kind work
+  _isolate /tmp/doit-gate-c6
+  _set_state c6 tier Standard last_prompt_kind work
   tx="$DO_IT_HOOK_DATA/tx.jsonl"
-  _build_transcript "$tx" "task done all set" edit:1
-  out=$(_run_gate c6 "$tx" false)
-  case "$out" in
-    *'"decision":"block"'*'inline self-review'*) exit 0 ;;
-    *) echo "no inline-review block: $out" >&2; exit 11 ;;
-  esac
+  _append_edit > "$tx"
+  _append_bash "pnpm test --filter auth" >> "$tx"
+  _append_text "tests passed; task done" >> "$tx"
+  [[ -z "$(_run_gate c6 "$tx")" ]]
 )
-case "$?" in 0) _pass "Light + edits + done + no marker → block" ;; *) _fail "inline-review block missing" ;; esac
+case "$?" in 0) _pass "targeted test passes";; *) _fail "targeted test evidence";; esac
 
-# -------------------------------------------------------------------------
-echo "Case 7: B3 — gate's own block reason replayed must NOT self-satisfy"
 (
-  _isolate "/tmp/doit-test-gate-c7"
-  _set_state c7 tier Light last_prompt_kind work
+  _isolate /tmp/doit-gate-c7
+  _set_state c7 tier Standard last_prompt_kind work
   tx="$DO_IT_HOOK_DATA/tx.jsonl"
-  # Simulate: assistant text contains the gate's own block reason text
-  # (which mentions \`inline-review:\` mid-line behind backticks).
-  reason_text="do-it gate: code changed and completion was claimed without an inline self-review. Review the diff for correctness regressions, missing tests, boundary error handling, and comment discipline, then emit one line starting with the \`inline-review:\` marker stating clean or a finding. Bypass: say 'skip gate' or run /do-it-skip gate. All set, task done."
-  _build_transcript "$tx" "$reason_text" edit:1
-  out=$(_run_gate c7 "$tx" false)
-  # Expect: still blocks (no real marker on its own line)
-  case "$out" in
-    *'"decision":"block"'*'inline self-review'*) exit 0 ;;
-    *) echo "self-satisfied: $out" >&2; exit 11 ;;
-  esac
+  _append_edit > "$tx"
+  _append_bash "git diff --check" >> "$tx"
+  _append_text "metadata update done" >> "$tx"
+  [[ -z "$(_run_gate c7 "$tx")" ]]
 )
-case "$?" in
-  0)  _pass "gate's block reason replay does NOT self-satisfy marker" ;;
-  *)  _fail "B3 regression: gate self-bypasses on replay" ;;
-esac
+case "$?" in 0) _pass "focused diff inspection passes";; *) _fail "diff inspection evidence";; esac
 
 # -------------------------------------------------------------------------
-echo "Case 8: Light + edits + done + line-anchored marker → proceed (then no-evidence block)"
+echo "Case 6: honest missing proof and stale evidence"
 (
-  _isolate "/tmp/doit-test-gate-c8"
-  _set_state c8 tier Light last_prompt_kind work
+  _isolate /tmp/doit-gate-c8
+  _set_state c8 tier Standard last_prompt_kind work
   tx="$DO_IT_HOOK_DATA/tx.jsonl"
-  _build_transcript "$tx" $'inline-review: clean\nAll done.' edit:1
-  out=$(_run_gate c8 "$tx" false)
-  # Marker satisfied → falls through to evidence check; no Bash in transcript → block on evidence
-  case "$out" in
-    *'"decision":"block"'*'ran no verification'*) exit 0 ;;
-    *) echo "expected evidence-block: $out" >&2; exit 11 ;;
-  esac
+  _append_edit > "$tx"
+  _append_text "NOT_VERIFIED: no integration environment; next action is run the host smoke test." >> "$tx"
+  [[ -z "$(_run_gate c8 "$tx")" ]]
 )
-case "$?" in
-  0)  _pass "marker satisfied → falls to evidence-stage block" ;;
-  *)  _fail "marker-anchored detection broken" ;;
-esac
+case "$?" in 0) _pass "NOT_VERIFIED is an honest exit";; *) _fail "NOT_VERIFIED handling";; esac
 
-# -------------------------------------------------------------------------
-echo "Case 9: Light + edits + done + marker + Bash evidence → silent"
 (
-  _isolate "/tmp/doit-test-gate-c9"
-  _set_state c9 tier Light last_prompt_kind work
+  _isolate /tmp/doit-gate-c9
+  _set_state c9 tier Standard last_prompt_kind work
   tx="$DO_IT_HOOK_DATA/tx.jsonl"
-  _build_transcript "$tx" $'inline-review: clean\nAll done.' edit:1 bash:1
-  out=$(_run_gate c9 "$tx" false)
-  [[ -z "$out" ]] || { echo "leaked: $out" >&2; exit 11; }
+  _append_edit > "$tx"
+  _append_bash "pnpm test" >> "$tx"
+  _append_text "previous task done" >> "$tx"
+  _append_user "ship the next change" >> "$tx"
+  _append_edit >> "$tx"
+  _append_text "next task done" >> "$tx"
+  out=$(_run_gate c9 "$tx")
+  [[ "$out" == *'fresh, relevant current-turn proof'* ]]
 )
-case "$?" in 0) _pass "Light + marker + evidence → silent pass" ;; *) _fail "happy path blocked" ;; esac
+case "$?" in 0) _pass "previous-turn evidence does not pass";; *) _fail "stale evidence handling";; esac
 
 # -------------------------------------------------------------------------
-echo "Case 10: Standard + edits + done + no evidence → BLOCK (no inline-review check)"
+echo "Case 7: skip flags still clear"
 (
-  _isolate "/tmp/doit-test-gate-c10"
+  _isolate /tmp/doit-gate-c10
   _set_state c10 tier Standard last_prompt_kind work
-  tx="$DO_IT_HOOK_DATA/tx.jsonl"
-  _build_transcript "$tx" "task done" edit:1
-  out=$(_run_gate c10 "$tx" false)
-  case "$out" in
-    *'"decision":"block"'*'ran no verification'*) exit 0 ;;
-    *'inline self-review'*) echo "Standard wrongly hit inline-review: $out" >&2; exit 12 ;;
-    *) echo "expected evidence block: $out" >&2; exit 11 ;;
-  esac
-)
-case "$?" in
-  0)  _pass "Standard skips inline-review and blocks on no-evidence" ;;
-  *)  _fail "Standard tier mishandled (exit $?)" ;;
-esac
-
-# -------------------------------------------------------------------------
-echo "Case 11: Standard + edits + done + Bash evidence → silent"
-(
-  _isolate "/tmp/doit-test-gate-c11"
-  _set_state c11 tier Standard last_prompt_kind work
-  tx="$DO_IT_HOOK_DATA/tx.jsonl"
-  _build_transcript "$tx" "task done" edit:1 bash:1
-  out=$(_run_gate c11 "$tx" false)
-  [[ -z "$out" ]] || { echo "leaked: $out" >&2; exit 11; }
-)
-case "$?" in 0) _pass "Standard happy path → silent" ;; *) _fail "Standard happy path blocked" ;; esac
-
-# -------------------------------------------------------------------------
-echo "Case 12: Standard + dim_breaks_interface=1 + done + Bash evidence + plain marker → BLOCK"
-(
-  _isolate "/tmp/doit-test-gate-c12"
-  _set_state c12 tier Standard last_prompt_kind work dim_breaks_interface 1
-  tx="$DO_IT_HOOK_DATA/tx.jsonl"
-  _build_transcript "$tx" $'inline-review: clean\ntask done' edit:1 bash:1
-  out=$(_run_gate c12 "$tx" false)
-  case "$out" in
-    *'"decision":"block"'*'interface, schema, or API'*) exit 0 ;;
-    *) echo "expected breaks_interface block, got: $out" >&2; exit 11 ;;
-  esac
-)
-case "$?" in
-  0)  _pass "dim_breaks_interface=1 + generic marker → block" ;;
-  *)  _fail "dim_breaks_interface consumer regressed" ;;
-esac
-
-# -------------------------------------------------------------------------
-echo "Case 13: Standard + dim_breaks_interface=1 + marker names interface → silent"
-(
-  _isolate "/tmp/doit-test-gate-c13"
-  _set_state c13 tier Standard last_prompt_kind work dim_breaks_interface 1
-  tx="$DO_IT_HOOK_DATA/tx.jsonl"
-  _build_transcript "$tx" $'inline-review: checked the new interface contract — clean\ntask done' edit:1 bash:1
-  out=$(_run_gate c13 "$tx" false)
-  [[ -z "$out" ]] || { echo "leaked: $out" >&2; exit 11; }
-)
-case "$?" in 0) _pass "dim_breaks_interface=1 + interface-named marker → pass" ;; *) _fail "interface attestation gate too strict" ;; esac
-
-# -------------------------------------------------------------------------
-echo "Case 14: Standard + dim_needs_review_loop=1 + done + Bash + no review trace → BLOCK"
-(
-  _isolate "/tmp/doit-test-gate-c14"
-  _set_state c14 tier Standard last_prompt_kind work dim_needs_review_loop 1
-  tx="$DO_IT_HOOK_DATA/tx.jsonl"
-  _build_transcript "$tx" "task done" edit:1 bash:1
-  out=$(_run_gate c14 "$tx" false)
-  case "$out" in
-    *'"decision":"block"'*'needs a review-loop'*) exit 0 ;;
-    *) echo "expected review-loop block, got: $out" >&2; exit 11 ;;
-  esac
-)
-case "$?" in 0) _pass "dim_needs_review_loop=1 + no review trace → block" ;; *) _fail "review-loop consumer regressed" ;; esac
-
-# -------------------------------------------------------------------------
-echo "Case 15: Standard + dim_needs_review_loop=1 + transcript mentions review-loop → silent"
-(
-  _isolate "/tmp/doit-test-gate-c15"
-  _set_state c15 tier Standard last_prompt_kind work dim_needs_review_loop 1
-  tx="$DO_IT_HOOK_DATA/tx.jsonl"
-  _build_transcript "$tx" $'ran review-quick on the delivered surface\ntask done' edit:1 bash:1
-  out=$(_run_gate c15 "$tx" false)
-  [[ -z "$out" ]] || { echo "leaked: $out" >&2; exit 11; }
-)
-case "$?" in 0) _pass "dim_needs_review_loop=1 + review trace → pass" ;; *) _fail "review-loop attestation gate too strict" ;; esac
-
-# -------------------------------------------------------------------------
-echo "Case 16: B1 — a review trace in a PREVIOUS turn does not satisfy this turn"
-(
-  _isolate "/tmp/doit-test-gate-c16"
-  _set_state c16 tier Standard last_prompt_kind work dim_needs_review_loop 1
-  tx="$DO_IT_HOOK_DATA/tx.jsonl"
-  : > "$tx"
-  # Previous turn carries a review-loop trace.
-  jq -nc '{type:"assistant", message:{content:[{type:"text", text:"ran review-quick on the earlier surface"}]}}' >> "$tx"
-  # A user message starts a new turn.
-  jq -nc '{type:"user", message:{content:[{type:"text", text:"now ship the next change"}]}}' >> "$tx"
-  # Current turn: edits + evidence + done, but NO review trace.
-  jq -nc '{type:"assistant", message:{content:[{type:"tool_use", name:"Edit", input:{file_path:"/tmp/x.ts"}}]}}' >> "$tx"
-  jq -nc '{type:"assistant", message:{content:[{type:"tool_use", name:"Bash", input:{command:"pnpm test"}}]}}' >> "$tx"
-  jq -nc '{type:"assistant", message:{content:[{type:"text", text:"task done"}]}}' >> "$tx"
-  out=$(_run_gate c16 "$tx" false)
-  case "$out" in
-    *'"decision":"block"'*'needs a review-loop'*) exit 0 ;;
-    *) echo "stale review trace wrongly passed: $out" >&2; exit 11 ;;
-  esac
-)
-case "$?" in
-  0)  _pass "previous-turn review trace does not satisfy current turn" ;;
-  *)  _fail "B1 staleness: a stale review trace passed a later turn" ;;
-esac
-
-# -------------------------------------------------------------------------
-echo "Case 17: B1 — a review trace in the CURRENT turn (after the user line) passes"
-(
-  _isolate "/tmp/doit-test-gate-c17"
-  _set_state c17 tier Standard last_prompt_kind work dim_needs_review_loop 1
-  tx="$DO_IT_HOOK_DATA/tx.jsonl"
-  : > "$tx"
-  jq -nc '{type:"assistant", message:{content:[{type:"text", text:"older unrelated note"}]}}' >> "$tx"
-  jq -nc '{type:"user", message:{content:[{type:"text", text:"ship the next change"}]}}' >> "$tx"
-  jq -nc '{type:"assistant", message:{content:[{type:"tool_use", name:"Edit", input:{file_path:"/tmp/x.ts"}}]}}' >> "$tx"
-  jq -nc '{type:"assistant", message:{content:[{type:"tool_use", name:"Bash", input:{command:"pnpm test"}}]}}' >> "$tx"
-  jq -nc '{type:"assistant", message:{content:[{type:"text", text:"ran review-quick on the delivered surface; task done"}]}}' >> "$tx"
-  out=$(_run_gate c17 "$tx" false)
-  [[ -z "$out" ]] || { echo "leaked: $out" >&2; exit 11; }
-)
-case "$?" in
-  0)  _pass "current-turn review trace passes" ;;
-  *)  _fail "current-turn review trace wrongly blocked" ;;
-esac
-
-# -------------------------------------------------------------------------
-echo "Case 18: completion false positive — 'this works well' + edits → silent"
-(
-  _isolate "/tmp/doit-test-gate-c18"
-  _set_state c18 tier Standard last_prompt_kind work
-  tx="$DO_IT_HOOK_DATA/tx.jsonl"
-  _build_transcript "$tx" "this works well for our use case" edit:1
-  out=$(_run_gate c18 "$tx" false)
-  [[ -z "$out" ]] || { echo "false positive block: $out" >&2; exit 11; }
-)
-case "$?" in
-  0)  _pass "'this works well' does not trigger completion gate" ;;
-  *)  _fail "completion pattern false-positive on 'works well'" ;;
-esac
-
-# -------------------------------------------------------------------------
-echo "Case 19: 'all set, task done' + edits → block (completion detected)"
-(
-  _isolate "/tmp/doit-test-gate-c19"
-  _set_state c19 tier Standard last_prompt_kind work
-  tx="$DO_IT_HOOK_DATA/tx.jsonl"
-  _build_transcript "$tx" "all set, task done" edit:1
-  out=$(_run_gate c19 "$tx" false)
-  case "$out" in
-    *'"decision":"block"'*) exit 0 ;;
-    *) echo "expected block: $out" >&2; exit 11 ;;
-  esac
-)
-case "$?" in
-  0)  _pass "'all set, task done' triggers gate" ;;
-  *)  _fail "completion phrase not detected" ;;
-esac
-
-# -------------------------------------------------------------------------
-echo "Case 20: skip-flag consumed and cleared after gate run"
-(
-  _isolate "/tmp/doit-test-gate-c20"
-  _set_state c20 tier Standard last_prompt_kind work
-  dir="$DO_IT_HOOK_DATA/sessions/c20"
-  mkdir -p "$dir"
+  dir="$DO_IT_HOOK_DATA/sessions/c10"
   now=$(date +%s)
   printf '%s\n' "$now" > "$dir/skip-gate"
   printf '%s\n' "$now" > "$dir/skip-router"
   printf '%s\n' "$now" > "$dir/skip-grill"
   tx="$DO_IT_HOOK_DATA/tx.jsonl"
-  _build_transcript "$tx" "all set, task done" edit:1
-  out=$(_run_gate c20 "$tx" false)
-  [[ -z "$out" ]] || { echo "skip should pass silently: $out" >&2; exit 11; }
-  for f in router grill gate; do
-    if [[ -f "$dir/skip-$f" ]]; then echo "skip-$f still present" >&2; exit 12; fi
-  done
+  _append_edit > "$tx"
+  _append_text "task done" >> "$tx"
+  [[ -z "$(_run_gate c10 "$tx")" ]]
+  [[ ! -e "$dir/skip-gate" && ! -e "$dir/skip-router" && ! -e "$dir/skip-grill" ]]
 )
-case "$?" in
-  0)  _pass "gate skip consumed; all skip flags cleared" ;;
-  11) _fail "skip-flag path did not pass through" ;;
-  12) _fail "skip flags not cleared after gate" ;;
-  *)  _fail "skip lifecycle test failed (exit $?)" ;;
-esac
+case "$?" in 0) _pass "skip is consumed and cleared";; *) _fail "skip lifecycle";; esac
 
 # -------------------------------------------------------------------------
-echo
+echo "Case 8: Shell evidence and apply_patch edits (Codex/Cursor)"
+(
+  _isolate /tmp/doit-gate-c11
+  _set_state c11 tier Standard last_prompt_kind work
+  tx="$DO_IT_HOOK_DATA/tx.jsonl"
+  _append_edit > "$tx"
+  _append_shell "npm test" >> "$tx"
+  _append_text "tests passed; task done" >> "$tx"
+  [[ -z "$(_run_gate c11 "$tx")" ]]
+)
+case "$?" in 0) _pass "Shell npm test counts as evidence";; *) _fail "Shell evidence";; esac
+
+(
+  _isolate /tmp/doit-gate-c12
+  _set_state c12 tier Standard last_prompt_kind work
+  tx="$DO_IT_HOOK_DATA/tx.jsonl"
+  _append_apply_patch > "$tx"
+  _append_text "ready to merge" >> "$tx"
+  out=$(_run_gate c12 "$tx")
+  [[ "$out" == *'fresh, relevant current-turn proof'* ]]
+)
+case "$?" in 0) _pass "apply_patch without proof blocks";; *) _fail "apply_patch edit detection";; esac
+
+(
+  _isolate /tmp/doit-gate-c13
+  _set_state c13 tier Standard last_prompt_kind work
+  tx="$DO_IT_HOOK_DATA/tx.jsonl"
+  _append_apply_patch > "$tx"
+  _append_shell "npm test" >> "$tx"
+  _append_text "VERIFIED; ready to merge" >> "$tx"
+  [[ -z "$(_run_gate c13 "$tx")" ]]
+)
+case "$?" in 0) _pass "apply_patch + Shell evidence passes";; *) _fail "apply_patch + Shell";; esac
+
 if [[ "$FAIL" -gt 0 ]]; then
   echo "FAILED: $PASS passed, $FAIL failed" >&2
   exit 1
 fi
-echo "Summary: $PASS passed, $FAIL failed"
+
 echo "ok: $PASS tests"

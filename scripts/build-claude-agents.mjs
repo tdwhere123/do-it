@@ -125,6 +125,8 @@ function main() {
   if (!fs.existsSync(agentsDir)) {
     throw new Error(`agents directory missing: ${agentsDir}`);
   }
+  // Prune: outDir must match agents/*.toml exactly (no leftover .md).
+  fs.rmSync(outDir, { recursive: true, force: true });
   fs.mkdirSync(outDir, { recursive: true });
 
   const tomlFiles = fs

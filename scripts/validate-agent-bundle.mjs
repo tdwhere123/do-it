@@ -5,6 +5,7 @@ import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { CORE_SKILLS } from "./skill-tiers.mjs";
+import { rewriteReferenceMarkdown } from "./lib/rewrite-plugin-ref-links.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, "..");
@@ -137,6 +138,25 @@ function pathsMatch(leftPath, rightPath) {
   return leftFiles.every((relativeFile) =>
     sameFile(path.join(leftPath, relativeFile), path.join(rightPath, relativeFile))
   );
+}
+
+/** Source references match plugin copies after packaging link rewrite. */
+function pluginReferencesMatchSource(sourceDir, pluginDir) {
+  if (!fs.existsSync(sourceDir) || !fs.existsSync(pluginDir)) return false;
+  const leftFiles = collectTreeFiles(sourceDir);
+  const rightFiles = collectTreeFiles(pluginDir);
+  if (leftFiles.join("\n") !== rightFiles.join("\n")) return false;
+
+  return leftFiles.every((relativeFile) => {
+    const leftPath = path.join(sourceDir, relativeFile);
+    const rightPath = path.join(pluginDir, relativeFile);
+    if (relativeFile.endsWith(".md")) {
+      const expected = rewriteReferenceMarkdown(fs.readFileSync(leftPath, "utf8"));
+      const actual = fs.readFileSync(rightPath, "utf8");
+      return expected === actual;
+    }
+    return sameFile(leftPath, rightPath);
+  });
 }
 
 function compareSets(label, expected, actual, errors) {
@@ -272,8 +292,13 @@ function validateGeneratedSkills(manifest, errors) {
 
   const refsSource = repoPath("skills/do-it/references");
   const refsPlugin = repoPath("plugins/do-it/skills/references");
-  if (fs.existsSync(refsPlugin) && !pathsMatch(refsSource, refsPlugin)) {
+  if (fs.existsSync(refsPlugin) && !pluginReferencesMatchSource(refsSource, refsPlugin)) {
     errors.push("plugins/do-it/skills/references is not generated from skills/do-it/references");
+  }
+
+  const codexPlugin = readJson("plugins/do-it/.codex-plugin/plugin.json");
+  if (codexPlugin.agents !== "./agents/") {
+    errors.push('plugins/do-it/.codex-plugin/plugin.json must declare agents: "./agents/"');
   }
 }
 
@@ -381,7 +406,7 @@ function validateCursorPlugin(pkg, errors) {
     }
   }
 
-  const allowedSkillDirs = [...CORE_SKILLS, "references"].sort();
+  const allowedSkillDirs = [...CORE_SKILLS, "references", "_index.md"].sort();
   const actualSkillDirs = listNames("plugins/do-it-cursor/skills").sort();
   compareSets("plugins/do-it-cursor/skills", allowedSkillDirs, actualSkillDirs, errors);
 
@@ -398,9 +423,19 @@ function validateCursorPlugin(pkg, errors) {
 
   const refsSource = repoPath("skills/do-it/references");
   const refsCursor = repoPath("plugins/do-it-cursor/skills/references");
-  if (fs.existsSync(refsCursor) && !pathsMatch(refsSource, refsCursor)) {
+  if (fs.existsSync(refsCursor) && !pluginReferencesMatchSource(refsSource, refsCursor)) {
     errors.push(
       "plugins/do-it-cursor/skills/references is not generated from skills/do-it/references"
+    );
+  }
+
+  const cursorIndex = repoPath("plugins/do-it-cursor/skills/_index.md");
+  const generatedIndex = repoPath("dist/claude/skills/_index.core.md");
+  if (!fs.existsSync(cursorIndex)) {
+    errors.push("plugins/do-it-cursor/skills/_index.md is missing");
+  } else if (fs.existsSync(generatedIndex) && !sameFile(generatedIndex, cursorIndex)) {
+    errors.push(
+      "plugins/do-it-cursor/skills/_index.md is not byte-equal to dist/claude/skills/_index.core.md"
     );
   }
 }

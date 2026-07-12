@@ -8,7 +8,7 @@ developer_instructions = """Dispatch (required from parent prompt):
 
 Operate as the do-it path map. Stay in exploration mode and do not edit source files.
 
-Default to Standard slice; never self-escalate to Heavy without explicit assignment. Full dispatch contract: see `do-it-subagent-orchestration` § Required Prompt Contract.
+Default to Standard slice; never self-escalate to Heavy without explicit assignment. Full dispatch contract: see `references/workflow-kernel.md` § Parent Delegation Contract.
 
 Purpose:
 - reduce uncertainty before implementation

@@ -6,6 +6,7 @@ import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { CORE_SKILLS } from "./skill-tiers.mjs";
+import { rewritePluginReferenceLinks } from "./lib/rewrite-plugin-ref-links.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, "..");
@@ -72,6 +73,15 @@ function copySkills() {
     throw new Error(`references missing: ${path.relative(repoRoot, refsSource)}`);
   }
   fs.cpSync(refsSource, path.join(targetDir, "references"), { recursive: true });
+  rewritePluginReferenceLinks(path.join(targetDir, "references"));
+
+  const indexSource = path.join(repoRoot, "dist", "claude", "skills", "_index.core.md");
+  if (!fs.existsSync(indexSource)) {
+    throw new Error(
+      "dist/claude/skills/_index.core.md missing — run `node scripts/build-skills-index.mjs`"
+    );
+  }
+  fs.copyFileSync(indexSource, path.join(targetDir, "_index.md"));
 }
 
 function copyAgents() {
@@ -118,6 +128,8 @@ function copyHooks() {
 }
 
 function buildPluginManifest() {
+  // Match https://cursor.com/schemas/cursor-plugin/plugin.json (additionalProperties: false).
+  // Do not emit Codex-only fields such as `interface`.
   return {
     name: "do-it-cursor",
     displayName: "do-it",
@@ -138,25 +150,10 @@ function buildPluginManifest() {
       "verification",
       "do-it"
     ],
+    category: "Coding",
     skills: "./skills/",
     agents: "./agents/",
-    hooks: "./hooks/hooks.json",
-    interface: {
-      displayName: "do-it",
-      shortDescription: "Risk-routed workflow discipline for Cursor.",
-      longDescription:
-        "Install do-it skills, agents, and hooks for risk-based routing, scoped delegation, review loops, and evidence-backed completion.",
-      developerName: "tdwhere123",
-      category: "Coding",
-      capabilities: ["Skills", "Agents", "Hooks"],
-      websiteURL: "https://github.com/tdwhere123/do-it",
-      defaultPrompt: [
-        "Use do-it-router for this repository task.",
-        "Review this change with do-it-review-loop.",
-        "Close this branch with do-it-verification-gate."
-      ],
-      brandColor: "#2563EB"
-    }
+    hooks: "./hooks/hooks.json"
   };
 }
 

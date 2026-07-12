@@ -21,11 +21,11 @@ experiments, temporary status, and lessons live in `.do-it/worklog/`.
 | Vocabulary | `glossary.md` |
 | Daily or goal history | `.do-it/worklog/` |
 
-Process docs are owned by skills, not this handbook: task-card layout →
-`do-it-planning`, review protocol → `do-it-review-loop`, subagent dispatch →
-`do-it-subagent-orchestration`, execution pipeline → `do-it-router`. The
-handbook update rules live in the `do-it-handbook` SKILL `## Maintenance`
-section.
+Process guidance is owned by skills, not this handbook: decisions and plan cards →
+`do-it-decide`, review protocol → `do-it-review`, delegation →
+`workflow-kernel.md` Parent Delegation Contract, execution routing →
+`do-it-router`. The handbook update rules live in the `do-it-handbook` SKILL
+`## Maintenance` section.
 
 ## How To Update
 

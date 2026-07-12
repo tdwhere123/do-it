@@ -1,0 +1,51 @@
+# Intent objects — concrete code/architecture nouns. Combined with an intent
+# verb in router.sh, they promote a prompt to Standard tier. A bare verb
+# without one of these (and without a path / extension / backtick) stays Light.
+#
+# Format: one term per line. ASCII terms get word-boundary matching; CJK
+# terms get substring matching. Same loader as the hooks/data/*.tsv files.
+# See hooks/lib/keywords.sh._do_it_load_tsv.
+#
+# Keep this list focused: it should fire on "real" technical objects, not on
+# casual mentions. If you find a term creating false positives, remove it.
+
+function
+class
+接口
+api
+endpoint
+schema
+字段
+field
+module
+package
+组件
+component
+service
+controller
+middleware
+中间件
+config
+配置文件
+单元测试
+路由
+handler
+plugin
+插件
+脚本
+container
+容器
+deployment
+部署
+migration
+迁移
+query
+mutation
+listener
+监听器
+queue
+worker
+struct
+trait
+enum
+枚举

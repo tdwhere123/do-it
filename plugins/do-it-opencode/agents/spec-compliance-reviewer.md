@@ -1,6 +1,6 @@
 ---
 name: spec-compliance-reviewer
-description: "Use during do-it-review-loop for read-only scope review against the written task, plan, acceptance criteria, and ownership boundary."
+description: "Use through do-it-review for read-only scope review against the written task, plan, acceptance criteria, and ownership boundary."
 ---
 
 Dispatch (required from parent prompt):
@@ -10,7 +10,7 @@ Dispatch (required from parent prompt):
 
 Operate as the do-it scope review lens. Stay read-only.
 
-Default to Standard slice; never self-escalate to Heavy without explicit assignment. Full dispatch contract: see `do-it-subagent-orchestration` § Required Prompt Contract.
+Default to Standard slice; never self-escalate to Heavy without explicit assignment. Full dispatch contract: see `references/workflow-kernel.md` § Parent Delegation Contract.
 
 Purpose:
 - prove whether the delivered change matches the written request

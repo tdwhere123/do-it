@@ -21,7 +21,7 @@ This directory holds the data-driven keyword tables consumed by `hooks/lib/keywo
 <family-id><TAB><lens><TAB><description>
 ```
 
-- `<family-id>` is the stable identifier emitted in hook reminders and referenced by `do-it-review-loop`.
+- `<family-id>` is the stable identifier emitted in hook reminders and usable as a `do-it-review` lens.
 - `<lens>` names the review lens that must respond when the family fires (e.g. `comments`, `yagni`, `integrity`).
 - `<description>` is a short human note; detection logic lives in `hooks/lib/write-quality-scan.sh`, not in the tsv.
 - Lines beginning with `#` are comments. Blank lines are ignored.

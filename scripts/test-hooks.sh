@@ -31,28 +31,6 @@ json_prompt() {
     '{prompt: $prompt, session_id: $sid, cwd: $cwd}'
 }
 
-json_pretool() {
-  local session_id="$1" cwd="$2" tool_name="$3" file_path="$4" content="${5:-}"
-  jq -nc \
-    --arg sid "$session_id" \
-    --arg cwd "$cwd" \
-    --arg tool "$tool_name" \
-    --arg file_path "$file_path" \
-    --arg content "$content" \
-    '{session_id: $sid, cwd: $cwd, tool_name: $tool, tool_input: {file_path: $file_path, content: $content, new_string: $content}}'
-}
-
-json_pretool_path() {
-  local session_id="$1" cwd="$2" tool_name="$3" path="$4" content="${5:-}"
-  jq -nc \
-    --arg sid "$session_id" \
-    --arg cwd "$cwd" \
-    --arg tool "$tool_name" \
-    --arg path "$path" \
-    --arg content "$content" \
-    '{session_id: $sid, cwd: $cwd, tool_name: $tool, tool_input: {path: $path, content: $content, new_string: $content}}'
-}
-
 json_stop() {
   local session_id="$1" transcript_path="$2"
   jq -nc --arg sid "$session_id" --arg transcript "$transcript_path" \
@@ -85,11 +63,6 @@ run_subagent_stance() {
   json_prompt "$session_id" "$prompt" "$cwd" \
     | jq --arg transcript "$transcript" '. + {transcript_path: $transcript}' \
     | bash hooks/subagent-stance.sh
-}
-
-run_pretool() {
-  local session_id="$1" cwd="$2" tool_name="$3" file_path="$4" content="${5:-x}"
-  json_pretool "$session_id" "$cwd" "$tool_name" "$file_path" "$content" | bash hooks/grill-pretool.sh
 }
 
 run_stop() {
@@ -170,7 +143,8 @@ run_router "$single_heavy_signal_session" "across packages refactor"
 heavy_session="heavy-two-signals"
 run_router "$heavy_session" "Prepare the release schema migration"
 heavy_grill="$(run_grill "$heavy_session" "Prepare the release schema migration")"
-assert_contains "$heavy_grill" "do-it grill (Heavy" "Heavy two-signal prompt should grill"
+assert_contains "$heavy_grill" "do-it grill" "Heavy two-signal prompt should grill"
+assert_contains "$heavy_grill" "heavy-tier" "Heavy grill should cite heavy-tier trigger"
 
 subagent_session="subagent-stance"
 subagent_out="$(run_subagent_stance "$subagent_session" "Fix the delegated test")"
@@ -179,26 +153,6 @@ subagent_repeat="$(run_subagent_stance "$subagent_session" "Continue delegated t
 assert_empty "$subagent_repeat" "subagent stance should be one-shot per session"
 parent_stance="$(json_prompt parent-stance "Fix src/a.ts" "$REPO_ROOT" | bash hooks/subagent-stance.sh)"
 assert_empty "$parent_stance" "parent context should not get subagent stance"
-
-# Handbook bootstrap nudge: first Heavy/Standard code turn in a greenfield
-# project should advise bootstrapping the handbook skeleton.
-greenfield_project="$TMP_ROOT/greenfield-project"
-mkdir -p "$greenfield_project"
-handbook_nudge_session="handbook-nudge"
-run_router "$handbook_nudge_session" "Fix the bug in src/auth.ts" "$greenfield_project"
-handbook_nudge_grill="$(run_grill "$handbook_nudge_session" "Fix the bug in src/auth.ts" "$greenfield_project")"
-assert_contains "$handbook_nudge_grill" "do-it (handbook)" "greenfield Standard code turn should nudge handbook bootstrap"
-[[ "$(state_value "$handbook_nudge_session" handbook_nudged)" == "1" ]] \
-  || fail "handbook nudge should set handbook_nudged=1"
-
-# Existing .do-it/CONTEXT.md should suppress the handbook nudge.
-brownfield_project="$TMP_ROOT/brownfield-project"
-mkdir -p "$brownfield_project/.do-it"
-touch "$brownfield_project/.do-it/CONTEXT.md"
-handbook_suppress_session="handbook-suppress"
-run_router "$handbook_suppress_session" "Implement the logging cleanup" "$brownfield_project"
-handbook_suppress_grill="$(run_grill "$handbook_suppress_session" "Implement the logging cleanup" "$brownfield_project")"
-assert_empty "$handbook_suppress_grill" "existing CONTEXT.md should suppress handbook nudge"
 
 filler="$(printf 'neutral %.0s' {1..70})"
 long_without_hint_session="long-without-hint"
@@ -211,50 +165,6 @@ run_router "$long_with_hint_session" "schema 方案 $filler"
 long_with_hint_grill="$(run_grill "$long_with_hint_session" "schema 方案 $filler")"
 assert_not_contains "$long_with_hint_grill" "do-it grill" "long Standard prompt alone should not grill (long-input trigger removed)"
 
-standard_edit_session="standard-edit"
-run_router "$standard_edit_session" "Implement the source cleanup"
-run_pretool "$standard_edit_session" "$REPO_ROOT" "Write" "$REPO_ROOT/src/example.js" "x" \
-  || fail "Standard source edit should not require .do-it/plans"
-
-durable_plan_project="$TMP_ROOT/durable-plan-project"
-mkdir -p "$durable_plan_project"
-durable_plan_session="durable-plan-request"
-run_router "$durable_plan_session" "先确认修复计划" "$durable_plan_project"
-[[ "$(state_value "$durable_plan_session" durable_plan_required)" == "1" ]] \
-  || fail "explicit Chinese plan-first request should require durable plan"
-if run_pretool "$durable_plan_session" "$durable_plan_project" "Write" "$durable_plan_project/src/example.js" "x" >/dev/null 2>&1; then
-  fail "explicit durable-plan source edit without .do-it/plans should be blocked"
-fi
-
-heavy_edit_session="heavy-edit"
-run_router "$heavy_edit_session" "Prepare the release schema migration"
-if run_pretool "$heavy_edit_session" "$REPO_ROOT" "Write" "$REPO_ROOT/src/example.js" "x" >/dev/null 2>&1; then
-  fail "Heavy source edit without .do-it/plans should be blocked"
-fi
-
-heavy_path_session="heavy-edit-path"
-run_router "$heavy_path_session" "Prepare the release schema migration"
-if json_pretool_path "$heavy_path_session" "$REPO_ROOT" "StrReplace" "$REPO_ROOT/src/example.js" "x" \
-     | bash hooks/grill-pretool.sh >/dev/null 2>&1; then
-  fail "Heavy StrReplace via tool_input.path should be blocked without plan"
-fi
-
-plan_project="$TMP_ROOT/project"
-mkdir -p "$plan_project/.do-it/plans"
-existing_plan="$plan_project/.do-it/plans/existing.md"
-cat > "$existing_plan" <<'MARKDOWN'
-# Existing Plan
-
-## Grill
-
-- already recorded
-MARKDOWN
-
-existing_plan_session="existing-plan"
-run_router "$existing_plan_session" "Prepare the release schema migration" "$plan_project"
-run_pretool "$existing_plan_session" "$plan_project" "Edit" "$existing_plan" "local note without heading" \
-  || fail "Existing plan partial edit should not require repeating ## Grill"
-
 # Dim-aware grill suppression: Standard tier with uncertainty word but no code
 # object (`dim_touches_code=0`) should be treated as discussion and silenced.
 nocode_uncertain_session="nocode-uncertain-grill"
@@ -266,7 +176,7 @@ run_router "$nocode_uncertain_session" "release 我想确认一下"
 nocode_uncertain_grill="$(run_grill "$nocode_uncertain_session" "release 我想确认一下")"
 assert_empty "$nocode_uncertain_grill" "Standard + uncertainty + dim_touches_code=0 should suppress grill"
 
-# Counter-case: same uncertainty word with a code object should still grill.
+# Counter-case: Standard + uncertainty + code object stays silent (Heavy-only grill).
 withcode_session="withcode-uncertain-grill"
 run_router "$withcode_session" "release 我想确认 src/release.ts"
 [[ "$(state_value "$withcode_session" tier)" == "Standard" ]] \
@@ -274,7 +184,7 @@ run_router "$withcode_session" "release 我想确认 src/release.ts"
 [[ "$(state_value "$withcode_session" dim_touches_code)" == "1" ]] \
   || fail "release+file should set dim_touches_code=1"
 withcode_grill="$(run_grill "$withcode_session" "release 我想确认 src/release.ts")"
-assert_contains "$withcode_grill" "do-it grill (uncertainty)" "Standard + uncertainty + dim_touches_code=1 should still grill"
+assert_not_contains "$withcode_grill" "do-it grill" "Standard + uncertainty must not grill after Heavy-only slim"
 
 # ---- advisory nudges (plan-card reliability + existing-codebase) ----
 
@@ -289,13 +199,13 @@ run_grill "$plan_nudge_session" "Prepare the release schema migration" "$nudge_p
   || fail "Heavy turn should set durable_plan_seen"
 run_router "$plan_nudge_session" "ok implement it" "$nudge_project"
 plan_nudge_out="$(run_grill "$plan_nudge_session" "ok implement it" "$nudge_project")"
-assert_contains "$plan_nudge_out" "no .do-it/plans/<slug>.md exists yet" \
-  "post-grill durable work with no plan card should nudge planning"
+assert_contains "$plan_nudge_out" "do-it decide: this is durable coordination work" \
+  "durable coordination without a plan card should nudge decide"
 
 # one-shot: a third turn does not repeat the plan nudge
 run_router "$plan_nudge_session" "continue implementing" "$nudge_project"
 plan_nudge_repeat="$(run_grill "$plan_nudge_session" "continue implementing" "$nudge_project")"
-[[ "$plan_nudge_repeat" != *"no .do-it/plans/<slug>.md exists yet"* ]] \
+[[ "$plan_nudge_repeat" != *"do-it decide: this is durable coordination work"* ]] \
   || fail "plan-card nudge should be one-shot per session"
 
 # with a plan card present, no plan nudge
@@ -307,7 +217,7 @@ run_router "$has_plan_session" "Prepare the release schema migration" "$nudge_ha
 run_grill "$has_plan_session" "Prepare the release schema migration" "$nudge_has_plan" >/dev/null
 run_router "$has_plan_session" "ok implement it" "$nudge_has_plan"
 has_plan_out="$(run_grill "$has_plan_session" "ok implement it" "$nudge_has_plan")"
-[[ "$has_plan_out" != *"no .do-it/plans/<slug>.md exists yet"* ]] \
+[[ "$has_plan_out" != *"do-it decide: this is durable coordination work"* ]] \
   || fail "existing plan card should suppress the planning nudge"
 
 # Port/restore intent emits a one-shot "grep current code first" nudge.

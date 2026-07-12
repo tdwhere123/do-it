@@ -17,9 +17,9 @@ an obstacle to make disappear. When something does not work:
    broken. "I could not verify X" or "this still fails because Y" is a correct,
    useful answer; a false "done" is a defect.
 
-This principle binds the parent agent and every subagent. `do-it-debugging`,
-`do-it-fix-loop`, and `do-it-verification-gate` enforce it at their stages;
-reviewers treat a cover-up as a Blocking finding.
+This principle binds the parent agent and every subagent. `do-it-code-quality`
+(debugging), `do-it-review` (fix), and `do-it-verify` enforce it at their
+stages; reviewers treat a cover-up as a Blocking finding.
 
 ## Write-Time Signals
 

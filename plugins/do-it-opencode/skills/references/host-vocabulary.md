@@ -13,7 +13,7 @@ more than one runtime.
 | skill | A loadable workflow file (`SKILL.md`) | upstream product names |
 | hook | Host-invoked shell gate (`router.sh`, etc.) | "rule", "MCP" |
 | tier | `Light` / `Standard` / `Heavy` routing label | host-specific modes |
-| truth plane | Where evidence was collected (see verification-gate) | "environment" loosely |
+| truth plane | Where evidence was collected (see `verification-gate` hook / `do-it-verify`) | "environment" loosely |
 | system-reminder | Host-injected advisory text from a hook | "notification" |
 
 ## Tool Mapping (by host)
@@ -34,12 +34,12 @@ tool — do not hard-code `Bash` in shared skill text.
 
 | Host | Install entry | Skills path | Hooks path |
 |---|---|---|---|
-| Codex | `do-it setup`, marketplace | `~/.codex/skills/` or project | `~/.codex/hooks/` + `codex-hooks.json` |
-| Claude | plugin manifest | `${CLAUDE_PLUGIN_ROOT}/skills/` | `${CLAUDE_PLUGIN_ROOT}/hooks/hooks.json` |
-| Cursor | marketplace plugin | plugin `skills/` | plugin `hooks/hooks.json` |
-| OpenCode | `opencode.json` plugin | plugin `skills/` | TS plugin events |
+| Codex | plugin marketplace (primary); `do-it setup` optional/legacy | plugin skills or `~/.codex/skills/` | plugin `/hooks` (trust); legacy `$CODEX_HOME/hooks/` |
+| Claude | plugin marketplace (primary) | `${CLAUDE_PLUGIN_ROOT}/skills/` | `${CLAUDE_PLUGIN_ROOT}/hooks/hooks.json` |
+| Cursor | local plugin path / `do-it setup --target=cursor` (primary); Team Import / public marketplace when listed | plugin `skills/` | plugin `hooks/hooks.json` |
+| OpenCode | `opencode.json` plugin (primary) | plugin `skills/` | TS plugin events |
 
-Authoritative install list: `manifest.json`. Doctor: `install/doctor.sh`.
+Authoritative install list: `manifest.json`. Doctor: `install/doctor.sh` (optional CLI path).
 
 ## Truth Planes (live hosts)
 

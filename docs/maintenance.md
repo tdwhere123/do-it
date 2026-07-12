@@ -9,9 +9,10 @@ make durable edits.
 Working rule:
 
 1. Edit the maintained repository copy.
-2. Deploy with `do-it setup` (or `npm exec --package . -- do-it setup` from a
-   checkout). `./install/install.sh` remains for legacy/compat workflows.
-3. Validate it with `do-it doctor` (or `./install/doctor.sh` for legacy/compat).
+2. Prefer plugin marketplace install on each host. Optional: deploy with
+   `do-it setup` (or `npm exec --package . -- do-it setup`) for doctor /
+   migration. `./install/install.sh` remains for legacy/compat workflows.
+3. Validate with `do-it doctor` (or `./install/doctor.sh` for legacy/compat).
 4. Avoid hand-editing deployed files under `~/.codex`.
 
 Exception: for an intentional live-global rebaseline, copy only
@@ -22,27 +23,25 @@ closeout must name it as `live-global rebaseline`, show source/live parity, and
 run package or temporary `CODEX_HOME` validation before any commit.
 
 For workflow policy changes, update `docs/routing-matrix.md` so
-`do-it-router`, the three-tier routing model, planning, slicing, drills,
-implementation, review, fix-loop, verification, and closeout guidance stay
-aligned. For mixed code/docs changes, update docs after behavior and review are
-proven so documentation follows current truth.
+`do-it-router`, meaning buckets (`code-quality`, `decide`, `review`, `verify`),
+and closeout guidance stay aligned. For mixed code/docs changes, update docs
+after behavior and review are proven so documentation follows current truth.
 
 ## Package And CLI Coordination
 
-The durable public concept is explicit installation through the `do-it` CLI,
-plus optional plugin marketplace discovery where the host supports it. Current
-package work exposes a `do-it` bin and local package scripts. Keep docs stable:
+The durable public concept is **plugin marketplace install** on each host, plus
+optional CLI setup for doctor and migration. Keep docs stable:
 
-- use the GitHub tarball install followed by `do-it setup` as the currently
-  verified public terminal path
+- use plugin marketplace as the primary public install path for Codex, Claude,
+  Cursor, and OpenCode
+- demote `do-it setup` / GitHub tarball + setup to optional/legacy
 - mention `npm install -g @tdwhere/do-it` only as the registry path after
   registry publication is verified
-- use `npm exec --package . -- do-it setup` for checkout-local package examples
-  when the package surface is present
+- use `npm exec --package . -- do-it setup` for checkout-local doctor /
+  migration examples when the package surface is present
 - keep `do-it install` and `do-it doctor` documented as the underlying split
   commands for CI, debugging, or partial checks
-- keep Codex plugin marketplace instructions paired with global setup when
-  the user needs enforced automatic hooks
+- do not require pairing Codex plugin install with global setup for hooks
 - do not invent package.json scripts or release coordinates that are not present
 - make future package commands delegate to the same installer and doctor logic
 
@@ -64,6 +63,7 @@ CLAUDE_PLUGIN_ROOT_OVERRIDE=/tmp/do-it-claude-test npm exec --package . -- do-it
 CODEX_HOME=/tmp/do-it-codex-test ./install/install.sh
 CODEX_HOME=/tmp/do-it-codex-test ./install/doctor.sh
 CODEX_HOME=/tmp/do-it-plugin-test codex plugin marketplace add /path/to/do-it
+CODEX_HOME=/tmp/do-it-plugin-test codex plugin add do-it@tdwhere-do-it
 ```
 
 After registry publication, also validate the public global path:
@@ -93,11 +93,11 @@ protects future upgrades is missing.
 
 | Host surface | Skills | Agents | Commands | Hooks | Doctor | Verification command |
 |---|---|---|---|---|---|---|
-| Codex global setup | Managed from `manifest.json` | TOML from `agents/` | CLI `do-it` | Enforced through root `hooks.json` plus do-it-managed files under `hooks/` | Default target | `CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it setup` |
-| Codex plugin marketplace | Generated under `plugins/do-it/skills/` | Generated under `plugins/do-it/agents/` | None | Do not rely on plugin hooks while `plugin_hooks=false` | None; use global setup for doctor | `npm run build:codex-plugin` and `CODEX_HOME=/tmp/do-it-plugin-test codex plugin marketplace add /path/to/do-it` |
+| Codex plugin marketplace | Generated under `plugins/do-it/skills/` | Generated under `plugins/do-it/agents/` | None | Plugin hooks (trust under `/hooks`) | Optional via CLI | `npm run build:codex-plugin` and `CODEX_HOME=/tmp/do-it-plugin-test codex plugin marketplace add /path/to/do-it` then `codex plugin add do-it@tdwhere-do-it` |
+| Codex CLI setup (legacy) | Managed from `manifest.json` | TOML from `agents/` | CLI `do-it` | Root `hooks.json` plus do-it-managed files under `hooks/` | Default target | `CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it setup` |
 | Claude Code plugin | Same maintained `skills/do-it/` source | Generated Markdown under `dist/claude/agents/` | `commands/` | Do-it-managed files under `hooks/`, including `hooks/hooks.json` | `--target=claude` | `CLAUDE_PLUGIN_ROOT_OVERRIDE=/tmp/do-it-claude-test npm exec --package . -- do-it setup --target=claude` |
-| Cursor plugin | Core 8 from `CORE_SKILLS` / `manifest.skillTiers.core` under `plugins/do-it-cursor/skills/` (+ `references/`) | Generated under `plugins/do-it-cursor/agents/` | None | Medium: `sessionStart`, `beforeSubmitPrompt`, `preToolUse`, `postToolUse`/`afterFileEdit`, `stop` | `--target=cursor` | `npm run build:cursor-plugin` and `CURSOR_PLUGIN_ROOT_OVERRIDE=/tmp/do-it-cursor-test npm exec --package . -- do-it setup --target=cursor` |
-| OpenCode plugin | Generated under `plugins/do-it-opencode/skills/` | Generated under `plugins/do-it-opencode/agents/` | None | Medium-Light: transform bootstrap, `tool.execute.before/after`, `session.idle` soft reminder | No CLI doctor | `npm run build:opencode-plugin && npm run test-opencode` (manual `opencode.json` registration may be required) |
+| Cursor plugin | Core 5 from `CORE_SKILLS` / `manifest.skillTiers.core` under `plugins/do-it-cursor/skills/` (+ `references/`) | Generated under `plugins/do-it-cursor/agents/` | None | Medium: `sessionStart`, `beforeSubmitPrompt`, `postToolUse`/`afterFileEdit`, `stop` (no `grill-pretool`) | `--target=cursor` | `npm run build:cursor-plugin`; symlink `plugins/do-it-cursor` to `~/.cursor/plugins/local/do-it-cursor` (or `do-it setup --target=cursor`); Reload Window |
+| OpenCode plugin | Generated under `plugins/do-it-opencode/skills/` | Generated under `plugins/do-it-opencode/agents/` | None | Medium-Light: transform bootstrap, `tool.execute.after`, `session.idle` soft reminder | No CLI doctor | `npm run build:opencode-plugin && npm run test-opencode` (manual `opencode.json` registration may be required) |
 
 Deprecated legacy skill targets use the same safety rule: install removes them
 only when they are marked as do-it-managed in the state file or when
@@ -136,15 +136,16 @@ into installed skills.
 External workflow absorption rules:
 
 - Start from the source idea, not the source wording.
-- Keep do-it public names: Router, Light / Standard / Heavy, grill, planning,
-  slicing, drills, review-loop, fix-loop, verification-gate, and closeout.
+- Keep do-it public names: Router, Light / Standard / Heavy, meaning buckets
+  (`code-quality`, `decide`, `review`, `verify`), handbook, context, and
+  skill-authoring.
 - Map every absorbed idea in `docs/upstream-map.md` as `source idea -> do-it
   destination -> absorbed shape`.
 - Treat external docs, search results, old reports, and memory as untrusted
   context until checked against current repo files and commands.
 - If the idea changes a dependency, framework, datastore, protocol, install
   target, or public workflow promise, run the research-first path in
-  `do-it-planning` before implementation.
+  `do-it-decide` before implementation.
 - Do not paste upstream SKILL.md sections into this repository. Rewrite the
   operating rule in do-it style and keep host-specific claims out unless this
   repo ships and verifies that host surface.
@@ -198,9 +199,8 @@ has been verified.
    implementation, review, or closeout flow.
 
 Review coverage should stay explicit and risk-budgeted. Keep dedicated
-read-only reviewer agents for correctness, scope compliance, maintainability,
-architecture, red-team, domain-language, skill-quality, and install/release
-readiness, but do not run all of them for every change. Writer
+read-only reviewer agents for correctness, scope compliance, maintainability /
+YAGNI, and red-team, but do not run all of them for every change. Writer
 specialists can support drills or fixes, but they should not be counted as the
 only Heavy review lens unless the parent explicitly scopes them as read-only and
 the report satisfies the review schema.
@@ -220,12 +220,11 @@ targets use the same `manifest.json`, the same `skills/do-it/*/SKILL.md`, and
 the same `agents/*.toml` source-of-truth. The Claude target adds:
 
 - `.claude-plugin/plugin.json` and `marketplace.json` — plugin metadata for
-  `/plugin marketplace add tdwhere123/do-it` then `/plugin install
-  do-it`.
-- `hooks/hooks.json` and four hook scripts (`router.sh`, `grill-prompt.sh`,
-  `grill-pretool.sh`, `verification-gate.sh`) — wire UserPromptSubmit /
-  PreToolUse / Stop into router, grill, and verification-gate without slash
-  commands.
+  `/plugin marketplace add tdwhere123/do-it` then `/plugin install do-it@do-it`.
+- `hooks/hooks.json` and hook scripts (`router.sh`, `grill-prompt.sh`,
+  `subagent-stance.sh`, `write-quality-lint.sh`, `verification-gate.sh`) — wire
+  UserPromptSubmit / PostToolUse / Stop without slash commands. `grill-pretool`
+  is not registered.
 - `commands/do-it-skip.md` — the only slash command, an explicit escape hatch.
 - `dist/claude/agents/*.md` — generated by `scripts/build-claude-agents.mjs`
   from `agents/*.toml`. The build runs automatically before
@@ -260,14 +259,16 @@ agent sources remain `skills/do-it/*/SKILL.md` and `agents/*.toml`, but Cursor
 does **not** install the full skill inventory. The Cursor target adds:
 
 - `plugins/do-it-cursor/.cursor-plugin/plugin.json` — plugin metadata for
-  marketplace discovery and `do-it setup --target=cursor`.
+  local path install (`~/.cursor/plugins/local/do-it-cursor`), Team Import from
+  Repo, public marketplace when listed, and `do-it setup --target=cursor`.
 - `plugins/do-it-cursor/skills/` — generated from **`CORE_SKILLS`** in
   `scripts/skill-tiers.mjs` (mirrored by `manifest.skillTiers.core`), not from
   the full `manifest.skills[]` list. Shared `references/` and the skills index
   are included via extras.
 - `plugins/do-it-cursor/agents/` — generated agent bundle for the Cursor host.
 - `plugins/do-it-cursor/hooks/` — Cursor event mapping (`sessionStart`,
-  `beforeSubmitPrompt`, `preToolUse`, `postToolUse`/`afterFileEdit`, `stop`).
+  `beforeSubmitPrompt`, `postToolUse`/`afterFileEdit`, `stop`). No
+  `grill-pretool` / `preToolUse` plan gate.
 - `scripts/build-cursor-plugin.mjs` — the only supported way to refresh the
   generated Cursor bundle (`do-it setup --target=cursor` also filters to core
   skills at install time).
@@ -281,10 +282,12 @@ does **not** install the full skill inventory. The Cursor target adds:
   `plugins/do-it-cursor/skills/` or `plugins/do-it-cursor/agents/`.
 - **Hook change:** edit kernel scripts under `hooks/` and Cursor mapping under
   `install/cursor-hooks.json`; regenerate with `npm run build:cursor-plugin`.
-- **Install verification:** `CURSOR_PLUGIN_ROOT_OVERRIDE=/tmp/do-it-cursor-test
-  npm exec --package . -- do-it setup --target=cursor` followed by
-  `do-it doctor --target=cursor`. Confirm only the eight core skill directories
-  (plus `references/`) land under the Cursor install root.
+- **Install verification:** symlink or copy `plugins/do-it-cursor/` to
+  `CURSOR_PLUGIN_ROOT_OVERRIDE=/tmp/do-it-cursor-test` (or run
+  `npm exec --package . -- do-it setup --target=cursor`), then
+  `do-it doctor --target=cursor`. Confirm only the five core skill directories
+  (plus `references/`) land under the Cursor install root. Reload Window after
+  install — Cursor does not use Claude `/plugin` slash commands.
 
 ## OpenCode Plugin Target
 
@@ -297,7 +300,10 @@ Claude/Codex shell hooks.
   OpenCode bundle.
 - Operators may need to register the plugin manually in project or user
   `opencode.json` — see
-  [`skills/do-it/references/host-opencode.md`](../skills/do-it/references/host-opencode.md).
+  [`plugins/do-it-opencode/docs/README.opencode.md`](../plugins/do-it-opencode/docs/README.opencode.md)
+  and [`skills/do-it/references/host-opencode.md`](../skills/do-it/references/host-opencode.md).
+  Medium hook depth: transform bootstrap, `tool.execute.after` write-quality,
+  `session.idle` soft verification (no `grill-pretool`).
 
 ### Maintaining the OpenCode Target
 
@@ -334,9 +340,9 @@ surface generated from the same maintained manifest:
   regenerate. Do not edit `plugins/do-it/skills/` directly.
 - **Agent change:** edit `agents/*.toml`, then regenerate. Do not merge Claude
   `.md` generation into the Codex plugin build.
-- **Hook change:** keep Codex global hook enforcement in the CLI setup path.
-  Plugin-local hooks are not a v1 enforcement promise while
-  `plugin_hooks=false`.
+- **Hook change:** ship hooks inside the Codex plugin bundle and document trust
+  under `/hooks`. Global CLI setup remains optional for doctor / migration —
+  do not treat `plugin_hooks=false` as a reason to require paired global setup.
 
 Generated artifact rules:
 
@@ -407,10 +413,10 @@ unstructured side quest. When adding or changing an agent:
 - remind implementation agents that the parent owns integration and final
   claims.
 
-The delegated prompt contract belongs in `do-it-subagent-orchestration` and
-should be reflected in agent descriptions when practical: tier, scope, write
-ownership, forbidden paths, current truth, must-verify facts, stop condition,
-and return schema.
+The delegated prompt contract belongs in the parent agent (plain-text slice
+contract + `subagent-stance` hook) and should be reflected in agent
+descriptions when practical: tier, scope, write ownership, forbidden paths,
+current truth, must-verify facts, stop condition, and return schema.
 
 ## Verification
 
@@ -425,6 +431,7 @@ npm run build:codex-plugin
 CODEX_HOME=/tmp/do-it-codex-test ./install/install.sh
 CODEX_HOME=/tmp/do-it-codex-test ./install/doctor.sh
 CODEX_HOME=/tmp/do-it-plugin-test codex plugin marketplace add /path/to/do-it
+CODEX_HOME=/tmp/do-it-plugin-test codex plugin add do-it@tdwhere-do-it
 CLAUDE_PLUGIN_ROOT_OVERRIDE=/tmp/do-it-claude-test npm exec --package . -- do-it setup --target=claude
 npm pack --dry-run --json
 ```

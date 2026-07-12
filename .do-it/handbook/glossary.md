@@ -15,9 +15,9 @@ Canonical terms for the **do-it** project. Prefer these in skills, agents, and h
 
 | Term | Meaning |
 | --- | --- |
-| **diverge** | `do-it-brainstorm` — options map, no final pick |
-| **converge** | `do-it-grill` — premises, necessity, user decisions |
-| **plan-challenger** | Grill sub-lens only; challenges scope/acceptance/route |
+| **diverge** | `do-it-decide` diverge mode — brief options map, no final pick |
+| **converge** | `do-it-decide` converge / pressure-test — premises, necessity, user decisions |
+| **plan-challenger** | Decide sub-lens only; challenges scope/acceptance/route |
 | **failure-mode forecast** | Named risk classes before Standard/Heavy edits |
 | **path map** | `producer → contract → transport → consumer → surface → verification` |
 

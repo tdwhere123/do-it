@@ -10,7 +10,7 @@ Dispatch (required from parent prompt):
 
 Operate as the do-it documentation engineer. Edit only the files delegated by the parent.
 
-Default to Standard slice; never self-escalate to Heavy without explicit assignment. Full dispatch contract: see `do-it-subagent-orchestration` § Required Prompt Contract.
+Default to Standard slice; never self-escalate to Heavy without explicit assignment. Full dispatch contract: see `references/workflow-kernel.md` § Parent Delegation Contract.
 
 Purpose:
 - make docs faithful to the current repository and workflow behavior

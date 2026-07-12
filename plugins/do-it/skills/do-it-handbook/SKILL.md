@@ -21,7 +21,7 @@ temporary `code-mapper` dispatch; they are not maintained in a persistent
 - The user explicitly asks to bootstrap a handbook (`/do-it-handbook init`, "建 handbook", "set up the handbook").
 - The project is starting to grow beyond a single CLAUDE.md and the team is rediscovering the same terms each turn.
 - A new contributor (human or agent) keeps asking what counts as a `Blocking` finding, or where the architecture invariants live.
-- The router selects Standard or Heavy for a code-touching turn and neither `.do-it/handbook/` nor `.do-it/CONTEXT.md` exists yet — this is the automatic bootstrap trigger.
+- Stable project truth is repeatedly rediscovered and a small shared home would prevent future drift.
 
 Skip when:
 
@@ -50,7 +50,7 @@ artifacts.
 
 ## Bootstrap Behavior
 
-When invoked (explicit command, `/do-it-handbook`, or automatic router trigger):
+When explicitly invoked (`/do-it-handbook` or a user request):
 
 1. Check whether `.do-it/handbook/` exists.
    - If it does **and** every file from the template list is present, report `handbook is current` and stop.
@@ -75,12 +75,12 @@ Do **not**:
 | | Owns | Reads from handbook |
 |---|---|---|
 | `do-it-context` | `.do-it/CONTEXT.md` (active sediment) | `glossary.md` (long-stable terms) |
-| `do-it-architecture-scan` | inline review output | `architecture.md`, `invariants.md` |
-| `do-it-grill` | `.do-it/grill/<task>.md` | `invariants.md`, `glossary.md` |
-| `do-it-review-loop` | review protocol / findings (inline or parent agent consumption) | `invariants.md` |
+| `do-it-code-quality` | inline review output | `architecture.md`, `invariants.md` |
+| `do-it-decide` | `.do-it/grill/<task>.md` | `invariants.md`, `glossary.md` |
+| `do-it-review` | review protocol / findings (inline or parent agent consumption) | `invariants.md` |
 
-`do-it-planning` owns the task-card layout itself, `do-it-review-loop` owns the
-review protocol, and `do-it-subagent-orchestration` owns the dispatch contract —
+`do-it-decide` owns the task-card layout itself, `do-it-review` owns the
+review protocol, and `do-it-router` owns the dispatch contract —
 none of them read a handbook copy. The handbook only feeds them project-specific
 truth (`invariants.md`, `glossary.md`, `architecture.md`).
 
@@ -88,16 +88,14 @@ The handbook is read-mostly. Routine progress, experiments, lessons, and
 day-level status go to worklogs; promote only stable facts back into the
 handbook.
 
-## Term Promotion Rule (`.do-it/CONTEXT.md` ↔ `glossary.md`)
+## Term Ownership (`.do-it/CONTEXT.md` ↔ `glossary.md`)
 
-To prevent drift between the active sediment and the stable glossary:
+Keep one home per term:
 
-- A new term enters `.do-it/CONTEXT.md` (the per-session sediment owned by `do-it-context`).
-- After it has been stable for **three** independent sessions (i.e., the same definition has held without revision in three different grill or planning artifacts), it is promoted to `glossary.md`.
-- After promotion, remove the entry from `.do-it/CONTEXT.md` to avoid two homes for the same term.
-- A term that gets revised after promotion comes back to `.do-it/CONTEXT.md` and re-runs the three-session check.
-
-This rule is enforced by the agent during `do-it-context` writes, not by tooling. Stating it once here keeps both files honest.
+- `.do-it/CONTEXT.md` holds terse, active terms and invariants that agents need during current work.
+- `glossary.md` holds terminology the project intends to preserve across long-lived docs and architecture.
+- Promote a term when it has become stable project vocabulary, not after an arbitrary session count.
+- After promotion, replace the context entry with a pointer or remove it; if the definition changes, update the glossary and current context together.
 
 ## Maintenance
 
@@ -119,8 +117,7 @@ Update triggers:
 - **Invariant changed** → open a task card citing the invariant number; after
   landing, sweep for contradictions and file backlog issues for any you cannot
   fix in the same change.
-- **Term stabilized** → promote `.do-it/CONTEXT.md` → `glossary.md` per the
-  three-session rule above.
+- **Term stabilized** → promote `.do-it/CONTEXT.md` → `glossary.md` when it is durable project vocabulary; leave one canonical home.
 
 Keep any single handbook file under ~15 KB. Worklogs may be archived by day or
 goal; do not require routine agents to read old worklogs unless the active
@@ -150,11 +147,11 @@ Idempotent re-runs print only the files actually written; an empty list means th
 - Copying the templates and then immediately auto-filling them from the codebase. The placeholders are intentional — they prompt the human owner to make the call.
 - Recreating a persistent code map. Code locations are cheap to rediscover and
   expensive to keep current.
-- Promoting every term from `.do-it/CONTEXT.md` to `glossary.md` as soon as it appears. The three-session rule exists because most session terms do not survive review.
+- Promoting every term from `.do-it/CONTEXT.md` to `glossary.md` as soon as it appears. Promote only vocabulary that should remain stable across project documentation.
 
 ## Related Skills
 
 - `do-it-context` — owns active sediment; promotes terms to `glossary.md`.
-- `do-it-architecture-scan` — reads `architecture.md` and `invariants.md`.
-- `do-it-grill` — reads `invariants.md` and `glossary.md` for term anchoring.
-- `do-it-planning` / `do-it-review-loop` / `do-it-subagent-orchestration` — own their task-card layout / review protocol / dispatch contract directly; the handbook no longer carries a copy.
+- `do-it-code-quality` — reads `architecture.md` and `invariants.md`.
+- `do-it-decide` — reads `invariants.md` and `glossary.md` for term anchoring.
+- `do-it-decide` / `do-it-review` / `do-it-router` — own their task-card layout / review protocol / dispatch contract directly; the handbook no longer carries a copy.

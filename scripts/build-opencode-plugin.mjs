@@ -6,6 +6,7 @@ import path from "node:path";
 import process from "node:process";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { rewritePluginReferenceLinks } from "./lib/rewrite-plugin-ref-links.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, "..");
@@ -16,7 +17,15 @@ const pluginRoot = path.join(repoRoot, "plugins", "do-it-opencode");
 const skillsSource = path.join(repoRoot, "skills", "do-it");
 const agentsSource = path.join(repoRoot, "dist", "claude", "agents");
 const hooksSource = path.join(repoRoot, "hooks");
-const hookScripts = ["grill-pretool.sh", "write-quality-lint.sh", "verification-gate.sh"];
+const hookScripts = [
+  "router.sh",
+  "grill-prompt.sh",
+  "subagent-stance.sh",
+  "write-quality-lint.sh",
+  "verification-gate.sh",
+  "anti-patterns-lint.sh",
+  "comments-lint.sh"
+];
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf8"));
@@ -44,6 +53,7 @@ function copySkills() {
   const targetDir = path.join(pluginRoot, "skills");
   fs.rmSync(targetDir, { recursive: true, force: true });
   fs.cpSync(skillsSource, targetDir, { recursive: true });
+  rewritePluginReferenceLinks(path.join(targetDir, "references"), { hasHooksJson: false });
 
   const indexScript = path.join(repoRoot, "scripts", "build-skills-index.mjs");
   if (fs.existsSync(indexScript)) {
@@ -54,7 +64,7 @@ function copySkills() {
     if (result.status !== 0) {
       throw new Error(`build-skills-index failed: ${result.stderr || result.stdout}`);
     }
-    const generatedIndex = path.join(repoRoot, "plugins", "do-it", "skills", "_index.md");
+    const generatedIndex = path.join(repoRoot, "dist", "claude", "skills", "_index.md");
     if (fs.existsSync(generatedIndex)) {
       fs.copyFileSync(generatedIndex, path.join(targetDir, "_index.md"));
     }

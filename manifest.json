@@ -1,26 +1,14 @@
 {
-  "version": "0.13.1",
+  "version": "0.14.0",
   "skillTiers": {
     "core": [
       "do-it-router",
-      "do-it-grill",
-      "do-it-planning",
-      "do-it-tdd",
-      "do-it-review-loop",
-      "do-it-fix-loop",
-      "do-it-verification-gate",
-      "do-it-subagent-orchestration"
+      "do-it-code-quality",
+      "do-it-review",
+      "do-it-decide",
+      "do-it-verify"
     ],
     "extended": [
-      "do-it-brainstorm",
-      "do-it-architecture-scan",
-      "do-it-codebase-design",
-      "do-it-interface-drill",
-      "do-it-debugging",
-      "do-it-slicing",
-      "do-it-comments-discipline",
-      "do-it-worktree-isolation",
-      "do-it-branch-closeout",
       "do-it-handbook",
       "do-it-context",
       "do-it-skill-authoring"
@@ -62,6 +50,10 @@
     {
       "from": "0.12.x",
       "actions": []
+    },
+    {
+      "from": "0.13.x",
+      "actions": []
     }
   ],
   "targets": {
@@ -102,12 +94,6 @@
           "kind": "directory",
           "source": "skills/do-it/references",
           "target": "skills/references"
-        },
-        {
-          "name": "hooks-grill-pretool",
-          "kind": "file",
-          "source": "hooks/grill-pretool.sh",
-          "target": "hooks/grill-pretool.sh"
         },
         {
           "name": "hooks-grill-prompt",
@@ -218,12 +204,6 @@
           "kind": "directory",
           "source": "skills/do-it/references",
           "target": "skills/references"
-        },
-        {
-          "name": "hooks-grill-pretool",
-          "kind": "file",
-          "source": "hooks/grill-pretool.sh",
-          "target": "hooks/grill-pretool.sh"
         },
         {
           "name": "hooks-grill-prompt",
@@ -343,12 +323,6 @@
           "target": "skills/references"
         },
         {
-          "name": "hooks-grill-pretool",
-          "kind": "file",
-          "source": "hooks/grill-pretool.sh",
-          "target": "hooks/grill-pretool.sh"
-        },
-        {
           "name": "hooks-grill-prompt",
           "kind": "file",
           "source": "hooks/grill-prompt.sh",
@@ -410,7 +384,7 @@
       "legacyHashes": [
         "55d0dece3e093868722f24ce228f59cdc1ea4118d02a8578bcf59cea403ebf4e"
       ],
-      "reason": "absorbed into do-it-grill and do-it-router"
+      "reason": "absorbed into do-it-decide and do-it-router"
     },
     {
       "name": "quality-workflow-router",
@@ -426,7 +400,7 @@
       "legacyHashes": [
         "0574c61fca666ea6a2399283233606dc7e6b997d919788862714f633cedcc652"
       ],
-      "reason": "absorbed into do-it-grill"
+      "reason": "absorbed into do-it-decide"
     },
     {
       "name": "agentic-tdd-execution",
@@ -434,7 +408,7 @@
       "legacyHashes": [
         "1d91834b9a041ace828b67f1bdc49aa1ab30536b3f8f040f9a4d4608553b9564"
       ],
-      "reason": "absorbed into do-it-router, do-it-tdd, and do-it-subagent-orchestration"
+      "reason": "absorbed into do-it-router, do-it-code-quality, and parent delegation (workflow-kernel)"
     },
     {
       "name": "multi-perspective-review",
@@ -442,7 +416,7 @@
       "legacyHashes": [
         "cba1a86bc493b19cf27b27499faa8098503f6d139768b0a7e6ce9dff7b6c365f"
       ],
-      "reason": "absorbed into do-it-review-loop and the do-it reviewer agent set"
+      "reason": "absorbed into do-it-review and the do-it reviewer agent set"
     },
     {
       "name": "verification-before-completion",
@@ -450,7 +424,7 @@
       "legacyHashes": [
         "48e8432dd21874a4e71441666a31bbb39af6cf089fda9285bcf2128fc6dc92c7"
       ],
-      "reason": "absorbed into do-it-verification-gate"
+      "reason": "absorbed into do-it-verify (+ verification-gate hook)"
     },
     {
       "name": "finishing-a-development-branch",
@@ -458,7 +432,7 @@
       "legacyHashes": [
         "db2532293f335f6734aed3803185375523941626ef0d35bf5322e50534bc0da8"
       ],
-      "reason": "absorbed into do-it-branch-closeout and do-it-verification-gate"
+      "reason": "absorbed into do-it-verify (+ verification-gate hook)"
     },
     {
       "name": "requesting-code-review",
@@ -466,7 +440,7 @@
       "legacyHashes": [
         "11b6fb1b76ea63c141700f2a23f58b9eb080f4a309de93413afc5603d3a520fa"
       ],
-      "reason": "absorbed into do-it-review-loop"
+      "reason": "absorbed into do-it-review"
     },
     {
       "name": "receiving-code-review",
@@ -474,7 +448,7 @@
       "legacyHashes": [
         "b90b1e180f11fa06053fc0f9fb0a957935dce35168897d1aff6be33e14545b3e"
       ],
-      "reason": "absorbed into do-it-review-loop and do-it-fix-loop"
+      "reason": "absorbed into do-it-review"
     },
     {
       "name": "systematic-debugging",
@@ -482,7 +456,7 @@
       "legacyHashes": [
         "7117bbc142b0d48f653a8720dc168ab500e751c0e9ae8c7a45f90302fa269d57"
       ],
-      "reason": "absorbed into do-it-debugging and do-it-fix-loop"
+      "reason": "absorbed into do-it-code-quality and do-it-review"
     },
     {
       "name": "test-driven-development",
@@ -490,7 +464,7 @@
       "legacyHashes": [
         "e647a888d27815e31a73f05f131542870e2f9aa2bf36bb7b25eee0d34287f997"
       ],
-      "reason": "absorbed into do-it-tdd"
+      "reason": "absorbed into do-it-code-quality"
     },
     {
       "name": "using-git-worktrees",
@@ -498,7 +472,7 @@
       "legacyHashes": [
         "898e7cff32ffbc562afbca2cb858aaf9d4f7190817c5881405f1f7b5bf55e789"
       ],
-      "reason": "absorbed into do-it-worktree-isolation"
+      "reason": "absorbed into do-it-code-quality"
     },
     {
       "name": "subagent-driven-development",
@@ -506,7 +480,7 @@
       "legacyHashes": [
         "0b2f86263c54ee7afd99fbd5204cc043528ad2d61856b701fa3d71441178538e"
       ],
-      "reason": "absorbed into do-it-subagent-orchestration"
+      "reason": "absorbed into parent delegation (workflow-kernel)"
     },
     {
       "name": "writing-plans",
@@ -514,7 +488,7 @@
       "legacyHashes": [
         "1dd9a7f0f8b51f914722acf613424a78d1e7e52b5fff43ae1f63b40b6c6f25ce"
       ],
-      "reason": "absorbed into do-it-planning, do-it-slicing, and do-it-grill"
+      "reason": "absorbed into do-it-decide"
     },
     {
       "name": "do-it-delivery-loop",
@@ -522,7 +496,7 @@
       "legacyHashes": [
         "15619616cf9b0d82f74f81e472ad1669b5cc23f56b8b6adb31d9e33ddb16d79e"
       ],
-      "reason": "removed after 0.4.x; use do-it-router plus focused planning, TDD/debugging, review-loop, fix-loop, and verification-gate as needed"
+      "reason": "removed after 0.4.x; use do-it-router plus do-it-code-quality, do-it-review, and do-it-verify as needed"
     },
     {
       "name": "do-it-grill-log",
@@ -530,7 +504,7 @@
       "legacyHashes": [
         "3d78d21c9cf63494773970273e750a7893d8dafc78992ce8a02bb01a417dd276"
       ],
-      "reason": "folded into do-it-grill as the Grill Log Artifact section"
+      "reason": "folded into do-it-decide Grill mode (premise pressure + optional durable notes)"
     },
     {
       "name": "do-it-domain-language",
@@ -546,7 +520,174 @@
       "legacyHashes": [
         "d9a5232ded1eb64340d1698cce5e55b6e6c0a93046ce0f77458df0f8faa0936a"
       ],
-      "reason": "auxiliary skill folded into do-it-planning as the Visual Aids section; visual companion relocated under do-it-planning"
+      "reason": "folded into do-it-decide Plan mode; use shortest plan card fields when a durable handoff is needed"
+    },
+    {
+      "name": "do-it-planning",
+      "kind": "skill",
+      "target": "skills/do-it-planning",
+      "reason": "0.14 hard deletion; absorbed by the eight meaning-centric skills"
+    },
+    {
+      "name": "do-it-slicing",
+      "kind": "skill",
+      "target": "skills/do-it-slicing",
+      "reason": "0.14 hard deletion; absorbed by the eight meaning-centric skills"
+    },
+    {
+      "name": "do-it-grill",
+      "kind": "skill",
+      "target": "skills/do-it-grill",
+      "reason": "0.14 hard deletion; absorbed by the eight meaning-centric skills"
+    },
+    {
+      "name": "do-it-brainstorm",
+      "kind": "skill",
+      "target": "skills/do-it-brainstorm",
+      "reason": "0.14 hard deletion; absorbed by the eight meaning-centric skills"
+    },
+    {
+      "name": "do-it-architecture-scan",
+      "kind": "skill",
+      "target": "skills/do-it-architecture-scan",
+      "reason": "0.14 hard deletion; absorbed by the eight meaning-centric skills"
+    },
+    {
+      "name": "do-it-codebase-design",
+      "kind": "skill",
+      "target": "skills/do-it-codebase-design",
+      "reason": "0.14 hard deletion; absorbed by the eight meaning-centric skills"
+    },
+    {
+      "name": "do-it-interface-drill",
+      "kind": "skill",
+      "target": "skills/do-it-interface-drill",
+      "reason": "0.14 hard deletion; absorbed by the eight meaning-centric skills"
+    },
+    {
+      "name": "do-it-tdd",
+      "kind": "skill",
+      "target": "skills/do-it-tdd",
+      "reason": "0.14 hard deletion; absorbed by the eight meaning-centric skills"
+    },
+    {
+      "name": "do-it-debugging",
+      "kind": "skill",
+      "target": "skills/do-it-debugging",
+      "reason": "0.14 hard deletion; absorbed by the eight meaning-centric skills"
+    },
+    {
+      "name": "do-it-subagent-orchestration",
+      "kind": "skill",
+      "target": "skills/do-it-subagent-orchestration",
+      "reason": "0.14 hard deletion; absorbed by the eight meaning-centric skills"
+    },
+    {
+      "name": "do-it-review-loop",
+      "kind": "skill",
+      "target": "skills/do-it-review-loop",
+      "reason": "0.14 hard deletion; absorbed by the eight meaning-centric skills"
+    },
+    {
+      "name": "do-it-fix-loop",
+      "kind": "skill",
+      "target": "skills/do-it-fix-loop",
+      "reason": "0.14 hard deletion; absorbed by the eight meaning-centric skills"
+    },
+    {
+      "name": "do-it-verification-gate",
+      "kind": "skill",
+      "target": "skills/do-it-verification-gate",
+      "reason": "0.14 hard deletion; absorbed by the eight meaning-centric skills"
+    },
+    {
+      "name": "do-it-worktree-isolation",
+      "kind": "skill",
+      "target": "skills/do-it-worktree-isolation",
+      "reason": "0.14 hard deletion; absorbed by the eight meaning-centric skills"
+    },
+    {
+      "name": "do-it-branch-closeout",
+      "kind": "skill",
+      "target": "skills/do-it-branch-closeout",
+      "reason": "0.14 hard deletion; absorbed by the eight meaning-centric skills"
+    },
+    {
+      "name": "do-it-comments-discipline",
+      "kind": "skill",
+      "target": "skills/do-it-comments-discipline",
+      "reason": "0.14 hard deletion; absorbed by the eight meaning-centric skills"
+    },
+    {
+      "name": "architect-reviewer",
+      "kind": "agent",
+      "reason": "0.14 retained-agent consolidation; remove only when installer ownership is proven"
+    },
+    {
+      "name": "architecture-taste-reviewer",
+      "kind": "agent",
+      "reason": "0.14 retained-agent consolidation; remove only when installer ownership is proven"
+    },
+    {
+      "name": "ceo-reviewer",
+      "kind": "agent",
+      "reason": "0.14 retained-agent consolidation; remove only when installer ownership is proven"
+    },
+    {
+      "name": "domain-language-reviewer",
+      "kind": "agent",
+      "reason": "0.14 retained-agent consolidation; remove only when installer ownership is proven"
+    },
+    {
+      "name": "end-user-advocate",
+      "kind": "agent",
+      "reason": "0.14 retained-agent consolidation; remove only when installer ownership is proven"
+    },
+    {
+      "name": "install-release-reviewer",
+      "kind": "agent",
+      "reason": "0.14 retained-agent consolidation; remove only when installer ownership is proven"
+    },
+    {
+      "name": "ops-sre",
+      "kind": "agent",
+      "reason": "0.14 retained-agent consolidation; remove only when installer ownership is proven"
+    },
+    {
+      "name": "react-specialist",
+      "kind": "agent",
+      "reason": "0.14 retained-agent consolidation; remove only when installer ownership is proven"
+    },
+    {
+      "name": "skill-quality-reviewer",
+      "kind": "agent",
+      "reason": "0.14 retained-agent consolidation; remove only when installer ownership is proven"
+    },
+    {
+      "name": "sql-pro",
+      "kind": "agent",
+      "reason": "0.14 retained-agent consolidation; remove only when installer ownership is proven"
+    },
+    {
+      "name": "test-automator",
+      "kind": "agent",
+      "reason": "0.14 retained-agent consolidation; remove only when installer ownership is proven"
+    },
+    {
+      "name": "typescript-pro",
+      "kind": "agent",
+      "reason": "0.14 retained-agent consolidation; remove only when installer ownership is proven"
+    },
+    {
+      "name": "ux-designer",
+      "kind": "agent",
+      "reason": "0.14 retained-agent consolidation; remove only when installer ownership is proven"
+    },
+    {
+      "name": "hooks-grill-pretool",
+      "kind": "extra",
+      "target": "hooks/grill-pretool.sh",
+      "reason": "0.14 removed the coercive pre-edit plan gate"
     }
   ],
   "skills": [
@@ -563,21 +704,27 @@
       "origin": "do-it"
     },
     {
-      "name": "do-it-planning",
-      "source": "skills/do-it/do-it-planning",
-      "target": "skills/do-it-planning",
+      "name": "do-it-code-quality",
+      "source": "skills/do-it/do-it-code-quality",
+      "target": "skills/do-it-code-quality",
       "origin": "do-it"
     },
     {
-      "name": "do-it-slicing",
-      "source": "skills/do-it/do-it-slicing",
-      "target": "skills/do-it-slicing",
+      "name": "do-it-review",
+      "source": "skills/do-it/do-it-review",
+      "target": "skills/do-it-review",
       "origin": "do-it"
     },
     {
-      "name": "do-it-grill",
-      "source": "skills/do-it/do-it-grill",
-      "target": "skills/do-it-grill",
+      "name": "do-it-decide",
+      "source": "skills/do-it/do-it-decide",
+      "target": "skills/do-it-decide",
+      "origin": "do-it"
+    },
+    {
+      "name": "do-it-verify",
+      "source": "skills/do-it/do-it-verify",
+      "target": "skills/do-it-verify",
       "origin": "do-it"
     },
     {
@@ -587,75 +734,9 @@
       "origin": "do-it"
     },
     {
-      "name": "do-it-brainstorm",
-      "source": "skills/do-it/do-it-brainstorm",
-      "target": "skills/do-it-brainstorm",
-      "origin": "do-it"
-    },
-    {
-      "name": "do-it-architecture-scan",
-      "source": "skills/do-it/do-it-architecture-scan",
-      "target": "skills/do-it-architecture-scan",
-      "origin": "do-it"
-    },
-    {
-      "name": "do-it-codebase-design",
-      "source": "skills/do-it/do-it-codebase-design",
-      "target": "skills/do-it-codebase-design",
-      "origin": "do-it"
-    },
-    {
-      "name": "do-it-interface-drill",
-      "source": "skills/do-it/do-it-interface-drill",
-      "target": "skills/do-it-interface-drill",
-      "origin": "do-it"
-    },
-    {
-      "name": "do-it-tdd",
-      "source": "skills/do-it/do-it-tdd",
-      "target": "skills/do-it-tdd",
-      "origin": "do-it"
-    },
-    {
-      "name": "do-it-debugging",
-      "source": "skills/do-it/do-it-debugging",
-      "target": "skills/do-it-debugging",
-      "origin": "do-it"
-    },
-    {
-      "name": "do-it-subagent-orchestration",
-      "source": "skills/do-it/do-it-subagent-orchestration",
-      "target": "skills/do-it-subagent-orchestration",
-      "origin": "do-it"
-    },
-    {
-      "name": "do-it-review-loop",
-      "source": "skills/do-it/do-it-review-loop",
-      "target": "skills/do-it-review-loop",
-      "origin": "do-it"
-    },
-    {
-      "name": "do-it-fix-loop",
-      "source": "skills/do-it/do-it-fix-loop",
-      "target": "skills/do-it-fix-loop",
-      "origin": "do-it"
-    },
-    {
-      "name": "do-it-verification-gate",
-      "source": "skills/do-it/do-it-verification-gate",
-      "target": "skills/do-it-verification-gate",
-      "origin": "do-it"
-    },
-    {
-      "name": "do-it-worktree-isolation",
-      "source": "skills/do-it/do-it-worktree-isolation",
-      "target": "skills/do-it-worktree-isolation",
-      "origin": "do-it"
-    },
-    {
-      "name": "do-it-branch-closeout",
-      "source": "skills/do-it/do-it-branch-closeout",
-      "target": "skills/do-it-branch-closeout",
+      "name": "do-it-handbook",
+      "source": "skills/do-it/do-it-handbook",
+      "target": "skills/do-it-handbook",
       "origin": "do-it"
     },
     {
@@ -663,40 +744,13 @@
       "source": "skills/do-it/do-it-skill-authoring",
       "target": "skills/do-it-skill-authoring",
       "origin": "do-it"
-    },
-    {
-      "name": "do-it-handbook",
-      "source": "skills/do-it/do-it-handbook",
-      "target": "skills/do-it-handbook",
-      "origin": "do-it"
-    },
-    {
-      "name": "do-it-comments-discipline",
-      "source": "skills/do-it/do-it-comments-discipline",
-      "target": "skills/do-it-comments-discipline",
-      "origin": "do-it"
     }
   ],
   "agents": [
     {
-      "name": "architect-reviewer",
-      "source": "agents/architect-reviewer.toml",
-      "target": "agents/architect-reviewer.toml"
-    },
-    {
       "name": "architecture-strategist",
       "source": "agents/architecture-strategist.toml",
       "target": "agents/architecture-strategist.toml"
-    },
-    {
-      "name": "architecture-taste-reviewer",
-      "source": "agents/architecture-taste-reviewer.toml",
-      "target": "agents/architecture-taste-reviewer.toml"
-    },
-    {
-      "name": "ceo-reviewer",
-      "source": "agents/ceo-reviewer.toml",
-      "target": "agents/ceo-reviewer.toml"
     },
     {
       "name": "code-mapper",
@@ -709,29 +763,9 @@
       "target": "agents/code-quality-cleaner.toml"
     },
     {
-      "name": "domain-language-reviewer",
-      "source": "agents/domain-language-reviewer.toml",
-      "target": "agents/domain-language-reviewer.toml"
-    },
-    {
       "name": "documentation-engineer",
       "source": "agents/documentation-engineer.toml",
       "target": "agents/documentation-engineer.toml"
-    },
-    {
-      "name": "end-user-advocate",
-      "source": "agents/end-user-advocate.toml",
-      "target": "agents/end-user-advocate.toml"
-    },
-    {
-      "name": "install-release-reviewer",
-      "source": "agents/install-release-reviewer.toml",
-      "target": "agents/install-release-reviewer.toml"
-    },
-    {
-      "name": "ops-sre",
-      "source": "agents/ops-sre.toml",
-      "target": "agents/ops-sre.toml"
     },
     {
       "name": "plan-challenger",
@@ -744,11 +778,6 @@
       "target": "agents/product-strategist.toml"
     },
     {
-      "name": "react-specialist",
-      "source": "agents/react-specialist.toml",
-      "target": "agents/react-specialist.toml"
-    },
-    {
       "name": "red-team-reviewer",
       "source": "agents/red-team-reviewer.toml",
       "target": "agents/red-team-reviewer.toml"
@@ -759,39 +788,14 @@
       "target": "agents/reviewer.toml"
     },
     {
-      "name": "sql-pro",
-      "source": "agents/sql-pro.toml",
-      "target": "agents/sql-pro.toml"
-    },
-    {
-      "name": "test-automator",
-      "source": "agents/test-automator.toml",
-      "target": "agents/test-automator.toml"
-    },
-    {
-      "name": "tdd-red-writer",
-      "source": "agents/tdd-red-writer.toml",
-      "target": "agents/tdd-red-writer.toml"
-    },
-    {
       "name": "spec-compliance-reviewer",
       "source": "agents/spec-compliance-reviewer.toml",
       "target": "agents/spec-compliance-reviewer.toml"
     },
     {
-      "name": "skill-quality-reviewer",
-      "source": "agents/skill-quality-reviewer.toml",
-      "target": "agents/skill-quality-reviewer.toml"
-    },
-    {
-      "name": "typescript-pro",
-      "source": "agents/typescript-pro.toml",
-      "target": "agents/typescript-pro.toml"
-    },
-    {
-      "name": "ux-designer",
-      "source": "agents/ux-designer.toml",
-      "target": "agents/ux-designer.toml"
+      "name": "tdd-red-writer",
+      "source": "agents/tdd-red-writer.toml",
+      "target": "agents/tdd-red-writer.toml"
     }
   ]
 }

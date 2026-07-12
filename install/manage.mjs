@@ -111,6 +111,25 @@ if (!process.env[rootEnvName] && !process.env.HOME) {
 
 const deprecatedTargets = manifest.deprecatedTargets ?? [];
 
+function adaptDeprecatedTarget(entry) {
+  const kind = entry.kind ?? "skill";
+  if (Array.isArray(entry.targets) && !entry.targets.includes(targetName)) return null;
+
+  if (kind === "skill") return { kind, ...entry };
+  if (kind === "agent") {
+    return {
+      kind,
+      ...entry,
+      target: entry.target ?? `agents/${entry.name}${targetConfig.agentTargetExt}`
+    };
+  }
+  if (kind === "extra") return { kind, ...entry };
+
+  throw new Error(`Unknown deprecated target kind for ${entry.name}: ${kind}`);
+}
+
+const deprecatedEntries = deprecatedTargets.map(adaptDeprecatedTarget).filter(Boolean);
+
 function adaptEntry(entry, kind) {
   if (kind === "skill") {
     return { kind, ...entry };
@@ -167,7 +186,7 @@ function assertWithinInstallRoot(targetPath) {
 }
 
 function assertManagedTargetShape(entry) {
-  if (entry.kind === "extra") {
+  if (entry.kind === "extra" || entry.kind === "retired") {
     // Extras are files/dirs added by target config. They may be top-level
     // entries (e.g. hooks.json) or scoped nested entries (e.g. hooks/router.sh).
     const targetSegments =
@@ -639,8 +658,8 @@ function install() {
     assertInstallSafe(entry, state);
   }
 
-  for (const deprecated of deprecatedTargets) {
-    assertDeprecatedRemovalSafe({ kind: "skill", ...deprecated }, state);
+  for (const deprecated of deprecatedEntries) {
+    assertDeprecatedRemovalSafe(deprecated, state);
   }
 
   fs.mkdirSync(resolveHomePath("skills"), { recursive: true });
@@ -668,13 +687,11 @@ function install() {
       summary.push(`${entry.kind}:${entry.name}`);
     }
 
-    for (const deprecated of deprecatedTargets) {
-      const entry = { kind: "skill", ...deprecated };
-
+    for (const entry of deprecatedEntries) {
       const targetPath = resolveHomePath(entry.target);
       if (assertDeprecatedRemovalSafe(entry, state)) {
         removeDeprecatedTarget(targetPath, transaction);
-        summary.push(`removed:${entry.name}`);
+        summary.push(`removed:${entry.kind}:${entry.name}`);
       }
     }
 
@@ -740,13 +757,12 @@ function doctor() {
     ok.push(`${entry.kind}:${entry.name} copy`);
   }
 
-  for (const deprecated of deprecatedTargets) {
-    const entry = { kind: "skill", ...deprecated };
+  for (const entry of deprecatedEntries) {
     assertManagedTargetShape(entry);
 
     const targetPath = resolveHomePath(entry.target);
     if (pathState(targetPath)) {
-      drift.push(`deprecated:${entry.name} remains at ${targetPath}`);
+      drift.push(`deprecated:${entry.kind}:${entry.name} remains at ${targetPath}`);
     }
   }
 

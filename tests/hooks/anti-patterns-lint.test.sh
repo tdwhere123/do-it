@@ -73,7 +73,7 @@ _assert_not_contains() {
 }
 
 # -------------------------------------------------------------------------
-echo "Case 1: case-list hit — 12 consecutive case patterns flagged"
+echo "Case 1: case-list hit — 16 consecutive case patterns flagged"
 DIR=$(_setup_repo)
 FILE="$DIR/router.sh"
 cat > "$FILE" <<'EOF'
@@ -97,6 +97,9 @@ case "$x" in
   *"mu"*) ;;
   *"nu"*) ;;
   *"xi"*) ;;
+  *"omicron"*) ;;
+  *"pi"*) ;;
+  *"rho"*) ;;
 esac
 EOF
 OUT=$(_run_hook "$FILE")

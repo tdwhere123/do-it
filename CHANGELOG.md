@@ -1,61 +1,80 @@
 # Changelog
 
-## Unreleased
+## 0.14.0
 
-Theme: make installed agents write high-quality code by sharpening do-it's
-write-before → write-during → write-after quality spine, and compress the two
-heaviest skills so the agent actually reads them. The shared "write less"
-primitive is a single decision ladder, reused — not restated — across skills.
-Also lands the post-0.13.1 workflow audit (PR #4): Cursor core skill tier,
-shared skill-tier source, and thinner workflow-kernel / review-lens surfaces.
+Theme: meaning-centric rethink. Skills organize by **what they mean for the
+task** instead of a mandatory process chain. Main defense moves to write-time
+quality; plugin marketplace is the primary install path on all four hosts.
 
-### Added
+### Skills — meaning buckets
 
-- `do-it-router` § Restraint now carries **the decision ladder** (does it need to
-  exist? → stdlib → native → existing dependency → one line → minimal custom),
-  with guardrails it never cuts. It is the shared anti-over-engineering primitive
-  that grill, brainstorm, the write-time lint, and the YAGNI review lens all
-  reference instead of each defining their own.
-- `do-it-review-loop` gains a **YAGNI lens** (`code-quality-cleaner`), default at
-  Heavy when a diff adds a new abstraction/export/dependency. It emits one-line
-  findings with a closed tag vocabulary (`delete:` / `stdlib:` / `native:` /
-  `yagni:` / `shrink:`), each carrying a severity, plus a quantified
-  `net: -<N> lines possible` / `Lean already. Ship.` verdict.
-- `scripts/skill-tiers.mjs` + `manifest.skillTiers` — single source for
-  **CORE_SKILLS** (8) vs **EXTENDED** (12). Cursor plugin build and
-  `do-it setup --target=cursor` install the core bundle only (plus skills index
-  and `references/` via extras); Codex, Claude, and OpenCode still get the full
-  skill tree.
-- Partial escape targets for `/do-it-skip` and prompt keywords (`grill` /
-  `router` / `gate`), with full-escape vocabulary documented in
-  `commands/do-it-skip.md`.
+Eight installed skills (5 core + 3 extended):
 
-### Changed
+| Bucket | Skill |
+|---|---|
+| Route | `do-it-router` |
+| Write defense | `do-it-code-quality` |
+| Review / repair | `do-it-review` |
+| Decide | `do-it-decide` |
+| Verify / close | `do-it-verify` |
+| Handbook / names | `do-it-handbook`, `do-it-context` |
+| Maintain | `do-it-skill-authoring` |
 
-- **grill** rewritten and slimmed (290 → 88-line core + a 52-line `references/`
-  file behind progressive disclosure). The core loop is stated once, at the top:
-  necessity first (decision-ladder rung 1), falsify cheaply by exploring code
-  instead of asking, ask one decision at a time with a recommended answer, on a
-  checkable-and-exhaustive completion criterion. The lens taxonomy,
-  rationalizations, red flags, severity, and common-mistakes lists moved to
-  `references/checks.md`; the grill-log artifact is de-ceremonied but retains the
-  same capability.
-- **brainstorm** rewritten and slimmed (293 → 110-line core + an 89-line
-  `references/artifact-format.md`). The two viewpoints (product + architecture)
-  now run **inline by default** and fan out to independent subagents only at
-  Heavy tier or on explicit request — capability unchanged, default cost removed.
-  Options map along the decision ladder with a deletion-over-addition bias; a
-  pick-a-branch classifier and a fog-of-war skip cut over-firing.
-- `anti-patterns-lint.sh` no-consumer family now also flags speculative
-  `export interface` / `type` / `abstract class` declarations nothing references,
-  framed as decision-ladder rung 1. The family set stays closed by design (per
-  § Restraint); richer YAGNI checks live in the on-demand review lens, not the
-  write-time hook.
-- `code-quality-cleaner` agent extended from maintainability-only to
-  maintainability + YAGNI/over-engineering, with a bounded checklist and the
-  tagged finding format above.
-- Workflow-kernel / review-lens material externalized so host adapters share a
-  thinner contract surface; routing golden tests cover tier and escape behavior.
+Router stays thin: pick Light / Standard / Heavy, then self-select buckets.
+No mandatory brainstorm → grill → plan → orch pipeline on Standard.
+
+### Migration (old skill → new skill)
+
+| Old skill | New skill |
+|---|---|
+| `do-it-grill` | `do-it-decide` |
+| `do-it-brainstorm` | `do-it-decide` |
+| `do-it-planning` | `do-it-decide` |
+| `do-it-slicing` | `do-it-decide` |
+| `do-it-review-loop` | `do-it-review` |
+| `do-it-fix-loop` | `do-it-review` |
+| `do-it-verification-gate` (skill) | `do-it-verify` |
+| `do-it-branch-closeout` | `do-it-verify` |
+| `do-it-tdd` | `do-it-code-quality` |
+| `do-it-debugging` | `do-it-code-quality` |
+| `do-it-architecture-scan` | `do-it-code-quality` |
+| `do-it-interface-drill` | `do-it-code-quality` |
+| `do-it-worktree-isolation` | `do-it-code-quality` |
+| `do-it-comments-discipline` | `do-it-code-quality` |
+| `do-it-codebase-design` | `do-it-code-quality` |
+| `do-it-subagent-orchestration` | *(removed — parent delegation contract + `subagent-stance` hook)* |
+
+`do-it-router`, `do-it-handbook`, `do-it-context`, and `do-it-skill-authoring`
+keep their names. The `verification-gate` **hook** remains; only the skill file
+was folded into `do-it-verify`.
+
+### Hooks
+
+- `grill-prompt`: injects on **Heavy only** (or explicit grill request); Standard
+  stays silent.
+- `grill-pretool` **removed** — no PreToolUse / preToolUse plan-file gate.
+- `write-quality-lint` families overhauled: merged narrative comment families,
+  raised `case-list` / `edit-bloat` thresholds, added `scope-chain`, `live-path`,
+  `secret-leak`, `type-escape`, `test-fiction`.
+- Codex / Claude / Cursor / OpenCode **plugin bundles carry hooks**; Codex
+  operators install the plugin and trust hooks under `/hooks`.
+- Retained: `router`, `subagent-stance`, `verification-gate`, `write-quality-lint`.
+
+### Agents
+
+Agents reduced to **10** (from ~23). Retained set absorbs merged lenses:
+
+- Decide: `product-strategist`, `architecture-strategist`, `plan-challenger`
+- Write: `code-mapper`, `code-quality-cleaner`, `tdd-red-writer`
+- Review: `reviewer`, `red-team-reviewer`, `spec-compliance-reviewer`
+- Docs: `documentation-engineer`
+
+### Install
+
+- **Plugin marketplace is primary** for Codex, Claude Code, Cursor, and OpenCode.
+- `do-it setup` is optional / legacy (doctor, temp-home smoke, migration).
+- Removed the v1 guidance to pair Codex plugin install with global setup because
+  `plugin_hooks=false`.
 
 ## 0.13.1
 

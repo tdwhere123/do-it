@@ -1,6 +1,6 @@
 ---
 name: do-it-skill-authoring
-description: "Use when creating or updating do-it skills and you need clear triggers, return shape, workflow interactions, escape behavior, and hook integration."
+description: "Use when creating or updating do-it skills: write predictable model-invoked descriptions, progressive disclosure, leading words, and hook-aware escape behavior."
 ---
 
 # Do-It Skill Authoring
@@ -9,6 +9,12 @@ description: "Use when creating or updating do-it skills and you need clear trig
 
 Use this to write concise, operational skills that future agents can actually
 follow. Skills should be do-it-native, not raw vendored copies.
+
+**Predictability first** (process repeatability, not identical outputs): prune
+descriptions for context load; one trigger branch per distinct case; put steps
+in `SKILL.md` and push rare reference behind links; prefer **leading words**
+the model already knows (`deep module`, `seam`, `tracer bullet`, `red before green`)
+over restating the same idea three ways.
 
 The minimum useful skill is a triggerable workflow: frontmatter, tier/process,
 stop conditions, anti-rationalization checks, red flags, and verification.

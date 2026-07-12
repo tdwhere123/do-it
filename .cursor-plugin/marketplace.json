@@ -1,18 +1,16 @@
 {
   "name": "do-it",
-  "description": "do-it workflow marketplace for Cursor: tier routing, premise grilling, verification gates.",
   "owner": {
     "name": "tdwhere123"
+  },
+  "metadata": {
+    "description": "do-it meaning-centric marketplace for Cursor: tier routing, write-time quality, focused review, and evidence-backed completion."
   },
   "plugins": [
     {
       "name": "do-it-cursor",
-      "description": "Workflow discipline plugin: skills and hooks auto-trigger via tier routing; no slash commands required.",
-      "version": "0.13.1",
       "source": "./plugins/do-it-cursor",
-      "author": {
-        "name": "tdwhere123"
-      }
+      "description": "Workflow discipline plugin: skills, agents, and hooks with Light/Standard/Heavy routing."
     }
   ]
 }

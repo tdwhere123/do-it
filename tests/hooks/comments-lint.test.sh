@@ -91,10 +91,9 @@ function foo() {
 }
 EOF
 OUT=$(_run_hook "$FILE")
-_assert_contains "flags history narrative" "$OUT" "system-reminder"
+_assert_contains "flags narrative comment" "$OUT" "system-reminder"
 _assert_contains "names file" "$OUT" "test.ts"
-_assert_contains "names history family (skill cause class)" "$OUT" "history"
-_assert_contains "names task-ref family (skill cause class)" "$OUT" "task-ref"
+_assert_contains "names narrative-comment family" "$OUT" "narrative-comment"
 _assert_not_contains "no legacy history-narrative label" "$OUT" "history-narrative"
 _assert_not_contains "no legacy task-reference label" "$OUT" "task-reference"
 rm -rf "$DIR"
@@ -176,22 +175,23 @@ _assert_not_contains "ignores .md" "$OUT" "system-reminder"
 rm -rf "$DIR"
 
 # -------------------------------------------------------------------------
-echo "Case 7: comments-lint-allow escape → silent"
+echo "Case 7: scoped narrative suppression → silent"
 DIR=$(_setup_repo)
 FILE="$DIR/esc.ts"
 printf 'function f() {}\n' > "$FILE"
 ( cd "$DIR" && git add esc.ts && git commit -q -m base ) >/dev/null 2>&1
 cat > "$FILE" <<'EOF'
 function f() {
-  // fixed null crash — comments-lint-allow: legacy header, see CHANGELOG
+  // fixed null crash
+  // write-quality-lint-allow: narrative-comment — retained public compatibility header
 }
 EOF
 OUT=$(_run_hook "$FILE")
-_assert_not_contains "honors allow-list" "$OUT" "system-reminder"
+_assert_not_contains "honors scoped family suppression" "$OUT" "system-reminder"
 rm -rf "$DIR"
 
 # -------------------------------------------------------------------------
-echo "Case 8a: fix narrative → flagged as fix-narrative (separate from history)"
+echo "Case 8a: fix narrative → flagged as narrative-comment"
 DIR=$(_setup_repo)
 FILE="$DIR/fix.ts"
 printf 'function f() {}\n' > "$FILE"
@@ -204,7 +204,7 @@ function f() {
 EOF
 OUT=$(_run_hook "$FILE")
 _assert_contains "flags fix narrative" "$OUT" "system-reminder"
-_assert_contains "names fix-narrative family" "$OUT" "fix-narrative"
+_assert_contains "names narrative-comment family" "$OUT" "narrative-comment"
 rm -rf "$DIR"
 
 # -------------------------------------------------------------------------
@@ -223,7 +223,7 @@ _assert_not_contains "owner-tagged TODO ok" "$OUT" "orphan-todo"
 rm -rf "$DIR"
 
 # -------------------------------------------------------------------------
-echo "Case 10: stage markers (phase / wave / backlog id) → flagged as task-ref"
+echo "Case 10: stage markers (phase / wave / backlog id) → flagged as narrative-comment"
 DIR=$(_setup_repo)
 FILE="$DIR/stage.ts"
 printf 'function s() { return 1; }\n' > "$FILE"
@@ -236,7 +236,7 @@ function s() {
 EOF
 OUT=$(_run_hook "$FILE")
 _assert_contains "flags stage markers" "$OUT" "system-reminder"
-_assert_contains "names task-ref family for stage markers" "$OUT" "task-ref"
+_assert_contains "names narrative-comment family for stage markers" "$OUT" "narrative-comment"
 rm -rf "$DIR"
 
 # -------------------------------------------------------------------------

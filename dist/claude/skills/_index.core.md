@@ -1,0 +1,18 @@
+<!--
+  GENERATED FILE — do not hand-edit.
+  Regenerate with: node scripts/build-skills-index.mjs
+  Source of truth: skills/do-it/<name>/SKILL.md frontmatter `description`
+  Bucket order is curated in scripts/skill-tiers.mjs.
+-->
+
+# do-it skills index
+
+Cursor core bundle — load on demand with the Skill tool + skill name.
+
+## Core (shipped in this plugin)
+
+- **do-it-router** — starting any non-trivial repo task: pick Light / Standard / Heavy tier, then s…
+- **do-it-code-quality** — writing or designing code: name premise and blast radius, deepen modules at se…
+- **do-it-review** — a diff needs PR-style review, or findings need atomic repair and same-scope re…
+- **do-it-decide** — premises or options must be pressure-tested, a short plan/handoff is needed, o…
+- **do-it-verify** — Use before any done, fixed, passing, ready, install, or merge claim, and when…

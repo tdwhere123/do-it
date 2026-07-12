@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Hooks, Plugin, PluginInput } from "@opencode-ai/plugin";
@@ -5,8 +6,8 @@ import { BOOTSTRAP_TEXT } from "./bootstrap.js";
 import {
   buildHookPayload,
   isEditTool,
+  normalizeToolName,
   readSessionTier,
-  shouldRunGrillPretool,
   spawnHook
 } from "./bridge.js";
 
@@ -44,6 +45,53 @@ function injectBootstrapOnce(
   }
 }
 
+function appendContext(parts: { type?: string; text?: string }[], context: string): void {
+  const firstText = parts.find((part) => part.type === "text" && typeof part.text === "string");
+  if (firstText?.text !== undefined) {
+    firstText.text = `${context}\n\n${firstText.text}`;
+  }
+}
+
+function writeOpenCodeTranscript(sessionId: string, cwd: string, data: unknown): string | null {
+  const base = process.env.OPENCODE_DATA ?? path.join(cwd, ".opencode");
+  const dir = path.join(base, "do-it-transcripts");
+  const messages = (data as { data?: unknown[] }).data ?? [];
+  const normalizeTool = (name: string) => normalizeToolName(name) ?? name;
+  const records = messages.flatMap((raw) => {
+    const message = raw as {
+      type?: string;
+      text?: string;
+      command?: string;
+      content?: Array<{ type?: string; text?: string; name?: string; state?: { input?: unknown } }>;
+    };
+    if (message.type === "user" && typeof message.text === "string") {
+      return [{ type: "user", message: { content: [{ type: "text", text: message.text }] } }];
+    }
+    if (message.type === "shell" && typeof message.command === "string") {
+      return [{ type: "assistant", message: { content: [{ type: "tool_use", name: "Bash", input: { command: message.command } }] } }];
+    }
+    if (message.type !== "assistant") return [];
+    const content: Array<Record<string, unknown>> = [];
+    for (const part of message.content ?? []) {
+      if (part.type === "text" && typeof part.text === "string") {
+        content.push({ type: "text", text: part.text });
+      } else if (part.type === "tool" && typeof part.name === "string") {
+        content.push({ type: "tool_use", name: normalizeTool(part.name), input: part.state?.input ?? {} });
+      }
+    }
+    return content.length ? [{ type: "assistant", message: { content } }] : [];
+  });
+
+  try {
+    fs.mkdirSync(dir, { recursive: true });
+    const transcriptPath = path.join(dir, `${sessionId}.jsonl`);
+    fs.writeFileSync(transcriptPath, `${records.map((record) => JSON.stringify(record)).join("\n")}\n`);
+    return transcriptPath;
+  } catch {
+    return null;
+  }
+}
+
 function createHooks(ctx: PluginInput): Hooks {
   const cwd = ctx.directory ?? ctx.worktree ?? process.cwd();
 
@@ -62,22 +110,20 @@ function createHooks(ctx: PluginInput): Hooks {
       injectBootstrapOnce(output.messages, sessionId);
     },
 
-    "tool.execute.before": async (input, output) => {
-      if (!isEditTool(input.tool)) return;
-      if (!shouldRunGrillPretool(input.sessionID, cwd)) return;
+    "chat.message": async (input, output) => {
+      const prompt = output.parts
+        .filter((part) => part.type === "text" && "text" in part)
+        .map((part) => (part as { text?: unknown }).text)
+        .filter((text): text is string => typeof text === "string")
+        .join("\n");
+      if (!prompt) return;
 
-      const payload = buildHookPayload({
-        sessionID: input.sessionID,
-        cwd,
-        tool: input.tool,
-        args: output.args
-      });
+      const payload = JSON.stringify({ session_id: input.sessionID, cwd, prompt });
+      const router = spawnHook(hooksDir, "router.sh", JSON.parse(payload));
+      if (router.additionalContext) appendContext(output.parts, router.additionalContext);
 
-      const result = spawnHook(hooksDir, "grill-pretool.sh", payload);
-      if (result.exitCode === 2) {
-        const reason = result.stderr.trim() || result.blockReason || "grill-pretool blocked this edit";
-        throw new Error(reason);
-      }
+      const grill = spawnHook(hooksDir, "grill-prompt.sh", JSON.parse(payload));
+      if (grill.additionalContext) appendContext(output.parts, grill.additionalContext);
     },
 
     "tool.execute.after": async (input, output) => {
@@ -107,9 +153,20 @@ function createHooks(ctx: PluginInput): Hooks {
 
       if (!sessionID) return;
 
+      const client = ctx.client as unknown as {
+        session?: { messages?: (input: { sessionID: string; limit?: number; order?: "asc" | "desc" }) => Promise<unknown> };
+        tui?: { showToast?: (input: { message: string; variant?: string }) => Promise<unknown> };
+      };
+      const response = client.session?.messages
+        ? await client.session.messages({ sessionID, limit: 400, order: "asc" }).catch(() => null)
+        : null;
+      const transcriptPath = response ? writeOpenCodeTranscript(sessionID, cwd, response) : null;
+      if (!transcriptPath) return;
+
       const payload = buildHookPayload({
         sessionID,
         cwd,
+        transcriptPath,
         stopHookActive: false
       });
 
@@ -120,18 +177,18 @@ function createHooks(ctx: PluginInput): Hooks {
       const tier = readSessionTier(sessionID, cwd);
       const text = `[do-it verification-gate${tier ? ` · ${tier}` : ""}] ${reminder}`;
 
-      const client = ctx.client as unknown as {
+      const notifier = ctx.client as unknown as {
         tui?: { showToast?: (input: { message: string; variant?: string }) => Promise<unknown> };
         session?: { notify?: (input: { sessionID: string; message: string }) => Promise<unknown> };
       };
 
-      if (client.tui?.showToast) {
-        await client.tui.showToast({ message: text, variant: "warning" }).catch(() => undefined);
+      if (notifier.tui?.showToast) {
+        await notifier.tui.showToast({ message: text, variant: "warning" }).catch(() => undefined);
         return;
       }
 
-      if (client.session?.notify) {
-        await client.session.notify({ sessionID, message: text }).catch(() => undefined);
+      if (notifier.session?.notify) {
+        await notifier.session.notify({ sessionID, message: text }).catch(() => undefined);
       }
     }
   };
@@ -140,4 +197,4 @@ function createHooks(ctx: PluginInput): Hooks {
 const plugin: Plugin = async (ctx) => createHooks(ctx);
 
 export default plugin;
-export { plugin as DoItOpencodePlugin, injectedSessions };
+export { plugin as DoItOpencodePlugin, injectedSessions, writeOpenCodeTranscript };

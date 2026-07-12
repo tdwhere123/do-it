@@ -2,13 +2,23 @@
 
 Full hook parity with Codex; paths use Claude plugin variables.
 
-## Install
+## Install (plugin-first)
 
-- Plugin manifest installs skills, hooks, and agents from `manifest.json`
+```text
+/plugin marketplace add tdwhere123/do-it
+/plugin install do-it@do-it
+```
+
 - Hooks: `${CLAUDE_PLUGIN_ROOT}/hooks/hooks.json`
 - Session state: `${CLAUDE_PLUGIN_DATA}/sessions/`
 
+Optional CLI mirror: `do-it setup --target=claude` / `do-it doctor --target=claude`.
 Run `install/doctor.sh` after upgrade to verify hook file hashes.
+
+Component paths are declared in `.claude-plugin/plugin.json`:
+`skills` → `./skills/do-it`, `agents` → `./dist/claude/agents` (generated;
+`dist/claude/` is tracked so git marketplace installs see agents after
+`npm run build:generated`), `hooks` → `./hooks/hooks.json`.
 
 ## Hook Depth
 
@@ -17,10 +27,11 @@ Run `install/doctor.sh` after upgrade to verify hook file hashes.
 
 | Event | Scripts |
 |---|---|
-| `UserPromptSubmit` | `router.sh` → `grill-prompt.sh` → `subagent-stance.sh` |
-| `PreToolUse` (Edit\|Write\|MultiEdit) | `grill-pretool.sh` |
+| `UserPromptSubmit` | `router.sh` → `grill-prompt.sh` (Heavy-only) → `subagent-stance.sh` |
 | `PostToolUse` (Edit\|Write\|MultiEdit\|NotebookEdit) | `write-quality-lint.sh` |
 | `Stop` | `verification-gate.sh` |
+
+`grill-pretool` is not registered.
 
 ## Tool Mapping
 

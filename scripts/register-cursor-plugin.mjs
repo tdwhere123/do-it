@@ -1,12 +1,18 @@
 #!/usr/bin/env node
+/**
+ * Post-install helper for the Cursor target.
+ *
+ * Prefers the Cursor plugin install root under ~/.cursor. Does **not** write
+ * Claude Code registries (~/.claude/plugins, ~/.claude/settings.json) — that
+ * dual-host pollution caused wrong-skill discovery when Cursor scanned Claude
+ * paths. Marketplace install remains the primary path; this script only cleans
+ * a legacy local symlink and confirms the plugin bundle is present.
+ */
 
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
-
-const PLUGIN_ID = "do-it-cursor@do-it";
-const LEGACY_LOCAL_ID = "do-it-cursor@local";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, "..");
@@ -24,24 +30,8 @@ const installRoot =
   path.join(home, ".cursor", "plugins", "do-it-cursor");
 
 const version = process.env.DO_IT_MANIFEST_VERSION ?? manifest.version;
-const now = new Date().toISOString();
-
-const installedPluginsPath = path.join(home, ".claude", "plugins", "installed_plugins.json");
-const settingsPath = path.join(home, ".claude", "settings.json");
 const localSymlink = path.join(home, ".cursor", "plugins", "local", "do-it-cursor");
-
-function readJson(filePath, fallback) {
-  try {
-    return JSON.parse(fs.readFileSync(filePath, "utf8"));
-  } catch {
-    return fallback;
-  }
-}
-
-function writeJson(filePath, value) {
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`);
-}
+const cursorMarkerPath = path.join(home, ".cursor", "plugins", "do-it-cursor-install.json");
 
 function removeLocalDevSymlink() {
   try {
@@ -55,45 +45,17 @@ function removeLocalDevSymlink() {
   }
 }
 
-function registerInstalledPlugins() {
-  const data = readJson(installedPluginsPath, { version: 2, plugins: {} });
-  if (!data.plugins || typeof data.plugins !== "object") {
-    data.plugins = {};
-  }
-
-  delete data.plugins[LEGACY_LOCAL_ID];
-
-  data.plugins[PLUGIN_ID] = [
-    {
-      scope: "user",
-      installPath: installRoot,
-      version,
-      installedAt: now,
-      lastUpdated: now
-    }
-  ];
-
-  writeJson(installedPluginsPath, data);
-  console.error(`register-cursor-plugin: registered ${PLUGIN_ID} at ${installRoot}`);
-}
-
-function enableInSettings() {
-  const settings = readJson(settingsPath, {});
-  settings.enabledPlugins = settings.enabledPlugins ?? {};
-  settings.enabledPlugins[PLUGIN_ID] = true;
-  delete settings.enabledPlugins[LEGACY_LOCAL_ID];
-
-  settings.extraKnownMarketplaces = settings.extraKnownMarketplaces ?? {};
-  settings.extraKnownMarketplaces["do-it"] = {
-    source: {
-      source: "github",
-      repo: "tdwhere123/do-it"
-    },
-    autoUpdate: true
+function writeCursorInstallMarker() {
+  fs.mkdirSync(path.dirname(cursorMarkerPath), { recursive: true });
+  const payload = {
+    id: "do-it-cursor",
+    installPath: installRoot,
+    version,
+    registeredAt: new Date().toISOString(),
+    note: "CLI setup marker only. Prefer Cursor marketplace plugin install."
   };
-
-  writeJson(settingsPath, settings);
-  console.error(`register-cursor-plugin: enabled ${PLUGIN_ID} in ~/.claude/settings.json`);
+  fs.writeFileSync(cursorMarkerPath, `${JSON.stringify(payload, null, 2)}\n`);
+  console.error(`register-cursor-plugin: wrote ${cursorMarkerPath}`);
 }
 
 function main() {
@@ -106,8 +68,10 @@ function main() {
   }
 
   removeLocalDevSymlink();
-  registerInstalledPlugins();
-  enableInSettings();
+  writeCursorInstallMarker();
+  console.error(
+    "register-cursor-plugin: Cursor target ready (no ~/.claude writes). Prefer marketplace install when available."
+  );
 }
 
 main();

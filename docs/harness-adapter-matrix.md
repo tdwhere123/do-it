@@ -9,10 +9,10 @@ every host.
 
 | Platform | Distribution | Hook depth | Notes |
 |---|---|---|---|
-| **Codex** | `do-it setup` + marketplace | Full | Reference adapter; `CODEX_HOME/do-it-data` session state |
-| **Claude Code** | plugin + CLI | Full | `${CLAUDE_PLUGIN_ROOT}` hooks; `${CLAUDE_PLUGIN_DATA}` session state |
-| **Cursor** | plugin marketplace + `do-it setup --target=cursor` | Medium | `sessionStart` bootstrap; `beforeSubmitPrompt` + `stop` gates; `postToolUse` / `afterFileEdit` quality lint |
-| **OpenCode** | `opencode.json` plugin | Medium | TS plugin: `experimental.chat.messages.transform` bootstrap; `tool.execute.before/after`; `session.idle` soft reminder |
+| **Codex** | plugin marketplace (primary); `do-it setup` optional/legacy | Full | Trust plugin hooks under `/hooks`; session state via plugin data or `CODEX_HOME/do-it-data` |
+| **Claude Code** | plugin marketplace (primary) | Full | `${CLAUDE_PLUGIN_ROOT}` hooks; `${CLAUDE_PLUGIN_DATA}` session state |
+| **Cursor** | local / Team Import (primary today); public marketplace after listing | Medium | Official [marketplace](https://cursor.com/marketplace) exists; **do-it not listed yet**. No Claude `/plugin` commands. Medium hooks. |
+| **OpenCode** | `opencode.json` plugin (primary) | Medium | TS plugin: transform bootstrap; `tool.execute.after`; `session.idle` soft reminder |
 
 Workflow logic lives once in `skills/do-it/` and `hooks/`. Host-specific install
 paths, tool names, and hook event names live in
@@ -26,22 +26,22 @@ dimensions (`dim_*`) narrow intensity without changing tier.
 
 | Tier | Router output | write-quality-lint | grill-prompt | Hard gates |
 |---|---|---|---|---|
-| **Light** | state-only, silent | skipped | skipped | pretool + stop only when triggered |
-| **Standard** | state-only, silent | when `dim_touches_code=1` or ≥5 added lines | compact (≤3 lines) on uncertainty / explicit grill / `dim_breaks_interface` | pretool + stop |
-| **Heavy** | state-only, silent | always (advisory) | full grill body when warranted | pretool + stop |
+| **Light** | state-only, silent | skipped | skipped | stop only when triggered |
+| **Standard** | state-only, silent | when `dim_touches_code=1` or ≥5 added lines | skipped (Heavy-only) | stop |
+| **Heavy** | state-only, silent | always (advisory) | full grill body when warranted | stop |
 
 Subagent contexts skip write-quality-lint (parent owns integration).
+`grill-pretool` is removed on all hosts.
 
 ## Hook Mapping
 
 | Gate | Script | Codex / Claude | Cursor | OpenCode |
 |---|---|---|---|---|
-| Classify prompt | `router.sh` | `UserPromptSubmit` | `beforeSubmitPrompt` | transform bootstrap (cached) |
-| Grill nudge | `grill-prompt.sh` | `UserPromptSubmit` | `beforeSubmitPrompt` | transform (tier-gated) |
-| Subagent stance | `subagent-stance.sh` | `UserPromptSubmit` | `beforeSubmitPrompt` | transform (parent + touches_code) |
-| Plan file required | `grill-pretool.sh` | `PreToolUse` (Edit\|Write\|MultiEdit) | `preToolUse` | `tool.execute.before` |
-| Write-time quality | `write-quality-lint.sh` | `PostToolUse` (Edit\|Write\|MultiEdit\|NotebookEdit) | `postToolUse` / `afterFileEdit` | `tool.execute.after` (spawn bash or TS regex) |
-| Done claim | `verification-gate.sh` | `Stop` | `stop` | `session.idle` (soft) + stop bridge where available |
+| Classify prompt | `router.sh` | `UserPromptSubmit` | `beforeSubmitPrompt` | `chat.message` |
+| Grill nudge (Heavy) | `grill-prompt.sh` | `UserPromptSubmit` | `beforeSubmitPrompt` | `chat.message` (Heavy/explicit, advisory) |
+| Subagent stance | `subagent-stance.sh` | `UserPromptSubmit` | `beforeSubmitPrompt` | bootstrap guidance only |
+| Write-time quality | `write-quality-lint.sh` | `PostToolUse` (Edit\|Write\|MultiEdit\|NotebookEdit) | `postToolUse` / `afterFileEdit` | `tool.execute.after` (bash bridge) |
+| Done claim | `verification-gate.sh` | `Stop` | `stop` | `session.idle` soft reminder from serialized host messages |
 
 Legacy `comments-lint.sh` and `anti-patterns-lint.sh` exec into
 `write-quality-lint.sh`; new installs register only the merged script.
@@ -58,18 +58,18 @@ Quality is enforced in layers. Higher layers do not replace lower ones — they
 catch what cheap checks cannot prove.
 
 ```
-L0  write-time hook (advisory)  →  one system-reminder per file per turn; suppress with write-quality-lint-allow
-L1  review-loop lens            →  Blocking / Important finding; YAGNI + comments lenses respond to L0 families
-L2  verification-gate           →  hard block on done / ready / merge / install claims without fresh evidence
-L3  branch-closeout             →  merge-ready evidence rollup; pointer cleared; residual risk named
+L0  write-time hook (advisory)  →  one system-reminder per file per turn; scoped family suppression with a reason (never secrets)
+L1  do-it-review                →  Blocking / Important finding; YAGNI + comments lenses respond to L0 families
+L2  verification-gate           →  supported hosts block success claims lacking relevant current-turn proof; OpenCode reminds softly
+L3  do-it-verify closeout       →  merge-ready evidence rollup; `NOT_VERIFIED` and residual risk stay visible
 ```
 
 | Layer | Owner | Blocks write? | Blocks done claim? |
 |---|---|---|---|
 | L0 `write-quality-lint` | hook | No | No |
-| L1 `do-it-review-loop` | skill / subagent | No | No (findings must clear first) |
-| L2 `verification-gate` | hook | No | **Yes** |
-| L3 `do-it-branch-closeout` | skill | No | Yes (merge / PR wording) |
+| L1 `do-it-review` | skill / subagent | No | No (findings must clear first) |
+| L2 `verification-gate` | hook | No | **Yes** on Codex / Claude / Cursor; soft reminder on OpenCode |
+| L3 `do-it-verify` | skill | No | Claim wording follows available proof |
 
 Family definitions and suppress syntax:
 [`skills/do-it/references/write-quality-families.md`](../skills/do-it/references/write-quality-families.md).
@@ -82,7 +82,7 @@ recurring token cost. Targets after simplification:
 | Component | Standard turn target | When skipped |
 |---|---|---|
 | `router.sh` | 0 visible tokens (state-only) | never — always runs |
-| `grill-prompt.sh` | ≤3 lines compact nudge | Light; Standard discussion (`dim_touches_code=0`); no uncertainty / explicit grill |
+| `grill-prompt.sh` | 0 on Standard | Light; Standard (Heavy-only inject); no explicit grill |
 | `subagent-stance.sh` | 1 line | subagent context; parent turn without `dim_touches_code` |
 | **Combined Standard implementation turn** | **< 150 tokens** injected | excluding user prompt |
 
@@ -94,8 +94,8 @@ PostToolUse quality reminders:
   `write-quality-families.md` (L3 progressive disclosure).
 - Light tier: hook does not run — zero post-edit injection.
 
-Subagent response budgets live in `do-it-subagent-orchestration` § Token Budget
-(host-neutral; enforced in the parent prompt, not in agent TOML).
+Subagent response budgets live in the parent delegation contract (no separate
+orchestration skill); enforced in the parent prompt, not in agent TOML.
 
 ## Session State Resolution
 

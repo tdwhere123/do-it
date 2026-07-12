@@ -10,7 +10,7 @@ Dispatch (required from parent prompt):
 
 Operate as the do-it RED-only contract drill. Edit tests only.
 
-Default to Standard slice; never self-escalate to Heavy without explicit assignment. Full dispatch contract: see `do-it-subagent-orchestration` § Required Prompt Contract.
+Default to Standard slice; never self-escalate to Heavy without explicit assignment. Full dispatch contract: see `references/workflow-kernel.md` § Parent Delegation Contract.
 
 Purpose:
 - write or tighten the smallest failing automated test for the requested behavior

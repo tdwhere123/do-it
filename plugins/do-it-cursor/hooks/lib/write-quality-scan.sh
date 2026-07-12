@@ -84,43 +84,26 @@ wq_scan_comment_families() {
 
   [[ -z "$comment_lines" ]] && return 0
 
-  filtered="$(printf '%s\n' "$comment_lines" | grep -v 'comments-lint-allow' || true)"
+  filtered="$comment_lines"
   [[ -z "$filtered" ]] && return 0
 
   local hits=0
-  local history_hits narr_tomb_hits fix_hits taskref_hits orphan_hits tomb_hits
+  local narr_hits orphan_hits tomb_hits
 
-  history_hits=$(printf '%s\n' "$filtered" \
-    | grep -cE '修改了|添加了|新增了|删除了|去掉了|之前是|原来是|改成|曾经|\badded\b|\bpreviously\b|used to|changed to|\bmoved\b' \
+  # Merged former history / fix-narrative / task-ref / what-comment into one family.
+  narr_hits=$(printf '%s\n' "$filtered" \
+    | grep -ciE '修改了|添加了|新增了|删除了|去掉了|之前是|原来是|改成|曾经|\badded\b|\bpreviously\b|used to|changed to|\bmoved\b|修复|修正|\bfixed\b|fix:|\bbug fix\b|\bhotfix\b|\bpatched\b|issue #|pr #|ticket #|jira-|\bBL-[0-9]|\bphase[ -][0-9]|\bwave[ -][0-9]' \
     || true)
-  if [[ "${history_hits:-0}" -gt 0 ]]; then
-    hits=$((hits + history_hits))
-    wq_record_family "history"
-  fi
-
+  # Bare removed/deleted without tombstone colon form.
+  local narr_tomb_hits
   narr_tomb_hits=$(printf '%s\n' "$filtered" \
     | grep -E '\b(removed|deleted)\b' \
     | grep -cvE '\b(removed|deleted):' \
     || true)
-  if [[ "${narr_tomb_hits:-0}" -gt 0 ]]; then
-    hits=$((hits + narr_tomb_hits))
-    wq_record_family "history"
-  fi
-
-  fix_hits=$(printf '%s\n' "$filtered" \
-    | grep -ciE '修复|修正|\bfixed\b|fix:|\bbugfix\b|\bhotfix\b|\bpatched\b' \
-    || true)
-  if [[ "${fix_hits:-0}" -gt 0 ]]; then
-    hits=$((hits + fix_hits))
-    wq_record_family "fix-narrative"
-  fi
-
-  taskref_hits=$(printf '%s\n' "$filtered" \
-    | grep -ciE 'issue #|pr #|ticket #|jira-|\bBL-[0-9]|\bphase[ -][0-9]|\bwave[ -][0-9]' \
-    || true)
-  if [[ "${taskref_hits:-0}" -gt 0 ]]; then
-    hits=$((hits + taskref_hits))
-    wq_record_family "task-ref"
+  narr_hits=$((narr_hits + narr_tomb_hits))
+  if [[ "${narr_hits:-0}" -gt 0 ]]; then
+    hits=$((hits + narr_hits))
+    wq_record_family "narrative-comment"
   fi
 
   orphan_hits=$(printf '%s\n' "$filtered" \
@@ -160,7 +143,7 @@ wq_scan_antipattern_families() {
     { run = 0 }
     END { print best }
   ')
-  if [[ "${case_run:-0}" -ge 10 ]]; then
+  if [[ "${case_run:-0}" -ge 15 ]]; then
     wq_record_family "case-list"
     _wq_append_detail "case-list: ${case_run} consecutive case-branch patterns — consider externalising to hooks/data/*.tsv or equivalent data file"
   fi
@@ -269,20 +252,28 @@ wq_scan_antipattern_families() {
   :
 }
 
-# Args: <file_path>. Adds swallow-error, debug-leftover, test-weakened, edit-bloat.
+# Args: <file_path> [scope-risk]. Adds integrity / metacognition / size families.
 wq_scan_extra_families() {
-  local file_path="$1"
+  local file_path="$1" scope_risk="${2:-0}"
   local bloat_threshold added_count swallow_hits debug_hits test_hits
+  local secret_hits type_hits fiction_hits
 
-  bloat_threshold="${DO_IT_EDIT_BLOAT_LINES:-80}"
+  bloat_threshold="${DO_IT_EDIT_BLOAT_LINES:-120}"
   case "$bloat_threshold" in
-    ''|*[!0-9]*) bloat_threshold=80 ;;
+    ''|*[!0-9]*) bloat_threshold=120 ;;
   esac
 
   added_count="$(printf '%s\n' "$WQ_ADDED_LINES" | grep -c . || true)"
   if [[ "${added_count:-0}" -gt "$bloat_threshold" ]]; then
     wq_record_family "edit-bloat"
     _wq_append_detail "edit-bloat: ${added_count} lines added in one edit (threshold ${bloat_threshold}) — consider slicing into smaller vertical changes"
+  fi
+
+  # Weak metacognition nudge: ask only when router/context sees a non-local
+  # surface; unknown state gets a restrained large-edit fallback.
+  if [[ "$scope_risk" == "1" || ( "$scope_risk" == "unknown" && "${added_count:-0}" -ge 40 ) ]]; then
+    wq_record_family "scope-chain"
+    _wq_append_detail "scope-chain: this edit has a non-local surface — what premise, affected consumer, or smallest producer→consumer proof path is still missing? (see references/scope-chain.md)"
   fi
 
   swallow_hits=$(printf '%s\n' "$WQ_ADDED_LINES" \
@@ -313,4 +304,58 @@ wq_scan_extra_families() {
     wq_record_family "test-weakened"
     _wq_append_detail "test-weakened: skip/xfail/only markers on newly-added lines — fix the test or the code instead of weakening coverage"
   fi
+
+  secret_hits=$(printf '%s\n' "$WQ_ADDED_LINES" \
+    | grep -ciE '(api[_-]?key|secret[_-]?key|access[_-]?token|private[_-]?key)\s*[:=]|BEGIN (RSA |OPENSSH )?PRIVATE KEY|sk-[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}' \
+    || true)
+  if [[ "${secret_hits:-0}" -gt 0 ]]; then
+    wq_record_family "secret-leak"
+    _wq_append_detail "secret-leak: possible credential or private key material on newly-added lines — use env/secret store, never commit secrets"
+  fi
+
+  type_hits=$(printf '%s\n' "$WQ_ADDED_LINES" \
+    | grep -cE '\bas any\b|@ts-ignore|@ts-expect-error|\bas unknown as\b' \
+    || true)
+  if [[ "${type_hits:-0}" -gt 0 ]]; then
+    wq_record_family "type-escape"
+    _wq_append_detail "type-escape: as any / @ts-ignore / as unknown as — ask whether you are bypassing a real contract instead of fixing types"
+  fi
+
+  fiction_hits=$(printf '%s\n' "$WQ_ADDED_LINES" \
+    | grep -ciE '\b(jest\.mock|vi\.mock|sinon\.|createMock|mockResolvedValue|mockReturnValue)\b' \
+    || true)
+  if [[ "${fiction_hits:-0}" -ge 3 ]]; then
+    wq_record_family "test-fiction"
+    _wq_append_detail "test-fiction: many mocks in one edit — ask whether the test still exercises the real contract or only a fictional double"
+  fi
+
+  # live-path: newly exported handler-ish names with no other-file reference
+  # (complements no-consumer for wiring metacognition).
+  case "$file_path" in
+    *.ts|*.tsx|*.js|*.jsx|*.mjs|*.cjs)
+      local handler_names name refs refs_other
+      handler_names="$(printf '%s\n' "$WQ_ADDED_LINES" \
+        | grep -E 'export[[:space:]]+(async[[:space:]]+)?function[[:space:]]+(handle|on|route|controller|middleware)[A-Za-z0-9_]*' \
+        | sed -E 's/.*function[[:space:]]+([A-Za-z_][A-Za-z0-9_]*).*/\1/' \
+        | sort -u)"
+      if [[ -n "$handler_names" ]]; then
+        local live_miss=""
+        local rel_file="${file_path#"$(git -C "$(dirname "$file_path")" rev-parse --show-toplevel 2>/dev/null)/"}"
+        while IFS= read -r name; do
+          [[ -z "$name" ]] && continue
+          refs="$(git -C "$(dirname "$file_path")" rev-parse --show-toplevel 2>/dev/null)"
+          [[ -z "$refs" ]] && continue
+          refs_other="$(git -C "$refs" grep -lwF -e "$name" -- '*.ts' '*.tsx' '*.js' '*.jsx' 2>/dev/null \
+            | grep -vxF -- "$rel_file" | head -n1 || true)"
+          if [[ -z "$refs_other" ]]; then
+            live_miss="${live_miss:+$live_miss, }$name"
+          fi
+        done <<<"$handler_names"
+        if [[ -n "$live_miss" ]]; then
+          wq_record_family "live-path"
+          _wq_append_detail "live-path: ${live_miss} looks like an entrypoint/handler with no other-file caller — confirm producer→consumer wiring"
+        fi
+      fi
+      ;;
+  esac
 }

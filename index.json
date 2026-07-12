@@ -1,17 +1,16 @@
 {
-  "version": "0.13.1",
-  "generated_at": "2026-07-04T05:29:25.126Z",
+  "version": "0.14.0",
+  "generated_at": "2026-07-12T13:37:04.368Z",
   "package": "@tdwhere/do-it",
   "repository": "https://github.com/tdwhere123/do-it",
   "domain": "agentic-workflow",
-  "total_skills": 21,
-  "total_agents": 23,
+  "total_skills": 9,
+  "total_agents": 10,
   "coverage": {
     "skill_groups": {
       "index": 1,
-      "mainline": 8,
-      "maintenance": 3,
-      "on-demand": 9
+      "mainline": 5,
+      "maintenance": 3
     },
     "optional_skills": []
   },
@@ -29,7 +28,7 @@
     {
       "kind": "skill",
       "name": "do-it-router",
-      "description": "Use at the start of any non-trivial repo task: choose the Light / Standard / Heavy tier and the minimum useful do-it workflow before planning, editing, delegating, reviewing, or claiming done. 路由 / 分级 / 非平凡任务.",
+      "description": "Use when starting any non-trivial repo task: pick Light / Standard / Heavy tier, then self-select meaning skills — not a fixed pipeline.",
       "origin": "do-it",
       "optional": false,
       "group": "mainline",
@@ -38,33 +37,43 @@
     },
     {
       "kind": "skill",
-      "name": "do-it-planning",
-      "description": "Use when intent must become a durable handoff card with current truth, acceptance criteria, risks, path map, and verification expectations.",
+      "name": "do-it-code-quality",
+      "description": "Use when writing or designing code: name premise and blast radius, deepen modules at seams, TDD at agreed seams, diagnose before patching, and keep producer→consumer contracts honest.",
       "origin": "do-it",
       "optional": false,
       "group": "mainline",
-      "source": "skills/do-it/do-it-planning",
-      "target": "skills/do-it-planning"
+      "source": "skills/do-it/do-it-code-quality",
+      "target": "skills/do-it-code-quality"
     },
     {
       "kind": "skill",
-      "name": "do-it-slicing",
-      "description": "Use when a large plan needs independent vertical slices with explicit ownership, verification, review, rollback, and stop conditions.",
-      "origin": "do-it",
-      "optional": false,
-      "group": "on-demand",
-      "source": "skills/do-it/do-it-slicing",
-      "target": "skills/do-it-slicing"
-    },
-    {
-      "kind": "skill",
-      "name": "do-it-grill",
-      "description": "Pressure-test the load-bearing premises and necessity of a plan before it hardens into code, commits, or claims. Use when hidden assumptions or user-only decisions gate planning, implementation, or closeout, or when asked to grill, challenge, or stress-test.",
+      "name": "do-it-review",
+      "description": "Use when a diff needs PR-style review, or findings need atomic repair and same-scope re-review — Standards axis and Spec axis, kept separate.",
       "origin": "do-it",
       "optional": false,
       "group": "mainline",
-      "source": "skills/do-it/do-it-grill",
-      "target": "skills/do-it-grill"
+      "source": "skills/do-it/do-it-review",
+      "target": "skills/do-it-review"
+    },
+    {
+      "kind": "skill",
+      "name": "do-it-decide",
+      "description": "Use when premises or options must be pressure-tested, a short plan/handoff is needed, or a large plan must be sliced — grill facts locally, ask decisions one at a time.",
+      "origin": "do-it",
+      "optional": false,
+      "group": "mainline",
+      "source": "skills/do-it/do-it-decide",
+      "target": "skills/do-it-decide"
+    },
+    {
+      "kind": "skill",
+      "name": "do-it-verify",
+      "description": "Use before any done, fixed, passing, ready, install, or merge claim, and when closing a branch — fresh evidence on this worktree; hooks vary by host, this skill is the checklist.",
+      "origin": "do-it",
+      "optional": false,
+      "group": "mainline",
+      "source": "skills/do-it/do-it-verify",
+      "target": "skills/do-it-verify"
     },
     {
       "kind": "skill",
@@ -78,136 +87,6 @@
     },
     {
       "kind": "skill",
-      "name": "do-it-brainstorm",
-      "description": "Map requirement shape and options through a product viewpoint and an architecture viewpoint before grill converges on decisions. Use when planning needs divergent option mapping, or when asked to brainstorm or 脑暴.",
-      "origin": "do-it",
-      "optional": false,
-      "group": "on-demand",
-      "source": "skills/do-it/do-it-brainstorm",
-      "target": "skills/do-it-brainstorm"
-    },
-    {
-      "kind": "skill",
-      "name": "do-it-architecture-scan",
-      "description": "Use when a change touches multiple packages or surfaces and you need to audit ownership, dependency direction, coupling, migration, rollout risk, or failure isolation before planning.",
-      "origin": "do-it",
-      "optional": false,
-      "group": "on-demand",
-      "source": "skills/do-it/do-it-architecture-scan",
-      "target": "skills/do-it-architecture-scan"
-    },
-    {
-      "kind": "skill",
-      "name": "do-it-codebase-design",
-      "description": "Use when designing or restructuring a module, evaluating whether an abstraction earns its keep, finding clean seams, or when review-loop or architecture-scan needs a shared vocabulary for depth, leverage, and locality.",
-      "origin": "do-it",
-      "optional": false,
-      "group": "on-demand",
-      "source": "skills/do-it/do-it-codebase-design",
-      "target": "skills/do-it-codebase-design"
-    },
-    {
-      "kind": "skill",
-      "name": "do-it-interface-drill",
-      "description": "Use when API, schema, CLI, or protocol changes must be checked across producer and consumer contract boundaries before merge.",
-      "origin": "do-it",
-      "optional": false,
-      "group": "on-demand",
-      "source": "skills/do-it/do-it-interface-drill",
-      "target": "skills/do-it-interface-drill"
-    },
-    {
-      "kind": "skill",
-      "name": "do-it-tdd",
-      "description": "Use when a behavior change needs a failing regression or contract test before implementation.",
-      "origin": "do-it",
-      "optional": false,
-      "group": "mainline",
-      "source": "skills/do-it/do-it-tdd",
-      "target": "skills/do-it-tdd"
-    },
-    {
-      "kind": "skill",
-      "name": "do-it-debugging",
-      "description": "Use when a bug's root cause is unclear or prior fixes failed and you need a hypothesis, instrumentation, falsification, root fix, and regression proof.",
-      "origin": "do-it",
-      "optional": false,
-      "group": "on-demand",
-      "source": "skills/do-it/do-it-debugging",
-      "target": "skills/do-it-debugging"
-    },
-    {
-      "kind": "skill",
-      "name": "do-it-subagent-orchestration",
-      "description": "Use when delegated agents need exact scope, write ownership, forbidden paths, must-verify facts, stop condition, and return schema.",
-      "origin": "do-it",
-      "optional": false,
-      "group": "mainline",
-      "source": "skills/do-it/do-it-subagent-orchestration",
-      "target": "skills/do-it-subagent-orchestration"
-    },
-    {
-      "kind": "skill",
-      "name": "do-it-review-loop",
-      "description": "Use when a delivered diff or worker result needs PR-style correctness review before the parent accepts it.",
-      "origin": "do-it",
-      "optional": false,
-      "group": "mainline",
-      "source": "skills/do-it/do-it-review-loop",
-      "target": "skills/do-it-review-loop"
-    },
-    {
-      "kind": "skill",
-      "name": "do-it-fix-loop",
-      "description": "Use when review findings or regressions need atomic repair and the same-scope review must repeat until Blocking and Important findings are clear.",
-      "origin": "do-it",
-      "optional": false,
-      "group": "mainline",
-      "source": "skills/do-it/do-it-fix-loop",
-      "target": "skills/do-it-fix-loop"
-    },
-    {
-      "kind": "skill",
-      "name": "do-it-verification-gate",
-      "description": "Use when any done, fixed, passing, ready, install, or merge claim needs fresh command evidence from the current branch or worktree.",
-      "origin": "do-it",
-      "optional": false,
-      "group": "mainline",
-      "source": "skills/do-it/do-it-verification-gate",
-      "target": "skills/do-it-verification-gate"
-    },
-    {
-      "kind": "skill",
-      "name": "do-it-worktree-isolation",
-      "description": "Use when risky, long, or parallel work needs an isolated git worktree to protect the main checkout and simplify rollback.",
-      "origin": "do-it",
-      "optional": false,
-      "group": "on-demand",
-      "source": "skills/do-it/do-it-worktree-isolation",
-      "target": "skills/do-it-worktree-isolation"
-    },
-    {
-      "kind": "skill",
-      "name": "do-it-branch-closeout",
-      "description": "Use when closing a branch, PR, merge, or cleanup and you must name scope, verification evidence, integration steps, and rollback notes before merge.",
-      "origin": "do-it",
-      "optional": false,
-      "group": "on-demand",
-      "source": "skills/do-it/do-it-branch-closeout",
-      "target": "skills/do-it-branch-closeout"
-    },
-    {
-      "kind": "skill",
-      "name": "do-it-skill-authoring",
-      "description": "Use when creating or updating do-it skills and you need clear triggers, return shape, workflow interactions, escape behavior, and hook integration.",
-      "origin": "do-it",
-      "optional": false,
-      "group": "maintenance",
-      "source": "skills/do-it/do-it-skill-authoring",
-      "target": "skills/do-it-skill-authoring"
-    },
-    {
-      "kind": "skill",
       "name": "do-it-handbook",
       "description": "Use when a project needs a lean `.do-it/handbook/` for stable project truth plus `.do-it/worklog/` for daily or goal notes.",
       "origin": "do-it",
@@ -218,49 +97,22 @@
     },
     {
       "kind": "skill",
-      "name": "do-it-comments-discipline",
-      "description": "Use when code comments are authored or reviewed and must be checked as anchors, invariants, cross-file references, or tool directives instead of narrative.",
+      "name": "do-it-skill-authoring",
+      "description": "Use when creating or updating do-it skills: write predictable model-invoked descriptions, progressive disclosure, leading words, and hook-aware escape behavior.",
       "origin": "do-it",
       "optional": false,
-      "group": "on-demand",
-      "source": "skills/do-it/do-it-comments-discipline",
-      "target": "skills/do-it-comments-discipline"
-    },
-    {
-      "kind": "agent",
-      "name": "architect-reviewer",
-      "description": "Use during do-it-grill architecture scan for boundaries, coupling, rollout risk, and durable design tradeoffs.",
-      "origin": "do-it",
-      "optional": false,
-      "source": "agents/architect-reviewer.toml",
-      "target": "agents/architect-reviewer.toml"
+      "group": "maintenance",
+      "source": "skills/do-it/do-it-skill-authoring",
+      "target": "skills/do-it-skill-authoring"
     },
     {
       "kind": "agent",
       "name": "architecture-strategist",
-      "description": "Use during do-it-brainstorm as the required architecture core lens for foundation, extension modules, boundaries, and stage closure.",
+      "description": "Use through do-it-decide when architecture choices need a read-only foundation, extension, boundary, and stage-closure lens.",
       "origin": "do-it",
       "optional": false,
       "source": "agents/architecture-strategist.toml",
       "target": "agents/architecture-strategist.toml"
-    },
-    {
-      "kind": "agent",
-      "name": "architecture-taste-reviewer",
-      "description": "Use during do-it-review-loop or do-it-planning to audit research-first compliance for plans/diffs that introduce new dependencies, datastores, frameworks, or protocols.",
-      "origin": "do-it",
-      "optional": false,
-      "source": "agents/architecture-taste-reviewer.toml",
-      "target": "agents/architecture-taste-reviewer.toml"
-    },
-    {
-      "kind": "agent",
-      "name": "ceo-reviewer",
-      "description": "Use during do-it-brainstorm for read-only product/business perspective on value, market window, revenue path, pivot cost, and competitive pressure.",
-      "origin": "do-it",
-      "optional": false,
-      "source": "agents/ceo-reviewer.toml",
-      "target": "agents/ceo-reviewer.toml"
     },
     {
       "kind": "agent",
@@ -274,20 +126,11 @@
     {
       "kind": "agent",
       "name": "code-quality-cleaner",
-      "description": "Use during do-it-review-loop for read-only maintainability and YAGNI review of redundancy, dead paths, single-use or speculative abstractions, reinvented stdlib, and cleanup risk.",
+      "description": "Use through do-it-review for read-only maintainability and YAGNI review of redundancy, dead paths, speculative abstractions, reinvented stdlib, and cleanup risk.",
       "origin": "do-it",
       "optional": false,
       "source": "agents/code-quality-cleaner.toml",
       "target": "agents/code-quality-cleaner.toml"
-    },
-    {
-      "kind": "agent",
-      "name": "domain-language-reviewer",
-      "description": "Use during do-it-review-loop for read-only review of domain terms, canonical language, naming drift, and model contradictions.",
-      "origin": "do-it",
-      "optional": false,
-      "source": "agents/domain-language-reviewer.toml",
-      "target": "agents/domain-language-reviewer.toml"
     },
     {
       "kind": "agent",
@@ -300,35 +143,8 @@
     },
     {
       "kind": "agent",
-      "name": "end-user-advocate",
-      "description": "Use during do-it-brainstorm for read-only end-user perspective on real usage scenarios, pain points, mental-model mismatch, workarounds, and error recovery.",
-      "origin": "do-it",
-      "optional": false,
-      "source": "agents/end-user-advocate.toml",
-      "target": "agents/end-user-advocate.toml"
-    },
-    {
-      "kind": "agent",
-      "name": "install-release-reviewer",
-      "description": "Use during do-it-review-loop for read-only review of package install, manifest, doctor, release, and local deployment readiness.",
-      "origin": "do-it",
-      "optional": false,
-      "source": "agents/install-release-reviewer.toml",
-      "target": "agents/install-release-reviewer.toml"
-    },
-    {
-      "kind": "agent",
-      "name": "ops-sre",
-      "description": "Use during do-it-brainstorm for read-only operations / reliability perspective on deployment, observability, failure recovery, scaling, on-call burden, and rollback.",
-      "origin": "do-it",
-      "optional": false,
-      "source": "agents/ops-sre.toml",
-      "target": "agents/ops-sre.toml"
-    },
-    {
-      "kind": "agent",
       "name": "plan-challenger",
-      "description": "Use during do-it-grill as a grill sub-lens only to challenge scope, acceptance, and routing — not a standalone brainstorm substitute.",
+      "description": "Use through do-it-decide as a converging sub-lens to challenge scope, acceptance, and routing — not a standalone divergence substitute.",
       "origin": "do-it",
       "optional": false,
       "source": "agents/plan-challenger.toml",
@@ -337,7 +153,7 @@
     {
       "kind": "agent",
       "name": "product-strategist",
-      "description": "Use during do-it-brainstorm as the required product core lens for product boundary, core goal, requirement shape, and option tradeoffs.",
+      "description": "Use through do-it-decide when product boundary, core goal, requirement shape, or option tradeoffs need a read-only lens.",
       "origin": "do-it",
       "optional": false,
       "source": "agents/product-strategist.toml",
@@ -345,17 +161,8 @@
     },
     {
       "kind": "agent",
-      "name": "react-specialist",
-      "description": "Use for do-it React interface drill or delivery involving component behavior, state flow, rendering, effects, or accessibility.",
-      "origin": "do-it",
-      "optional": false,
-      "source": "agents/react-specialist.toml",
-      "target": "agents/react-specialist.toml"
-    },
-    {
-      "kind": "agent",
       "name": "red-team-reviewer",
-      "description": "Use during do-it-review-loop for read-only adversarial review of security, state, persistence, concurrency, replay, and failure modes.",
+      "description": "Use through do-it-review for read-only adversarial review of security, state, persistence, concurrency, replay, and failure modes.",
       "origin": "do-it",
       "optional": false,
       "source": "agents/red-team-reviewer.toml",
@@ -364,7 +171,7 @@
     {
       "kind": "agent",
       "name": "reviewer",
-      "description": "Use during do-it-review-loop for PR-style correctness review of behavior regressions, contracts, and missing tests.",
+      "description": "Use through do-it-review for PR-style correctness review of behavior regressions, contracts, and missing tests.",
       "origin": "do-it",
       "optional": false,
       "source": "agents/reviewer.toml",
@@ -372,21 +179,12 @@
     },
     {
       "kind": "agent",
-      "name": "sql-pro",
-      "description": "Use for do-it SQL interface drill involving query semantics, migrations, transactions, storage contracts, or performance risk.",
+      "name": "spec-compliance-reviewer",
+      "description": "Use through do-it-review for read-only scope review against the written task, plan, acceptance criteria, and ownership boundary.",
       "origin": "do-it",
       "optional": false,
-      "source": "agents/sql-pro.toml",
-      "target": "agents/sql-pro.toml"
-    },
-    {
-      "kind": "agent",
-      "name": "test-automator",
-      "description": "Use for do-it test drill when automated coverage, fixtures, harness behavior, or regression tests need focused implementation.",
-      "origin": "do-it",
-      "optional": false,
-      "source": "agents/test-automator.toml",
-      "target": "agents/test-automator.toml"
+      "source": "agents/spec-compliance-reviewer.toml",
+      "target": "agents/spec-compliance-reviewer.toml"
     },
     {
       "kind": "agent",
@@ -396,42 +194,6 @@
       "optional": false,
       "source": "agents/tdd-red-writer.toml",
       "target": "agents/tdd-red-writer.toml"
-    },
-    {
-      "kind": "agent",
-      "name": "spec-compliance-reviewer",
-      "description": "Use during do-it-review-loop for read-only scope review against the written task, plan, acceptance criteria, and ownership boundary.",
-      "origin": "do-it",
-      "optional": false,
-      "source": "agents/spec-compliance-reviewer.toml",
-      "target": "agents/spec-compliance-reviewer.toml"
-    },
-    {
-      "kind": "agent",
-      "name": "skill-quality-reviewer",
-      "description": "Use during do-it-review-loop for read-only review of do-it skill bundle quality, trigger clarity, workflow completeness, and cross-skill consistency.",
-      "origin": "do-it",
-      "optional": false,
-      "source": "agents/skill-quality-reviewer.toml",
-      "target": "agents/skill-quality-reviewer.toml"
-    },
-    {
-      "kind": "agent",
-      "name": "typescript-pro",
-      "description": "Use for do-it TypeScript interface drill or delivery involving types, APIs, package contracts, and compiler-driven fixes.",
-      "origin": "do-it",
-      "optional": false,
-      "source": "agents/typescript-pro.toml",
-      "target": "agents/typescript-pro.toml"
-    },
-    {
-      "kind": "agent",
-      "name": "ux-designer",
-      "description": "Use during do-it-brainstorm for read-only UI/UX perspective on user flow, discoverability, accessibility, interaction consistency, and visual hierarchy.",
-      "origin": "do-it",
-      "optional": false,
-      "source": "agents/ux-designer.toml",
-      "target": "agents/ux-designer.toml"
     }
   ]
 }

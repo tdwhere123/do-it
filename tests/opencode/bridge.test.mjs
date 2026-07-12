@@ -1,13 +1,17 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const bridgeJs = path.join(repoRoot, "plugins/do-it-opencode/dist/bridge.js");
+const indexJs = path.join(repoRoot, "plugins/do-it-opencode/dist/index.js");
 assert.ok(fs.existsSync(bridgeJs), "run npm run build:opencode-plugin before test-opencode");
+assert.ok(fs.existsSync(indexJs), "run npm run build:opencode-plugin before test-opencode");
 const bridgeUrl = pathToFileURL(bridgeJs).href;
+const indexUrl = pathToFileURL(indexJs).href;
 
 const {
   buildHookPayload,
@@ -16,6 +20,7 @@ const {
   normalizeToolName,
   parseHookOutput
 } = await import(bridgeUrl);
+const { writeOpenCodeTranscript } = await import(indexUrl);
 
 test("normalizeToolName maps OpenCode edit tools to hook names", () => {
   assert.equal(normalizeToolName("edit"), "Edit");
@@ -59,4 +64,26 @@ test("parseHookOutput reads block and context JSON lines", () => {
     '{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"<system-reminder>lint</system-reminder>"}}\n'
   );
   assert.match(ctx.additionalContext ?? "", /lint/);
+});
+
+test("writeOpenCodeTranscript adapts user, edits, shell evidence, and assistant claims", () => {
+  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "doit-opencode-transcript-"));
+  try {
+    const output = writeOpenCodeTranscript("sess-1", cwd, {
+      data: [
+        { type: "user", text: "fix it" },
+        { type: "assistant", content: [{ type: "tool", name: "edit", state: { input: { file_path: "x.ts" } } }] },
+        { type: "shell", command: "pnpm test" },
+        { type: "assistant", content: [{ type: "text", text: "task done" }] }
+      ]
+    });
+    assert.ok(output);
+    const rows = fs.readFileSync(output, "utf8");
+    assert.match(rows, /"type":"user"/);
+    assert.match(rows, /"name":"Edit"/);
+    assert.match(rows, /"name":"Bash"/);
+    assert.match(rows, /task done/);
+  } finally {
+    fs.rmSync(cwd, { recursive: true, force: true });
+  }
 });

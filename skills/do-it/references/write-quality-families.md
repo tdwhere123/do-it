@@ -1,82 +1,62 @@
 # Write-Quality Families
 
-Closed-set registry for `hooks/write-quality-lint.sh` (L0 advisory). The hook
-scans **newly-added lines only**, emits at most one reminder per file per user
-turn, and lists matched family IDs — load this file when you need regex detail
-or review guidance (L3 progressive disclosure).
-
+Closed-set registry for `hooks/write-quality-lint.sh` (L0 advisory). Scans
+**newly-added lines only**, emits at most one reminder per file per user turn.
 Authoritative machine list: [`hooks/data/quality-families.tsv`](../../../hooks/data/quality-families.tsv).
-New families require TSV + test + this doc — no ad-hoc hook growth.
 
-## Enforcement Ladder Context
+## Enforcement Ladder
 
 | Layer | Role |
 |---|---|
-| L0 | This hook — advisory reminder |
-| L1 | `do-it-review-loop` — YAGNI / comments / integrity lenses must respond to flagged families |
-| L2 | `verification-gate` — hard block on unsubstantiated done claims |
-| L3 | `do-it-branch-closeout` — merge evidence rollup |
+| L0 | This hook — advisory reminder (main defense while writing) |
+| L1 | `do-it-review` — respond to flagged families or rebut |
+| L2 | `verification-gate` hook — hard block on unsubstantiated done claims |
 
-## Suppress Syntax
-
-Skip the hook for the current file edit when any **added line** contains:
-
-```
-write-quality-lint-allow: <reason>
-```
-
-Legacy aliases (still honored):
-
-```
-comments-lint-allow: <reason>
-anti-patterns-lint-allow: <reason>
-```
-
-Use sparingly — a suppress without review response is a review finding.
+Suppress one advisory family with `write-quality-lint-allow: <family-id> — <reason>` on an added line. `secret-leak` is never suppressible.
 
 ## Families
 
-### Comments (load `do-it-comments-discipline` for allowed shapes)
+### Comments
 
-| ID | Category | Detects | Review lens |
-|---|---|---|---|
-| `history` | comments | Change narrative (`修改了`, `之前是`, `added`, `changed to`, bare `removed`/`deleted` without `:`) | comments |
-| `fix-narrative` | comments | Fix/bug narrative (`修复`, `fixed`, `fix:`, `hotfix`) | comments |
-| `task-ref` | comments | External tracker (`issue #`, `pr #`, `jira-`, `phase N`, `wave N`) | comments |
-| `orphan-todo` | comments | `TODO`/`FIXME`/`XXX` without `:` or `(@owner)` | comments |
-| `tombstone` | comments | `removed:`, `deleted:`, `gone:` | comments |
-| `what-comment` | comments | Comments that restate obvious code (heuristic) | comments |
+| ID | Detects |
+|---|---|
+| `narrative-comment` | Change/fix/tracker narrative in comments (merged former history/fix-narrative/task-ref) |
+| `orphan-todo` | `TODO`/`FIXME`/`XXX` without `:` or `(@owner)` |
+| `tombstone` | `removed:` / `deleted:` / `gone:` |
 
-### Anti-Patterns / YAGNI
+### Anti-patterns
 
-| ID | Category | Detects | Review lens |
-|---|---|---|---|
-| `case-list` | anti-pattern | ≥10 consecutive bash `case` branch patterns in one edit | YAGNI / codebase-design |
-| `no-consumer` | anti-pattern | New JS/TS export with no other-file consumer in repo | YAGNI (`delete:` / `yagni:`) |
-| `copy-paste` | anti-pattern | ≥5-line block duplicated against neighbor in same directory | YAGNI (`shrink:`) |
+| ID | Detects |
+|---|---|
+| `case-list` | ≥15 consecutive bash `case` branch patterns |
+| `no-consumer` | New JS/TS export with no other-file consumer |
+| `copy-paste` | ≥5-line block duplicated in same directory |
 
 ### Integrity
 
-| ID | Category | Detects | Review lens |
-|---|---|---|---|
-| `swallow-error` | integrity | Empty `catch`, `except: pass`, no-op `.catch(() => {})` | Integrity / debugging |
-| `test-weakened` | integrity | New `skip`/`xit`/`xtest`/`@pytest.mark.skip`/`it.skip` | Integrity |
+| ID | Detects |
+|---|---|
+| `swallow-error` | Empty catch / `except: pass` |
+| `test-weakened` | skip/xfail/only markers |
+| `secret-leak` | Likely credentials / private keys |
 
-See [`integrity.md`](integrity.md).
+### Maintainability / slicing
 
-### Maintainability
+| ID | Detects |
+|---|---|
+| `debug-leftover` | console/debugger/print outside tests |
+| `edit-bloat` | Single edit adds >120 lines (`DO_IT_EDIT_BLOAT_LINES`) |
 
-| ID | Category | Detects | Review lens |
-|---|---|---|---|
-| `debug-leftover` | maintainability | `console.log`/`debugger`/`print(` outside `*test*` paths | maintainability |
+### Metacognition (local → global without whole-repo reads)
 
-### Slicing
+| ID | Detects / nudge |
+|---|---|
+| `scope-chain` | Non-local/interface-risk edit — identify the next missing premise, consumer, or bounded proof path ([scope-chain.md](scope-chain.md)) |
+| `live-path` | Handler-like export with no other-file caller |
+| `type-escape` | `as any` / `@ts-ignore` / `as unknown as` — bypassing contracts? |
+| `test-fiction` | ≥3 mock helpers in one edit — real contract or fiction? |
 
-| ID | Category | Detects | Review lens |
-|---|---|---|---|
-| `edit-bloat` | slicing | Single edit adds >80 lines (override: `DO_IT_EDIT_BLOAT_LINES`) | slicing / YAGNI |
-
-## Tier / DIM Gating
+## Tier gating
 
 | Tier | Hook runs when |
 |---|---|
@@ -84,23 +64,4 @@ See [`integrity.md`](integrity.md).
 | Standard | `dim_touches_code=1` OR ≥5 added lines |
 | Heavy | always (still advisory) |
 
-Subagent context: skipped entirely.
-
-## Review-Loop Contract
-
-When L0 flagged families for files in the diff, `do-it-review-loop` YAGNI and
-comments lenses MUST either:
-
-- emit a finding referencing the family and evidence line, or
-- record an explicit rebuttal ("family X flagged but acceptable because …") in
-  the review output.
-
-Silent ignore of a flagged family is an Important review finding.
-
-## Hook Reminder Shape
-
-```
-do-it write-quality-lint (advisory): edit on <path> matched <families>.
-Suppress per edit with write-quality-lint-allow (legacy: comments-lint-allow, anti-patterns-lint-allow).
-Review flagged families before declaring done.
-```
+Subagent context: skipped.

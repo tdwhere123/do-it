@@ -1,31 +1,20 @@
 #!/usr/bin/env node
 // Single source of truth for core vs extended do-it skills.
-// Cursor plugin bundles core only; Codex/Claude install all skills.
+// Cursor plugin bundles core only; Codex/Claude/OpenCode install all skills.
+// Meaning-centric buckets (not process pipeline): route / code-quality / review /
+// decide / verify + persistence/maintenance.
 
 /** @type {readonly string[]} */
 export const CORE_SKILLS = [
   "do-it-router",
-  "do-it-grill",
-  "do-it-planning",
-  "do-it-tdd",
-  "do-it-review-loop",
-  "do-it-fix-loop",
-  "do-it-verification-gate",
-  "do-it-subagent-orchestration"
+  "do-it-code-quality",
+  "do-it-review",
+  "do-it-decide",
+  "do-it-verify"
 ];
 
-/** Extended skills loaded on demand or for maintenance — not in Cursor plugin bundle. */
-export const EXTENDED_ON_DEMAND = [
-  "do-it-brainstorm",
-  "do-it-architecture-scan",
-  "do-it-codebase-design",
-  "do-it-interface-drill",
-  "do-it-debugging",
-  "do-it-slicing",
-  "do-it-comments-discipline",
-  "do-it-worktree-isolation",
-  "do-it-branch-closeout"
-];
+/** On-demand extended skills — none in the meaning-centric default set. */
+export const EXTENDED_ON_DEMAND = [];
 
 export const EXTENDED_MAINTENANCE = [
   "do-it-handbook",

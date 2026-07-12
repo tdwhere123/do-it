@@ -113,14 +113,14 @@ if [[ -z "$WQ_ADDED_LINES" ]]; then
   exit 0
 fi
 
-if printf '%s\n' "$WQ_ADDED_LINES" \
-     | grep -qE 'write-quality-lint-allow|anti-patterns-lint-allow|comments-lint-allow'; then
-  do_it_debug write-quality-lint "decision=skip reason=allow-listed file=$FILE_PATH"
-  exit 0
-fi
-
 TIER="$(do_it_session_state_get "$SESSION_ID" tier)"
-[[ -z "$TIER" ]] && TIER="Heavy"
+HAS_ROUTER_TIER=1
+# Hosts without router state must not become noisier merely because their adapter
+# cannot classify the turn. Standard is the smallest useful advisory fallback.
+if [[ -z "$TIER" ]]; then
+  TIER="Standard"
+  HAS_ROUTER_TIER=0
+fi
 
 ADDED_LINE_COUNT="$(printf '%s\n' "$WQ_ADDED_LINES" | grep -c . || true)"
 case "$TIER" in
@@ -130,6 +130,7 @@ case "$TIER" in
     ;;
   Standard)
     DIM_TOUCHES_CODE="$(do_it_session_state_get "$SESSION_ID" dim_touches_code)"
+    [[ "$HAS_ROUTER_TIER" == "0" ]] && DIM_TOUCHES_CODE="1"
     if [[ "$DIM_TOUCHES_CODE" != "1" && "${ADDED_LINE_COUNT:-0}" -lt 5 ]]; then
       do_it_debug write-quality-lint "decision=skip reason=tier-standard-gate touches=$DIM_TOUCHES_CODE added=$ADDED_LINE_COUNT file=$FILE_PATH"
       exit 0
@@ -160,7 +161,40 @@ WQ_COMMENT_HITS=0
 
 wq_scan_comment_families
 wq_scan_antipattern_families "$REPO_ROOT" "$FILE_PATH" "$CWD"
-wq_scan_extra_families "$FILE_PATH"
+DIM_BREAKS_INTERFACE="$(do_it_session_state_get "$SESSION_ID" dim_breaks_interface)"
+DIM_CROSSES_PACKAGES="$(do_it_session_state_get "$SESSION_ID" dim_crosses_packages)"
+SCOPE_RISK="0"
+if [[ "$DIM_BREAKS_INTERFACE" == "1" || "$DIM_CROSSES_PACKAGES" == "1" ]]; then
+  SCOPE_RISK="1"
+elif [[ -z "$DIM_BREAKS_INTERFACE$DIM_CROSSES_PACKAGES" ]]; then
+  SCOPE_RISK="unknown"
+fi
+wq_scan_extra_families "$FILE_PATH" "$SCOPE_RISK"
+
+# Suppress individual advisory families with a reason-bearing marker, never the
+# entire scan. Secret-leak is intentionally unsuppressible: a marker must not
+# hide a possible credential.
+WQ_ALLOW_FAMILIES="$(printf '%s\n' "$WQ_ADDED_LINES" \
+  | sed -nE 's/.*write-quality-lint-allow:[[:space:]]*([a-z0-9-]+)[[:space:]]+[-—][[:space:]]+.+/\1/p' \
+  | sort -u | paste -sd, -)"
+if [[ -n "$WQ_ALLOW_FAMILIES" && -n "$WQ_HIT_FAMILIES" ]]; then
+  WQ_FILTERED_FAMILIES=""
+  while IFS= read -r _family || [[ -n "$_family" ]]; do
+    [[ -z "$_family" ]] && continue
+    case ",${WQ_ALLOW_FAMILIES}," in
+      *,"$_family",*)
+        if [[ "$_family" == "secret-leak" ]]; then
+          WQ_FILTERED_FAMILIES="${WQ_FILTERED_FAMILIES:+$WQ_FILTERED_FAMILIES,}$_family"
+          _wq_append_detail "secret-leak: suppression markers never hide possible credentials"
+        else
+          _wq_append_detail "$_family: advisory suppressed for this edit with a stated reason"
+        fi
+        ;;
+      *) WQ_FILTERED_FAMILIES="${WQ_FILTERED_FAMILIES:+$WQ_FILTERED_FAMILIES,}$_family" ;;
+    esac
+  done < <(printf '%s' "$WQ_HIT_FAMILIES" | tr ',' '\n')
+  WQ_HIT_FAMILIES="$WQ_FILTERED_FAMILIES"
+fi
 
 if [[ -z "$WQ_HIT_FAMILIES" ]]; then
   do_it_debug write-quality-lint "decision=clean file=$DISPLAY_PATH"
@@ -177,14 +211,14 @@ fi
 REMINDER=$'<system-reminder>\n'
 REMINDER+="do-it write-quality-lint (advisory): edit on ${DISPLAY_PATH} matched ${WQ_HIT_FAMILIES}."
 if [[ "${WQ_COMMENT_HITS:-0}" -gt 0 ]]; then
-  REMINDER+=$'\n'"Comments discipline: ${COMMENT_HITS_DISPLAY} likely-violating new comment(s) (see do-it-comments-discipline)."
-  REMINDER+=$'\n'"注释纪律：新增 ${COMMENT_HITS_DISPLAY} 处可能违反 do-it-comments-discipline 的注释，请改写为索引锚点或删除。"
+  REMINDER+=$'\n'"Comments discipline: ${COMMENT_HITS_DISPLAY} likely-violating new comment(s) (see do-it-code-quality)."
+  REMINDER+=$'\n'"注释纪律：新增 ${COMMENT_HITS_DISPLAY} 处可能违反注释元规则的注释，请改写为索引锚点或删除（见 do-it-code-quality）。"
 fi
 while IFS= read -r detail; do
   [[ -z "$detail" ]] && continue
   REMINDER+=$'\n'"- ${detail}"
 done <<<"$WQ_HIT_DETAILS"
-REMINDER+=$'\n'"Suppress per edit with write-quality-lint-allow (legacy: comments-lint-allow, anti-patterns-lint-allow). Review flagged families before declaring done."
+REMINDER+=$'\n'"Suppress one advisory family with write-quality-lint-allow: <family-id> — <reason>. Possible secrets are never suppressible. Review flagged families before declaring done."
 REMINDER+=$'\n</system-reminder>'
 
 do_it_emit_context PostToolUse "$REMINDER"

@@ -13,11 +13,11 @@ Lean stable truth for the **do-it** repository itself — not a second README.
 
 ## What lives elsewhere
 
-- **Process** (router, review-loop, subagent dispatch): `skills/do-it/` — skills are operational law.
-- **Per-task artifacts**: `.do-it/brainstorm/`, `.do-it/grill/`, `.do-it/plans/`.
+- **Process** (route → meaning buckets → verify): `skills/do-it/` — skills are operational law.
+- **Per-task artifacts** (optional): `.do-it/plans/` and similar — not a mandatory pipeline.
 - **Ephemeral runtime**: `.do-it/runtime/` (gitignored) — session pointer and hook state.
 - **Daily notes**: `.do-it/worklog/` — not handbook.
 
 ## Bootstrap rule
 
-If this handbook exists, Standard/Heavy turns read relevant files before grill/planning. Missing handbook triggers `do-it-handbook` lean bootstrap (additive only).
+If this handbook exists, Standard/Heavy turns read relevant files before durable decide/plan work. Missing handbook triggers `do-it-handbook` lean bootstrap (additive only).

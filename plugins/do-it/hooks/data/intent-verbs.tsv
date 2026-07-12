@@ -1,0 +1,54 @@
+# Intent verbs — promote prompt to at least Standard tier; trigger grill #1.
+# Format: see hooks/data/SCHEMA.md.
+#
+# 0.5.0 changes vs 0.4.x:
+#   - Single-character CJK verbs (做 / 改 / 加 / 写 / 修 / 审 / 搭) removed —
+#     they fired on neighbouring characters too aggressively (修 hit 修订, 修改
+#     hit incidentally regardless). Specific 2-char compounds remain.
+#   - Whitespace hacks for ASCII (add , test ) retired — `do_it_prompt_has_any`
+#     now applies word-boundary matching to pure-ASCII terms automatically.
+
+实现
+添加
+新增
+创建
+构建
+接入
+集成
+引入
+修改
+修复
+调整
+重构
+重写
+优化
+升级
+迁移
+替换
+移除
+删除
+排查
+调试
+复现
+评审
+审查
+检查
+测试
+设计
+规划
+切片
+implement
+build
+add
+create
+fix
+refactor
+rewrite
+migrate
+remove
+delete
+debug
+review
+test
+design
+plan

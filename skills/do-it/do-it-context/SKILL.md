@@ -7,13 +7,13 @@ description: "Use when repo terms or invariants are drifting, or when user/docs/
 
 ## Purpose
 
-`.do-it/CONTEXT.md` is the single canonical place where this project's terminology, invariants, and relationship-shapes live for AI workflows. Other skills (especially `do-it-grill`, `do-it-planning`, `do-it-review-loop`) read it before debating definitions. This skill also owns the deeper domain-language pass (canonical glossary + contradiction checks) — see § Domain Glossary Mode.
+`.do-it/CONTEXT.md` is the single canonical place where this project's terminology, invariants, and relationship-shapes live for AI workflows. Other skills (especially `do-it-decide`, `do-it-review`, `do-it-code-quality`) read it before debating definitions. This skill also owns the deeper domain-language pass (canonical glossary + contradiction checks) — see § Domain Glossary Mode.
 
 It is **not** a wiki, README replacement, or onboarding doc. It is a terse, declarative artifact intended to fit in the AI's working memory budget. Keep it under ~200 lines.
 
 ## When To Use
 
-- The first time `do-it-grill` clarifies a term in this repo, write it back here so the next session does not re-litigate.
+- The first time `do-it-decide` clarifies a term in this repo, write it back here so the next session does not re-litigate.
 - When a constraint surfaces that the codebase will not enforce on its own (e.g. "user IDs are global, never per-tenant"), record it here.
 - When two terms turn out to mean the same thing, pick one and put it here so the alias is killed at the source.
 - When a relationship has cardinality that matters (1:1, 1:N, N:M with constraint), record the cardinality.
@@ -72,11 +72,11 @@ See `CONTEXT-FORMAT.md` (in this skill directory) for the exact shape.
 
 1. From repo root: `mkdir -p .do-it && touch .do-it/CONTEXT.md`.
 2. Copy the structure from `CONTEXT-FORMAT.md` (in this skill) — the three section headers and zero entries to start.
-3. Add one entry the first time `do-it-grill` clarifies a term.
+3. Add one entry the first time `do-it-decide` clarifies a term.
 
 ### Sediment Updates (the common path)
 
-When `do-it-grill` clarifies a term:
+When `do-it-decide` clarifies a term:
 
 1. Open `.do-it/CONTEXT.md`.
 2. Add or update **one** line under the right section.
@@ -95,13 +95,12 @@ Roughly quarterly, or when the file crosses ~200 lines:
 
 `CLAUDE.md` (or the host's equivalent root instruction file) holds the durable,
 human-owned conventions for how agents work in this project — coding standards,
-review bar, do/don't rules, restraint principles. do-it reads it before grill
-and planning. It differs from the other do-it homes:
+review bar, do/don't rules, and restraint principles. do-it reads it before decisions and implementation. It differs from the other do-it homes:
 
 - **CLAUDE.md** — durable *behavioral* conventions and team rules (human-owned,
   rarely changes).
 - **`.do-it/CONTEXT.md`** — per-session *factual* sediment (terms, invariants,
-  relationships) that `do-it-grill` writes.
+  relationships) that `do-it-decide` writes.
 - **`.do-it/handbook/`** — stable project truth (invariants, architecture,
   glossary) plus a worklog template.
 - **`.do-it/worklog/`** — daily or goal-scoped notes, evidence, decisions, and
@@ -169,9 +168,7 @@ backend state distinction; schema names encoding transport detail instead of
 domain meaning; tests using legacy terms; agents or task cards using different
 names for the same ownership boundary.
 
-Stable canonical terms graduate into `glossary.md` via the three-session
-promotion rule (see `do-it-handbook`). Do not rename code broadly when a glossary
-is enough for the current task.
+Promote stable canonical terms into `glossary.md` when they become durable project vocabulary (see `do-it-handbook`). Do not rename code broadly when a glossary is enough for the current task.
 
 ## Stop Conditions
 
@@ -213,6 +210,6 @@ Before relying on or updating CONTEXT.md:
 
 ## Related Skills
 
-- `do-it-grill` — primary writer of new entries.
-- `do-it-planning` — reads CONTEXT.md before drafting plan cards.
-- `do-it-review-loop` — checks CONTEXT.md for contract terms before reviewing.
+- `do-it-decide` — clarifies terms and may write new CONTEXT entries.
+- `do-it-code-quality` — reads CONTEXT.md for invariants while writing.
+- `do-it-review` — checks CONTEXT.md for contract terms before reviewing.

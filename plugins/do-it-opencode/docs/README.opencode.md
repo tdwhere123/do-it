@@ -1,22 +1,50 @@
 # do-it OpenCode plugin
 
-OpenCode adapter for the do-it workflow kernel: cached transform bootstrap,
-bash hook bridge for pretool / write-quality / verification gates, and bundled
-skills.
+OpenCode adapter for the do-it workflow kernel: bootstrap guidance, advisory
+write-quality and verification bridges, and bundled skills.
 
 ## Install
 
-### npm (recommended)
+OpenCode discovers plugins via the `"plugin"` array in `opencode.json` (project)
+or `~/.config/opencode/opencode.json` (global), or from `.opencode/plugins/` /
+`~/.config/opencode/plugins/`. Package names in the array are auto-installed by
+Bun at startup; local absolute or relative paths work for development. See
+[opencode.ai/docs/plugins](https://opencode.ai/docs/plugins).
 
-From your project root:
+### Local path (recommended today)
+
+From the do-it repo root:
 
 ```bash
-npm install @tdwhere/do-it
-# or install the plugin package directly when published standalone:
-# npm install @tdwhere/do-it-opencode
+npm run build:opencode-plugin
+cd plugins/do-it-opencode && npm install   # once, if dependencies are missing
 ```
 
-Add to `opencode.json` (project) or `~/.config/opencode/opencode.json` (global):
+Add to `opencode.json` (project) or `~/.config/opencode/opencode.json`
+(global):
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugin": ["/absolute/path/to/do-it/plugins/do-it-opencode"],
+  "permission": {
+    "skill": "allow"
+  }
+}
+```
+
+Replace the path with your clone location. OpenCode resolves
+`@opencode-ai/plugin` from this directory's `package.json`.
+
+See [`opencode.json.template`](../opencode.json.template) for a fuller starter
+config (edit permissions, skills paths).
+
+### npm package (when published)
+
+`@tdwhere/do-it-opencode` is the intended published package name. **It is not
+on npm yet** — do not use it until the package is published.
+
+When available, OpenCode will auto-install it from the `"plugin"` array:
 
 ```json
 {
@@ -28,23 +56,6 @@ Add to `opencode.json` (project) or `~/.config/opencode/opencode.json` (global):
 }
 ```
 
-See [`opencode.json.template`](../opencode.json.template) for a fuller starter
-config.
-
-### Local path (development)
-
-After `npm run build:opencode-plugin` in the do-it repo:
-
-```json
-{
-  "plugin": ["/absolute/path/to/do-it/plugins/do-it-opencode"]
-}
-```
-
-OpenCode resolves `@opencode-ai/plugin` from the plugin directory's
-`package.json`. Run `npm install` inside `plugins/do-it-opencode/` once if
-dependencies are missing.
-
 ## Session state
 
 Set `OPENCODE_DATA` (or rely on `<project>/.opencode`) so hook session state
@@ -54,13 +65,14 @@ aligns with bash hooks under `$OPENCODE_DATA/sessions/<session_id>/`.
 
 | do-it intent | OpenCode surface | Plugin hook |
 |---|---|---|
-| Classify prompt / tier | cached bootstrap in first user turn | `experimental.chat.messages.transform` |
+| Classify prompt / tier | `router.sh` on each user message + bootstrap guidance | `chat.message`, `experimental.chat.messages.transform` |
+| Grill nudge | Heavy or explicit only; advisory | `chat.message` → `grill-prompt.sh` |
 | Load skill | host skill tool + `config.skills.paths` | `config` |
 | Read / inspect | host read / file tools | — |
-| Edit source | `edit` / `write` / `multiedit` | `tool.execute.before` → `grill-pretool.sh` (Heavy / durable plan) |
+| Edit source | `edit` / `write` / `multiedit` | no pre-edit plan gate |
 | Post-edit quality | same edit tools | `tool.execute.after` → `write-quality-lint.sh` (advisory) |
-| Done / ready claim | session completion | `session.idle` → `verification-gate.sh` (soft toast; not a hard block) |
-| Verify commands | terminal / exec | — (skill: `do-it-verification-gate`) |
+| Done / ready claim | session completion | `session.idle` → `verification-gate.sh` (soft reminder when evidence is available) |
+| Verify commands | terminal / exec | — (skill: `do-it-verify`) |
 | Skip hooks | user text / `/do-it-skip` | bootstrap documents tokens; bash hooks honor flags |
 
 OpenCode tool ids are normalized to Claude-style names before invoking bash hooks
@@ -92,7 +104,13 @@ npm run build:opencode-plugin
 Copies `skills/do-it`, `dist/claude/agents`, selected `hooks/*.sh` (+ `lib/`,
 `data/`), and compiles `src/` → `dist/`.
 
+Verify:
+
+```bash
+npm run test-opencode
+```
+
 ## Related
 
-- Harness matrix: [`docs/harness-adapter-matrix.md`](../../../docs/harness-adapter-matrix.md)
-- Host sheet: [`skills/do-it/references/host-opencode.md`](../../../skills/do-it/references/host-opencode.md)
+- Harness matrix: [`docs/harness-adapter-matrix.md`](https://github.com/tdwhere123/do-it/blob/main/docs/harness-adapter-matrix.md)
+- Host sheet: [`host-opencode.md`](../skills/references/host-opencode.md)

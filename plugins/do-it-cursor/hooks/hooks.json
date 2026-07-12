@@ -21,13 +21,6 @@
         "timeout": 10
       }
     ],
-    "preToolUse": [
-      {
-        "matcher": "StrReplace|Write|EditNotebook",
-        "command": "${CURSOR_PLUGIN_ROOT}/hooks/grill-pretool.sh",
-        "timeout": 10
-      }
-    ],
     "postToolUse": [
       {
         "matcher": "StrReplace|Write|EditNotebook",
