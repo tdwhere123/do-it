@@ -16,9 +16,11 @@ Optional CLI mirror: `do-it setup --target=claude` / `do-it doctor --target=clau
 Run `install/doctor.sh` after upgrade to verify hook file hashes.
 
 Component paths are declared in `.claude-plugin/plugin.json`:
-`skills` → `./skills/do-it`, `agents` → `./dist/claude/agents` (generated;
+`skills` → `./skills/do-it`, `agents` → explicit `./dist/claude/agents/*.md`
+list (Claude validates agents as a file-path array, not a directory string;
 `dist/claude/` is tracked so git marketplace installs see agents after
-`npm run build:generated`), `hooks` → `./hooks/hooks.json`.
+`npm run build:generated`). Standard `hooks/hooks.json` is auto-loaded — do
+**not** set `manifest.hooks` to that path (duplicate-load error).
 
 ## Hook Depth
 
