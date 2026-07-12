@@ -1,0 +1,105 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      publish_npm:
+        description: "Publish @tdwhere/do-it to npm (requires NPM_TOKEN secret)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Verify release candidate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.x
+          registry-url: https://registry.npmjs.org
+
+      - name: Install system test tools
+        run: sudo apt-get update && sudo apt-get install -y jq shellcheck
+
+      - name: Full test suite
+        run: npm test
+
+      - name: Build all host plugins
+        run: |
+          npm run build:claude-agents
+          npm run build:codex-plugin
+          npm run build:cursor-plugin
+          npm run build:opencode-plugin
+
+      - name: Ensure generated artifacts are committed
+        run: |
+          git diff --exit-code -- dist/claude .agents/plugins plugins/do-it plugins/do-it-cursor plugins/do-it-opencode .cursor-plugin
+
+      - name: Cursor local install smoke
+        env:
+          HOME: ${{ runner.temp }}/cursor-local-home
+        run: |
+          npm run install:cursor-local
+          test -f "$HOME/.cursor/plugins/local/do-it-cursor/.cursor-plugin/plugin.json"
+          test ! -L "$HOME/.cursor/plugins/local/do-it-cursor"
+
+      - name: Pack tarball
+        env:
+          NPM_CONFIG_CACHE: ${{ runner.temp }}/npm-cache
+        run: |
+          npm pack --json | tee "${{ runner.temp }}/pack.json"
+          jq -e '.[0].filename' "${{ runner.temp }}/pack.json"
+
+      - name: Upload pack artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-pack
+          path: "*.tgz"
+          if-no-files-found: error
+
+  publish-npm:
+    name: Publish npm (optional)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: verify
+    if: >-
+      github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+      || (github.event_name == 'workflow_dispatch' && inputs.publish_npm == true)
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.x
+          registry-url: https://registry.npmjs.org
+
+      - name: Publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "${NODE_AUTH_TOKEN}" ]; then
+            echo "NPM_TOKEN secret is required to publish" >&2
+            exit 1
+          fi
+          npm publish --access public
