@@ -3,8 +3,9 @@
  * Post-install helper for the Cursor target.
  *
  * Official local discovery path is ~/.cursor/plugins/local/<name>/ with a real
- * directory (Cursor rejects external symlinks). This script mirrors the built
- * bundle there and does **not** write Claude Code registries.
+ * directory (Cursor rejects external symlinks). When CLI setup already writes
+ * there, keep that managed tree. Otherwise mirror the built bundle into local/.
+ * Does **not** write Claude Code registries.
  */
 
 import fs from "node:fs";
@@ -35,7 +36,6 @@ const builtBundle = path.join(repoRoot, "plugins", "do-it-cursor");
 
 function copyTree(from, to) {
   fs.mkdirSync(path.dirname(to), { recursive: true });
-  // Replace symlink or stale tree with a real copy (Cursor rejects external symlinks).
   fs.rmSync(to, { recursive: true, force: true });
   const rsync = spawnSync("rsync", ["-a", "--delete", `${from}/`, `${to}/`], { encoding: "utf8" });
   if (rsync.status !== 0) {
@@ -43,22 +43,51 @@ function copyTree(from, to) {
   }
 }
 
-function ensureLocalPluginCopy() {
-  const source =
-    fs.existsSync(path.join(installRoot, ".cursor-plugin", "plugin.json")) && installRoot !== localPlugin
-      ? installRoot
-      : builtBundle;
+function hasPluginManifest(dir) {
+  return fs.existsSync(path.join(dir, ".cursor-plugin", "plugin.json"));
+}
 
-  if (!fs.existsSync(path.join(source, ".cursor-plugin", "plugin.json"))) {
+function isSymlink(dir) {
+  try {
+    return fs.lstatSync(dir).isSymbolicLink();
+  } catch {
+    return false;
+  }
+}
+
+function ensureLocalPluginCopy() {
+  const sameAsLocal = path.resolve(installRoot) === path.resolve(localPlugin);
+
+  // CLI setup already installed into the official local path — do not clobber
+  // managed state / rewritten references with a second copy pass.
+  if (sameAsLocal) {
+    if (!hasPluginManifest(localPlugin)) {
+      console.error(
+        `register-cursor-plugin: missing plugin.json under ${localPlugin}; run do-it install --target=cursor first`
+      );
+      process.exit(1);
+    }
+    if (isSymlink(localPlugin)) {
+      if (!hasPluginManifest(builtBundle)) {
+        console.error(
+          `register-cursor-plugin: local path is a symlink and built bundle is missing at ${builtBundle}`
+        );
+        process.exit(1);
+      }
+      copyTree(builtBundle, localPlugin);
+      console.error(`register-cursor-plugin: replaced external symlink with real copy -> ${localPlugin}`);
+    } else {
+      console.error(`register-cursor-plugin: local plugin already at ${localPlugin}`);
+    }
+    return localPlugin;
+  }
+
+  const source = hasPluginManifest(installRoot) ? installRoot : builtBundle;
+  if (!hasPluginManifest(source)) {
     console.error(
       `register-cursor-plugin: missing plugin.json under ${source}; run npm run build:cursor-plugin / do-it install --target=cursor first`
     );
     process.exit(1);
-  }
-
-  if (path.resolve(source) === path.resolve(localPlugin)) {
-    console.error(`register-cursor-plugin: local plugin already at ${localPlugin}`);
-    return localPlugin;
   }
 
   copyTree(source, localPlugin);

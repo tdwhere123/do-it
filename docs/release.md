@@ -35,8 +35,9 @@ codex plugin add do-it@tdwhere-do-it
 # Claude Code
 # /plugin marketplace add tdwhere123/do-it && /plugin install do-it@do-it
 
-# Cursor — no Claude /plugin commands; symlink plugins/do-it-cursor to
-# ~/.cursor/plugins/local/do-it-cursor (or do-it setup --target=cursor), then Reload Window
+# Cursor — no Claude /plugin commands; copy (not external symlink):
+#   npm run install:cursor-local
+# then Developer: Reload Window. Or: do-it setup --target=cursor
 # Team Import from Repo / public marketplace when listed
 
 # OpenCode — local path in opencode.json (see plugins/do-it-opencode/docs/README.opencode.md)
@@ -90,7 +91,7 @@ for doctor and migration — do not require pairing it with marketplace install.
 | Codex plugin marketplace | Yes, under `plugins/do-it/skills/` | Yes, under `plugins/do-it/agents/` | No slash command surface | Yes, plugin hooks (trust under `/hooks`) | Optional via CLI | `npm run build:codex-plugin` then `CODEX_HOME=/tmp/do-it-plugin-test codex plugin marketplace add /path/to/do-it` and `codex plugin add do-it@tdwhere-do-it` |
 | Codex CLI setup (legacy) | Yes, from `manifest.json` | Yes, TOML from `agents/` | CLI `do-it` only | Yes, root `hooks.json` plus `hooks/` | Yes, default target | `CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it setup` |
 | Claude Code plugin | Yes, from `skills/do-it/` | Yes, under `dist/claude/agents/` | Yes, `commands/` | Yes, plugin `hooks/hooks.json` | Yes, `--target=claude` | `CLAUDE_PLUGIN_ROOT_OVERRIDE=/tmp/do-it-claude-test npm exec --package . -- do-it setup --target=claude` |
-| Cursor plugin | Full 8 (`ALL_SKILLS`) under `plugins/do-it-cursor/skills/` (+ `references/`) | Yes, under `plugins/do-it-cursor/agents/` | No | Medium: `sessionStart`, `beforeSubmitPrompt`, `postToolUse`/`afterFileEdit`, `stop` (no `grill-pretool`) | Yes, `--target=cursor` | `npm run build:cursor-plugin`; symlink `plugins/do-it-cursor` to `~/.cursor/plugins/local/do-it-cursor` (or `do-it setup --target=cursor`); Reload Window |
+| Cursor plugin | Full 8 (`ALL_SKILLS`) under `plugins/do-it-cursor/skills/` (+ `references/`) | Yes, under `plugins/do-it-cursor/agents/` | No | Medium: `sessionStart`, `beforeSubmitPrompt`, `postToolUse`/`afterFileEdit`, `stop` (no `grill-pretool`) | Yes, `--target=cursor` | `npm run install:cursor-local` (real copy under `~/.cursor/plugins/local/`) or `do-it setup --target=cursor`; Reload Window |
 | OpenCode plugin | Yes, under `plugins/do-it-opencode/skills/` | Yes, under `plugins/do-it-opencode/agents/` | No | Medium-Light: transform bootstrap, `tool.execute.after`, `session.idle` soft reminder | No CLI doctor | `npm run build:opencode-plugin && npm run test-opencode` |
 
 ## 0.14.0
@@ -137,6 +138,15 @@ wrappers remain available:
 Set `CODEX_HOME=/path/to/codex-home` to test or install into a temporary target.
 
 ## Publish Paths
+
+### CI / CD
+
+- **CI** (`.github/workflows/ci.yml`): matrix tests, generated-artifact drift
+  checks, Cursor local-install smoke (real copy under `plugins/local`), and
+  package-smoke for Codex / Claude / Cursor setup targets.
+- **Release** (`.github/workflows/release.yml`): on `v*` tags or manual
+  dispatch — full verify + `npm pack`; optional `npm publish` when
+  `NPM_TOKEN` is set / `publish_npm` is true.
 
 ### Option 1: Publish To npm
 

@@ -396,11 +396,24 @@ test("cursor target installs plugin bundle with cursor hooks.json", () => {
     assert.equal(hooksJson.version, 1);
     assert.ok(hooksJson.hooks.sessionStart, "cursor hooks should define sessionStart");
 
+    const localPlugin = path.join(home, ".cursor", "plugins", "local", "do-it-cursor");
     const registered = JSON.parse(
       fs.readFileSync(path.join(home, ".cursor", "plugins", "do-it-cursor-install.json"), "utf8")
     );
     assert.equal(registered.id, "do-it-cursor");
-    assert.equal(registered.installPath, pluginRoot);
+    assert.equal(
+      registered.installPath,
+      localPlugin,
+      "register-cursor-plugin should mirror into official ~/.cursor/plugins/local path"
+    );
+    assert.ok(
+      fs.existsSync(path.join(localPlugin, ".cursor-plugin", "plugin.json")),
+      "local Cursor plugin copy should include plugin.json"
+    );
+    assert.ok(
+      !fs.lstatSync(localPlugin).isSymbolicLink(),
+      "local Cursor plugin must be a real directory (Cursor rejects external symlinks)"
+    );
     assert.ok(
       !fs.existsSync(path.join(home, ".claude", "plugins", "installed_plugins.json")),
       "cursor setup must not write Claude plugin registries"

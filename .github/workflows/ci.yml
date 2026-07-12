@@ -86,6 +86,18 @@ jobs:
       - name: Build OpenCode plugin
         run: npm run build:opencode-plugin
 
+      - name: Ensure generated OpenCode plugin is committed
+        run: git diff --exit-code -- plugins/do-it-opencode
+
+      - name: Smoke Cursor local install (real copy, no external symlink)
+        env:
+          HOME: ${{ runner.temp }}/cursor-local-home
+        run: |
+          npm run install:cursor-local
+          test -f "$HOME/.cursor/plugins/local/do-it-cursor/.cursor-plugin/plugin.json"
+          test ! -L "$HOME/.cursor/plugins/local/do-it-cursor"
+          test -f "$HOME/.cursor/plugins/local/do-it-cursor/skills/do-it-router/SKILL.md"
+
   package-smoke:
     name: Package smoke
     runs-on: ubuntu-latest
@@ -124,6 +136,15 @@ jobs:
           CLAUDE_PLUGIN_ROOT_OVERRIDE: ${{ runner.temp }}/do-it-claude
           NPM_CONFIG_CACHE: ${{ runner.temp }}/npm-cache
         run: npm exec --package . -- do-it setup --target=claude
+
+      - name: Smoke test Cursor install target
+        env:
+          HOME: ${{ runner.temp }}/do-it-cursor-home
+          NPM_CONFIG_CACHE: ${{ runner.temp }}/npm-cache
+        run: |
+          npm exec --package . -- do-it setup --target=cursor
+          test -f "$HOME/.cursor/plugins/local/do-it-cursor/.cursor-plugin/plugin.json"
+          test ! -L "$HOME/.cursor/plugins/local/do-it-cursor"
 
       - name: Inspect package tarball
         env:
