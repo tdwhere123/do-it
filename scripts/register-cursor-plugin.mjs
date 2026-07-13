@@ -5,6 +5,8 @@
  * Official local discovery path is ~/.cursor/plugins/local/<name>/ with a real
  * directory (Cursor rejects external symlinks). When CLI setup already writes
  * there, keep that managed tree. Otherwise mirror the built bundle into local/.
+ * Also merges do-it hooks into ~/.cursor/hooks.json (plugin-local hooks are not
+ * registered by current Cursor Hooks service / UI).
  * Does **not** write Claude Code registries.
  */
 
@@ -13,6 +15,7 @@ import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
+import { syncUserHooksForPlugin } from "./lib/cursor-user-hooks.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, "..");
@@ -79,7 +82,7 @@ function ensureLocalPluginCopy() {
     } else {
       console.error(`register-cursor-plugin: local plugin already at ${localPlugin}`);
     }
-    return localPlugin;
+    return path.resolve(localPlugin);
   }
 
   const source = hasPluginManifest(installRoot) ? installRoot : builtBundle;
@@ -91,8 +94,8 @@ function ensureLocalPluginCopy() {
   }
 
   copyTree(source, localPlugin);
-  console.error(`register-cursor-plugin: copied plugin -> ${localPlugin}`);
-  return localPlugin;
+  console.error(`register-cursor-plugin: copied plugin -> ${path.resolve(localPlugin)}`);
+  return path.resolve(localPlugin);
 }
 
 function writeCursorInstallMarker(installPath) {
@@ -108,11 +111,29 @@ function writeCursorInstallMarker(installPath) {
   console.error(`register-cursor-plugin: wrote ${cursorMarkerPath}`);
 }
 
+function wireUserHooks(pluginPath) {
+  const hooksPath = syncUserHooksForPlugin(home, pluginPath);
+  console.error(`register-cursor-plugin: user hooks wired -> ${path.resolve(hooksPath)}`);
+}
+
 function main() {
   const installed = ensureLocalPluginCopy();
+  if (!hasPluginManifest(installed)) {
+    console.error(`register-cursor-plugin: post-check failed — missing plugin.json under ${installed}`);
+    process.exit(1);
+  }
   writeCursorInstallMarker(installed);
+  try {
+    wireUserHooks(installed);
+  } catch (err) {
+    console.error(`register-cursor-plugin: failed to merge user hooks: ${err.message}`);
+    process.exit(1);
+  }
   console.error(
-    "register-cursor-plugin: ready. Reload Cursor (Developer: Reload Window). On Windows+WSL, also run: node scripts/install-cursor-local.mjs"
+    "register-cursor-plugin: ready. Reload Cursor (Developer: Reload Window).\n" +
+      "Customize → Hooks should list user-level do-it entries from ~/.cursor/hooks.json.\n" +
+      "On native Windows use %USERPROFILE%\\.cursor\\plugins\\local\\do-it-cursor (not /mnt/c/...).\n" +
+      "On WSL with Windows-hosted Cursor, also run: node scripts/install-cursor-local.mjs"
   );
 }
 

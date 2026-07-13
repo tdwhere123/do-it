@@ -37,17 +37,35 @@ function assertCursorHooks(relativePath) {
   if (data.version !== 1 || !data.hooks || typeof data.hooks !== "object") {
     throw new Error(`${relativePath}: expected version 1 with hooks object`);
   }
-  if (JSON.stringify(data).includes("preToolUse") || JSON.stringify(data).includes("grill-pretool")) {
+  const serialized = JSON.stringify(data);
+  if (serialized.includes("preToolUse") || serialized.includes("grill-pretool")) {
     throw new Error(`${relativePath}: must not register a pre-edit plan gate`);
+  }
+  // Windows Cursor opens bare .sh paths as documents — all Cursor commands
+  // must go through the polyglot run-hook.cmd entrypoint.
+  if (!serialized.includes("run-hook.cmd")) {
+    throw new Error(`${relativePath}: Cursor hooks must use run-hook.cmd (not bare .sh)`);
+  }
+  for (const match of serialized.matchAll(/"command"\s*:\s*"([^"]+)"/g)) {
+    const command = match[1];
+    if (/\.sh(?:\s|$)/.test(command) && !command.includes("run-hook.cmd")) {
+      throw new Error(`${relativePath}: bare .sh command is unsafe on Windows: ${command}`);
+    }
   }
 }
 
 function assertBundledHookScripts(relativePath) {
   const data = readJson(relativePath);
+  const hooksDir = path.join(repoRoot, relativePath.replace(/\/hooks\.json$/, ""));
+  if (!fs.existsSync(path.join(hooksDir, "run-hook.cmd"))) {
+    throw new Error(`${relativePath}: missing bundled run-hook.cmd`);
+  }
+  const names = ["session-start", "router", "grill-prompt", "subagent-stance", "write-quality-lint", "verification-gate"];
   const serialized = JSON.stringify(data);
-  for (const script of ["router.sh", "grill-prompt.sh", "subagent-stance.sh", "write-quality-lint.sh", "verification-gate.sh"]) {
-    if (!serialized.includes(script)) continue;
-    if (!fs.existsSync(path.join(repoRoot, relativePath.replace(/\/hooks\.json$/, ""), script))) {
+  for (const name of names) {
+    if (!serialized.includes(name)) continue;
+    const script = `${name}.sh`;
+    if (!fs.existsSync(path.join(hooksDir, script))) {
       throw new Error(`${relativePath}: references missing bundled hook ${script}`);
     }
   }

@@ -445,6 +445,33 @@ test("cursor target installs plugin bundle with cursor hooks.json", () => {
       fs.existsSync(path.join(pluginRoot, "skills", "_index.md")),
       "skills index should still install for cursor discovery"
     );
+
+    const userHooksPath = path.join(home, ".cursor", "hooks.json");
+    assert.ok(
+      fs.existsSync(userHooksPath),
+      "cursor post-install must wire user-level ~/.cursor/hooks.json"
+    );
+    const userHooks = JSON.parse(fs.readFileSync(userHooksPath, "utf8"));
+    assert.ok(
+      userHooks.hooks?.sessionStart?.some((entry) =>
+        String(entry.command).includes("run-hook.cmd") &&
+        String(entry.command).includes("session-start")
+      ),
+      "user hooks must point at run-hook.cmd session-start (not bare .sh)"
+    );
+    assert.ok(
+      !JSON.stringify(userHooks).match(/do-it-cursor[/\\]hooks[/\\][^"\\]+\.sh"/),
+      "user hooks must not reference bare .sh entrypoints"
+    );
+
+    const doctor = runManage(["doctor", "--target=cursor"], {
+      HOME: home,
+      CURSOR_PLUGIN_ROOT_OVERRIDE: pluginRoot
+    });
+    assert.equal(doctor.status, 0, doctor.stderr || doctor.stdout);
+    assert.match(doctor.stdout, /cursor:user-hooks wired/);
+    assert.match(doctor.stdout, /cursor:sample-hook runnable/);
+    assert.match(doctor.stdout, /cursor:run-hook\.cmd/);
   } finally {
     fs.rmSync(home, { recursive: true, force: true });
   }

@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased
+
+### Fixes — Cursor on native Windows
+
+- **Install path:** `install-cursor-local.mjs` no longer rewrites `%USERPROFILE%`
+  into `/mnt/c/...` on `win32` (that landed under e.g. `D:\mnt\c\Users\...`).
+  WSL→Windows mirroring only runs on Linux when WSL/`/mnt/c/Users` is present.
+- **Hooks registration:** after local/CLI install, merge do-it entries into
+  user-level `~/.cursor/hooks.json` (Cursor Hooks service does not load
+  plugin-local `hooks/hooks.json` today).
+- **Windows hook entrypoint:** all Cursor hook commands go through polyglot
+  `hooks/run-hook.cmd <name>` (never bare `.sh`). Cursor on Windows was opening
+  `.sh` paths in the editor / “Open with” dialog instead of executing them.
+  Runner prefers Git for Windows bash and skips `System32\bash.exe`.
+- **Index build:** `build-index-json` normalizes CRLF SKILL.md frontmatter so
+  Windows checkouts do not fail `name`/`description` validation.
+- **Git Bash keyword match:** `do_it_prompt_has_word` uses pure bash on
+  MSYS/MINGW to avoid `grep -q` + `pipefail` “Aborted” noise.
+
 ## 0.14.0
 
 Theme: meaning-centric rethink. Skills organize by **what they mean for the

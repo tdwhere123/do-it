@@ -140,10 +140,18 @@ listed there yet**. Until it is submitted/reviewed, use:
    ```
    then **Developer: Reload Window**. This copies into
    `~/.cursor/plugins/local/do-it-cursor` as a **real directory** (Cursor
-   rejects external symlinks). On Windows+WSL the script also mirrors into
-   `%USERPROFILE%\.cursor\plugins\local\` when it can see that profile.
+   rejects external symlinks) and merges do-it hooks into user-level
+   `~/.cursor/hooks.json` via `hooks/run-hook.cmd …` (plugin-local hooks are
+   not registered by current Cursor Hooks UI/service; bare `.sh` commands on
+   Windows open in the editor instead of executing). On **native Windows**
+   the target is `%USERPROFILE%\.cursor\plugins\local\do-it-cursor` (never
+   `/mnt/c/...`). On Windows+WSL the script also mirrors into that Windows
+   profile when it can see `/mnt/c/Users`. Confirm with
+   `do-it doctor --target=cursor` — Customize → Hooks should list user-level
+   do-it `.cmd` entries after reload, and Agent turns must not pop `.sh`
+   source.
 2. **CLI setup:** `do-it setup --target=cursor` then reload (same
-   `…/plugins/local/do-it-cursor` path).
+   `…/plugins/local/do-it-cursor` path + user hooks merge).
 3. **Team Import (no public listing needed):** Dashboard → Plugins → Import
    from Repo → `https://github.com/tdwhere123/do-it` (reads
    `.cursor-plugin/marketplace.json`).

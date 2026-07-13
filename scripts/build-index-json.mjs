@@ -50,13 +50,17 @@ function resolveGeneratedAt() {
 }
 
 function parseFrontmatter(text) {
-  if (!text.startsWith("---\n")) return {};
-  const end = text.indexOf("\n---", 4);
+  // Normalize CRLF (common on native Windows checkouts with core.autocrlf)
+  // before looking for YAML fences — otherwise `---\r\n` fails `---\n` checks
+  // and every skill looks like name/description is missing.
+  const normalized = text.replace(/^\uFEFF/, "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  if (!normalized.startsWith("---\n")) return {};
+  const end = normalized.indexOf("\n---", 4);
   if (end < 0) return {};
 
-  const block = text.slice(4, end).trim();
+  const block = normalized.slice(4, end).trim();
   const out = {};
-  const lines = block.split(/\r?\n/);
+  const lines = block.split("\n");
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index];
     const match = /^([A-Za-z_][A-Za-z0-9_-]*):\s*(.*)$/.exec(line);
@@ -79,6 +83,8 @@ function parseFrontmatter(text) {
   }
   return out;
 }
+
+export { parseFrontmatter };
 
 function readTomlStringValue(source, key) {
   const match = new RegExp(`^${key}\\s*=\\s*"([^"]*)"`, "m").exec(source);
@@ -244,4 +250,6 @@ function main() {
   );
 }
 
-main();
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main();
+}

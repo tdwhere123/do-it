@@ -23,7 +23,10 @@ Skip hooks when appropriate: yolo, skip grill, 直接做, 我已经想清楚, or
 Verification-gate blocks done / passed / 完成 claims without fresh command evidence in the turn (Stop hook is a soft transcript check — cite real command output in your reply).
 EOF
 
-if [[ -n "${CURSOR_PLUGIN_ROOT:-}" ]]; then
+# Prefer Cursor additional_context when running under Cursor (plugin or
+# user-level ~/.cursor/hooks.json fallback). common.sh may derive
+# CURSOR_PLUGIN_ROOT from SCRIPT_DIR when the Hooks service did not set it.
+if [[ -n "${CURSOR_PLUGIN_ROOT:-}" ]] || [[ -n "${CURSOR_VERSION:-}" ]]; then
   if [[ "$DO_IT_HAVE_JQ" == "1" ]]; then
     jq -nc --arg t "$CONTEXT" '{additional_context: $t}'
   else

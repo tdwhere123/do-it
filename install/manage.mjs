@@ -2,6 +2,7 @@
 
 import fs from "node:fs";
 import crypto from "node:crypto";
+import os from "node:os";
 import path from "node:path";
 import process from "node:process";
 import { spawnSync } from "node:child_process";
@@ -10,6 +11,12 @@ import {
   needsMigration,
   applyMatchingMigrations
 } from "./migrate.mjs";
+import {
+  userHooksWiredForPlugin,
+  resolveGitBash,
+  isBareShellHookCommand,
+  isDoItHookCommand
+} from "../scripts/lib/cursor-user-hooks.mjs";
 
 const VALID_COMMANDS = new Set(["install", "doctor", "setup"]);
 const HELP_FLAGS = new Set(["-h", "--help", "help"]);
@@ -96,8 +103,12 @@ if (!targetConfig) {
   process.exit(2);
 }
 
+function resolveUserHome() {
+  return process.env.HOME || process.env.USERPROFILE || os.homedir() || "";
+}
+
 function expandRootDefault(template) {
-  return template.replace(/\$HOME/g, process.env.HOME ?? "");
+  return template.replace(/\$HOME/g, resolveUserHome());
 }
 
 const rootEnvName = targetConfig.rootEnv;
@@ -105,7 +116,7 @@ const installRoot = process.env[rootEnvName]
   ? path.resolve(process.env[rootEnvName])
   : expandRootDefault(targetConfig.rootDefault);
 
-if (!process.env[rootEnvName] && !process.env.HOME) {
+if (!process.env[rootEnvName] && !resolveUserHome()) {
   throw new Error(`HOME is not set. Set ${rootEnvName} explicitly.`);
 }
 
@@ -760,6 +771,10 @@ function doctor() {
     }
   }
 
+  if (targetName === "cursor") {
+    doctorCursorExtras(ok, missing, drift);
+  }
+
   console.log(`doctor checked ${entries.length} managed entries in ${installRoot} (target=${targetName})`);
   console.log(`ok: ${ok.length}`);
   console.log(`missing: ${missing.length}`);
@@ -796,6 +811,127 @@ function doctor() {
 
   if (sessionId) {
     printSessionSummary(sessionId);
+  }
+}
+
+/**
+ * Cursor-specific doctor checks beyond managed entry copies:
+ * - plugin.json present at install root (absolute path)
+ * - user-level ~/.cursor/hooks.json wired to plugin scripts via run-hook.cmd
+ * - no bare .sh commands (Windows opens those as editor documents)
+ * - Git Bash resolvable on win32
+ * - sample hook script is executable / runnable
+ */
+function doctorCursorExtras(ok, missing, drift) {
+  const pluginJson = path.join(installRoot, ".cursor-plugin", "plugin.json");
+  if (fs.existsSync(pluginJson)) {
+    ok.push(`cursor:plugin.json at ${path.resolve(pluginJson)}`);
+  } else {
+    missing.push(`cursor:plugin.json missing at ${path.resolve(pluginJson)}`);
+  }
+
+  const home = resolveUserHome();
+  if (!home) {
+    drift.push("cursor:HOME/USERPROFILE unset — cannot verify user-level ~/.cursor/hooks.json wiring");
+    return;
+  }
+
+  // Prefer the official local path Cursor actually loads when present.
+  const localPlugin = path.join(home, ".cursor", "plugins", "local", "do-it-cursor");
+  const pluginForHooks = fs.existsSync(path.join(localPlugin, ".cursor-plugin", "plugin.json"))
+    ? localPlugin
+    : installRoot;
+
+  const runner = path.join(pluginForHooks, "hooks", "run-hook.cmd");
+  if (fs.existsSync(runner)) {
+    ok.push(`cursor:run-hook.cmd at ${path.resolve(runner)}`);
+  } else {
+    missing.push(`cursor:run-hook.cmd missing at ${path.resolve(runner)}`);
+  }
+
+  const wired = userHooksWiredForPlugin(home, path.resolve(pluginForHooks));
+  if (wired.ok) {
+    ok.push(`cursor:user-hooks wired at ${path.resolve(wired.hooksPath)}`);
+  } else {
+    missing.push(`cursor:user-hooks ${wired.reason}`);
+  }
+
+  const userHooksPath = path.join(home, ".cursor", "hooks.json");
+  if (fs.existsSync(userHooksPath)) {
+    try {
+      const userHooks = JSON.parse(fs.readFileSync(userHooksPath, "utf8"));
+      for (const list of Object.values(userHooks.hooks ?? {})) {
+        if (!Array.isArray(list)) continue;
+        for (const entry of list) {
+          if (isDoItHookCommand(entry?.command) && isBareShellHookCommand(entry.command)) {
+            drift.push(
+              `cursor:user-hooks bare .sh entry (Windows will open it as a file): ${entry.command}`
+            );
+          }
+        }
+      }
+    } catch (err) {
+      drift.push(`cursor:user-hooks unreadable: ${err.message}`);
+    }
+  }
+
+  if (process.platform === "win32") {
+    const bash = resolveGitBash();
+    if (bash) {
+      ok.push(`cursor:git-bash at ${bash}`);
+    } else {
+      missing.push(
+        "cursor:git-bash not found (install Git for Windows; System32\\bash.exe / WSL stub is not enough)"
+      );
+    }
+  }
+
+  const sample = path.join(pluginForHooks, "hooks", "session-start.sh");
+  if (!fs.existsSync(sample)) {
+    missing.push(`cursor:sample-hook missing at ${path.resolve(sample)}`);
+    return;
+  }
+
+  let smoke;
+  let smokeLabel;
+  if (process.platform === "win32" && fs.existsSync(runner)) {
+    smokeLabel = `cmd.exe /c ${path.resolve(runner)} session-start`;
+    smoke = spawnSync("cmd.exe", ["/c", path.resolve(runner), "session-start"], {
+      encoding: "utf8",
+      input: '{"session_id":"doctor-smoke","hook_event_name":"sessionStart"}\n',
+      env: {
+        ...process.env,
+        CURSOR_PLUGIN_ROOT: path.resolve(pluginForHooks),
+        CURSOR_PLUGIN_DATA: path.join(path.resolve(pluginForHooks), ".do-it-data"),
+        CURSOR_VERSION: process.env.CURSOR_VERSION || "doctor"
+      },
+      timeout: 20_000
+    });
+  } else {
+    const args = fs.existsSync(runner)
+      ? [path.resolve(runner), "session-start"]
+      : [path.resolve(sample)];
+    smokeLabel = `bash ${args.join(" ")}`;
+    smoke = spawnSync("bash", args, {
+      encoding: "utf8",
+      input: '{"session_id":"doctor-smoke","hook_event_name":"sessionStart"}\n',
+      env: {
+        ...process.env,
+        CURSOR_PLUGIN_ROOT: path.resolve(pluginForHooks),
+        CURSOR_PLUGIN_DATA: path.join(path.resolve(pluginForHooks), ".do-it-data"),
+        CURSOR_VERSION: process.env.CURSOR_VERSION || "doctor"
+      },
+      timeout: 20_000
+    });
+  }
+  if (smoke.error) {
+    drift.push(`cursor:sample-hook could not run: ${smoke.error.message}`);
+  } else if (smoke.status !== 0) {
+    drift.push(
+      `cursor:sample-hook exited ${smoke.status}: ${(smoke.stderr || smoke.stdout || "").trim().slice(0, 200)}`
+    );
+  } else {
+    ok.push(`cursor:sample-hook runnable via ${smokeLabel}`);
   }
 }
 

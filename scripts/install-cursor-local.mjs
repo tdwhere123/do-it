@@ -6,15 +6,26 @@
  * Cursor rejects symlinks whose target is outside ~/.cursor/plugins/local/
  * (security validation). This script always copies a real directory.
  *
- * On WSL: also mirrors into the Windows user profile when detectable, because
- * a Windows-hosted Cursor reads %USERPROFILE%\.cursor, not Linux $HOME/.cursor.
+ * Platforms:
+ * - Native Windows (win32): install into %USERPROFILE%\.cursor\... only.
+ *   Never rewrite USERPROFILE into /mnt/c/... (that path is meaningless on
+ *   win32 and resolves under the current drive, e.g. D:\mnt\c\Users\...).
+ * - WSL / Linux with /mnt/c/Users: also mirror into detected Windows profiles
+ *   because a Windows-hosted Cursor reads %USERPROFILE%\.cursor, not Linux
+ *   $HOME/.cursor.
+ *
+ * After the plugin copy, merge do-it hooks into ~/.cursor/hooks.json so the
+ * Hooks service registers them (plugin-local hooks/hooks.json is not loaded
+ * by current Cursor Hooks UI / service).
  */
 
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
+import { syncUserHooksForPlugin } from "./lib/cursor-user-hooks.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, "..");
@@ -45,17 +56,49 @@ function copyTree(from, to) {
   fs.cpSync(from, to, { recursive: true });
 }
 
+function looksLikeWindowsPath(value) {
+  return typeof value === "string" && /^[A-Za-z]:[\\/]/.test(value);
+}
+
+function toWslMountPath(winPath) {
+  return winPath
+    .replace(/^([A-Za-z]):[\\/]/, (_, d) => `/mnt/${d.toLowerCase()}/`)
+    .replace(/\\/g, "/");
+}
+
+function isWslLike() {
+  if (process.env.WSL_DISTRO_NAME) return true;
+  if (process.platform !== "linux") return false;
+  try {
+    return fs.existsSync("/mnt/c/Users");
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Homes that a Windows-hosted Cursor would read.
+ * - win32: USERPROFILE / os.homedir() only (never /mnt/...)
+ * - WSL-like Linux: convert USERPROFILE + scan /mnt/c/Users for .cursor dirs
+ * - plain Linux: none (caller still uses $HOME)
+ */
 function windowsHomeCandidates() {
   const out = [];
-  if (process.env.USERPROFILE) {
-    // Git Bash / some WSL setups export USERPROFILE as C:\Users\...
-    const win = process.env.USERPROFILE.replace(/^([A-Za-z]):\\/, (_, d) => `/mnt/${d.toLowerCase()}/`).replace(
-      /\\/g,
-      "/"
-    );
-    out.push(win);
+
+  if (process.platform === "win32") {
+    const home = process.env.USERPROFILE || os.homedir();
+    if (home) out.push(path.resolve(home));
+    return [...new Set(out)];
   }
-  // Common WSL mount of the Windows profile that owns this machine
+
+  if (!isWslLike()) {
+    return out;
+  }
+
+  if (process.env.USERPROFILE && looksLikeWindowsPath(process.env.USERPROFILE)) {
+    out.push(toWslMountPath(process.env.USERPROFILE));
+  }
+
   try {
     const usersRoot = "/mnt/c/Users";
     if (fs.existsSync(usersRoot)) {
@@ -70,28 +113,68 @@ function windowsHomeCandidates() {
   } catch {
     // ignore
   }
+
   return [...new Set(out)];
+}
+
+function verifyPluginInstall(dest) {
+  const manifest = path.join(dest, ".cursor-plugin", "plugin.json");
+  if (!fs.existsSync(manifest)) {
+    fail(`post-install check failed — missing ${path.resolve(manifest)}`);
+  }
+  const hooksJson = path.join(dest, "hooks", "hooks.json");
+  if (!fs.existsSync(hooksJson)) {
+    fail(`post-install check failed — missing ${path.resolve(hooksJson)}`);
+  }
+  return path.resolve(dest);
 }
 
 function installIntoHome(home) {
   const dest = path.join(home, ".cursor", "plugins", "local", pluginName);
   copyTree(source, dest);
-  const manifest = path.join(dest, ".cursor-plugin", "plugin.json");
-  if (!fs.existsSync(manifest)) fail(`copy failed — missing ${manifest}`);
-  console.log(`install-cursor-local: installed -> ${dest}`);
-  return dest;
+  const absoluteDest = verifyPluginInstall(dest);
+  console.log(`install-cursor-local: installed -> ${absoluteDest}`);
+
+  try {
+    const hooksPath = syncUserHooksForPlugin(home, absoluteDest);
+    console.log(`install-cursor-local: user hooks wired -> ${path.resolve(hooksPath)}`);
+  } catch (err) {
+    fail(`failed to merge user hooks for ${home}: ${err.message}`);
+  }
+
+  return absoluteDest;
+}
+
+function collectHomes() {
+  const homes = [];
+  const push = (value) => {
+    if (!value) return;
+    // On win32 never accept a bogus /mnt/... candidate from a stale env.
+    if (process.platform === "win32" && value.replace(/\\/g, "/").includes("/mnt/")) {
+      return;
+    }
+    const resolved = path.resolve(value);
+    if (!homes.includes(resolved)) homes.push(resolved);
+  };
+
+  if (process.platform === "win32") {
+    push(process.env.USERPROFILE || os.homedir());
+    // Git Bash often sets HOME to /c/Users/... which Node can resolve; keep it
+    // only when it is a real directory distinct from USERPROFILE mapping.
+    if (process.env.HOME) push(process.env.HOME);
+  } else {
+    if (process.env.HOME) push(process.env.HOME);
+  }
+
+  if (process.env.CURSOR_LOCAL_HOME) push(process.env.CURSOR_LOCAL_HOME);
+  for (const winHome of windowsHomeCandidates()) push(winHome);
+  return homes;
 }
 
 function main() {
   ensureBuilt();
 
-  const homes = [];
-  if (process.env.HOME) homes.push(process.env.HOME);
-  if (process.env.CURSOR_LOCAL_HOME) homes.push(process.env.CURSOR_LOCAL_HOME);
-  for (const winHome of windowsHomeCandidates()) {
-    if (!homes.includes(winHome)) homes.push(winHome);
-  }
-
+  const homes = collectHomes();
   if (homes.length === 0) fail("no HOME / Windows profile found");
 
   const installed = [];
@@ -107,7 +190,9 @@ function main() {
 
   console.log(
     "install-cursor-local: done. Reload Cursor (Developer: Reload Window).\n" +
-      "Note: external symlinks into plugins/local are rejected by Cursor — this install uses a real copy."
+      "Note: external symlinks into plugins/local are rejected by Cursor — this install uses a real copy.\n" +
+      "Note: user-level ~/.cursor/hooks.json was merged so Hooks UI / service can see do-it entries\n" +
+      "(plugin-local hooks/hooks.json alone is not registered by current Cursor)."
   );
 }
 
