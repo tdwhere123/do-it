@@ -11,8 +11,8 @@
  *   Never rewrite USERPROFILE into /mnt/c/... (that path is meaningless on
  *   win32 and resolves under the current drive, e.g. D:\mnt\c\Users\...).
  * - WSL / Linux with /mnt/c/Users: mirror the caller's Windows USERPROFILE
- *   (when set). Only scan other /mnt/c/Users profiles when USERPROFILE is
- *   unset — avoids writing other users' Cursor state on shared machines.
+ *   when set. Never scan other /mnt/c/Users profiles (shared-host safety).
+ *   Use CURSOR_LOCAL_HOME for an explicit extra install root.
  *
  * After the plugin copy, merge do-it hooks into ~/.cursor/hooks.json so the
  * Hooks service registers them (plugin-local hooks/hooks.json is not loaded
@@ -73,43 +73,23 @@ function isWslLike() {
 /**
  * Homes that a Windows-hosted Cursor would read.
  * - win32: empty here (collectHomes uses resolveUserHome)
- * - WSL-like: USERPROFILE mount when set; otherwise scan /mnt/c/Users for .cursor
+ * - WSL-like: USERPROFILE mount when set; otherwise none (no multi-user scan)
  * - plain Linux: none
  */
 export function windowsHomeCandidates(env = process.env) {
-  const out = [];
-
   if (process.platform === "win32") {
-    return out;
+    return [];
   }
 
   if (!isWslLike()) {
-    return out;
+    return [];
   }
 
   if (env.USERPROFILE && looksLikeWindowsPath(env.USERPROFILE)) {
-    out.push(toWslMountPath(env.USERPROFILE));
-    return [...new Set(out)];
+    return [toWslMountPath(env.USERPROFILE)];
   }
 
-  // Fallback only when USERPROFILE is unavailable — prefer not to touch
-  // other users' profiles on shared WSL hosts.
-  try {
-    const usersRoot = "/mnt/c/Users";
-    if (fs.existsSync(usersRoot)) {
-      for (const name of fs.readdirSync(usersRoot)) {
-        if (name === "Public" || name === "Default" || name === "Default User" || name === "All Users") {
-          continue;
-        }
-        const cursor = path.join(usersRoot, name, ".cursor");
-        if (fs.existsSync(cursor)) out.push(path.join(usersRoot, name));
-      }
-    }
-  } catch {
-    // ignore
-  }
-
-  return [...new Set(out)];
+  return [];
 }
 
 function verifyPluginInstall(dest) {
@@ -174,15 +154,23 @@ function main() {
   if (homes.length === 0) fail("no HOME / Windows profile found");
 
   const installed = [];
+  const failures = [];
   for (const home of homes) {
     try {
       installed.push(installIntoHome(home));
     } catch (err) {
-      console.error(`install-cursor-local: skip ${home}: ${err.message}`);
+      const message = err?.message || String(err);
+      console.error(`install-cursor-local: failed ${home}: ${message}`);
+      failures.push(`${home}: ${message}`);
     }
   }
 
   if (installed.length === 0) fail("no install targets succeeded");
+  if (failures.length > 0) {
+    fail(
+      `partial install failure (${failures.length} of ${homes.length} homes): ${failures.join("; ")}`
+    );
+  }
 
   console.log(
     "install-cursor-local: done. Reload Cursor (Developer: Reload Window).\n" +

@@ -194,16 +194,115 @@ test("collectHomes on win32 rejects /mnt and MSYS HOME candidates", () => {
   assert.ok(!homes.some((h) => /mnt[\\/]c/i.test(h)));
 });
 
-test("windowsHomeCandidates prefers USERPROFILE mount and does not scan all users when set", () => {
+test("isDoItHookCommand requires do-it-cursor hooks marker", () => {
+  assert.equal(
+    isDoItHookCommand(
+      '"C:\\Users\\a\\.cursor\\plugins\\local\\do-it-cursor\\hooks\\run-hook.cmd" session-start'
+    ),
+    true
+  );
+  assert.equal(isDoItHookCommand("./hooks/run-hook.cmd session-start"), false);
+  assert.equal(isDoItHookCommand("C:\\tools\\run-hook.cmd session-start"), false);
+});
+
+test("mergeDoItUserHooks preserves third-party run-hook.cmd entries", () => {
+  const pluginRoot = "/tmp/fake-do-it-cursor";
+  const existing = {
+    version: 1,
+    hooks: {
+      sessionStart: [
+        { command: "C:\\tools\\run-hook.cmd other-tool", timeout: 1 },
+        { command: commandForRunHook(pluginRoot, "session-start"), timeout: 1 }
+      ]
+    }
+  };
+  const merged = mergeDoItUserHooks(existing, pluginRoot);
+  assert.ok(
+    merged.hooks.sessionStart.some((e) => e.command === "C:\\tools\\run-hook.cmd other-tool"),
+    "third-party run-hook.cmd must survive"
+  );
+  assert.equal(
+    merged.hooks.sessionStart.filter((e) => isDoItHookCommand(e.command)).length,
+    1
+  );
+});
+
+test("userHooksWiredForPlugin rejects bare .sh and missing entries", () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-hooks-neg-"));
+  const pluginRoot = path.join(home, ".cursor", "plugins", "local", "do-it-cursor");
+  try {
+    fs.mkdirSync(path.join(pluginRoot, "hooks"), { recursive: true });
+    const hooksPath = path.join(home, ".cursor", "hooks.json");
+    fs.writeFileSync(
+      hooksPath,
+      `${JSON.stringify(
+        {
+          version: 1,
+          hooks: {
+            sessionStart: [
+              {
+                command: `${pluginRoot}/hooks/session-start.sh`,
+                timeout: 1
+              }
+            ]
+          }
+        },
+        null,
+        2
+      )}\n`
+    );
+    const bare = userHooksWiredForPlugin(home, pluginRoot);
+    assert.equal(bare.ok, false);
+    assert.match(bare.reason, /bare \.sh/);
+
+    fs.writeFileSync(
+      hooksPath,
+      `${JSON.stringify({ version: 1, hooks: { sessionStart: [] } }, null, 2)}\n`
+    );
+    const missing = userHooksWiredForPlugin(home, pluginRoot);
+    assert.equal(missing.ok, false);
+    assert.match(missing.reason, /missing do-it entries/);
+  } finally {
+    fs.rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test("syncUserHooksForPlugin is idempotent on rewrite", async () => {
+  const { syncUserHooksForPlugin } = await import("../../scripts/lib/cursor-user-hooks.mjs");
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-hooks-atomic-"));
+  const pluginRoot = path.join(home, ".cursor", "plugins", "local", "do-it-cursor");
+  try {
+    fs.mkdirSync(path.join(pluginRoot, "hooks"), { recursive: true });
+    const first = syncUserHooksForPlugin(home, pluginRoot);
+    const second = syncUserHooksForPlugin(home, pluginRoot);
+    assert.equal(first, second);
+    const wired = userHooksWiredForPlugin(home, pluginRoot);
+    assert.equal(wired.ok, true, wired.reason);
+  } finally {
+    fs.rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test("windowsHomeCandidates prefers USERPROFILE mount and does not scan all users", () => {
   if (process.platform === "win32") {
     assert.deepEqual(windowsHomeCandidates({ USERPROFILE: "C:\\Users\\alice" }), []);
     return;
   }
-  // On Linux CI without WSL mounts this returns []. With USERPROFILE set the
-  // implementation short-circuits to that mount only (no multi-user scan).
+
+  // Without a Windows profile, never enumerate /mnt/c/Users/* (shared-host safety).
+  assert.deepEqual(windowsHomeCandidates({ USERPROFILE: "" }), []);
+  assert.deepEqual(windowsHomeCandidates({}), []);
+
   const withProfile = windowsHomeCandidates({ USERPROFILE: "C:\\Users\\alice" });
+  // On Linux CI without WSL mounts this is []; with /mnt/c present it is exactly
+  // the caller's mount — never a multi-user list.
   if (withProfile.length > 0) {
     assert.deepEqual(withProfile, ["/mnt/c/Users/alice"]);
+  } else {
+    // Still prove the short-circuit shape via source when mounts are absent.
+    const source = fs.readFileSync(script, "utf8");
+    assert.match(source, /toWslMountPath\(env\.USERPROFILE\)/);
+    assert.doesNotMatch(source, /readdirSync\(usersRoot\)/);
   }
 });
 

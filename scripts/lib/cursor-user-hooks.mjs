@@ -16,6 +16,7 @@ import crypto from "node:crypto";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { looksLikeWindowsPath } from "./user-home.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, "../..");
@@ -24,15 +25,11 @@ const cursorHooksTemplate = path.join(repoRoot, "install", "cursor-hooks.json");
 export const DO_IT_HOOK_PATH_MARKER = "do-it-cursor/hooks/";
 export const DO_IT_RUN_HOOK_CMD = "run-hook.cmd";
 
+/** Owned by do-it only when the path includes the plugin hooks marker. */
 export function isDoItHookCommand(command) {
   if (typeof command !== "string" || command.length === 0) return false;
   const normalized = command.replace(/\\/g, "/");
-  return (
-    normalized.includes(DO_IT_HOOK_PATH_MARKER) ||
-    normalized.includes(`/${DO_IT_RUN_HOOK_CMD}`) ||
-    normalized.endsWith(DO_IT_RUN_HOOK_CMD) ||
-    normalized.includes(`${DO_IT_RUN_HOOK_CMD} `)
-  );
+  return normalized.includes(DO_IT_HOOK_PATH_MARKER);
 }
 
 /** True when a command still points at a bare .sh entry (unsafe on Windows). */
@@ -72,12 +69,13 @@ export function scriptBasenameFromTemplateCommand(raw) {
 }
 
 function quoteCommandPath(filePath) {
-  // Always quote Windows-style paths and any path with shell metacharacters.
+  // Quote Windows paths and any path with shell / CMD metacharacters (including
+  // $ and backticks so Unix shells cannot expand untrusted segments).
   // CMD escapes embedded quotes by doubling them.
   if (
     process.platform === "win32" ||
     looksLikeWindowsPath(filePath) ||
-    /[\s&|()<>^"]/.test(filePath)
+    /[\s&|()<>^"$`\\;]/.test(filePath)
   ) {
     return `"${String(filePath).replace(/"/g, '""')}"`;
   }
@@ -104,10 +102,6 @@ export function toWindowsPathIfWslMount(p) {
   const drive = match[1].toUpperCase();
   const rest = match[2].replace(/\//g, "\\");
   return `${drive}:\\${rest}`;
-}
-
-function looksLikeWindowsPath(value) {
-  return typeof value === "string" && /^[A-Za-z]:[\\/]/.test(value);
 }
 
 export function buildDoItUserHookDefs(pluginRoot) {
@@ -172,7 +166,18 @@ function writeJsonAtomic(filePath, value) {
   );
   try {
     fs.writeFileSync(tempPath, content);
-    fs.renameSync(tempPath, filePath);
+    try {
+      fs.renameSync(tempPath, filePath);
+    } catch (err) {
+      // Windows often cannot rename over an existing destination (EPERM/EEXIST).
+      // Fall back to replace-in-place so reinstall/merge stays idempotent.
+      if (process.platform === "win32" || err.code === "EEXIST" || err.code === "EPERM") {
+        fs.copyFileSync(tempPath, filePath);
+        fs.rmSync(tempPath, { force: true });
+      } else {
+        throw err;
+      }
+    }
   } finally {
     fs.rmSync(tempPath, { force: true });
   }

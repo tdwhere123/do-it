@@ -851,7 +851,8 @@ function doctorCursorExtras(ok, missing, drift) {
   }
 
   // On WSL, Windows-hosted Cursor reads the mirrored USERPROFILE tree — also
-  // verify that home when present so doctor matches install-cursor-local.
+  // verify that home when the mirror plugin is present so doctor matches
+  // install-cursor-local. (Partial install failures fail closed in the installer.)
   if (process.platform !== "win32") {
     const up = process.env.USERPROFILE;
     if (up && looksLikeWindowsPath(up)) {

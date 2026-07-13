@@ -18,6 +18,10 @@
   Windows checkouts do not fail `name`/`description` validation.
 - **Git Bash keyword match:** `do_it_prompt_has_word` uses pure bash on
   MSYS/MINGW to avoid `grep -q` + `pipefail` “Aborted” noise.
+- **Quality follow-ups:** Windows-safe atomic `hooks.json` replace; no WSL
+  multi-user `/mnt/c/Users` scan; fail closed on partial multi-home install;
+  do-it hook ownership keyed only on `do-it-cursor/hooks/`; quote `$`/backtick
+  paths; Windows CI isolates `USERPROFILE` for setup/doctor.
 
 ## 0.14.0
 

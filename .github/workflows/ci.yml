@@ -119,13 +119,9 @@ jobs:
           HOME="$HOME" npm run doctor:cursor
 
   windows-smoke:
-    name: Windows smoke (Node ${{ matrix.node-version }})
+    name: Windows smoke (Node 22.x)
     runs-on: windows-latest
     timeout-minutes: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        node-version: [22.x]
 
     steps:
       - name: Checkout
@@ -134,7 +130,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: 22.x
 
       - name: Install Cursor plugin (native USERPROFILE path)
         shell: pwsh
@@ -186,10 +182,11 @@ jobs:
         run: |
           $tempHome = Join-Path $env:RUNNER_TEMP "cursor-setup-home"
           New-Item -ItemType Directory -Force -Path $tempHome | Out-Null
+          # resolveUserHome on win32 prefers USERPROFILE — isolate both HOME and
+          # USERPROFILE so setup/doctor do not re-check the earlier local install.
           $env:HOME = $tempHome
-          # Keep USERPROFILE as the real profile; override only the Cursor install root
-          # so setup does not collide with the earlier install-cursor-local copy.
-          $env:CURSOR_PLUGIN_ROOT_OVERRIDE = Join-Path $tempHome ".cursor\plugins\local\do-it-cursor"
+          $env:USERPROFILE = $tempHome
+          Remove-Item Env:CURSOR_PLUGIN_ROOT_OVERRIDE -ErrorAction SilentlyContinue
           npm exec --package . -- do-it setup --target=cursor
           if ($LASTEXITCODE -ne 0) { throw "do-it setup --target=cursor failed" }
           npm run doctor:cursor
