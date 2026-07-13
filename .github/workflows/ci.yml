@@ -175,12 +175,19 @@ jobs:
           set CURSOR_VERSION=ci
           echo {"session_id":"ci-smoke","hook_event_name":"sessionStart"} | "%CURSOR_PLUGIN_ROOT%\hooks\run-hook.cmd" session-start
 
-      - name: CLI setup + doctor (USERPROFILE as HOME)
+      - name: CLI setup + doctor (isolated HOME)
         shell: pwsh
         run: |
-          $env:HOME = $env:USERPROFILE
+          $tempHome = Join-Path $env:RUNNER_TEMP "cursor-setup-home"
+          New-Item -ItemType Directory -Force -Path $tempHome | Out-Null
+          $env:HOME = $tempHome
+          # Keep USERPROFILE as the real profile; override only the Cursor install root
+          # so setup does not collide with the earlier install-cursor-local copy.
+          $env:CURSOR_PLUGIN_ROOT_OVERRIDE = Join-Path $tempHome ".cursor\plugins\local\do-it-cursor"
           npm exec --package . -- do-it setup --target=cursor
+          if ($LASTEXITCODE -ne 0) { throw "do-it setup --target=cursor failed" }
           npm run doctor:cursor
+          if ($LASTEXITCODE -ne 0) { throw "doctor:cursor failed" }
 
       - name: Keyword match smoke under Git Bash
         shell: bash
