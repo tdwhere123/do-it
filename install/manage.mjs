@@ -14,7 +14,7 @@ import {
   userHooksWiredForPlugin,
   resolveGitBash
 } from "../scripts/lib/cursor-user-hooks.mjs";
-import { resolveUserHome } from "../scripts/lib/user-home.mjs";
+import { resolveUserHome, looksLikeWindowsPath, toWslMountPath } from "../scripts/lib/user-home.mjs";
 
 const VALID_COMMANDS = new Set(["install", "doctor", "setup"]);
 const HELP_FLAGS = new Set(["-h", "--help", "help"]);
@@ -848,6 +848,24 @@ function doctorCursorExtras(ok, missing, drift) {
     ok.push(`cursor:user-hooks wired at ${path.resolve(wired.hooksPath)}`);
   } else {
     missing.push(`cursor:user-hooks ${wired.reason}`);
+  }
+
+  // On WSL, Windows-hosted Cursor reads the mirrored USERPROFILE tree — also
+  // verify that home when present so doctor matches install-cursor-local.
+  if (process.platform !== "win32") {
+    const up = process.env.USERPROFILE;
+    if (up && looksLikeWindowsPath(up)) {
+      const winHome = toWslMountPath(up);
+      const winPlugin = path.join(winHome, ".cursor", "plugins", "local", "do-it-cursor");
+      if (fs.existsSync(path.join(winPlugin, ".cursor-plugin", "plugin.json"))) {
+        const winWired = userHooksWiredForPlugin(winHome, path.resolve(winPlugin));
+        if (winWired.ok) {
+          ok.push(`cursor:windows-mirror-hooks wired at ${path.resolve(winWired.hooksPath)}`);
+        } else {
+          missing.push(`cursor:windows-mirror-hooks ${winWired.reason}`);
+        }
+      }
+    }
   }
 
   if (process.platform === "win32") {

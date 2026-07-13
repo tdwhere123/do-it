@@ -43,9 +43,5 @@ export function resolveUserHome(env = process.env) {
     return "";
   }
 
-  if (env.HOME && !looksLikeMsysUnixHome(env.HOME)) {
-    return env.HOME;
-  }
-  // On Linux/macOS, plain HOME is expected; MSYS-style only matters on win32.
   return env.HOME || env.USERPROFILE || os.homedir() || "";
 }
