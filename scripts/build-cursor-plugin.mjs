@@ -107,7 +107,7 @@ function copyHooks() {
   fs.mkdirSync(targetDir, { recursive: true });
 
   for (const name of fs.readdirSync(hooksSource)) {
-    if (!name.endsWith(".sh")) continue;
+    if (!name.endsWith(".sh") && !name.endsWith(".cmd")) continue;
     fs.copyFileSync(path.join(hooksSource, name), path.join(targetDir, name));
     try {
       fs.chmodSync(path.join(targetDir, name), 0o755);

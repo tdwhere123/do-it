@@ -36,7 +36,7 @@ tool — do not hard-code `Bash` in shared skill text.
 |---|---|---|---|
 | Codex | plugin marketplace (primary); `do-it setup` optional/legacy | plugin skills or `~/.codex/skills/` | plugin `/hooks` (trust); legacy `$CODEX_HOME/hooks/` |
 | Claude | plugin marketplace (primary) | `${CLAUDE_PLUGIN_ROOT}/skills/` | `${CLAUDE_PLUGIN_ROOT}/hooks/hooks.json` |
-| Cursor | local plugin path / `do-it setup --target=cursor` (primary); Team Import / public marketplace when listed | plugin `skills/` | plugin `hooks/hooks.json` |
+| Cursor | local plugin path / `do-it setup --target=cursor` (primary); Team Import / public marketplace when listed | plugin `skills/` | user `~/.cursor/hooks.json` → `run-hook.cmd` (plugin `hooks/hooks.json` not registered by current Cursor) |
 | OpenCode | `opencode.json` plugin (primary) | plugin `skills/` | TS plugin events |
 
 Authoritative install list: `manifest.json`. Doctor: `install/doctor.sh` (optional CLI path).

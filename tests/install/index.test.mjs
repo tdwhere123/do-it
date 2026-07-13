@@ -5,6 +5,7 @@ import path from "node:path";
 import process from "node:process";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { parseFrontmatter } from "../../scripts/build-index-json.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const indexScript = path.join(repoRoot, "scripts/build-index-json.mjs");
@@ -63,6 +64,21 @@ test("build-index-json creates a reproducible skill and agent inventory", () => 
     encoding: "utf8"
   });
   assert.equal(restore.status, 0, restore.stderr);
+});
+
+test("parseFrontmatter accepts CRLF SKILL.md fences", () => {
+  const crlf = [
+    "---",
+    "name: do-it-router",
+    'description: "Use when starting any non-trivial repo task: pick Light / Standard / Heavy tier."',
+    "---",
+    "",
+    "# Router",
+    ""
+  ].join("\r\n");
+  const fm = parseFrontmatter(crlf);
+  assert.equal(fm.name, "do-it-router");
+  assert.match(fm.description, /Light \/ Standard \/ Heavy/);
 });
 
 test("removed install migration note is not referenced by shipped docs", () => {

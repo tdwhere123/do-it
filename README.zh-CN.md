@@ -119,10 +119,17 @@ Cursor **有**官方公开市场（[cursor.com/marketplace](https://cursor.com/m
    ```
    然后 **Developer: Reload Window**。脚本会把插件**真实拷贝**到
    `~/.cursor/plugins/local/do-it-cursor`（Cursor **拒绝**指向 `local/` 外的
-   symlink）。Windows + WSL 下还会尽量镜像到
-   `%USERPROFILE%\.cursor\plugins\local\`。
+   symlink），并**合并** do-it 条目到用户级 `~/.cursor/hooks.json`（当前
+   Cursor Hooks UI/服务**不会**注册 plugin 包内 `hooks/hooks.json`）。
+   入口一律走 `hooks/run-hook.cmd …`——原生 Windows 上若直接写 `.sh`，Cursor
+   会把脚本**当文件打开**而不是执行。**原生 Windows** 目标是
+   `%USERPROFILE%\.cursor\plugins\local\do-it-cursor`（绝不会写成
+   `/mnt/c/...`）。Windows + WSL 下若能看到 `/mnt/c/Users` 还会镜像到该
+   Windows 配置目录。装完用 `do-it doctor --target=cursor` 自检；Customize →
+   Hooks 应能看到用户级 do-it 的 `.cmd` 条目，且 Agent 触发时不应再弹出
+   `.sh` 源码。
 2. **CLI setup：** `do-it setup --target=cursor` 后 Reload（同一
-   `…/plugins/local/do-it-cursor` 路径）。
+   `…/plugins/local/do-it-cursor` 路径 + 用户 hooks 合并）。
 3. **团队 Import（不必公开上架）：** Dashboard → Plugins → Import from Repo → `https://github.com/tdwhere123/do-it`（读取 `.cursor-plugin/marketplace.json`）。
 4. **日后公开上架：** 提交到 [cursor.com/marketplace/publish](https://cursor.com/marketplace/publish)。
 

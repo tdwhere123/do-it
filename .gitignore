@@ -1,5 +1,6 @@
 .do-it/runtime/
 .do-it/sessions/
+.do-it-data/
 .codex
 .codex/
 # Ignore generated dist, but keep Claude agent markdown for marketplace git installs
