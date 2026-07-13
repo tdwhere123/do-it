@@ -173,7 +173,13 @@ jobs:
           set CURSOR_PLUGIN_ROOT=%USERPROFILE%\.cursor\plugins\local\do-it-cursor
           set CURSOR_PLUGIN_DATA=%CURSOR_PLUGIN_ROOT%\.do-it-data
           set CURSOR_VERSION=ci
-          echo {"session_id":"ci-smoke","hook_event_name":"sessionStart"} | "%CURSOR_PLUGIN_ROOT%\hooks\run-hook.cmd" session-start
+          echo {"session_id":"ci-smoke","hook_event_name":"sessionStart"} | "%CURSOR_PLUGIN_ROOT%\hooks\run-hook.cmd" session-start > "%TEMP%\do-it-hook-out.txt"
+          findstr /C:"additional_context" "%TEMP%\do-it-hook-out.txt" >nul
+          if errorlevel 1 (
+            type "%TEMP%\do-it-hook-out.txt"
+            echo run-hook.cmd session-start missing additional_context >&2
+            exit /b 1
+          )
 
       - name: CLI setup + doctor (isolated HOME)
         shell: pwsh

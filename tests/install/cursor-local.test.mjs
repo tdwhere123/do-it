@@ -18,6 +18,8 @@ import {
   userHooksWiredForPlugin,
   commandForRunHook
 } from "../../scripts/lib/cursor-user-hooks.mjs";
+import { resolveUserHome, looksLikeMsysUnixHome } from "../../scripts/lib/user-home.mjs";
+import { collectHomes, windowsHomeCandidates } from "../../scripts/install-cursor-local.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const script = path.join(repoRoot, "scripts", "install-cursor-local.mjs");
@@ -145,31 +147,58 @@ test("mergeDoItUserHooks upgrades legacy bare .sh do-it commands to run-hook.cmd
   assert.ok(!merged.hooks.sessionStart[0].command.endsWith(".sh"));
 });
 
-test("win32 install never rewrites USERPROFILE into /mnt/c paths", () => {
-  // Exercise the path helper logic via a small inline child so we do not need
-  // to re-export internals; simulate the previous bug's rewrite rule.
-  const userProfile = "C:\\Users\\alice";
-  const bogus = userProfile
-    .replace(/^([A-Za-z]):\\/, (_, d) => `/mnt/${d.toLowerCase()}/`)
-    .replace(/\\/g, "/");
-  assert.equal(bogus, "/mnt/c/Users/alice");
+test("resolveUserHome prefers USERPROFILE and rejects MSYS HOME on win32 semantics", () => {
+  assert.equal(looksLikeMsysUnixHome("/c/Users/alice"), true);
+  assert.equal(looksLikeMsysUnixHome("C:\\Users\\alice"), false);
 
-  // On win32 the installer must use the native profile, not the WSL mount.
-  // We assert the install script source contains the guard (behavioral tests
-  // for path.join on win32 run in Windows CI).
-  const source = fs.readFileSync(script, "utf8");
-  assert.match(source, /process\.platform === ["']win32["']/);
-  assert.match(source, /Never rewrite USERPROFILE into \/mnt/);
-  assert.match(source, /isWslLike/);
-  assert.match(source, /looksLikeMsysUnixHome/);
+  if (process.platform === "win32") {
+    const home = resolveUserHome({
+      USERPROFILE: "C:\\Users\\alice",
+      HOME: "/c/Users/alice"
+    });
+    assert.match(home, /Users[\\/]alice$/i);
+    assert.doesNotMatch(home, /[\\/]c[\\/]Users/i);
+  } else {
+    // Shared helper still returns HOME on non-win32.
+    assert.equal(resolveUserHome({ HOME: "/home/alice" }), "/home/alice");
+  }
+});
+
+test("collectHomes on win32 rejects /mnt and MSYS HOME candidates", () => {
+  if (process.platform !== "win32") {
+    const source = fs.readFileSync(script, "utf8");
+    assert.match(source, /looksLikeMsysUnixHome/);
+    assert.ok(source.includes("mnt\\/[a-z]\\/"), "win32 collectHomes must reject /mnt/<drive>/ paths");
+    return;
+  }
+
+  const homes = collectHomes({
+    USERPROFILE: "C:\\Users\\alice",
+    HOME: "/c/Users/alice",
+    CURSOR_LOCAL_HOME: "D:\\mnt\\c\\Users\\evil"
+  });
+  assert.ok(homes.some((h) => /Users[\\/]alice$/i.test(h)));
+  assert.ok(!homes.some((h) => /[\\/]c[\\/]Users/i.test(h)));
+  assert.ok(!homes.some((h) => /mnt[\\/]c/i.test(h)));
+});
+
+test("windowsHomeCandidates prefers USERPROFILE mount and does not scan all users when set", () => {
+  if (process.platform === "win32") {
+    assert.deepEqual(windowsHomeCandidates({ USERPROFILE: "C:\\Users\\alice" }), []);
+    return;
+  }
+  // On Linux CI without WSL mounts this returns []. With USERPROFILE set the
+  // implementation short-circuits to that mount only (no multi-user scan).
+  const withProfile = windowsHomeCandidates({ USERPROFILE: "C:\\Users\\alice" });
+  if (withProfile.length > 0) {
+    assert.deepEqual(withProfile, ["/mnt/c/Users/alice"]);
+  }
 });
 
 test("register-cursor-plugin accepts USERPROFILE when HOME is unset", () => {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-cursor-userprofile-"));
   const pluginRoot = path.join(home, "plugin");
   try {
-    // Seed a built plugin at override path via manage install first? Use
-    // register after a minimal copy of the built bundle.
     const built = path.join(repoRoot, "plugins", "do-it-cursor");
     assert.ok(fs.existsSync(path.join(built, ".cursor-plugin", "plugin.json")));
 
@@ -180,7 +209,6 @@ test("register-cursor-plugin accepts USERPROFILE when HOME is unset", () => {
       CURSOR_PLUGIN_ROOT_OVERRIDE: pluginRoot,
       DO_IT_INSTALL_ROOT: pluginRoot
     };
-    // Copy built bundle into override so register has a source.
     fs.cpSync(built, pluginRoot, { recursive: true });
 
     const result = spawnSync(
@@ -194,6 +222,37 @@ test("register-cursor-plugin accepts USERPROFILE when HOME is unset", () => {
       fs.readFileSync(path.join(home, ".cursor", "hooks.json"), "utf8"),
       /run-hook\.cmd/
     );
+  } finally {
+    fs.rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test("register-cursor-plugin ignores MSYS HOME when USERPROFILE is set", () => {
+  if (process.platform !== "win32") return;
+
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-cursor-msys-"));
+  const pluginRoot = path.join(home, "plugin");
+  try {
+    const built = path.join(repoRoot, "plugins", "do-it-cursor");
+    fs.cpSync(built, pluginRoot, { recursive: true });
+    const result = spawnSync(
+      process.execPath,
+      [path.join(repoRoot, "scripts", "register-cursor-plugin.mjs")],
+      {
+        cwd: repoRoot,
+        env: {
+          ...process.env,
+          HOME: "/c/Users/should-not-use",
+          USERPROFILE: home,
+          CURSOR_PLUGIN_ROOT_OVERRIDE: pluginRoot,
+          DO_IT_INSTALL_ROOT: pluginRoot
+        },
+        encoding: "utf8"
+      }
+    );
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    assert.ok(fs.existsSync(path.join(home, ".cursor", "hooks.json")));
+    assert.ok(!fs.existsSync("C:\\c\\Users\\should-not-use\\.cursor\\hooks.json"));
   } finally {
     fs.rmSync(home, { recursive: true, force: true });
   }

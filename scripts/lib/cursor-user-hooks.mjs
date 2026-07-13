@@ -12,6 +12,7 @@
  */
 
 import fs from "node:fs";
+import crypto from "node:crypto";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -28,9 +29,9 @@ export function isDoItHookCommand(command) {
   const normalized = command.replace(/\\/g, "/");
   return (
     normalized.includes(DO_IT_HOOK_PATH_MARKER) ||
-    /(?:^|[\s"/])do-it-(?:router|session-start|grill-prompt|subagent-stance|write-quality-lint|verification-gate)(?:\.cmd|\.sh)?(?:\s|$|")/.test(
-      normalized
-    )
+    normalized.includes(`/${DO_IT_RUN_HOOK_CMD}`) ||
+    normalized.endsWith(DO_IT_RUN_HOOK_CMD) ||
+    normalized.includes(`${DO_IT_RUN_HOOK_CMD} `)
   );
 }
 
@@ -39,7 +40,7 @@ export function isBareShellHookCommand(command) {
   if (typeof command !== "string") return false;
   const normalized = command.replace(/\\/g, "/").trim();
   if (normalized.includes(DO_IT_RUN_HOOK_CMD)) return false;
-  return /\.sh(?:\s|$|")/.test(normalized) || /\/hooks\/[A-Za-z0-9_-]+(?:\s|$|")/.test(normalized);
+  return /\.sh(?:\s|$|")/.test(normalized);
 }
 
 function readJsonIfPresent(filePath) {
@@ -70,21 +71,23 @@ export function scriptBasenameFromTemplateCommand(raw) {
   return base.replace(/\.sh$/i, "").replace(/\.cmd$/i, "");
 }
 
-function quoteIfNeeded(filePath) {
-  if (/\s/.test(filePath)) return `"${filePath}"`;
+function quoteCommandPath(filePath) {
+  // Always quote on Windows / when shell metacharacters appear. CMD escapes
+  // embedded quotes by doubling them.
+  if (process.platform === "win32" || /[\s&|()<>^"]/.test(filePath)) {
+    return `"${String(filePath).replace(/"/g, '""')}"`;
+  }
   return filePath;
 }
 
 export function commandForRunHook(pluginRoot, scriptBasename) {
   const runner = path.join(pluginRoot, "hooks", DO_IT_RUN_HOOK_CMD);
   const name = String(scriptBasename).replace(/\.sh$/i, "");
-  return `${quoteIfNeeded(runner)} ${name}`;
+  return `${quoteCommandPath(runner)} ${name}`;
 }
 
-export function buildDoItUserHookDefs(pluginRoot, template = null) {
-  const source =
-    template ??
-    JSON.parse(fs.readFileSync(cursorHooksTemplate, "utf8"));
+export function buildDoItUserHookDefs(pluginRoot) {
+  const source = JSON.parse(fs.readFileSync(cursorHooksTemplate, "utf8"));
   const hooks = {};
   for (const [event, defs] of Object.entries(source.hooks ?? {})) {
     hooks[event] = (defs ?? []).map((def) => {
@@ -118,7 +121,6 @@ export function mergeDoItUserHooks(existing, pluginRoot) {
     base.hooks[event] = [...kept, ...defs];
   }
 
-  // Drop stale do-it entries from events we no longer ship.
   for (const [event, list] of Object.entries(base.hooks)) {
     if (!Array.isArray(list)) continue;
     if (Object.prototype.hasOwnProperty.call(desired, event)) continue;
@@ -137,13 +139,27 @@ export function userHooksPathForHome(home) {
   return path.join(home, ".cursor", "hooks.json");
 }
 
+function writeJsonAtomic(filePath, value) {
+  const content = `${JSON.stringify(value, null, 2)}\n`;
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  const tempPath = path.join(
+    path.dirname(filePath),
+    `.do-it-hooks.${process.pid}.${crypto.randomUUID()}.tmp`
+  );
+  try {
+    fs.writeFileSync(tempPath, content);
+    fs.renameSync(tempPath, filePath);
+  } finally {
+    fs.rmSync(tempPath, { force: true });
+  }
+}
+
 export function syncUserHooksForPlugin(home, pluginRoot) {
   const hooksPath = userHooksPathForHome(home);
   fs.mkdirSync(path.dirname(hooksPath), { recursive: true });
   const existing = readJsonIfPresent(hooksPath);
   const merged = mergeDoItUserHooks(existing, pluginRoot);
-  const content = `${JSON.stringify(merged, null, 2)}\n`;
-  fs.writeFileSync(hooksPath, content);
+  writeJsonAtomic(hooksPath, merged);
   return hooksPath;
 }
 
@@ -190,8 +206,8 @@ export function userHooksWiredForPlugin(home, pluginRoot) {
   return { ok: true, hooksPath };
 }
 
-/** Resolve a usable Git Bash on Windows (skip WSL System32 stub). */
-export function resolveGitBash(env = process.env) {
+/** Resolve a usable Git Bash on Windows (skip WSL System32 / Sysnative stubs). */
+export function resolveGitBash() {
   const candidates = [
     "C:\\Program Files\\Git\\bin\\bash.exe",
     "C:\\Program Files (x86)\\Git\\bin\\bash.exe"
@@ -200,17 +216,20 @@ export function resolveGitBash(env = process.env) {
     if (fs.existsSync(candidate)) return candidate;
   }
 
-  // Best-effort PATH scan when running under win32.
   if (process.platform === "win32") {
     try {
-      const result = spawnSync("where.exe", ["bash"], { encoding: "utf8", env });
+      const result = spawnSync("where.exe", ["bash"], { encoding: "utf8" });
       const lines = (result.stdout || "")
         .split(/\r?\n/)
         .map((line) => line.trim())
         .filter(Boolean);
       for (const line of lines) {
         const lower = line.toLowerCase();
-        if (lower.endsWith("\\system32\\bash.exe") || lower.endsWith("\\syswow64\\bash.exe")) {
+        if (
+          lower.endsWith("\\system32\\bash.exe") ||
+          lower.endsWith("\\syswow64\\bash.exe") ||
+          lower.endsWith("\\sysnative\\bash.exe")
+        ) {
           continue;
         }
         if (fs.existsSync(line)) return line;

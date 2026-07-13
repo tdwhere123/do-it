@@ -10,9 +10,9 @@
  * - Native Windows (win32): install into %USERPROFILE%\.cursor\... only.
  *   Never rewrite USERPROFILE into /mnt/c/... (that path is meaningless on
  *   win32 and resolves under the current drive, e.g. D:\mnt\c\Users\...).
- * - WSL / Linux with /mnt/c/Users: also mirror into detected Windows profiles
- *   because a Windows-hosted Cursor reads %USERPROFILE%\.cursor, not Linux
- *   $HOME/.cursor.
+ * - WSL / Linux with /mnt/c/Users: mirror the caller's Windows USERPROFILE
+ *   (when set). Only scan other /mnt/c/Users profiles when USERPROFILE is
+ *   unset — avoids writing other users' Cursor state on shared machines.
  *
  * After the plugin copy, merge do-it hooks into ~/.cursor/hooks.json so the
  * Hooks service registers them (plugin-local hooks/hooks.json is not loaded
@@ -20,12 +20,17 @@
  */
 
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { syncUserHooksForPlugin } from "./lib/cursor-user-hooks.mjs";
+import {
+  looksLikeWindowsPath,
+  looksLikeMsysUnixHome,
+  resolveUserHome,
+  toWslMountPath
+} from "./lib/user-home.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, "..");
@@ -46,7 +51,6 @@ function ensureBuilt() {
 function copyTree(from, to) {
   fs.mkdirSync(path.dirname(to), { recursive: true });
   fs.rmSync(to, { recursive: true, force: true });
-  // Prefer rsync when available (preserves modes); fall back to fs.cpSync.
   const rsync = spawnSync(
     "rsync",
     ["-a", "--delete", `${from}/`, `${to}/`],
@@ -54,16 +58,6 @@ function copyTree(from, to) {
   );
   if (rsync.status === 0) return;
   fs.cpSync(from, to, { recursive: true });
-}
-
-function looksLikeWindowsPath(value) {
-  return typeof value === "string" && /^[A-Za-z]:[\\/]/.test(value);
-}
-
-function toWslMountPath(winPath) {
-  return winPath
-    .replace(/^([A-Za-z]):[\\/]/, (_, d) => `/mnt/${d.toLowerCase()}/`)
-    .replace(/\\/g, "/");
 }
 
 function isWslLike() {
@@ -78,27 +72,28 @@ function isWslLike() {
 
 /**
  * Homes that a Windows-hosted Cursor would read.
- * - win32: USERPROFILE / os.homedir() only (never /mnt/...)
- * - WSL-like Linux: convert USERPROFILE + scan /mnt/c/Users for .cursor dirs
- * - plain Linux: none (caller still uses $HOME)
+ * - win32: empty here (collectHomes uses resolveUserHome)
+ * - WSL-like: USERPROFILE mount when set; otherwise scan /mnt/c/Users for .cursor
+ * - plain Linux: none
  */
-function windowsHomeCandidates() {
+export function windowsHomeCandidates(env = process.env) {
   const out = [];
 
   if (process.platform === "win32") {
-    const home = process.env.USERPROFILE || os.homedir();
-    if (home) out.push(path.resolve(home));
-    return [...new Set(out)];
+    return out;
   }
 
   if (!isWslLike()) {
     return out;
   }
 
-  if (process.env.USERPROFILE && looksLikeWindowsPath(process.env.USERPROFILE)) {
-    out.push(toWslMountPath(process.env.USERPROFILE));
+  if (env.USERPROFILE && looksLikeWindowsPath(env.USERPROFILE)) {
+    out.push(toWslMountPath(env.USERPROFILE));
+    return [...new Set(out)];
   }
 
+  // Fallback only when USERPROFILE is unavailable — prefer not to touch
+  // other users' profiles on shared WSL hosts.
   try {
     const usersRoot = "/mnt/c/Users";
     if (fs.existsSync(usersRoot)) {
@@ -145,25 +140,12 @@ function installIntoHome(home) {
   return absoluteDest;
 }
 
-function looksLikeMsysUnixHome(value) {
-  // Git Bash HOME is often "/c/Users/..." or "/home/...". Stock Node on win32
-  // resolves those under the current drive (e.g. C:\c\Users\...), which Cursor
-  // never reads — skip them and keep USERPROFILE only.
-  if (typeof value !== "string") return false;
-  const normalized = value.replace(/\\/g, "/");
-  return (
-    /^\/[a-zA-Z]\//.test(normalized) ||
-    normalized.startsWith("/home/") ||
-    normalized.startsWith("/Users/")
-  );
-}
-
-function collectHomes() {
+export function collectHomes(env = process.env) {
   const homes = [];
   const push = (value) => {
     if (!value) return;
-    // On win32 never accept a bogus /mnt/... candidate from a stale env.
-    if (process.platform === "win32" && value.replace(/\\/g, "/").includes("/mnt/")) {
+    // Reject WSL mount strings on win32 (not a prefix match — require /mnt/<drive>/).
+    if (process.platform === "win32" && /(?:^|\/)mnt\/[a-z]\//i.test(value.replace(/\\/g, "/"))) {
       return;
     }
     if (process.platform === "win32" && looksLikeMsysUnixHome(value)) {
@@ -174,17 +156,14 @@ function collectHomes() {
   };
 
   if (process.platform === "win32") {
-    push(process.env.USERPROFILE || os.homedir());
-    // Only accept HOME when it is already a native Windows path.
-    if (process.env.HOME && looksLikeWindowsPath(process.env.HOME)) {
-      push(process.env.HOME);
-    }
-  } else {
-    if (process.env.HOME) push(process.env.HOME);
+    push(resolveUserHome(env));
+    if (env.HOME && looksLikeWindowsPath(env.HOME)) push(env.HOME);
+  } else if (env.HOME) {
+    push(env.HOME);
   }
 
-  if (process.env.CURSOR_LOCAL_HOME) push(process.env.CURSOR_LOCAL_HOME);
-  for (const winHome of windowsHomeCandidates()) push(winHome);
+  if (env.CURSOR_LOCAL_HOME) push(env.CURSOR_LOCAL_HOME);
+  for (const winHome of windowsHomeCandidates(env)) push(winHome);
   return homes;
 }
 
@@ -213,4 +192,6 @@ function main() {
   );
 }
 
-main();
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main();
+}

@@ -68,11 +68,11 @@ if exist "C:\Program Files (x86)\Git\bin\bash.exe" (
     exit /b %ERRORLEVEL%
 )
 
-REM PATH lookup, skipping the WSL stub under System32 / SysWOW64.
+REM PATH lookup, skipping the WSL stub under System32 / SysWOW64 / Sysnative.
 set "FOUND_BASH="
 for /f "delims=" %%i in ('where bash 2^>nul') do (
     if not defined FOUND_BASH (
-        echo %%i| findstr /i /c:"\System32\bash.exe" /c:"\SysWOW64\bash.exe" >nul
+        echo %%i| findstr /i /c:"\System32\bash.exe" /c:"\SysWOW64\bash.exe" /c:"\Sysnative\bash.exe" >nul
         if errorlevel 1 set "FOUND_BASH=%%i"
     )
 )

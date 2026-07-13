@@ -11,20 +11,16 @@
  */
 
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { syncUserHooksForPlugin } from "./lib/cursor-user-hooks.mjs";
+import { resolveUserHome } from "./lib/user-home.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, "..");
 const manifest = JSON.parse(fs.readFileSync(path.join(repoRoot, "manifest.json"), "utf8"));
-
-function resolveUserHome() {
-  return process.env.HOME || process.env.USERPROFILE || os.homedir() || "";
-}
 
 const home = resolveUserHome();
 if (!home) {

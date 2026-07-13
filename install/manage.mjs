@@ -2,7 +2,6 @@
 
 import fs from "node:fs";
 import crypto from "node:crypto";
-import os from "node:os";
 import path from "node:path";
 import process from "node:process";
 import { spawnSync } from "node:child_process";
@@ -13,10 +12,9 @@ import {
 } from "./migrate.mjs";
 import {
   userHooksWiredForPlugin,
-  resolveGitBash,
-  isBareShellHookCommand,
-  isDoItHookCommand
+  resolveGitBash
 } from "../scripts/lib/cursor-user-hooks.mjs";
+import { resolveUserHome } from "../scripts/lib/user-home.mjs";
 
 const VALID_COMMANDS = new Set(["install", "doctor", "setup"]);
 const HELP_FLAGS = new Set(["-h", "--help", "help"]);
@@ -101,10 +99,6 @@ if (!targetConfig) {
     `Unknown target: ${targetName}. Available: ${Object.keys(targetsConfig).join(", ") || "(none)"}.`
   );
   process.exit(2);
-}
-
-function resolveUserHome() {
-  return process.env.HOME || process.env.USERPROFILE || os.homedir() || "";
 }
 
 function expandRootDefault(template) {
@@ -856,25 +850,6 @@ function doctorCursorExtras(ok, missing, drift) {
     missing.push(`cursor:user-hooks ${wired.reason}`);
   }
 
-  const userHooksPath = path.join(home, ".cursor", "hooks.json");
-  if (fs.existsSync(userHooksPath)) {
-    try {
-      const userHooks = JSON.parse(fs.readFileSync(userHooksPath, "utf8"));
-      for (const list of Object.values(userHooks.hooks ?? {})) {
-        if (!Array.isArray(list)) continue;
-        for (const entry of list) {
-          if (isDoItHookCommand(entry?.command) && isBareShellHookCommand(entry.command)) {
-            drift.push(
-              `cursor:user-hooks bare .sh entry (Windows will open it as a file): ${entry.command}`
-            );
-          }
-        }
-      }
-    } catch (err) {
-      drift.push(`cursor:user-hooks unreadable: ${err.message}`);
-    }
-  }
-
   if (process.platform === "win32") {
     const bash = resolveGitBash();
     if (bash) {
@@ -930,6 +905,8 @@ function doctorCursorExtras(ok, missing, drift) {
     drift.push(
       `cursor:sample-hook exited ${smoke.status}: ${(smoke.stderr || smoke.stdout || "").trim().slice(0, 200)}`
     );
+  } else if (!String(smoke.stdout || "").includes("additional_context")) {
+    drift.push(`cursor:sample-hook produced no additional_context (${smokeLabel})`);
   } else {
     ok.push(`cursor:sample-hook runnable via ${smokeLabel}`);
   }

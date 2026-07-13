@@ -12,6 +12,7 @@ import {
   EXTENDED_MAINTENANCE,
   EXTENDED_ON_DEMAND
 } from "./skill-tiers.mjs";
+import { parseFrontmatter } from "./build-index-json.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, "..");
@@ -23,26 +24,6 @@ const MAIN_LINE = [...CORE_SKILLS];
 const ON_DEMAND = [...EXTENDED_ON_DEMAND];
 const HANDBOOK = [...EXTENDED_MAINTENANCE];
 
-function parseFrontmatter(text) {
-  if (!text.startsWith("---")) return {};
-  const end = text.indexOf("\n---", 3);
-  if (end < 0) return {};
-  const block = text.slice(3, end).trim();
-  const out = {};
-  for (const rawLine of block.split("\n")) {
-    const line = rawLine.trim();
-    if (!line || line.startsWith("#")) continue;
-    const idx = line.indexOf(":");
-    if (idx < 0) continue;
-    const key = line.slice(0, idx).trim();
-    let value = line.slice(idx + 1).trim();
-    if (value.startsWith('"') && value.endsWith('"') && value.length >= 2) {
-      value = value.slice(1, -1);
-    }
-    out[key] = value;
-  }
-  return out;
-}
 
 function readSkillEntry(name) {
   const skillPath = path.join(skillsDir, name, "SKILL.md");
