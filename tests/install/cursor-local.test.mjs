@@ -147,6 +147,18 @@ test("mergeDoItUserHooks upgrades legacy bare .sh do-it commands to run-hook.cmd
   assert.ok(!merged.hooks.sessionStart[0].command.endsWith(".sh"));
 });
 
+test("commandForRunHook rewrites WSL mounts to Windows paths", () => {
+  const cmd = commandForRunHook(
+    "/mnt/c/Users/alice/.cursor/plugins/local/do-it-cursor",
+    "session-start"
+  );
+  assert.match(
+    cmd,
+    /^"C:\\Users\\alice\\.cursor\\plugins\\local\\do-it-cursor\\hooks\\run-hook\.cmd" session-start$/
+  );
+  assert.ok(!cmd.includes("/mnt/"));
+});
+
 test("resolveUserHome prefers USERPROFILE and rejects MSYS HOME on win32 semantics", () => {
   assert.equal(looksLikeMsysUnixHome("/c/Users/alice"), true);
   assert.equal(looksLikeMsysUnixHome("C:\\Users\\alice"), false);

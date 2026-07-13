@@ -72,18 +72,42 @@ export function scriptBasenameFromTemplateCommand(raw) {
 }
 
 function quoteCommandPath(filePath) {
-  // Always quote on Windows / when shell metacharacters appear. CMD escapes
-  // embedded quotes by doubling them.
-  if (process.platform === "win32" || /[\s&|()<>^"]/.test(filePath)) {
+  // Always quote Windows-style paths and any path with shell metacharacters.
+  // CMD escapes embedded quotes by doubling them.
+  if (
+    process.platform === "win32" ||
+    looksLikeWindowsPath(filePath) ||
+    /[\s&|()<>^"]/.test(filePath)
+  ) {
     return `"${String(filePath).replace(/"/g, '""')}"`;
   }
   return filePath;
 }
 
 export function commandForRunHook(pluginRoot, scriptBasename) {
-  const runner = path.join(pluginRoot, "hooks", DO_IT_RUN_HOOK_CMD);
+  // When installing from WSL into /mnt/<drive>/Users/..., Windows Cursor reads
+  // the same hooks.json and must see a native Windows path — not the mount.
+  const winRoot = toWindowsPathIfWslMount(pluginRoot);
+  const runnerPath =
+    winRoot !== pluginRoot
+      ? path.win32.join(winRoot, "hooks", DO_IT_RUN_HOOK_CMD)
+      : path.join(pluginRoot, "hooks", DO_IT_RUN_HOOK_CMD);
   const name = String(scriptBasename).replace(/\.sh$/i, "");
-  return `${quoteCommandPath(runner)} ${name}`;
+  return `${quoteCommandPath(runnerPath)} ${name}`;
+}
+
+/** Convert /mnt/<drive>/... to <DRIVE>:\... for Windows-hosted Cursor. */
+export function toWindowsPathIfWslMount(p) {
+  const normalized = String(p).replace(/\\/g, "/");
+  const match = /^\/mnt\/([a-zA-Z])\/(.*)$/.exec(normalized);
+  if (!match) return p;
+  const drive = match[1].toUpperCase();
+  const rest = match[2].replace(/\//g, "\\");
+  return `${drive}:\\${rest}`;
+}
+
+function looksLikeWindowsPath(value) {
+  return typeof value === "string" && /^[A-Za-z]:[\\/]/.test(value);
 }
 
 export function buildDoItUserHookDefs(pluginRoot) {
