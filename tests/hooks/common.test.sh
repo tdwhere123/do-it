@@ -340,6 +340,27 @@ case "$?" in
 esac
 
 # -------------------------------------------------------------------------
+echo "Case 12: do_it_prompt_has_word matches ASCII words (incl. MSYS path)"
+(
+  source "$COMMON"
+  do_it_prompt_has_word "please implement the fix" "implement" || exit 11
+  if do_it_prompt_has_word "prefix only" "fix"; then exit 12; fi
+  # Simulate Git Bash / MSYS environment where grep -q + pipefail aborts.
+  export MSYSTEM=MINGW64
+  do_it_prompt_has_word "please implement the fix" "implement" || exit 13
+  if do_it_prompt_has_word "prefix only" "fix"; then exit 14; fi
+  exit 0
+)
+case "$?" in
+  0)  _pass "word-boundary match works; MSYS path uses pure bash" ;;
+  11) _fail "implement should match" ;;
+  12) _fail "fix matched prefix" ;;
+  13) _fail "MSYS implement should match" ;;
+  14) _fail "MSYS fix matched prefix" ;;
+  *)  _fail "subshell crashed (exit=$?)" ;;
+esac
+
+# -------------------------------------------------------------------------
 echo
 echo "Summary: $PASS passed, $FAIL failed"
 if [[ "$FAIL" -gt 0 ]]; then

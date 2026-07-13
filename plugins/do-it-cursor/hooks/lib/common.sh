@@ -16,6 +16,35 @@ else
   DO_IT_HAVE_JQ=0
 fi
 
+# When hooks are invoked via user-level ~/.cursor/hooks.json (Cursor does not
+# currently register plugin-local hooks/hooks.json), CURSOR_PLUGIN_ROOT /
+# CURSOR_PLUGIN_DATA may be unset. Derive them from the calling hook's
+# SCRIPT_DIR when that directory sits inside a local do-it-cursor plugin.
+_do_it_maybe_set_cursor_plugin_env() {
+  if [[ -z "${CURSOR_PLUGIN_ROOT:-}" && -n "${SCRIPT_DIR:-}" ]]; then
+    local _parent
+    _parent="$(cd "${SCRIPT_DIR}/.." 2>/dev/null && pwd)" || return 0
+    if [[ -f "${_parent}/.cursor-plugin/plugin.json" ]]; then
+      export CURSOR_PLUGIN_ROOT="$_parent"
+    fi
+  fi
+  if [[ -z "${CURSOR_PLUGIN_DATA:-}" && -n "${CURSOR_PLUGIN_ROOT:-}" ]]; then
+    export CURSOR_PLUGIN_DATA="${CURSOR_PLUGIN_ROOT}/.do-it-data"
+  fi
+}
+_do_it_maybe_set_cursor_plugin_env
+
+# True on Git Bash / MSYS / Cygwin where grep -q + pipefail often aborts.
+_do_it_is_msys() {
+  if [[ -n "${MSYSTEM:-}" ]]; then
+    return 0
+  fi
+  case "$(uname -s 2>/dev/null || true)" in
+    MINGW*|MSYS*|CYGWIN*) return 0 ;;
+  esac
+  return 1
+}
+
 # Read all of stdin and echo it back. Hook stdin is small (a single JSON blob).
 do_it_read_stdin() {
   cat
@@ -388,14 +417,37 @@ do_it_lc() {
 # Internal: detect whether a term is pure ASCII (printable + space). CJK and
 # other multi-byte content fall through to substring matching.
 _do_it_term_is_ascii() {
-  ! printf '%s' "$1" | LC_ALL=C grep -q '[^[:print:]]'
+  # Avoid grep -q under pipefail (MSYS aborts with SIGPIPE).
+  ! printf '%s' "$1" | LC_ALL=C grep '[^[:print:]]' >/dev/null 2>&1
+}
+
+# Pure-bash ASCII word-boundary match (Git Bash / MSYS safe; no grep).
+# Args: <lowercased-prompt> <lowercased-term>. Returns 0 on match.
+_do_it_prompt_has_word_bash() {
+  local lc="$1" lcw="$2"
+  local padded
+  # Map non-word chars to spaces, then look for a whole-word token.
+  padded=" ${lc//[^a-zA-Z0-9_]/ } "
+  case "$padded" in
+    *" $lcw "*) return 0 ;;
+  esac
+  return 1
 }
 
 # Word-boundary match against the prompt for a single ASCII term.
 # Args: <lowercased-prompt> <lowercased-term>. Returns 0 on match.
 do_it_prompt_has_word() {
   local lc="$1" lcw="$2"
-  printf '%s' "$lc" | grep -qiwF -- "$lcw"
+  # Git Bash / MSYS: grep -qiwF under set -o pipefail floods "Aborted" and is slow.
+  if _do_it_is_msys; then
+    _do_it_prompt_has_word_bash "$lc" "$lcw"
+    return $?
+  fi
+  # Prefer grep without -q so the writer is not SIGPIPE'd on early exit.
+  if printf '%s' "$lc" | grep -iwF -- "$lcw" >/dev/null 2>&1; then
+    return 0
+  fi
+  return 1
 }
 
 _do_it_prompt_has_any_values() {

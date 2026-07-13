@@ -293,6 +293,12 @@
           "target": "hooks/session-start.sh"
         },
         {
+          "name": "hooks-run-hook-cmd",
+          "kind": "file",
+          "source": "hooks/run-hook.cmd",
+          "target": "hooks/run-hook.cmd"
+        },
+        {
           "name": "hooks-write-quality-lint",
           "kind": "file",
           "source": "hooks/write-quality-lint.sh",

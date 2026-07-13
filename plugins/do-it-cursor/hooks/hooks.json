@@ -3,34 +3,34 @@
   "hooks": {
     "sessionStart": [
       {
-        "command": "${CURSOR_PLUGIN_ROOT}/hooks/session-start.sh",
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/run-hook.cmd session-start",
         "timeout": 25
       }
     ],
     "beforeSubmitPrompt": [
       {
-        "command": "${CURSOR_PLUGIN_ROOT}/hooks/router.sh",
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/run-hook.cmd router",
         "timeout": 25
       },
       {
-        "command": "${CURSOR_PLUGIN_ROOT}/hooks/grill-prompt.sh",
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/run-hook.cmd grill-prompt",
         "timeout": 25
       },
       {
-        "command": "${CURSOR_PLUGIN_ROOT}/hooks/subagent-stance.sh",
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/run-hook.cmd subagent-stance",
         "timeout": 10
       }
     ],
     "postToolUse": [
       {
         "matcher": "StrReplace|Write|EditNotebook",
-        "command": "${CURSOR_PLUGIN_ROOT}/hooks/write-quality-lint.sh",
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/run-hook.cmd write-quality-lint",
         "timeout": 15
       }
     ],
     "stop": [
       {
-        "command": "${CURSOR_PLUGIN_ROOT}/hooks/verification-gate.sh",
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/run-hook.cmd verification-gate",
         "timeout": 25
       }
     ]
