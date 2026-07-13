@@ -145,6 +145,19 @@ function installIntoHome(home) {
   return absoluteDest;
 }
 
+function looksLikeMsysUnixHome(value) {
+  // Git Bash HOME is often "/c/Users/..." or "/home/...". Stock Node on win32
+  // resolves those under the current drive (e.g. C:\c\Users\...), which Cursor
+  // never reads — skip them and keep USERPROFILE only.
+  if (typeof value !== "string") return false;
+  const normalized = value.replace(/\\/g, "/");
+  return (
+    /^\/[a-zA-Z]\//.test(normalized) ||
+    normalized.startsWith("/home/") ||
+    normalized.startsWith("/Users/")
+  );
+}
+
 function collectHomes() {
   const homes = [];
   const push = (value) => {
@@ -153,15 +166,19 @@ function collectHomes() {
     if (process.platform === "win32" && value.replace(/\\/g, "/").includes("/mnt/")) {
       return;
     }
+    if (process.platform === "win32" && looksLikeMsysUnixHome(value)) {
+      return;
+    }
     const resolved = path.resolve(value);
     if (!homes.includes(resolved)) homes.push(resolved);
   };
 
   if (process.platform === "win32") {
     push(process.env.USERPROFILE || os.homedir());
-    // Git Bash often sets HOME to /c/Users/... which Node can resolve; keep it
-    // only when it is a real directory distinct from USERPROFILE mapping.
-    if (process.env.HOME) push(process.env.HOME);
+    // Only accept HOME when it is already a native Windows path.
+    if (process.env.HOME && looksLikeWindowsPath(process.env.HOME)) {
+      push(process.env.HOME);
+    }
   } else {
     if (process.env.HOME) push(process.env.HOME);
   }

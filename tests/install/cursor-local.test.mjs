@@ -161,4 +161,40 @@ test("win32 install never rewrites USERPROFILE into /mnt/c paths", () => {
   assert.match(source, /process\.platform === ["']win32["']/);
   assert.match(source, /Never rewrite USERPROFILE into \/mnt/);
   assert.match(source, /isWslLike/);
+  assert.match(source, /looksLikeMsysUnixHome/);
+});
+
+test("register-cursor-plugin accepts USERPROFILE when HOME is unset", () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-cursor-userprofile-"));
+  const pluginRoot = path.join(home, "plugin");
+  try {
+    // Seed a built plugin at override path via manage install first? Use
+    // register after a minimal copy of the built bundle.
+    const built = path.join(repoRoot, "plugins", "do-it-cursor");
+    assert.ok(fs.existsSync(path.join(built, ".cursor-plugin", "plugin.json")));
+
+    const env = {
+      ...process.env,
+      HOME: "",
+      USERPROFILE: home,
+      CURSOR_PLUGIN_ROOT_OVERRIDE: pluginRoot,
+      DO_IT_INSTALL_ROOT: pluginRoot
+    };
+    // Copy built bundle into override so register has a source.
+    fs.cpSync(built, pluginRoot, { recursive: true });
+
+    const result = spawnSync(
+      process.execPath,
+      [path.join(repoRoot, "scripts", "register-cursor-plugin.mjs")],
+      { cwd: repoRoot, env, encoding: "utf8" }
+    );
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    assert.ok(fs.existsSync(path.join(home, ".cursor", "hooks.json")));
+    assert.match(
+      fs.readFileSync(path.join(home, ".cursor", "hooks.json"), "utf8"),
+      /run-hook\.cmd/
+    );
+  } finally {
+    fs.rmSync(home, { recursive: true, force: true });
+  }
 });

@@ -101,13 +101,22 @@ jobs:
           grep -q 'run-hook.cmd' "$HOME/.cursor/hooks.json"
           ! grep -E 'do-it-cursor/hooks/[^"]+\.sh"' "$HOME/.cursor/hooks.json"
           test -f "$HOME/.cursor/plugins/local/do-it-cursor/hooks/run-hook.cmd"
-          HOME="$HOME" npm run doctor:cursor
+          # install-cursor-local is a copy-only path (no managed install state).
+          # Doctor belongs to `do-it setup --target=cursor`; assert wiring here.
           # Polyglot runner must work under bash on Linux/macOS too.
-          CURSOR_PLUGIN_ROOT="$HOME/.cursor/plugins/local/do-it-cursor" \
-            CURSOR_PLUGIN_DATA="$CURSOR_PLUGIN_ROOT/.do-it-data" \
-            CURSOR_VERSION=ci \
-            bash "$CURSOR_PLUGIN_ROOT/hooks/run-hook.cmd" session-start \
+          CURSOR_PLUGIN_ROOT="$HOME/.cursor/plugins/local/do-it-cursor"
+          CURSOR_PLUGIN_DATA="$CURSOR_PLUGIN_ROOT/.do-it-data"
+          CURSOR_VERSION=ci
+          export CURSOR_PLUGIN_ROOT CURSOR_PLUGIN_DATA CURSOR_VERSION
+          bash "$CURSOR_PLUGIN_ROOT/hooks/run-hook.cmd" session-start \
             <<<"{\"session_id\":\"ci-smoke\",\"hook_event_name\":\"sessionStart\"}" | grep -q additional_context
+
+      - name: Smoke Cursor CLI setup + doctor
+        env:
+          HOME: ${{ runner.temp }}/cursor-setup-home
+        run: |
+          npm exec --package . -- do-it setup --target=cursor
+          HOME="$HOME" npm run doctor:cursor
 
   windows-smoke:
     name: Windows smoke (Node ${{ matrix.node-version }})
@@ -131,6 +140,8 @@ jobs:
         shell: pwsh
         run: |
           npm run build:cursor-plugin
+          # Native PowerShell has USERPROFILE, not necessarily HOME.
+          Remove-Item Env:HOME -ErrorAction SilentlyContinue
           node scripts/install-cursor-local.mjs
           $dest = Join-Path $env:USERPROFILE ".cursor\plugins\local\do-it-cursor"
           $manifest = Join-Path $dest ".cursor-plugin\plugin.json"
@@ -143,16 +154,18 @@ jobs:
           if ($hooksText -notmatch 'run-hook\.cmd') {
             throw "hooks.json missing run-hook.cmd entrypoints"
           }
-          if ($hooksText -match 'do-it-cursor[/\\]hooks[/\\][^"\\]+\.sh"') {
+          if ($hooksText -match 'do-it-cursor[/\\]+hooks[/\\]+[^"\\]+\.sh"') {
             throw "hooks.json still points at bare .sh (Windows would open them as files)"
           }
-          if (Select-String -Path $hooks -Pattern 'do-it-cursor[/\\]hooks' -Quiet) {
-            Write-Host "user hooks wired via run-hook.cmd"
-          } else {
-            throw "hooks.json missing do-it-cursor entries"
+          # JSON escapes backslashes, so match do-it-cursor + hooks loosely.
+          if ($hooksText -notmatch 'do-it-cursor.+hooks.+run-hook\.cmd') {
+            throw "hooks.json missing do-it-cursor run-hook.cmd entries"
           }
+          Write-Host "user hooks wired via run-hook.cmd"
           # Guard against the old /mnt/c rewrite landing under the current drive.
           if (Test-Path ".\mnt\c\Users") { throw "unexpected relative mnt install path" }
+          # Guard against Git Bash HOME=/c/Users resolving to C:\c\Users\...
+          if (Test-Path "C:\c\Users") { throw "unexpected MSYS HOME install under C:\c\Users" }
 
       - name: Smoke run-hook.cmd session-start
         shell: cmd
@@ -162,10 +175,11 @@ jobs:
           set CURSOR_VERSION=ci
           echo {"session_id":"ci-smoke","hook_event_name":"sessionStart"} | "%CURSOR_PLUGIN_ROOT%\hooks\run-hook.cmd" session-start
 
-      - name: Doctor cursor target
+      - name: CLI setup + doctor (USERPROFILE as HOME)
         shell: pwsh
         run: |
           $env:HOME = $env:USERPROFILE
+          npm exec --package . -- do-it setup --target=cursor
           npm run doctor:cursor
 
       - name: Keyword match smoke under Git Bash

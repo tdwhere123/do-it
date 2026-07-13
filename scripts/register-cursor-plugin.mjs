@@ -11,6 +11,7 @@
  */
 
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
@@ -21,9 +22,13 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, "..");
 const manifest = JSON.parse(fs.readFileSync(path.join(repoRoot, "manifest.json"), "utf8"));
 
-const home = process.env.HOME;
+function resolveUserHome() {
+  return process.env.HOME || process.env.USERPROFILE || os.homedir() || "";
+}
+
+const home = resolveUserHome();
 if (!home) {
-  console.error("register-cursor-plugin: HOME is not set");
+  console.error("register-cursor-plugin: HOME / USERPROFILE is not set");
   process.exit(1);
 }
 
