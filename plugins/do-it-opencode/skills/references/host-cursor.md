@@ -80,8 +80,9 @@ both still install into the Windows profile Cursor reads.
 
 **Windows + WSL:** Cursor running as a Windows app reads
 `%USERPROFILE%\.cursor\plugins\local\`, not the Linux `$HOME/.cursor`. The
-install script mirrors into detected Windows profiles under `/mnt/c/Users/…`
-**only when running inside WSL**. Alternatively open the project with
+install script mirrors the caller's `%USERPROFILE%` mount under `/mnt/c/Users/…`
+**only when running inside WSL** (it does not scan other users' profiles).
+Alternatively open the project with
 **Remote-WSL** so Linux `~/.cursor` is used.
 
 **Option B — CLI setup** (same official local path):
