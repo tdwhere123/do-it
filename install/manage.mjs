@@ -921,23 +921,37 @@ function doctorCursorExtras(ok, missing, drift) {
   const pluginRootResolved = path.resolve(pluginForHooks);
   const underPluginRoot = (candidate) => {
     const resolved = path.resolve(candidate);
+    if (process.platform === "win32") {
+      const root = pluginRootResolved.toLowerCase();
+      const value = resolved.toLowerCase();
+      return value === root || value.startsWith(`${root}${path.sep}`);
+    }
     return resolved === pluginRootResolved || resolved.startsWith(`${pluginRootResolved}${path.sep}`);
   };
+  const sameDir = (left, right) =>
+    process.platform === "win32"
+      ? path.resolve(left).toLowerCase() === path.resolve(right).toLowerCase()
+      : path.resolve(left) === path.resolve(right);
 
   let smoke;
   let smokeLabel;
   if (process.platform === "win32" && fs.existsSync(runner)) {
     const runnerPath = path.resolve(runner);
+    const hooksDir = path.join(pluginRootResolved, "hooks");
     if (
       path.basename(runnerPath).toLowerCase() !== "run-hook.cmd" ||
-      !underPluginRoot(runnerPath)
+      !underPluginRoot(runnerPath) ||
+      !sameDir(path.dirname(runnerPath), hooksDir)
     ) {
       missing.push(`cursor:run-hook.cmd rejected outside plugin root: ${runnerPath}`);
       return;
     }
-    // Invoke the allowlisted .cmd directly — avoid `cmd.exe /c <env-path>` string composition.
-    smokeLabel = `${runnerPath} session-start`;
-    smoke = spawnSync(runnerPath, ["session-start"], {
+    // Node cannot spawn .cmd without a shell (EINVAL). Run a fixed relative
+    // command from the validated hooks directory so the shell line never
+    // embeds an environment-derived absolute path.
+    smokeLabel = `cmd.exe /d /s /c run-hook.cmd session-start (cwd=${hooksDir})`;
+    smoke = spawnSync("cmd.exe", ["/d", "/s", "/c", "run-hook.cmd session-start"], {
+      cwd: hooksDir,
       encoding: "utf8",
       windowsHide: true,
       shell: false,
