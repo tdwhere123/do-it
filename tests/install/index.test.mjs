@@ -15,25 +15,17 @@ function readJson(relativePath) {
   return JSON.parse(fs.readFileSync(path.join(repoRoot, relativePath), "utf8"));
 }
 
-test("build-index-json creates a reproducible skill and agent inventory", () => {
-  // generated_at is refreshed on every build by design; pin it via the
-  // documented env override so the byte-equality check stays meaningful.
-  const pinnedEnv = {
-    ...process.env,
-    DO_IT_INDEX_GENERATED_AT: "2026-01-01T00:00:00.000Z"
-  };
+test("build-index-json creates a byte-reproducible skill and agent inventory", () => {
   const first = spawnSync(process.execPath, [indexScript], {
     cwd: repoRoot,
-    encoding: "utf8",
-    env: pinnedEnv
+    encoding: "utf8"
   });
   assert.equal(first.status, 0, first.stderr);
   const firstText = fs.readFileSync(indexPath, "utf8");
 
   const second = spawnSync(process.execPath, [indexScript], {
     cwd: repoRoot,
-    encoding: "utf8",
-    env: pinnedEnv
+    encoding: "utf8"
   });
   assert.equal(second.status, 0, second.stderr);
   assert.equal(fs.readFileSync(indexPath, "utf8"), firstText);
@@ -41,12 +33,20 @@ test("build-index-json creates a reproducible skill and agent inventory", () => 
   const index = JSON.parse(firstText);
   const manifest = readJson("manifest.json");
   const pkg = readJson("package.json");
+  const capabilityCount = Object.values(manifest.skillTiers).flat().length;
 
   assert.equal(index.version, manifest.version);
   assert.equal(index.package, pkg.name);
+  assert.ok(!Object.hasOwn(index, "generated_at"));
   assert.equal(index.total_skills, manifest.skills.length);
+  assert.equal(index.total_capabilities, capabilityCount);
+  assert.equal(index.total_discovery_entries, 1);
   assert.equal(index.total_agents, manifest.agents.length);
   assert.equal(index.entries.length, manifest.skills.length + manifest.agents.length);
+
+  const discovery = index.entries.find((entry) => entry.name === "do-it-skills-index");
+  assert.equal(discovery?.kind, "skill");
+  assert.equal(discovery?.group, "index");
 
   const router = index.entries.find((entry) => entry.name === "do-it-router");
   assert.equal(router?.kind, "skill");
@@ -57,13 +57,6 @@ test("build-index-json creates a reproducible skill and agent inventory", () => 
   assert.equal(reviewer?.kind, "agent");
   assert.equal(reviewer?.source, "agents/reviewer.toml");
   assert.match(reviewer?.description ?? "", /review/i);
-
-  // Restore a real timestamp so the tracked index.json does not keep the pin.
-  const restore = spawnSync(process.execPath, [indexScript], {
-    cwd: repoRoot,
-    encoding: "utf8"
-  });
-  assert.equal(restore.status, 0, restore.stderr);
 });
 
 test("parseFrontmatter accepts CRLF SKILL.md fences", () => {

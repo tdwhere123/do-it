@@ -916,13 +916,9 @@ do_it_project_root() {
   fi
 }
 
-# Source the project-level keyword override if present.
+
+# Project-level keyword overrides. Implementation lives beside _do_it_load_tsv
+# in keywords.sh; this thin wrapper keeps the historical common.sh entrypoint.
 do_it_source_local_keywords() {
-  local cwd="${1:-}"
-  if [[ -z "$cwd" ]]; then return 0; fi
-  local local_kw="${cwd%/}/.do-it/keywords.local.sh"
-  if [[ -f "$local_kw" ]]; then
-    # shellcheck source=/dev/null
-    source "$local_kw" 2>/dev/null || true
-  fi
+  _do_it_source_local_keywords "$@"
 }

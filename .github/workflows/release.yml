@@ -39,6 +39,10 @@ jobs:
       - name: Install system test tools
         run: sudo apt-get update && sudo apt-get install -y jq shellcheck
 
+      - name: Validate release tag and metadata
+        if: github.event_name == 'push'
+        run: npm run validate:release -- "${GITHUB_REF_NAME}"
+
       - name: Full test suite
         run: npm test
 
@@ -49,23 +53,20 @@ jobs:
           npm run build:cursor-plugin
           npm run build:opencode-plugin
 
-      - name: Ensure generated artifacts are committed
-        run: |
-          git diff --exit-code -- dist/claude .agents/plugins plugins/do-it plugins/do-it-cursor plugins/do-it-opencode .cursor-plugin
-
-      - name: Cursor local install smoke
+      - name: Smoke packed root and OpenCode packages
         env:
-          HOME: ${{ runner.temp }}/cursor-local-home
-        run: |
-          npm run install:cursor-local
-          test -f "$HOME/.cursor/plugins/local/do-it-cursor/.cursor-plugin/plugin.json"
-          test ! -L "$HOME/.cursor/plugins/local/do-it-cursor"
+          NPM_CONFIG_CACHE: ${{ runner.temp }}/npm-cache
+        run: npm run smoke:package
 
-      - name: Pack tarball
+      - name: Ensure generated artifacts are committed and unchanged by smoke
+        run: |
+          git diff --exit-code -- index.json dist/claude .agents/plugins plugins/do-it plugins/do-it-cursor plugins/do-it-opencode .cursor-plugin
+
+      - name: Pack release tarball
         env:
           NPM_CONFIG_CACHE: ${{ runner.temp }}/npm-cache
         run: |
-          npm pack --json | tee "${{ runner.temp }}/pack.json"
+          npm pack --json --ignore-scripts | tee "${{ runner.temp }}/pack.json"
           jq -e '.[0].filename' "${{ runner.temp }}/pack.json"
 
       - name: Upload pack artifact
@@ -94,6 +95,21 @@ jobs:
           node-version: 22.x
           registry-url: https://registry.npmjs.org
 
+      - name: Validate release tag and metadata
+        run: |
+          if [ "${GITHUB_EVENT_NAME}" = "push" ]; then
+            RELEASE_TAG="${GITHUB_REF_NAME}"
+          else
+            RELEASE_VERSION=$(node -p "require('./package.json').version")
+            RELEASE_TAG="v${RELEASE_VERSION}"
+          fi
+          npm run validate:release -- "${RELEASE_TAG}"
+
+      - name: Download verified package
+        uses: actions/download-artifact@v4
+        with:
+          name: npm-pack
+
       - name: Publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -102,4 +118,6 @@ jobs:
             echo "NPM_TOKEN secret is required to publish" >&2
             exit 1
           fi
-          npm publish --access public
+          TARBALL=$(find . -maxdepth 1 -name '*.tgz' -print -quit)
+          test -n "${TARBALL}"
+          npm publish "${TARBALL}" --access public

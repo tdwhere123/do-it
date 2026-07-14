@@ -11,3 +11,10 @@ fix bug in hooks/router.sh	tier:Standard	English intent + path
 yolo 直接做	skip:router,grill,gate	full escape — no tier write
 skip gate please implement src/foo.ts	skip:gate;tier:Standard	partial skip gate still refreshes tier/dims
 这是什么？	tier:Light;kind:question	short question
+publish the release to production	tier:Heavy	single strong release action → Heavy
+run the database migration now	tier:Heavy	single strong migration action → Heavy
+harden security for credential rotation	tier:Heavy	single strong security action → Heavy
+remove the deprecated API even though it is breaking	tier:Heavy	single strong breaking action → Heavy
+remove unused api helper from schema.ts	tier:Standard	destructive+bare api/schema is not strong Heavy
+what is the release process?	tier:Light;kind:question	release explanation remains Light
+how do database migrations work?	tier:Light;kind:question	migration explanation remains Light

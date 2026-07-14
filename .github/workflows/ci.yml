@@ -68,8 +68,8 @@ jobs:
       - name: Build Claude agents
         run: npm run build:claude-agents
 
-      - name: Ensure generated Claude agents are committed
-        run: git diff --exit-code -- dist/claude
+      - name: Ensure generated index and Claude agents are committed
+        run: git diff --exit-code -- index.json dist/claude
 
       - name: Build Codex plugin
         run: npm run build:codex-plugin
@@ -227,37 +227,7 @@ jobs:
       - name: Install system test tools
         run: sudo apt-get update && sudo apt-get install -y jq shellcheck
 
-      - name: Validate package metadata
-        run: node -e "JSON.parse(require('fs').readFileSync('package.json', 'utf8'))"
-
-      - name: Build Claude agents
-        run: npm run build:claude-agents
-
-      - name: Build Codex plugin
-        run: npm run build:codex-plugin
-
-      - name: Smoke test Codex install target
-        env:
-          CODEX_HOME: ${{ runner.temp }}/do-it-codex
-          NPM_CONFIG_CACHE: ${{ runner.temp }}/npm-cache
-        run: npm exec --package . -- do-it setup
-
-      - name: Smoke test Claude Code install target
-        env:
-          CLAUDE_PLUGIN_ROOT_OVERRIDE: ${{ runner.temp }}/do-it-claude
-          NPM_CONFIG_CACHE: ${{ runner.temp }}/npm-cache
-        run: npm exec --package . -- do-it setup --target=claude
-
-      - name: Smoke test Cursor install target
-        env:
-          HOME: ${{ runner.temp }}/do-it-cursor-home
-          NPM_CONFIG_CACHE: ${{ runner.temp }}/npm-cache
-        run: |
-          npm exec --package . -- do-it setup --target=cursor
-          test -f "$HOME/.cursor/plugins/local/do-it-cursor/.cursor-plugin/plugin.json"
-          test ! -L "$HOME/.cursor/plugins/local/do-it-cursor"
-
-      - name: Inspect package tarball
+      - name: Smoke packed root and OpenCode packages
         env:
           NPM_CONFIG_CACHE: ${{ runner.temp }}/npm-cache
-        run: npm pack --dry-run --json
+        run: npm run smoke:package

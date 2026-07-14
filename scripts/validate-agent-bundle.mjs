@@ -88,7 +88,7 @@ function readTomlStringValue(source, key) {
   return match?.[1] ?? null;
 }
 
-function validatePortableAgentPolicy(relativePath, content, errors) {
+export function validatePortableAgentPolicy(relativePath, content, errors) {
   const concreteModelPattern = /\b(?:gpt-[A-Za-z0-9_.-]+|sonnet|opus|haiku)\b/i;
   const hostPrivatePattern = /\b(?:model_reasoning_effort|claude_model|output_budget)\b/;
 
@@ -97,6 +97,45 @@ function validatePortableAgentPolicy(relativePath, content, errors) {
   }
   if (hostPrivatePattern.test(content)) {
     errors.push(`${relativePath}: must not contain host-private model or budget fields`);
+  }
+}
+
+export function validateAgentInstructionLinks(relativePath, content, errors) {
+  const sourceDir = path.dirname(repoPath(relativePath));
+  const linkPattern = /(?:\[[^\]]*\]\(([^)]+\.md(?:#[^)]+)?)\)|`([^`\s]+\.md(?:#[^`]*)?)`|(?<![A-Za-z0-9:/])((?:\.\.\/|\.\/|references\/)[A-Za-z0-9_./-]+\.md(?:#[A-Za-z0-9_-]+)?))/gi;
+  const seen = new Set();
+
+  for (const match of content.matchAll(linkPattern)) {
+    const rawTarget = match[1] ?? match[2] ?? match[3];
+    if (!rawTarget || /^(?:https?:|mailto:)/i.test(rawTarget)) continue;
+    const target = rawTarget.split("#", 1)[0];
+    if (!target || seen.has(target)) continue;
+    seen.add(target);
+
+    const resolved = path.resolve(sourceDir, target);
+    const insideRepo = resolved === repoRoot || resolved.startsWith(`${repoRoot}${path.sep}`);
+    if (!insideRepo || !fs.existsSync(resolved)) {
+      errors.push(`${relativePath}: broken agent instruction link ${target}`);
+    }
+  }
+}
+
+export function validateDelegationContract(relativePath, content, errors) {
+  const requiredPhrases = [
+    "tier and lens",
+    "scope and non-goals",
+    "write ownership and restricted paths",
+    "facts to verify",
+    "proof target",
+    "stop condition",
+    "return schema",
+    "NEEDS_CONTEXT"
+  ];
+
+  for (const phrase of requiredPhrases) {
+    if (!content.includes(phrase)) {
+      errors.push(`${relativePath}: Delegation Contract must include ${phrase}`);
+    }
   }
 }
 
@@ -202,9 +241,12 @@ function validateSourceAgents(manifest, errors) {
   compareSets("manifest.agents", sourceNames, manifestNames, errors);
 
   for (const fileName of sourceFiles) {
-    const filePath = repoPath(`agents/${fileName}`);
+    const relativePath = `agents/${fileName}`;
+    const filePath = repoPath(relativePath);
     const source = fs.readFileSync(filePath, "utf8");
-    validatePortableAgentPolicy(`agents/${fileName}`, source, errors);
+    validatePortableAgentPolicy(relativePath, source, errors);
+    validateAgentInstructionLinks(relativePath, source, errors);
+    validateDelegationContract(relativePath, source, errors);
     const keys = parseTomlTopLevelKeys(source, filePath);
     const agentName = readTomlStringValue(source, "name");
     const expectedName = fileName.replace(/\.toml$/, "");
@@ -463,4 +505,6 @@ function main() {
   );
 }
 
-main();
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main();
+}

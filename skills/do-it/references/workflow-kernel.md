@@ -56,6 +56,10 @@ Stop at the first rung that holds:
 
 Never cut safety: trust boundaries, data-loss, security, accessibility, or explicit user features.
 
+## Evidence-Driven Optimization
+
+Unknown is not impossible, but possibility is not proof. Record the current baseline and success metric, keep the known-correct path available, and probe the breakthrough hypothesis with the cheapest falsifier first. Scale investment only when the observation survives that test and materially improves the baseline.
+
 ## Parent Delegation Contract
 
 The parent owns integration. A delegated slice must state:

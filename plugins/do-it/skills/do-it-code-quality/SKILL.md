@@ -62,6 +62,10 @@ Mechanical/docs edits may skip RED — state why.
 
 Symptom → reproduce → one hypothesis → falsify with the smallest check → fix the cause → regression proof. Three failed patches → question the design before another try.
 
+## Builder Stance
+
+Optimize from evidence, not assumed limits. **Unknown is not impossible**: establish a measured baseline, preserve a correct fallback, then test a plausible breakthrough path. Before investing deeply, run the **cheapest falsifier** that could disprove the key premise; promote the idea only when observed results beat the baseline on the metric that matters.
+
 ## Boundaries & Worktrees
 
 Use a separate worktree only for genuinely parallel, risky, or conflicting work — not a bounded one-thread change. The parent owns shared files and integration.

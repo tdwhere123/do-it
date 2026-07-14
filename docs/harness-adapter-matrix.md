@@ -9,10 +9,10 @@ every host.
 
 | Platform | Distribution | Hook depth | Notes |
 |---|---|---|---|
-| **Codex** | plugin marketplace (primary); `do-it setup` optional/legacy | Full | Trust plugin hooks under `/hooks`; session state via plugin data or `CODEX_HOME/do-it-data` |
-| **Claude Code** | plugin marketplace (primary) | Full | `${CLAUDE_PLUGIN_ROOT}` hooks; `${CLAUDE_PLUGIN_DATA}` session state |
-| **Cursor** | local / Team Import (primary today); public marketplace after listing | Medium | Official [marketplace](https://cursor.com/marketplace) exists; **do-it not listed yet**. No Claude `/plugin` commands. Medium hooks. |
-| **OpenCode** | `opencode.json` plugin (primary) | Medium | TS plugin: transform bootstrap; `tool.execute.after`; `session.idle` soft reminder |
+| **Codex** | marketplace-first; `do-it setup` optional/legacy | Full | Trust plugin hooks under `/hooks`; session state via plugin data or `CODEX_HOME/do-it-data` |
+| **Claude Code** | marketplace-first | Full | `${CLAUDE_PLUGIN_ROOT}` hooks; `${CLAUDE_PLUGIN_DATA}` session state |
+| **Cursor** | local / Team Import today; public listing pending | Medium | Official [marketplace](https://cursor.com/marketplace) exists; **do-it not listed yet**. No Claude `/plugin` commands. |
+| **OpenCode** | local `opencode.json` registration today; npm publication pending | Medium | TS plugin: transform bootstrap; `tool.execute.after`; `session.idle` soft reminder |
 
 Workflow logic lives once in `skills/do-it/` and `hooks/`. Host-specific install
 paths, tool names, and hook event names live in
@@ -60,7 +60,7 @@ catch what cheap checks cannot prove.
 ```
 L0  write-time hook (advisory)  →  one system-reminder per file per turn; scoped family suppression with a reason (never secrets)
 L1  do-it-review                →  Blocking / Important finding; YAGNI + comments lenses respond to L0 families
-L2  verification-gate           →  supported hosts block success claims lacking relevant current-turn proof; OpenCode reminds softly
+L2  verification-gate           →  Codex / Claude / Cursor require paired successful shell evidence (fail closed on forge/missing/failed/stale); OpenCode reminds softly
 L3  do-it-verify closeout       →  merge-ready evidence rollup; `NOT_VERIFIED` and residual risk stay visible
 ```
 
@@ -68,7 +68,7 @@ L3  do-it-verify closeout       →  merge-ready evidence rollup; `NOT_VERIFIED`
 |---|---|---|---|
 | L0 `write-quality-lint` | hook | No | No |
 | L1 `do-it-review` | skill / subagent | No | No (findings must clear first) |
-| L2 `verification-gate` | hook | No | **Yes** on Codex / Claude / Cursor; soft reminder on OpenCode |
+| L2 `verification-gate` | hook | No | **Paired successful evidence** on Codex / Claude / Cursor (fail closed); soft reminder on OpenCode |
 | L3 `do-it-verify` | skill | No | Claim wording follows available proof |
 
 Family definitions and suppress syntax:
@@ -94,8 +94,10 @@ PostToolUse quality reminders:
   `write-quality-families.md` (L3 progressive disclosure).
 - Light tier: hook does not run — zero post-edit injection.
 
-Subagent response budgets live in the parent delegation contract (no separate
-orchestration skill); enforced in the parent prompt, not in agent TOML.
+The parent prompt must supply every Delegation Contract field: tier/lens,
+scope/non-goals, write/restricted paths, facts to verify, proof target, stop,
+and return schema. Portable agents return `NEEDS_CONTEXT` before inspection or
+edits when fields are missing; a repository-relative link is not a substitute.
 
 ## Session State Resolution
 

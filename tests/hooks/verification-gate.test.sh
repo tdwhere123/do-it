@@ -35,19 +35,51 @@ _set_state() {
 }
 
 _append_edit() {
-  jq -nc '{type:"assistant",message:{content:[{type:"tool_use",name:"Edit",input:{file_path:"/tmp/x.ts"}}]}}'
+  jq -nc '{type:"assistant",message:{content:[{type:"tool_use",id:"edit-1",name:"Edit",input:{file_path:"/tmp/x.ts"}}]}}'
 }
 
 _append_bash() {
-  jq -nc --arg command "$1" '{type:"assistant",message:{content:[{type:"tool_use",name:"Bash",input:{command:$command}}]}}'
+  local command="$1" id="${2:-verify-1}"
+  jq -nc --arg command "$command" --arg id "$id" \
+    '{type:"assistant",message:{content:[{type:"tool_use",id:$id,name:"Bash",input:{command:$command}}]}}'
 }
 
 _append_shell() {
-  jq -nc --arg command "$1" '{type:"assistant",message:{content:[{type:"tool_use",name:"Shell",input:{command:$command}}]}}'
+  local command="$1" id="${2:-verify-1}"
+  jq -nc --arg command "$command" --arg id "$id" \
+    '{role:"assistant",content:[{type:"tool_use",id:$id,name:"Shell",input:{command:$command}}]}'
+}
+
+_append_result() {
+  local id="$1" success="${2:-true}"
+  jq -nc --arg id "$id" --arg success "$success" \
+    '{type:"user",message:{content:[{type:"tool_result",tool_use_id:$id,is_error:($success != "true"),content:(if $success == "true" then "ok" else "failed" end)}]}}'
+}
+
+_append_role_result() {
+  local id="$1" status="${2:-success}"
+  jq -nc --arg id "$id" --arg status "$status" \
+    '{role:"tool",tool_call_id:$id,status:$status,content:"command output"}'
+}
+
+_append_top_result() {
+  local id="$1" status="${2:-completed}"
+  jq -nc --arg id "$id" --arg status "$status" \
+    '{type:"tool_result",tool_use_id:$id,status:$status,content:"command output"}'
+}
+
+_append_result_no_error_field() {
+  local id="$1"
+  jq -nc --arg id "$id" \
+    '{type:"user",message:{content:[{type:"tool_result",tool_use_id:$id,content:"ok"}]}}'
+}
+
+_append_tool_calls_edit() {
+  jq -nc '{role:"assistant",tool_calls:[{id:"edit-1",type:"function",function:{name:"Edit",arguments:"{\"file_path\":\"/tmp/x.ts\"}"}}]}'
 }
 
 _append_apply_patch() {
-  jq -nc '{type:"assistant",message:{content:[{type:"tool_use",name:"apply_patch",input:{patch:"*** Update File: /tmp/x.ts"}}]}}'
+  jq -nc '{type:"assistant",message:{content:[{type:"tool_use",id:"edit-1",name:"apply_patch",input:{patch:"*** Update File: /tmp/x.ts"}}]}}'
 }
 
 _append_text() {
@@ -146,7 +178,8 @@ echo "Case 5: relevant command and focused inspection pass"
   _set_state c6 tier Standard last_prompt_kind work
   tx="$DO_IT_HOOK_DATA/tx.jsonl"
   _append_edit > "$tx"
-  _append_bash "pnpm test --filter auth" >> "$tx"
+  _append_bash "pnpm test --filter auth" verify-auth >> "$tx"
+  _append_result verify-auth true >> "$tx"
   _append_text "tests passed; task done" >> "$tx"
   [[ -z "$(_run_gate c6 "$tx")" ]]
 )
@@ -157,7 +190,8 @@ case "$?" in 0) _pass "targeted test passes";; *) _fail "targeted test evidence"
   _set_state c7 tier Standard last_prompt_kind work
   tx="$DO_IT_HOOK_DATA/tx.jsonl"
   _append_edit > "$tx"
-  _append_bash "git diff --check" >> "$tx"
+  _append_bash "git diff --check" verify-diff >> "$tx"
+  _append_result verify-diff true >> "$tx"
   _append_text "metadata update done" >> "$tx"
   [[ -z "$(_run_gate c7 "$tx")" ]]
 )
@@ -180,7 +214,8 @@ case "$?" in 0) _pass "NOT_VERIFIED is an honest exit";; *) _fail "NOT_VERIFIED 
   _set_state c9 tier Standard last_prompt_kind work
   tx="$DO_IT_HOOK_DATA/tx.jsonl"
   _append_edit > "$tx"
-  _append_bash "pnpm test" >> "$tx"
+  _append_bash "pnpm test" stale-verify >> "$tx"
+  _append_result stale-verify true >> "$tx"
   _append_text "previous task done" >> "$tx"
   _append_user "ship the next change" >> "$tx"
   _append_edit >> "$tx"
@@ -215,7 +250,8 @@ echo "Case 8: Shell evidence and apply_patch edits (Codex/Cursor)"
   _set_state c11 tier Standard last_prompt_kind work
   tx="$DO_IT_HOOK_DATA/tx.jsonl"
   _append_edit > "$tx"
-  _append_shell "npm test" >> "$tx"
+  _append_shell "npm test" shell-verify >> "$tx"
+  _append_role_result shell-verify success >> "$tx"
   _append_text "tests passed; task done" >> "$tx"
   [[ -z "$(_run_gate c11 "$tx")" ]]
 )
@@ -237,11 +273,226 @@ case "$?" in 0) _pass "apply_patch without proof blocks";; *) _fail "apply_patch
   _set_state c13 tier Standard last_prompt_kind work
   tx="$DO_IT_HOOK_DATA/tx.jsonl"
   _append_apply_patch > "$tx"
-  _append_shell "npm test" >> "$tx"
+  _append_shell "npm test" patch-verify >> "$tx"
+  _append_role_result patch-verify success >> "$tx"
   _append_text "VERIFIED; ready to merge" >> "$tx"
   [[ -z "$(_run_gate c13 "$tx")" ]]
 )
 case "$?" in 0) _pass "apply_patch + Shell evidence passes";; *) _fail "apply_patch + Shell";; esac
+
+# -------------------------------------------------------------------------
+echo "Case 9: failed, missing, and forged results fail closed"
+(
+  _isolate /tmp/doit-gate-c14
+  _set_state c14 tier Standard last_prompt_kind work
+  tx="$DO_IT_HOOK_DATA/tx.jsonl"
+  _append_edit > "$tx"
+  _append_bash "pnpm test" failed-verify >> "$tx"
+  _append_result failed-verify false >> "$tx"
+  _append_text "tests passed; task done" >> "$tx"
+  out=$(_run_gate c14 "$tx")
+  [[ "$out" == *'fresh, relevant current-turn proof'* ]]
+)
+case "$?" in 0) _pass "failed verification result blocks";; *) _fail "failed result passed";; esac
+
+(
+  _isolate /tmp/doit-gate-c15
+  _set_state c15 tier Standard last_prompt_kind work
+  tx="$DO_IT_HOOK_DATA/tx.jsonl"
+  _append_edit > "$tx"
+  _append_bash "pnpm test" missing-result >> "$tx"
+  _append_text "tests passed; task done" >> "$tx"
+  out=$(_run_gate c15 "$tx")
+  [[ "$out" == *'fresh, relevant current-turn proof'* ]]
+)
+case "$?" in 0) _pass "verification command without result blocks";; *) _fail "missing result passed";; esac
+
+(
+  _isolate /tmp/doit-gate-c16
+  _set_state c16 tier Standard last_prompt_kind work
+  tx="$DO_IT_HOOK_DATA/tx.jsonl"
+  _append_edit > "$tx"
+  _append_result forged-id true >> "$tx"
+  _append_text "pnpm test passed; task done" >> "$tx"
+  out=$(_run_gate c16 "$tx")
+  [[ "$out" == *'fresh, relevant current-turn proof'* ]]
+)
+case "$?" in 0) _pass "forged unpaired result blocks";; *) _fail "forged result passed";; esac
+
+# -------------------------------------------------------------------------
+echo "Case 10: top-level tool_result success shape pairs explicitly"
+(
+  _isolate /tmp/doit-gate-c17
+  _set_state c17 tier Standard last_prompt_kind work
+  tx="$DO_IT_HOOK_DATA/tx.jsonl"
+  _append_edit > "$tx"
+  _append_bash "cargo check" top-verify >> "$tx"
+  _append_top_result top-verify completed >> "$tx"
+  _append_text "check passed; task done" >> "$tx"
+  [[ -z "$(_run_gate c17 "$tx")" ]]
+)
+case "$?" in 0) _pass "top-level completed result passes";; *) _fail "top-level result shape blocked";; esac
+
+# -------------------------------------------------------------------------
+echo "Case 11: tool_result with omitted is_error passes (Claude convention)"
+(
+  _isolate /tmp/doit-gate-c18
+  _set_state c18 tier Standard last_prompt_kind work
+  tx="$DO_IT_HOOK_DATA/tx.jsonl"
+  _append_edit > "$tx"
+  _append_bash "npm test" verify-err >> "$tx"
+  _append_result_no_error_field verify-err >> "$tx"
+  _append_text "tests passed; task done" >> "$tx"
+  [[ -z "$(_run_gate c18 "$tx")" ]]
+)
+case "$?" in 0) _pass "omitted is_error passes";; *) _fail "omitted is_error blocked";; esac
+
+(
+  _isolate /tmp/doit-gate-c18b
+  _set_state c18b tier Standard last_prompt_kind work
+  tx="$DO_IT_HOOK_DATA/tx.jsonl"
+  _append_edit > "$tx"
+  _append_shell "npm test" role-missing >> "$tx"
+  jq -nc '{role:"tool",tool_call_id:"role-missing",content:"failed hard"}' >> "$tx"
+  _append_text "tests passed; task done" >> "$tx"
+  out=$(_run_gate c18b "$tx")
+  [[ "$out" == *'fresh, relevant current-turn proof'* ]]
+)
+case "$?" in 0) _pass "role result without status blocks";; *) _fail "role missing status passed";; esac
+
+(
+  _isolate /tmp/doit-gate-c18c
+  _set_state c18c tier Standard last_prompt_kind work
+  tx="$DO_IT_HOOK_DATA/tx.jsonl"
+  _append_edit > "$tx"
+  _append_bash "pnpm test" early-verify >> "$tx"
+  _append_result early-verify true >> "$tx"
+  _append_edit >> "$tx"
+  _append_text "tests passed; task done" >> "$tx"
+  out=$(_run_gate c18c "$tx")
+  [[ "$out" == *'fresh, relevant current-turn proof'* ]]
+)
+case "$?" in 0) _pass "evidence before later edit blocks";; *) _fail "stale within-turn evidence passed";; esac
+
+# -------------------------------------------------------------------------
+echo "Case 12: compound verification command with prefix passes"
+(
+  _isolate /tmp/doit-gate-c19
+  _set_state c19 tier Standard last_prompt_kind work
+  tx="$DO_IT_HOOK_DATA/tx.jsonl"
+  _append_edit > "$tx"
+  _append_bash "cd packages/auth && NODE_ENV=test npm test" verify-prefix >> "$tx"
+  _append_result verify-prefix true >> "$tx"
+  _append_text "tests passed; task done" >> "$tx"
+  [[ -z "$(_run_gate c19 "$tx")" ]]
+)
+case "$?" in 0) _pass "compound prefix command passes";; *) _fail "compound prefix command blocked";; esac
+
+# -------------------------------------------------------------------------
+echo "Case 13: claim bypass via tool_calls blocks without verification"
+(
+  _isolate /tmp/doit-gate-c20
+  _set_state c20 tier Standard last_prompt_kind work
+  tx="$DO_IT_HOOK_DATA/tx.jsonl"
+  _append_tool_calls_edit > "$tx"
+  _append_text "task done" >> "$tx"
+  out=$(_run_gate c20 "$tx")
+  [[ "$out" == *'fresh, relevant current-turn proof'* ]]
+)
+case "$?" in 0) _pass "tool_calls edit without verification blocks";; *) _fail "tool_calls bypass allowed";; esac
+
+# -------------------------------------------------------------------------
+echo "Case 14: OpenAI/Cursor tool_calls with verification passes"
+(
+  _isolate /tmp/doit-gate-c21
+  _set_state c21 tier Standard last_prompt_kind work
+  tx="$DO_IT_HOOK_DATA/tx.jsonl"
+  _append_tool_calls_edit > "$tx"
+  _append_bash "pnpm test" verify-tc >> "$tx"
+  _append_result verify-tc true >> "$tx"
+  _append_text "tests passed; task done" >> "$tx"
+  [[ -z "$(_run_gate c21 "$tx")" ]]
+)
+case "$?" in 0) _pass "tool_calls edit with verification passes";; *) _fail "tool_calls edit with verification blocked";; esac
+
+
+echo "Case 15: substring carriers echo/pnpm and comment-trailing vitest block"
+(
+  _isolate /tmp/doit-gate-c15
+  _set_state c15 tier Standard last_prompt_kind work
+  tx="$DO_IT_HOOK_DATA/tx.jsonl"
+  _append_edit > "$tx"
+  _append_bash "echo pnpm test" bogus-echo >> "$tx"
+  _append_result bogus-echo true >> "$tx"
+  _append_text "task done" >> "$tx"
+  out=$(_run_gate c15 "$tx")
+  [[ "$out" == *'fresh, relevant current-turn proof'* ]] || exit 11
+
+  _isolate /tmp/doit-gate-c15b
+  _set_state c15b tier Standard last_prompt_kind work
+  tx="$DO_IT_HOOK_DATA/tx.jsonl"
+  _append_edit > "$tx"
+  _append_bash "true # vitest" bogus-comment >> "$tx"
+  _append_result bogus-comment true >> "$tx"
+  _append_text "task done" >> "$tx"
+  out=$(_run_gate c15b "$tx")
+  [[ "$out" == *'fresh, relevant current-turn proof'* ]] || exit 12
+)
+case "$?" in
+  0)  _pass "echo pnpm test and true # vitest do not count as evidence" ;;
+  11) _fail "echo pnpm test falsely passed" ;;
+  12) _fail "true # vitest falsely passed" ;;
+  *)  _fail "substring carrier case failed (exit $?)" ;;
+esac
+
+# -------------------------------------------------------------------------
+echo "Case 16: evidence must follow the last edit in the turn"
+(
+  _isolate /tmp/doit-gate-c16
+  _set_state c16 tier Standard last_prompt_kind work
+  tx="$DO_IT_HOOK_DATA/tx.jsonl"
+  _append_bash "pnpm test" verify-early > "$tx"
+  _append_result verify-early true >> "$tx"
+  jq -nc '{type:"assistant",message:{content:[{type:"tool_use",id:"edit-2",name:"Edit",input:{file_path:"/tmp/y.ts"}}]}}' >> "$tx"
+  _append_text "task done" >> "$tx"
+  out=$(_run_gate c16 "$tx")
+  [[ "$out" == *'fresh, relevant current-turn proof'* ]] || exit 11
+
+  _isolate /tmp/doit-gate-c16b
+  _set_state c16b tier Standard last_prompt_kind work
+  tx="$DO_IT_HOOK_DATA/tx.jsonl"
+  _append_edit > "$tx"
+  _append_bash "pnpm test" verify-late >> "$tx"
+  _append_result verify-late true >> "$tx"
+  _append_text "tests passed; task done" >> "$tx"
+  [[ -z "$(_run_gate c16b "$tx")" ]] || exit 12
+)
+case "$?" in
+  0)  _pass "verify→edit→done blocks; edit→verify→done passes" ;;
+  11) _fail "verify before last edit falsely passed" ;;
+  12) _fail "edit then verify should pass" ;;
+  *)  _fail "ordering case failed (exit $?)" ;;
+esac
+
+# -------------------------------------------------------------------------
+echo "Case 17: unparsed transcript with NOT_VERIFIED allows"
+(
+  _isolate /tmp/doit-gate-c17
+  _set_state c17 tier Standard last_prompt_kind work
+  tx="$DO_IT_HOOK_DATA/tx.jsonl"
+  {
+    echo 'not-json{{{{'
+    echo '{"type":"assistant","message":{"content":[{"type":"tool_use","id":"edit-1","name":"Edit","input":{"file_path":"/tmp/x.ts"}}]}}'
+    echo 'NOT_VERIFIED: malformed host transcript; next action is re-run under a JSONL host.'
+    echo 'task done'
+  } > "$tx"
+  [[ -z "$(_run_gate c17 "$tx")" ]] || exit 11
+)
+case "$?" in
+  0)  _pass "PARSE_OK=0 honors NOT_VERIFIED" ;;
+  11) _fail "malformed + NOT_VERIFIED should allow" ;;
+  *)  _fail "unparsed NOT_VERIFIED case failed (exit $?)" ;;
+esac
 
 if [[ "$FAIL" -gt 0 ]]; then
   echo "FAILED: $PASS passed, $FAIL failed" >&2
