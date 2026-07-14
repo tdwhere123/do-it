@@ -202,7 +202,7 @@ function safeStateSessionKey(sessionId: string): string {
     sessionId.includes("..") ||
     /[\\/\x00-\x1f\x7f]/.test(sessionId);
   if (!unsafe) return sessionId;
-  return crypto.createHash("sha1").update(sessionId).digest("hex").slice(0, 12);
+  return crypto.createHash("sha256").update(sessionId).digest("hex").slice(0, 12);
 }
 
 function containedStateFile(base: string, sessionKey: string): string | null {

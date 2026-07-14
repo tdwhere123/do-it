@@ -98,32 +98,107 @@ export function cleanupStaleVerificationTemps(tempParent = os.tmpdir(), now = Da
         // The host temp directory may be unreadable or may disappear during shutdown.
     }
 }
+/** Split an already whitespace-normalized command on shell delimiters without `\s*` ReDoS. */
+function splitCommandSegments(command) {
+    const parts = [];
+    let buf = "";
+    for (let i = 0; i < command.length; i += 1) {
+        const two = command.slice(i, i + 2);
+        if (two === "&&" || two === "||") {
+            if (buf.trim())
+                parts.push(buf.trim());
+            buf = "";
+            i += 1;
+            continue;
+        }
+        const ch = command[i];
+        if (ch === ";" || ch === "|") {
+            if (buf.trim())
+                parts.push(buf.trim());
+            buf = "";
+            continue;
+        }
+        buf += ch;
+    }
+    if (buf.trim())
+        parts.push(buf.trim());
+    return parts;
+}
+/** Strip leading `env` / `KEY=VAL` prefixes with a linear scan (no nested quantifiers). */
+function stripLeadingEnvAssignments(segment) {
+    let rest = segment.trim();
+    if (rest.toLowerCase().startsWith("env "))
+        rest = rest.slice(4).trimStart();
+    while (rest.length > 0) {
+        const eq = rest.match(/^([A-Za-z_][A-Za-z0-9_]*)=/);
+        if (!eq)
+            break;
+        let i = eq[0].length;
+        const quote = rest[i];
+        if (quote === '"' || quote === "'") {
+            i += 1;
+            while (i < rest.length && rest[i] !== quote)
+                i += 1;
+            if (i < rest.length)
+                i += 1;
+        }
+        else {
+            while (i < rest.length && !/[\s;|&]/.test(rest[i]))
+                i += 1;
+        }
+        rest = rest.slice(i).trimStart();
+    }
+    return rest;
+}
+function tokensIncludeKeyword(tokens, keywords) {
+    for (const token of tokens) {
+        const lower = token.toLowerCase();
+        for (const keyword of keywords) {
+            if (lower === keyword || lower.includes(keyword))
+                return true;
+        }
+    }
+    return false;
+}
 function evidenceCommand(command) {
     if (typeof command !== "string")
         return null;
-    const normalizedCommand = command.replace(/\s+/g, " ").trim();
-    const segments = normalizedCommand.split(/\s*(?:&&|\|\||[;|])\s*/);
-    for (let segment of segments) {
-        segment = segment.replace(/^(?:env\s+)?(?:(?:[A-Za-z_][A-Za-z0-9_]*=(?:"[^"]*"|'[^']*'|[^\s;|&]+))\s*)+/, "");
-        segment = segment.replace(/^command\s+/, "");
-        if (/^npm\s+(?:test|run|exec)(?:\s|$)/i.test(segment))
-            return segment.match(/^npm\s+(test|run|exec)/i)?.[0].toLowerCase().replace(/\s+$/, "") ?? null;
-        if (/^(?:pnpm|yarn)\s+(?:test|build|exec|run)(?:\s|$)/i.test(segment))
-            return segment.match(/^(pnpm|yarn)\s+(test|build|exec|run)/i)?.[0].toLowerCase() ?? null;
-        if (/^(?:vitest|jest|playwright|pytest|mypy|tsc|eslint|ruff|biome|prettier)(?:\s|$)/i.test(segment))
-            return segment.split(" ", 1)[0].toLowerCase();
-        if (/^cargo\s+(?:test|run|build|check|clippy)(?:\s|$)/i.test(segment))
-            return segment.match(/^cargo\s+(test|run|build|check|clippy)/i)?.[0].toLowerCase() ?? null;
-        if (/^go\s+(?:test|run|build|vet)(?:\s|$)/i.test(segment))
-            return segment.match(/^go\s+(test|run|build|vet)/i)?.[0].toLowerCase() ?? null;
-        if (/^do-it\s+doctor(?:\s|$)/i.test(segment))
+    // Collapse whitespace once so segment matchers stay linear-time.
+    const normalizedCommand = command.replace(/[\t\n\r ]+/g, " ").trim();
+    if (!normalizedCommand)
+        return null;
+    const runners = new Set(["vitest", "jest", "playwright", "pytest", "mypy", "tsc", "eslint", "ruff", "biome", "prettier"]);
+    for (let segment of splitCommandSegments(normalizedCommand)) {
+        segment = stripLeadingEnvAssignments(segment);
+        if (segment.toLowerCase().startsWith("command "))
+            segment = segment.slice(8).trimStart();
+        const tokens = segment.split(" ").filter(Boolean);
+        if (tokens.length === 0)
+            continue;
+        const head = tokens[0].toLowerCase();
+        const arg1 = (tokens[1] ?? "").toLowerCase();
+        if (head === "npm" && (arg1 === "test" || arg1 === "run" || arg1 === "exec"))
+            return `npm ${arg1}`;
+        if ((head === "pnpm" || head === "yarn") && (arg1 === "test" || arg1 === "build" || arg1 === "exec" || arg1 === "run")) {
+            return `${head} ${arg1}`;
+        }
+        if (runners.has(head))
+            return head;
+        if (head === "cargo" && (arg1 === "test" || arg1 === "run" || arg1 === "build" || arg1 === "check" || arg1 === "clippy")) {
+            return `cargo ${arg1}`;
+        }
+        if (head === "go" && (arg1 === "test" || arg1 === "run" || arg1 === "build" || arg1 === "vet"))
+            return `go ${arg1}`;
+        if (head === "do-it" && arg1 === "doctor")
             return "do-it doctor";
-        if (/^git\s+diff(?:\s|$)/i.test(segment))
+        if (head === "git" && arg1 === "diff")
             return "git diff";
-        if (/^node\s+.*\b(?:validate|check|test|build)\b/i.test(segment))
+        if (head === "node" && tokensIncludeKeyword(tokens.slice(1), ["validate", "check", "test", "build"])) {
             return "node validation";
-        if (/^python(?:3)?\s+.*\b(?:test|check|validate)\b/i.test(segment))
+        }
+        if ((head === "python" || head === "python3") && tokensIncludeKeyword(tokens.slice(1), ["test", "check", "validate"])) {
             return "python validation";
+        }
     }
     return null;
 }
