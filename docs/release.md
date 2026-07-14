@@ -166,7 +166,10 @@ Prefer publishing the tarball that already passed release validation:
 ```bash
 npm run validate:release -- v0.14.0
 npm pack
+# Pass the packed .tgz so smoke exercises that artifact (not a fresh repack).
 npm run smoke:package -- ./tdwhere-do-it-0.14.0.tgz
+# Optional: also smoke the OpenCode plugin tarball if you packed it.
+# npm run smoke:package -- ./tdwhere-do-it-0.14.0.tgz ./tdwhere-do-it-opencode-0.14.0.tgz
 npm publish ./tdwhere-do-it-0.14.0.tgz --access public
 ```
 
@@ -183,6 +186,10 @@ do-it setup   # optional / legacy
 npm pack
 npm run smoke:package -- ./tdwhere-do-it-0.14.0.tgz
 ```
+
+With one or more `.tgz` arguments, `smoke:package` installs and exercises those
+artifacts and does not repack from checkout. With no arguments it packs both the
+root and OpenCode packages from the working tree, then smokes them (CI default).
 
 Use the generated tarball with `npm install --global` or
 `npm exec --package ./tdwhere-do-it-0.14.0.tgz -- do-it setup` when testing a

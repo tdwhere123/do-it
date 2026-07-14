@@ -39,6 +39,50 @@ function pack(packageDir, destination) {
   return path.join(destination, output[0].filename);
 }
 
+/** Classify a tarball path as root or opencode from its basename (npm pack naming). */
+export function classifyTarball(tarballPath) {
+  const base = path.basename(tarballPath).toLowerCase();
+  if (base.includes("opencode")) return "opencode";
+  return "root";
+}
+
+/**
+ * Resolve which artifacts to smoke.
+ * - No `.tgz` CLI args: pack both packages from checkout (default).
+ * - One or more `.tgz` paths: smoke those artifacts; do not repack those roles.
+ *   Missing roles are skipped (caller only exercises provided tarballs).
+ */
+export function resolveSmokeTarballs(argv, packers) {
+  const tarballArgs = argv.filter((arg) => arg.endsWith(".tgz"));
+  if (tarballArgs.length === 0) {
+    return {
+      source: "packed",
+      rootTarball: packers.packRoot(),
+      openCodeTarball: packers.packOpenCode()
+    };
+  }
+
+  const absolute = tarballArgs.map((arg) => path.resolve(arg));
+  for (const tarball of absolute) {
+    assert.ok(fs.existsSync(tarball), `smoke tarball missing: ${tarball}`);
+  }
+
+  let rootTarball;
+  let openCodeTarball;
+  for (const tarball of absolute) {
+    const kind = classifyTarball(tarball);
+    if (kind === "opencode") {
+      assert.equal(openCodeTarball, undefined, `duplicate opencode tarball: ${tarball}`);
+      openCodeTarball = tarball;
+    } else {
+      assert.equal(rootTarball, undefined, `duplicate root tarball: ${tarball}`);
+      rootTarball = tarball;
+    }
+  }
+
+  return { source: "cli", rootTarball, openCodeTarball };
+}
+
 function assertNoCheckoutDependency(text, checkoutRoot) {
   assert.ok(!text.includes(checkoutRoot), `command output references checkout: ${checkoutRoot}`);
 }
@@ -107,18 +151,28 @@ async function main() {
   fs.mkdirSync(packs, { recursive: true });
 
   try {
-    const rootTarball = pack(repoRoot, packs);
-    const openCodeTarball = pack(path.join(repoRoot, "plugins", "do-it-opencode"), packs);
-    installAndExerciseRootTarball(rootTarball, tempRoot);
-    await installAndExerciseOpenCodeTarball(openCodeTarball, tempRoot);
-    console.log(`package smoke passed: ${path.basename(rootTarball)}, ${path.basename(openCodeTarball)}`);
+    const { rootTarball, openCodeTarball, source } = resolveSmokeTarballs(process.argv.slice(2), {
+      packRoot: () => pack(repoRoot, packs),
+      packOpenCode: () => pack(path.join(repoRoot, "plugins", "do-it-opencode"), packs)
+    });
+    assert.ok(
+      rootTarball || openCodeTarball,
+      "smoke:package needs a root and/or opencode .tgz (pass paths or run with no args to pack)"
+    );
+    if (rootTarball) installAndExerciseRootTarball(rootTarball, tempRoot);
+    if (openCodeTarball) await installAndExerciseOpenCodeTarball(openCodeTarball, tempRoot);
+    const smoked = [rootTarball, openCodeTarball].filter(Boolean).map((t) => path.basename(t));
+    console.log(`package smoke passed (${source}): ${smoked.join(", ")}`);
   } finally {
     if (keep) console.log(`package smoke artifacts kept at ${tempRoot}`);
     else fs.rmSync(tempRoot, { recursive: true, force: true });
   }
 }
 
-main().catch((error) => {
-  console.error(error.stack || error.message);
-  process.exitCode = 1;
-});
+const isDirectRun = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (isDirectRun) {
+  main().catch((error) => {
+    console.error(error.stack || error.message);
+    process.exitCode = 1;
+  });
+}

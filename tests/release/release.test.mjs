@@ -6,6 +6,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { validateRelease } from "../../scripts/validate-release.mjs";
+import { classifyTarball, resolveSmokeTarballs } from "../../scripts/smoke-package.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -57,6 +58,68 @@ test("release guard reports metadata and changelog drift together", () => {
         return true;
       }
     );
+  } finally {
+    fs.rmSync(tempRoot, { recursive: true, force: true });
+  }
+});
+
+
+test("classifyTarball distinguishes root and opencode npm-pack names", () => {
+  assert.equal(classifyTarball("./tdwhere-do-it-0.14.0.tgz"), "root");
+  assert.equal(classifyTarball("/tmp/tdwhere-do-it-opencode-0.14.0.tgz"), "opencode");
+});
+
+test("resolveSmokeTarballs packs from checkout when no .tgz args", () => {
+  let packedRoot = 0;
+  let packedOpen = 0;
+  const result = resolveSmokeTarballs(["--keep"], {
+    packRoot: () => {
+      packedRoot += 1;
+      return "/tmp/packed-root.tgz";
+    },
+    packOpenCode: () => {
+      packedOpen += 1;
+      return "/tmp/packed-opencode.tgz";
+    }
+  });
+  assert.equal(result.source, "packed");
+  assert.equal(result.rootTarball, "/tmp/packed-root.tgz");
+  assert.equal(result.openCodeTarball, "/tmp/packed-opencode.tgz");
+  assert.equal(packedRoot, 1);
+  assert.equal(packedOpen, 1);
+});
+
+test("resolveSmokeTarballs uses CLI .tgz paths and skips packers", () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-smoke-resolve-"));
+  try {
+    const root = path.join(tempRoot, "tdwhere-do-it-0.14.0.tgz");
+    const openCode = path.join(tempRoot, "tdwhere-do-it-opencode-0.14.0.tgz");
+    fs.writeFileSync(root, "root");
+    fs.writeFileSync(openCode, "opencode");
+
+    let packed = 0;
+    const packers = {
+      packRoot: () => {
+        packed += 1;
+        return "/should-not-pack-root.tgz";
+      },
+      packOpenCode: () => {
+        packed += 1;
+        return "/should-not-pack-opencode.tgz";
+      }
+    };
+
+    const both = resolveSmokeTarballs([root, openCode], packers);
+    assert.equal(both.source, "cli");
+    assert.equal(both.rootTarball, path.resolve(root));
+    assert.equal(both.openCodeTarball, path.resolve(openCode));
+    assert.equal(packed, 0);
+
+    const rootOnly = resolveSmokeTarballs([root, "--keep"], packers);
+    assert.equal(rootOnly.source, "cli");
+    assert.equal(rootOnly.rootTarball, path.resolve(root));
+    assert.equal(rootOnly.openCodeTarball, undefined);
+    assert.equal(packed, 0);
   } finally {
     fs.rmSync(tempRoot, { recursive: true, force: true });
   }

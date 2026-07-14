@@ -26,23 +26,41 @@ _gate_finish() {
   exit "${1:-0}"
 }
 
-# Anchored evidence matcher (mirrors OpenCode evidenceCommand): split on
-# && / || / ; / |, strip env prefixes, require the verification token at the
-# start of a segment. Substring carriers like `echo pnpm test` do not count.
+# Anchored evidence matcher (mirrors OpenCode evidenceCommand): peel the
+# leftmost of && / || / ; / | each iteration (|| before | so pipe is not
+# matched inside or-or), strip env prefixes, require the verification token
+# at the start of a segment. Substring carriers like `echo pnpm test` do not
+# count.
 _gate_command_is_evidence() {
   local command="$1"
   local normalized segment rest
+  local best_pos best_len cand_pos cand_len delim prefix
   normalized="$(printf '%s' "$command" | tr '\r\n\t' ' ' | tr -s ' ' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
   [[ -n "$normalized" ]] || return 1
   rest="$normalized"
   while [[ -n "$rest" ]]; do
-    case "$rest" in
-      *'&&'*) segment="${rest%%&&*}"; rest="${rest#*&&}" ;;
-      *'||'*) segment="${rest%%||*}"; rest="${rest#*||}" ;;
-      *';'*)  segment="${rest%%;*}";  rest="${rest#*;}" ;;
-      *'|'*)  segment="${rest%%|*}";  rest="${rest#*|}" ;;
-      *)      segment="$rest"; rest="" ;;
-    esac
+    # Left-to-right delimiter pick: smallest index wins; on a tie prefer the
+    # longer token so `||` wins over `|` at the same position.
+    best_pos=-1
+    best_len=0
+    for delim in '&&' '||' ';' '|'; do
+      prefix="${rest%%"${delim}"*}"
+      if [[ "$prefix" != "$rest" ]]; then
+        cand_pos=${#prefix}
+        cand_len=${#delim}
+        if [[ $best_pos -lt 0 || $cand_pos -lt $best_pos || ( $cand_pos -eq $best_pos && $cand_len -gt $best_len ) ]]; then
+          best_pos=$cand_pos
+          best_len=$cand_len
+        fi
+      fi
+    done
+    if [[ $best_pos -lt 0 ]]; then
+      segment="$rest"
+      rest=""
+    else
+      segment="${rest:0:best_pos}"
+      rest="${rest:$((best_pos + best_len))}"
+    fi
     segment="$(printf '%s' "$segment" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
     segment="$(printf '%s' "$segment" | sed -E 's/^(env[[:space:]]+)?([A-Za-z_][A-Za-z0-9_]*=("[^"]*"|'\''[^'\'']*'\''|[^[:space:];|&]+)[[:space:]]+)+//')"
     segment="$(printf '%s' "$segment" | sed -E 's/^command[[:space:]]+//')"
@@ -151,13 +169,22 @@ if [[ "$PARSE_OK" -eq 1 ]]; then
 fi
 
 COMPLETION_PATTERN='(完成|已修|通过|完工|\bdone\b|\bpassed\b|\bfixed\b|\ball set\b|it works|works now|successfully|\bVERIFIED\b|ready to merge|ship it|ready to (ship|publish))'
+# Unparsed fallback: only the last UNPARSED_RECENT_LINES of TAIL_BUF count for
+# completion / NOT_VERIFIED greps so older turns cannot satisfy (or excuse) the
+# current claim. Prefer a fixed line window over fragile assistant heuristics
+# when jq could not produce a turn slice.
+UNPARSED_RECENT_LINES=20
+UNPARSED_SLICE="$TAIL_BUF"
+if [[ "$PARSE_OK" -ne 1 ]]; then
+  UNPARSED_SLICE="$(printf '%s\n' "$TAIL_BUF" | tail -n "$UNPARSED_RECENT_LINES")"
+fi
 if [[ "$PARSE_OK" -eq 1 ]]; then
   if ! printf '%s' "$LAST_ASSISTANT_TEXT" | grep -qiE "$COMPLETION_PATTERN"; then
     do_it_debug verification-gate "decision=no-completion-language"
     _gate_finish 0
   fi
 else
-  if ! printf '%s' "$TAIL_BUF" | grep -qiE "$COMPLETION_PATTERN"; then
+  if ! printf '%s' "$UNPARSED_SLICE" | grep -qiE "$COMPLETION_PATTERN"; then
     do_it_debug verification-gate "decision=unparsed-no-completion-language"
     _gate_finish 0
   fi
@@ -189,7 +216,7 @@ if [[ "$PARSE_OK" -eq 1 ]]; then
     do_it_debug verification-gate "decision=explicit-not-verified"
     _gate_finish 0
   fi
-elif printf '%s' "$TAIL_BUF" | grep -qiE '\bNOT_VERIFIED\b'; then
+elif printf '%s' "$UNPARSED_SLICE" | grep -qiE '\bNOT_VERIFIED\b'; then
   do_it_debug verification-gate "decision=unparsed-explicit-not-verified"
   _gate_finish 0
 fi
