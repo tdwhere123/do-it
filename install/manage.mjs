@@ -918,17 +918,34 @@ function doctorCursorExtras(ok, missing, drift) {
     return;
   }
 
+  const pluginRootResolved = path.resolve(pluginForHooks);
+  const underPluginRoot = (candidate) => {
+    const resolved = path.resolve(candidate);
+    return resolved === pluginRootResolved || resolved.startsWith(`${pluginRootResolved}${path.sep}`);
+  };
+
   let smoke;
   let smokeLabel;
   if (process.platform === "win32" && fs.existsSync(runner)) {
-    smokeLabel = `cmd.exe /c ${path.resolve(runner)} session-start`;
-    smoke = spawnSync("cmd.exe", ["/c", path.resolve(runner), "session-start"], {
+    const runnerPath = path.resolve(runner);
+    if (
+      path.basename(runnerPath).toLowerCase() !== "run-hook.cmd" ||
+      !underPluginRoot(runnerPath)
+    ) {
+      missing.push(`cursor:run-hook.cmd rejected outside plugin root: ${runnerPath}`);
+      return;
+    }
+    // Invoke the allowlisted .cmd directly — avoid `cmd.exe /c <env-path>` string composition.
+    smokeLabel = `${runnerPath} session-start`;
+    smoke = spawnSync(runnerPath, ["session-start"], {
       encoding: "utf8",
+      windowsHide: true,
+      shell: false,
       input: '{"session_id":"doctor-smoke","hook_event_name":"sessionStart"}\n',
       env: {
         ...process.env,
-        CURSOR_PLUGIN_ROOT: path.resolve(pluginForHooks),
-        CURSOR_PLUGIN_DATA: path.join(path.resolve(pluginForHooks), ".do-it-data"),
+        CURSOR_PLUGIN_ROOT: pluginRootResolved,
+        CURSOR_PLUGIN_DATA: path.join(pluginRootResolved, ".do-it-data"),
         CURSOR_VERSION: process.env.CURSOR_VERSION || "doctor"
       },
       timeout: 20_000
@@ -937,14 +954,24 @@ function doctorCursorExtras(ok, missing, drift) {
     const args = fs.existsSync(runner)
       ? [path.resolve(runner), "session-start"]
       : [path.resolve(sample)];
+    const scriptPath = args[0];
+    const scriptBase = path.basename(scriptPath).toLowerCase();
+    if (
+      (scriptBase !== "run-hook.cmd" && scriptBase !== "session-start.sh") ||
+      !underPluginRoot(scriptPath)
+    ) {
+      missing.push(`cursor:hook-smoke rejected outside plugin root: ${scriptPath}`);
+      return;
+    }
     smokeLabel = `bash ${args.join(" ")}`;
     smoke = spawnSync("bash", args, {
       encoding: "utf8",
+      shell: false,
       input: '{"session_id":"doctor-smoke","hook_event_name":"sessionStart"}\n',
       env: {
         ...process.env,
-        CURSOR_PLUGIN_ROOT: path.resolve(pluginForHooks),
-        CURSOR_PLUGIN_DATA: path.join(path.resolve(pluginForHooks), ".do-it-data"),
+        CURSOR_PLUGIN_ROOT: pluginRootResolved,
+        CURSOR_PLUGIN_DATA: path.join(pluginRootResolved, ".do-it-data"),
         CURSOR_VERSION: process.env.CURSOR_VERSION || "doctor"
       },
       timeout: 20_000
