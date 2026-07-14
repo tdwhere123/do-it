@@ -494,6 +494,56 @@ case "$?" in
   *)  _fail "unparsed NOT_VERIFIED case failed (exit $?)" ;;
 esac
 
+
+# -------------------------------------------------------------------------
+echo "Case 18: left-to-right peel so || before && still finds npm test"
+(
+  _isolate /tmp/doit-gate-c18
+  _set_state c18 tier Standard last_prompt_kind work
+  tx="$DO_IT_HOOK_DATA/tx.jsonl"
+  _append_edit > "$tx"
+  _append_bash "true || npm test && echo done" verify-ltr >> "$tx"
+  _append_result verify-ltr true >> "$tx"
+  _append_text "tests passed; task done" >> "$tx"
+  [[ -z "$(_run_gate c18 "$tx")" ]]
+)
+case "$?" in 0) _pass "true || npm test && echo done passes";; *) _fail "left-to-right ||/&& evidence blocked";; esac
+
+# -------------------------------------------------------------------------
+echo "Case 19: unparsed stale done outside recent slice is silent"
+(
+  _isolate /tmp/doit-gate-c19u
+  _set_state c19u tier Standard last_prompt_kind work
+  tx="$DO_IT_HOOK_DATA/tx.jsonl"
+  {
+    echo 'not-json{{{{'
+    # Older completion language, then enough non-completion filler that the
+    # last-20-line unparsed window excludes the stale "done".
+    echo 'prior turn: task done successfully'
+    for i in $(seq 1 25); do echo "filler line $i without claim language"; done
+    echo '{"type":"assistant","message":{"content":[{"type":"tool_use","id":"edit-1","name":"Edit","input":{"file_path":"/tmp/x.ts"}}]}}'
+    echo 'continuing without completion language in this slice'
+  } > "$tx"
+  [[ -z "$(_run_gate c19u "$tx")" ]] || exit 11
+
+  _isolate /tmp/doit-gate-c19b
+  _set_state c19b tier Standard last_prompt_kind work
+  tx="$DO_IT_HOOK_DATA/tx.jsonl"
+  {
+    echo 'not-json{{{{'
+    echo '{"type":"assistant","message":{"content":[{"type":"tool_use","id":"edit-1","name":"Edit","input":{"file_path":"/tmp/x.ts"}}]}}'
+    echo 'task done'
+  } > "$tx"
+  out=$(_run_gate c19b "$tx")
+  [[ "$out" == *'fresh, relevant current-turn proof'* ]] || exit 12
+)
+case "$?" in
+  0)  _pass "unparsed: stale done silent; recent done without evidence blocks" ;;
+  11) _fail "stale done outside recent slice should be silent" ;;
+  12) _fail "recent unparsed done without evidence should block" ;;
+  *)  _fail "unparsed stale-completion case failed (exit $?)" ;;
+esac
+
 if [[ "$FAIL" -gt 0 ]]; then
   echo "FAILED: $PASS passed, $FAIL failed" >&2
   exit 1
