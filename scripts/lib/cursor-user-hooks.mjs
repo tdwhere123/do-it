@@ -49,6 +49,21 @@ function readJsonIfPresent(filePath) {
   }
 }
 
+function readJsonWithFileState(filePath) {
+  if (!fs.existsSync(filePath)) {
+    return { value: null, fileState: { exists: false } };
+  }
+  try {
+    const content = fs.readFileSync(filePath, "utf8");
+    return {
+      value: JSON.parse(content),
+      fileState: { exists: true, content }
+    };
+  } catch (err) {
+    throw new Error(`invalid JSON in ${filePath}: ${err.message}`);
+  }
+}
+
 /**
  * Extract the hook script basename (without .sh) from a template command.
  * Accepts both modern `run-hook.cmd router` and legacy `.../router.sh` forms.
@@ -94,14 +109,21 @@ export function commandForRunHook(pluginRoot, scriptBasename) {
   return `${quoteCommandPath(runnerPath)} ${name}`;
 }
 
-/** Convert /mnt/<drive>/... to <DRIVE>:\... for Windows-hosted Cursor. */
+/**
+ * Convert WSL `/mnt/<drive>/...` or Git Bash `/<drive>/Users/...` paths to
+ * `<DRIVE>:\...` for Windows-hosted Cursor. Other Unix paths stay unchanged.
+ */
 export function toWindowsPathIfWslMount(p) {
   const normalized = String(p).replace(/\\/g, "/");
-  const match = /^\/mnt\/([a-zA-Z])\/(.*)$/.exec(normalized);
-  if (!match) return p;
-  const drive = match[1].toUpperCase();
-  const rest = match[2].replace(/\//g, "\\");
-  return `${drive}:\\${rest}`;
+  const mnt = /^\/mnt\/([a-zA-Z])\/(.*)$/.exec(normalized);
+  if (mnt) {
+    return `${mnt[1].toUpperCase()}:\\${mnt[2].replace(/\//g, "\\")}`;
+  }
+  const msys = /^\/([a-zA-Z])\/(Users\/.*)$/i.exec(normalized);
+  if (msys) {
+    return `${msys[1].toUpperCase()}:\\${msys[2].replace(/\//g, "\\")}`;
+  }
+  return p;
 }
 
 export function buildDoItUserHookDefs(pluginRoot) {
@@ -183,13 +205,20 @@ function writeJsonAtomic(filePath, value) {
   }
 }
 
-export function syncUserHooksForPlugin(home, pluginRoot) {
+export function prepareUserHooksForPlugin(home, pluginRoot) {
   const hooksPath = userHooksPathForHome(home);
-  fs.mkdirSync(path.dirname(hooksPath), { recursive: true });
-  const existing = readJsonIfPresent(hooksPath);
-  const merged = mergeDoItUserHooks(existing, pluginRoot);
-  writeJsonAtomic(hooksPath, merged);
-  return hooksPath;
+  const { value: existing, fileState } = readJsonWithFileState(hooksPath);
+  return {
+    hooksPath,
+    value: mergeDoItUserHooks(existing, pluginRoot),
+    fileState
+  };
+}
+
+export function syncUserHooksForPlugin(home, pluginRoot) {
+  const prepared = prepareUserHooksForPlugin(home, pluginRoot);
+  writeJsonAtomic(prepared.hooksPath, prepared.value);
+  return prepared.hooksPath;
 }
 
 export function userHooksWiredForPlugin(home, pluginRoot) {

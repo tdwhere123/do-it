@@ -14,6 +14,10 @@ import {
   userHooksWiredForPlugin,
   resolveGitBash
 } from "../scripts/lib/cursor-user-hooks.mjs";
+import {
+  registerCursorPlugin,
+  validateCursorPlugin
+} from "../scripts/register-cursor-plugin.mjs";
 import { resolveUserHome, looksLikeWindowsPath, toWslMountPath } from "../scripts/lib/user-home.mjs";
 
 const VALID_COMMANDS = new Set(["install", "doctor", "setup"]);
@@ -600,6 +604,11 @@ function runPreInstall() {
 
 function runPostInstall() {
   for (const script of targetConfig.postInstall ?? []) {
+    if (targetName === "cursor" && script === "scripts/register-cursor-plugin.mjs") {
+      registerCursorPlugin({ installRoot, version: manifest.version });
+      continue;
+    }
+
     const scriptPath = resolveRepoPath(script);
     if (!fs.existsSync(scriptPath)) {
       throw new Error(`Post-install script missing: ${script}`);
@@ -694,9 +703,10 @@ function install() {
       }
     }
 
+    backupTargetForTransaction(statePath, transaction);
     writeInstallState();
-    committed = true;
     runPostInstall();
+    committed = true;
   } catch (error) {
     rollbackTransaction(transaction);
     throw error;
@@ -830,11 +840,25 @@ function doctorCursorExtras(ok, missing, drift) {
     return;
   }
 
-  // Prefer the official local path Cursor actually loads when present.
+  // Prefer the official local path Cursor actually loads when present, but
+  // validate that discovery copy before trusting it over the managed root.
   const localPlugin = path.join(home, ".cursor", "plugins", "local", "do-it-cursor");
-  const pluginForHooks = fs.existsSync(path.join(localPlugin, ".cursor-plugin", "plugin.json"))
-    ? localPlugin
-    : installRoot;
+  const localState = pathState(localPlugin);
+  let pluginForHooks = installRoot;
+  if (localState) {
+    try {
+      validateCursorPlugin(localPlugin, {
+        requireRuntime: true,
+        expectedVersion: manifest.version
+      });
+      pluginForHooks = localPlugin;
+      ok.push(`cursor:discovery-copy valid at ${path.resolve(localPlugin)}`);
+    } catch (error) {
+      drift.push(`cursor:discovery-copy invalid: ${error.message}`);
+    }
+  } else {
+    missing.push(`cursor:discovery-copy missing at ${path.resolve(localPlugin)}`);
+  }
 
   const runner = path.join(pluginForHooks, "hooks", "run-hook.cmd");
   if (fs.existsSync(runner)) {
@@ -858,12 +882,20 @@ function doctorCursorExtras(ok, missing, drift) {
     if (up && looksLikeWindowsPath(up)) {
       const winHome = toWslMountPath(up);
       const winPlugin = path.join(winHome, ".cursor", "plugins", "local", "do-it-cursor");
-      if (fs.existsSync(path.join(winPlugin, ".cursor-plugin", "plugin.json"))) {
-        const winWired = userHooksWiredForPlugin(winHome, path.resolve(winPlugin));
-        if (winWired.ok) {
-          ok.push(`cursor:windows-mirror-hooks wired at ${path.resolve(winWired.hooksPath)}`);
-        } else {
-          missing.push(`cursor:windows-mirror-hooks ${winWired.reason}`);
+      if (pathState(winPlugin)) {
+        try {
+          validateCursorPlugin(winPlugin, {
+            requireRuntime: true,
+            expectedVersion: manifest.version
+          });
+          const winWired = userHooksWiredForPlugin(winHome, path.resolve(winPlugin));
+          if (winWired.ok) {
+            ok.push(`cursor:windows-mirror-hooks wired at ${path.resolve(winWired.hooksPath)}`);
+          } else {
+            missing.push(`cursor:windows-mirror-hooks ${winWired.reason}`);
+          }
+        } catch (error) {
+          drift.push(`cursor:windows-mirror invalid: ${error.message}`);
         }
       }
     }

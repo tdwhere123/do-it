@@ -365,6 +365,144 @@ test("claude install preserves unrelated files in hooks directory", () => {
   }
 });
 
+test("cursor post-install failure restores managed targets, state, and Cursor side effects", () => {
+  const home = freshRoot("cursor-rollback");
+  const pluginRoot = path.join(home, "cursor-plugin");
+  const statePath = path.join(pluginRoot, ".do-it-install-state-cursor.json");
+  const localPlugin = path.join(home, ".cursor", "plugins", "local", "do-it-cursor");
+  const markerPath = path.join(home, ".cursor", "plugins", "do-it-cursor-install.json");
+  const hooksPath = path.join(home, ".cursor", "hooks.json");
+  try {
+    assert.equal(
+      runManage(["install", "--target=cursor"], {
+        HOME: home,
+        USERPROFILE: "",
+        CURSOR_PLUGIN_ROOT_OVERRIDE: pluginRoot
+      }).status,
+      0
+    );
+    fs.writeFileSync(path.join(pluginRoot, "hooks", "sentinel.txt"), "old managed target\n");
+    const state = JSON.parse(fs.readFileSync(statePath, "utf8"));
+    state.installedAt = "old-state";
+    fs.writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`);
+    fs.writeFileSync(path.join(localPlugin, "local-sentinel.txt"), "old local plugin\n");
+    fs.writeFileSync(markerPath, "old marker\n");
+    fs.writeFileSync(hooksPath, '{"version":1,"hooks":{"stop":[{"command":"third-party"}]}}\n');
+
+    const result = runManage(["install", "--target=cursor"], {
+      HOME: home,
+      USERPROFILE: "",
+      CURSOR_PLUGIN_ROOT_OVERRIDE: pluginRoot,
+      DO_IT_FORCE: "1",
+      DO_IT_TEST_CURSOR_FAIL_AT: "after-user-hooks"
+    });
+    assert.notEqual(result.status, 0);
+    assert.equal(
+      fs.readFileSync(path.join(pluginRoot, "hooks", "sentinel.txt"), "utf8"),
+      "old managed target\n"
+    );
+    assert.equal(JSON.parse(fs.readFileSync(statePath, "utf8")).installedAt, "old-state");
+    assert.equal(
+      fs.readFileSync(path.join(localPlugin, "local-sentinel.txt"), "utf8"),
+      "old local plugin\n"
+    );
+    assert.equal(fs.readFileSync(markerPath, "utf8"), "old marker\n");
+    assert.equal(
+      fs.readFileSync(hooksPath, "utf8"),
+      '{"version":1,"hooks":{"stop":[{"command":"third-party"}]}}\n'
+    );
+  } finally {
+    fs.rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test("fresh cursor post-install failure leaves managed state and targets absent", () => {
+  const home = freshRoot("cursor-fresh-rollback");
+  const pluginRoot = path.join(home, "cursor-plugin");
+  try {
+    const result = runManage(["install", "--target=cursor"], {
+      HOME: home,
+      USERPROFILE: "",
+      CURSOR_PLUGIN_ROOT_OVERRIDE: pluginRoot,
+      DO_IT_TEST_CURSOR_FAIL_AT: "after-marker"
+    });
+    assert.notEqual(result.status, 0);
+    assert.ok(!fs.existsSync(path.join(pluginRoot, ".do-it-install-state-cursor.json")));
+    assert.ok(!fs.existsSync(path.join(pluginRoot, ".cursor-plugin")));
+    assert.ok(!fs.existsSync(path.join(home, ".cursor", "plugins", "local", "do-it-cursor")));
+    assert.ok(!fs.existsSync(path.join(home, ".cursor", "plugins", "do-it-cursor-install.json")));
+    assert.ok(!fs.existsSync(path.join(home, ".cursor", "hooks.json")));
+  } finally {
+    fs.rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test("cursor doctor rejects a symlinked discovery copy", () => {
+  const home = freshRoot("cursor-doctor-symlink");
+  const pluginRoot = path.join(home, "managed-cursor");
+  const localPlugin = path.join(home, ".cursor", "plugins", "local", "do-it-cursor");
+  const savedCopy = path.join(home, "saved-local-copy");
+  try {
+    const install = runManage(["install", "--target=cursor"], {
+      HOME: home,
+      USERPROFILE: "",
+      CURSOR_PLUGIN_ROOT_OVERRIDE: pluginRoot
+    });
+    assert.equal(install.status, 0, install.stderr);
+
+    fs.renameSync(localPlugin, savedCopy);
+    fs.symlinkSync(savedCopy, localPlugin, process.platform === "win32" ? "junction" : "dir");
+
+    const doctor = runManage(["doctor", "--target=cursor"], {
+      HOME: home,
+      USERPROFILE: "",
+      CURSOR_PLUGIN_ROOT_OVERRIDE: pluginRoot
+    });
+    assert.notEqual(doctor.status, 0);
+    assert.match(doctor.stdout, /cursor:discovery-copy invalid/);
+    assert.match(doctor.stdout, /must be a real directory/);
+  } finally {
+    fs.rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test("cursor doctor rejects a stale discovery-copy version", () => {
+  const home = freshRoot("cursor-doctor-version");
+  const pluginRoot = path.join(home, "managed-cursor");
+  const localPluginJson = path.join(
+    home,
+    ".cursor",
+    "plugins",
+    "local",
+    "do-it-cursor",
+    ".cursor-plugin",
+    "plugin.json"
+  );
+  try {
+    const install = runManage(["install", "--target=cursor"], {
+      HOME: home,
+      USERPROFILE: "",
+      CURSOR_PLUGIN_ROOT_OVERRIDE: pluginRoot
+    });
+    assert.equal(install.status, 0, install.stderr);
+
+    const metadata = JSON.parse(fs.readFileSync(localPluginJson, "utf8"));
+    metadata.version = "0.0.0-stale";
+    fs.writeFileSync(localPluginJson, `${JSON.stringify(metadata, null, 2)}\n`);
+
+    const doctor = runManage(["doctor", "--target=cursor"], {
+      HOME: home,
+      USERPROFILE: "",
+      CURSOR_PLUGIN_ROOT_OVERRIDE: pluginRoot
+    });
+    assert.notEqual(doctor.status, 0);
+    assert.match(doctor.stdout, /cursor:discovery-copy invalid/);
+    assert.match(doctor.stdout, /does not match/);
+  } finally {
+    fs.rmSync(home, { recursive: true, force: true });
+  }
+});
+
 test("cursor target installs plugin bundle with cursor hooks.json", () => {
   const home = freshRoot("cursor-home");
   const pluginRoot = path.join(home, "cursor-plugin");

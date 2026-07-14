@@ -41,14 +41,6 @@ function normalizeRepoUrl(pkg) {
   );
 }
 
-function resolveGeneratedAt() {
-  if (process.env.DO_IT_INDEX_GENERATED_AT) {
-    return process.env.DO_IT_INDEX_GENERATED_AT;
-  }
-
-  return new Date().toISOString();
-}
-
 function parseFrontmatter(text) {
   // Normalize CRLF (common on native Windows checkouts with core.autocrlf)
   // before looking for YAML fences — otherwise `---\r\n` fails `---\n` checks
@@ -221,13 +213,16 @@ function main() {
     process.exit(1);
   }
 
+  const discoveryEntries = skillEntries.filter((entry) => entry.group === "index");
+  const capabilityEntries = skillEntries.filter((entry) => entry.group !== "index");
   const index = {
     version: manifest.version,
-    generated_at: resolveGeneratedAt(),
     package: pkg.name,
     repository: normalizeRepoUrl(pkg),
     domain: "agentic-workflow",
     total_skills: skillEntries.length,
+    total_capabilities: capabilityEntries.length,
+    total_discovery_entries: discoveryEntries.length,
     total_agents: agentEntries.length,
     coverage: {
       skill_groups: countByGroup(skillEntries),

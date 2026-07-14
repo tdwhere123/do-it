@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Smoke tests for hooks/router.sh — locks in routing invariants:
-#   - Router is state-only (no routine system-reminder injection)
+#   - Light and Heavy stay silent; Standard emits one compact reminder
 #   - Standard requires intent-verb + code-object combo
-#   - Heavy requires >=2 heavy signals
+#   - Heavy requires >=2 topical signals or one strong action signal
 #   - subagent context (transcript_path with /agents/) suppresses output
 #   - escape words trigger pass-through skip flags
 #   - SESSION_ID path-injection is sanitized
@@ -87,17 +87,21 @@ case "$?" in
 esac
 
 # -------------------------------------------------------------------------
-echo "Case 3: intent verb + code object → Standard state, silent output"
+echo "Case 3: intent verb + code object → Standard state and compact context"
 (
   _isolate_state "/tmp/doit-test-router-c3"
   out=$(_run_router "实现 src/auth.ts 的登录" "c3-1")
-  [[ -z "$out" ]] || { printf 'unexpected output: %s\n' "$out" >&2; exit 11; }
+  [[ "$out" == *'"hookEventName":"UserPromptSubmit"'* ]] || { printf 'missing context: %s\n' "$out" >&2; exit 11; }
+  [[ "$out" == *'do-it tier: Standard.'* ]] || exit 12
+  [[ "$out" != *'do-it-code-quality'* && "$out" != *'do-it-verify'* ]] || exit 13
   state="$(_state_for c3-1)"
-  [[ "$(jq -r '.tier' "$state")" == "Standard" ]] || { cat "$state" >&2; exit 12; }
+  [[ "$(jq -r '.tier' "$state")" == "Standard" ]] || { cat "$state" >&2; exit 14; }
 )
 case "$?" in
-  0)  _pass "intent-verb + code-object resolves Standard state silently" ;;
-  11) _fail "Standard emitted output" ;;
+  0)  _pass "Standard emits compact non-chain reminder" ;;
+  11) _fail "Standard emitted no additionalContext" ;;
+  12) _fail "Standard context omitted tier" ;;
+  13) _fail "Standard context restored a skill chain" ;;
   *)  _fail "Standard state missing" ;;
 esac
 
@@ -117,6 +121,46 @@ case "$?" in
 esac
 
 # -------------------------------------------------------------------------
+echo "Case 4b: one strong action signal upgrades while explanation stays Light"
+(
+  _isolate_state "/tmp/doit-test-router-c4b"
+  out=$(_run_router "publish the release to production" "c4b-action")
+  [[ -z "$out" ]] || exit 11
+  [[ "$(jq -r '.tier' "$(_state_for c4b-action)")" == "Heavy" ]] || exit 12
+  out=$(_run_router "what is the release process?" "c4b-question")
+  [[ -z "$out" ]] || exit 13
+  [[ "$(jq -r '.tier' "$(_state_for c4b-question)")" == "Light" ]] || exit 14
+)
+case "$?" in
+  0)  _pass "release action is Heavy; release explanation is Light" ;;
+  11) _fail "strong Heavy action emitted context" ;;
+  12) _fail "release action did not route Heavy" ;;
+  13) _fail "explanation question emitted context" ;;
+  14) _fail "explanation question did not stay Light" ;;
+  *)  _fail "strong-action routing crashed" ;;
+esac
+
+# -------------------------------------------------------------------------
+
+echo "Case 4c: remove unused api/schema helper stays Standard (not strong Heavy)"
+(
+  _isolate_state "/tmp/doit-test-router-c4c"
+  out=$(_run_router "remove unused api helper from schema.ts" "c4c-remove")
+  [[ "$out" == *'do-it tier: Standard.'* ]] || exit 11
+  [[ "$(jq -r '.tier' "$(_state_for c4c-remove)")" == "Standard" ]] || exit 12
+  out=$(_run_router "remove the deprecated API even though it is breaking" "c4c-depr")
+  [[ -z "$out" ]] || exit 13
+  [[ "$(jq -r '.tier' "$(_state_for c4c-depr)")" == "Heavy" ]] || exit 14
+)
+case "$?" in
+  0)  _pass "destructive+bare api/schema is Standard; deprecated+breaking stays Heavy" ;;
+  11) _fail "remove unused api helper missing Standard context" ;;
+  12) _fail "remove unused api helper should be Standard" ;;
+  13) _fail "deprecated API remove emitted context" ;;
+  14) _fail "deprecated API remove should stay Heavy" ;;
+  *)  _fail "Case 4c failed (exit $?)" ;;
+esac
+
 echo "Case 5: subagent transcript_path suppresses output"
 (
   _isolate_state "/tmp/doit-test-router-c5"
@@ -165,7 +209,7 @@ echo "Case 7: hazardous SESSION_ID is sanitized into hash bucket"
       */..\\/escape|*../escape) echo "literal escape path leaked: $entry" >&2; exit 11 ;;
     esac
   done
-  [[ -z "$out" ]] || { printf 'unexpected output: %s\n' "$out" >&2; exit 12; }
+  [[ "$out" == *'do-it tier: Standard.'* ]] || { printf 'missing Standard context: %s\n' "$out" >&2; exit 12; }
   shopt -s nullglob
   matches=("$base"/*)
   shopt -u nullglob
@@ -179,18 +223,19 @@ case "$?" in
 esac
 
 # -------------------------------------------------------------------------
-echo "Case 8: DEBUG mode remains state-only on stdout"
+echo "Case 8: DEBUG does not duplicate Standard context"
 (
   _isolate_state "/tmp/doit-test-router-c8"
   export DO_IT_DEBUG=1
-  out=$(_run_router "实现 src/auth.ts" "c8-1")
-  [[ -z "$out" ]] || { printf 'unexpected output: %s\n' "$out" >&2; exit 11; }
+  out=$(_run_router "实现 src/auth.ts" "c8-1" 2>/dev/null)
+  count=$(printf '%s' "$out" | grep -o 'do-it tier: Standard\.' | wc -l | tr -d ' ')
+  [[ "$count" == "1" ]] || { printf 'count=%s output=%s\n' "$count" "$out" >&2; exit 11; }
   state="$(_state_for c8-1)"
   [[ "$(jq -r '.tier' "$state")" == "Standard" ]] || { cat "$state" >&2; exit 12; }
 )
 case "$?" in
-  0)  _pass "DEBUG does not emit additionalContext from router" ;;
-  *)  _fail "DEBUG stdout/state regression" ;;
+  0)  _pass "DEBUG emits exactly one Standard reminder" ;;
+  *)  _fail "DEBUG output/state regression" ;;
 esac
 
 # -------------------------------------------------------------------------
@@ -241,7 +286,7 @@ echo "Case 11: partial skip writes only requested flags"
 (
   _isolate_state "/tmp/doit-test-router-c11"
   out=$(_run_router "skip grill please implement src/foo.ts" "c11-1")
-  [[ -z "$out" ]] || { printf 'unexpected output: %s\n' "$out" >&2; exit 11; }
+  [[ "$out" == *'do-it tier: Standard.'* ]] || { printf 'missing context: %s\n' "$out" >&2; exit 11; }
   skip_dir="$DO_IT_HOOK_DATA/sessions/c11-1"
   [[ -f "$skip_dir/skip-grill" ]] || { echo "missing skip-grill" >&2; exit 12; }
   if [[ -f "$skip_dir/skip-router" ]]; then echo "unexpected skip-router" >&2; exit 13; fi
@@ -266,7 +311,7 @@ echo "Case 11b: partial skip gate still routes tier/dims"
 (
   _isolate_state "/tmp/doit-test-router-c11b"
   out=$(_run_router "skip gate please implement src/foo.ts" "c11b-1")
-  [[ -z "$out" ]] || { printf 'unexpected output: %s\n' "$out" >&2; exit 11; }
+  [[ "$out" == *'do-it tier: Standard.'* ]] || { printf 'missing context: %s\n' "$out" >&2; exit 11; }
   skip_dir="$DO_IT_HOOK_DATA/sessions/c11b-1"
   [[ -f "$skip_dir/skip-gate" ]] || { echo "missing skip-gate" >&2; exit 12; }
   if [[ -f "$skip_dir/skip-router" ]]; then echo "unexpected skip-router" >&2; exit 13; fi

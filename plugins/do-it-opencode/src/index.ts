@@ -1,4 +1,6 @@
+import crypto from "node:crypto";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Hooks, Plugin, PluginInput } from "@opencode-ai/plugin";
@@ -8,7 +10,9 @@ import {
   isEditTool,
   normalizeToolName,
   readSessionTier,
-  spawnHook
+  spawnHook,
+  terminateActiveProcesses,
+  type HookResult
 } from "./bridge.js";
 
 const injectedSessions = new Set<string>();
@@ -16,10 +20,42 @@ const injectedSessions = new Set<string>();
 const pluginRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const hooksDir = path.join(pluginRoot, "hooks");
 const skillsDir = path.join(pluginRoot, "skills");
+const agentsDir = path.join(pluginRoot, "agents");
+const VERIFICATION_TEMP_PREFIX = "do-it-opencode-";
+const VERIFICATION_TEMP_TTL_MS = 10 * 60 * 1000;
+const VERIFICATION_OWNER_FILE = ".do-it-verification-owner";
+const VERIFICATION_OWNER_MARKER = "do-it-opencode-verification-v1\n";
+const COMPLETION_PATTERN = /(完成|已修|通过|完工|\bdone\b|\bpassed\b|\bfixed\b|\ball set\b|it works|works now|successfully|\bVERIFIED\b|ready to merge|ship it|ready to (ship|publish))/i;
 
-function sessionIdFromMessages(
-  messages: { info: { sessionID?: string; role?: string } }[]
-): string {
+type MessagePart = {
+  type?: string;
+  text?: string;
+  tool?: string;
+  name?: string;
+  callID?: string;
+  state?: {
+    status?: string;
+    input?: Record<string, unknown>;
+  };
+};
+
+type SessionMessage = {
+  info?: { sessionID?: string; role?: string };
+  parts?: MessagePart[];
+};
+
+type VerificationTemp = {
+  path: string;
+  cleanup(): void;
+};
+
+type AgentRegistration = {
+  description: string;
+  prompt: string;
+  mode: "subagent";
+};
+
+function sessionIdFromMessages(messages: SessionMessage[]): string {
   for (let i = messages.length - 1; i >= 0; i -= 1) {
     const id = messages[i]?.info?.sessionID;
     if (id) return id;
@@ -27,15 +63,12 @@ function sessionIdFromMessages(
   return "unknown";
 }
 
-function injectBootstrapOnce(
-  messages: { info: { role?: string; sessionID?: string }; parts: { type?: string; text?: string }[] }[],
-  sessionId: string
-): void {
+function injectBootstrapOnce(messages: SessionMessage[], sessionId: string): void {
   if (injectedSessions.has(sessionId)) return;
 
   for (const message of messages) {
     if (message.info?.role !== "user") continue;
-    for (const part of message.parts) {
+    for (const part of message.parts ?? []) {
       if (part.type === "text" && typeof part.text === "string") {
         part.text = `${BOOTSTRAP_TEXT}\n\n${part.text}`;
         injectedSessions.add(sessionId);
@@ -45,69 +78,295 @@ function injectBootstrapOnce(
   }
 }
 
-function appendContext(parts: { type?: string; text?: string }[], context: string): void {
+function appendContext(parts: MessagePart[], context: string): void {
   const firstText = parts.find((part) => part.type === "text" && typeof part.text === "string");
-  if (firstText?.text !== undefined) {
-    firstText.text = `${context}\n\n${firstText.text}`;
+  if (firstText) {
+    firstText.text = `${context}\n\n${firstText.text ?? ""}`;
+  } else {
+    parts.push({ type: "text", text: context });
   }
 }
 
-function writeOpenCodeTranscript(sessionId: string, cwd: string, data: unknown): string | null {
-  const base = process.env.OPENCODE_DATA ?? path.join(cwd, ".opencode");
-  const dir = path.join(base, "do-it-transcripts");
-  const messages = (data as { data?: unknown[] }).data ?? [];
-  const normalizeTool = (name: string) => normalizeToolName(name) ?? name;
-  const records = messages.flatMap((raw) => {
-    const message = raw as {
-      type?: string;
-      text?: string;
-      command?: string;
-      content?: Array<{ type?: string; text?: string; name?: string; state?: { input?: unknown } }>;
-    };
-    if (message.type === "user" && typeof message.text === "string") {
-      return [{ type: "user", message: { content: [{ type: "text", text: message.text }] } }];
-    }
-    if (message.type === "shell" && typeof message.command === "string") {
-      return [{ type: "assistant", message: { content: [{ type: "tool_use", name: "Bash", input: { command: message.command } }] } }];
-    }
-    if (message.type !== "assistant") return [];
-    const content: Array<Record<string, unknown>> = [];
-    for (const part of message.content ?? []) {
-      if (part.type === "text" && typeof part.text === "string") {
-        content.push({ type: "text", text: part.text });
-      } else if (part.type === "tool" && typeof part.name === "string") {
-        content.push({ type: "tool_use", name: normalizeTool(part.name), input: part.state?.input ?? {} });
+function hookContext(result: HookResult): string | undefined {
+  if (result.additionalContext) return result.additionalContext;
+  if (!result.diagnostic) return undefined;
+  return `<system-reminder>${result.diagnostic}</system-reminder>`;
+}
+
+export function safeSessionKey(sessionId: string): string {
+  return crypto.createHash("sha256").update(sessionId).digest("hex").slice(0, 12);
+}
+
+function verificationTempPattern(): RegExp {
+  return /^do-it-opencode-[a-f0-9]{12}-/;
+}
+
+function removeOwnedVerificationTemp(candidate: string): void {
+  const marker = path.join(candidate, VERIFICATION_OWNER_FILE);
+  const markerStat = fs.lstatSync(marker);
+  if (!markerStat.isFile() || markerStat.isSymbolicLink()) return;
+  if (fs.readFileSync(marker, "utf8") !== VERIFICATION_OWNER_MARKER) return;
+
+  const transcript = path.join(candidate, "gate.jsonl");
+  if (fs.existsSync(transcript)) {
+    const transcriptStat = fs.lstatSync(transcript);
+    if (!transcriptStat.isFile() || transcriptStat.isSymbolicLink()) return;
+    fs.rmSync(transcript);
+  }
+  fs.rmSync(marker);
+  fs.rmSync(candidate, { recursive: true, force: true });
+}
+
+export function cleanupStaleVerificationTemps(
+  tempParent = os.tmpdir(),
+  now = Date.now(),
+  ttlMs = VERIFICATION_TEMP_TTL_MS
+): void {
+  try {
+    for (const entry of fs.readdirSync(tempParent, { withFileTypes: true })) {
+      if (!entry.isDirectory() || !verificationTempPattern().test(entry.name)) continue;
+      const candidate = path.join(tempParent, entry.name);
+      try {
+        const stat = fs.lstatSync(candidate);
+        if (!stat.isDirectory() || stat.isSymbolicLink() || now - stat.mtimeMs <= ttlMs) continue;
+        removeOwnedVerificationTemp(candidate);
+      } catch {
+        // Cleanup is best-effort and must never interrupt host lifecycle hooks.
       }
     }
-    return content.length ? [{ type: "assistant", message: { content } }] : [];
-  });
+  } catch {
+    // The host temp directory may be unreadable or may disappear during shutdown.
+  }
+}
 
+function evidenceCommand(command: unknown): string | null {
+  if (typeof command !== "string") return null;
+  const normalizedCommand = command.replace(/\s+/g, " ").trim();
+  const segments = normalizedCommand.split(/\s*(?:&&|\|\||[;|])\s*/);
+  for (let segment of segments) {
+    segment = segment.replace(/^(?:env\s+)?(?:(?:[A-Za-z_][A-Za-z0-9_]*=(?:"[^"]*"|'[^']*'|[^\s;|&]+))\s*)+/, "");
+    segment = segment.replace(/^command\s+/, "");
+    if (/^npm\s+(?:test|run|exec)(?:\s|$)/i.test(segment)) return segment.match(/^npm\s+(test|run|exec)/i)?.[0].toLowerCase().replace(/\s+$/, "") ?? null;
+    if (/^(?:pnpm|yarn)\s+(?:test|build|exec|run)(?:\s|$)/i.test(segment)) return segment.match(/^(pnpm|yarn)\s+(test|build|exec|run)/i)?.[0].toLowerCase() ?? null;
+    if (/^(?:vitest|jest|playwright|pytest|mypy|tsc|eslint|ruff|biome|prettier)(?:\s|$)/i.test(segment)) return segment.split(" ", 1)[0].toLowerCase();
+    if (/^cargo\s+(?:test|run|build|check|clippy)(?:\s|$)/i.test(segment)) return segment.match(/^cargo\s+(test|run|build|check|clippy)/i)?.[0].toLowerCase() ?? null;
+    if (/^go\s+(?:test|run|build|vet)(?:\s|$)/i.test(segment)) return segment.match(/^go\s+(test|run|build|vet)/i)?.[0].toLowerCase() ?? null;
+    if (/^do-it\s+doctor(?:\s|$)/i.test(segment)) return "do-it doctor";
+    if (/^git\s+diff(?:\s|$)/i.test(segment)) return "git diff";
+    if (/^node\s+.*\b(?:validate|check|test|build)\b/i.test(segment)) return "node validation";
+    if (/^python(?:3)?\s+.*\b(?:test|check|validate)\b/i.test(segment)) return "python validation";
+  }
+  return null;
+}
+
+function toolStatus(part: MessagePart): "completed" | "error" | "unknown" {
+  if (part.state?.status === "completed") return "completed";
+  if (part.state?.status === "error") return "error";
+  return "unknown";
+}
+
+function gateText(messages: SessionMessage[]): string | null {
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    if (messages[i]?.info?.role !== "assistant") continue;
+    const text = (messages[i].parts ?? [])
+      .filter((part) => part.type === "text" && typeof part.text === "string")
+      .map((part) => part.text)
+      .join("\n");
+    if (/\bNOT_VERIFIED\b/i.test(text)) return "NOT_VERIFIED";
+    if (COMPLETION_PATTERN.test(text)) return "Done.";
+    return null;
+  }
+  return null;
+}
+
+/** True when idle should not silently skip: edits + completion language, or unusable payload. */
+export function sessionNeedsVerificationReminder(data: unknown): boolean {
+  const rawMessages = (data as { data?: unknown })?.data;
+  if (!Array.isArray(rawMessages)) return true;
+  const messages = rawMessages as SessionMessage[];
+  let hasEdit = false;
+  let hasCompletion = false;
+  for (const message of messages) {
+    if (message.info?.role !== "assistant") continue;
+    for (const part of message.parts ?? []) {
+      if (part.type !== "tool") continue;
+      if (isEditTool(part.tool ?? part.name ?? "")) hasEdit = true;
+    }
+    const text = (message.parts ?? [])
+      .filter((part) => part.type === "text" && typeof part.text === "string")
+      .map((part) => part.text as string)
+      .join("\n");
+    if (COMPLETION_PATTERN.test(text)) hasCompletion = true;
+  }
+  return hasEdit && hasCompletion;
+}
+
+function verificationRecords(data: unknown): Array<Record<string, unknown>> {
+  const rawMessages = (data as { data?: unknown }).data;
+  if (!Array.isArray(rawMessages)) return [];
+  const messages = rawMessages as SessionMessage[];
+  let currentTurnStart = -1;
+  let hasAssistantAfterTurnStart = false;
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    if (messages[i]?.info?.role === "assistant") {
+      hasAssistantAfterTurnStart = true;
+      continue;
+    }
+    if (messages[i]?.info?.role === "user" && hasAssistantAfterTurnStart) {
+      currentTurnStart = i;
+      break;
+    }
+  }
+  if (currentTurnStart < 0) return [];
+
+  const records: Array<Record<string, unknown>> = [
+    { type: "user", message: { content: [] } }
+  ];
+  let fallbackCallID = 0;
+  for (const message of messages.slice(currentTurnStart + 1)) {
+    if (message.info?.role !== "assistant") continue;
+    for (const part of message.parts ?? []) {
+      if (part.type !== "tool") continue;
+      const rawTool = part.tool ?? part.name;
+      if (!rawTool) continue;
+      const normalized = normalizeToolName(rawTool);
+      const isShell = rawTool.toLowerCase() === "bash" || rawTool.toLowerCase() === "shell";
+      if (!normalized && !isShell) continue;
+      if (normalized && part.state?.status !== "completed") continue;
+
+      const name = normalized ?? "Bash";
+      const command = isShell && part.state?.status === "completed"
+        ? evidenceCommand(part.state.input?.command)
+        : undefined;
+      const input = command ? { command } : {};
+      fallbackCallID += 1;
+      const callID = part.callID ?? `${name.toLowerCase()}-${fallbackCallID}`;
+      records.push({
+        type: "assistant",
+        message: { content: [{ type: "tool_use", id: callID, name, input }] }
+      });
+      records.push({
+        type: "user",
+        message: {
+          content: [{ type: "tool_result", tool_use_id: callID, status: toolStatus(part) }]
+        }
+      });
+    }
+  }
+
+  const completion = gateText(messages.slice(currentTurnStart + 1));
+  if (completion) {
+    records.push({
+      type: "assistant",
+      message: { content: [{ type: "text", text: completion }] }
+    });
+  }
+
+  return records;
+}
+
+export function createVerificationTranscript(
+  sessionId: string,
+  data: unknown,
+  options: { tempParent?: string } = {}
+): VerificationTemp | null {
+  const records = verificationRecords(data);
+  if (records.length === 0) return null;
+
+  const tempParent = options.tempParent ?? os.tmpdir();
+  let dir: string | undefined;
   try {
-    fs.mkdirSync(dir, { recursive: true });
-    const transcriptPath = path.join(dir, `${sessionId}.jsonl`);
-    fs.writeFileSync(transcriptPath, `${records.map((record) => JSON.stringify(record)).join("\n")}\n`);
-    return transcriptPath;
+    cleanupStaleVerificationTemps(tempParent);
+    dir = fs.mkdtempSync(path.join(tempParent, `${VERIFICATION_TEMP_PREFIX}${safeSessionKey(sessionId)}-`));
+    fs.chmodSync(dir, 0o700);
+    fs.writeFileSync(path.join(dir, VERIFICATION_OWNER_FILE), VERIFICATION_OWNER_MARKER, {
+      encoding: "utf8",
+      mode: 0o600,
+      flag: "wx"
+    });
+    const transcriptPath = path.join(dir, "gate.jsonl");
+    fs.writeFileSync(
+      transcriptPath,
+      `${records.map((record) => JSON.stringify(record)).join("\n")}\n`,
+      { encoding: "utf8", mode: 0o600 }
+    );
+    const cleanupDir = dir;
+    return {
+      path: transcriptPath,
+      cleanup: () => fs.rmSync(cleanupDir, { recursive: true, force: true })
+    };
+  } catch {
+    if (dir) fs.rmSync(dir, { recursive: true, force: true });
+    return null;
+  }
+}
+
+function parseAgentFile(filePath: string): { name: string; registration: AgentRegistration } | null {
+  try {
+    const source = fs.readFileSync(filePath, "utf8");
+    const match = source.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/);
+    if (!match) return null;
+    const name = match[1].match(/^name:\s*(.+)$/m)?.[1]?.trim();
+    const rawDescription = match[1].match(/^description:\s*(.+)$/m)?.[1]?.trim();
+    const description = rawDescription?.replace(/^(["'])(.*)\1$/, "$2");
+    const prompt = match[2].trim();
+    if (!name || !description || !prompt) return null;
+    return { name, registration: { description, prompt, mode: "subagent" } };
   } catch {
     return null;
   }
 }
 
+function bundledAgents(): Map<string, AgentRegistration> {
+  const result = new Map<string, AgentRegistration>();
+  try {
+    for (const filename of fs.readdirSync(agentsDir).sort()) {
+      if (!filename.endsWith(".md")) continue;
+      const parsed = parseAgentFile(path.join(agentsDir, filename));
+      if (parsed) result.set(parsed.name, parsed.registration);
+    }
+  } catch {
+    // Missing optional bundle content does not prevent the rest of the plugin loading.
+  }
+  return result;
+}
+
+async function notify(ctx: PluginInput, message: string): Promise<void> {
+  await ctx.client.tui.showToast({
+    body: { message, variant: "warning" },
+    query: { directory: ctx.directory }
+  }).catch(() => undefined);
+}
+
+function sessionIdFromDeletedEvent(event: unknown): string | null {
+  const candidate = event as { type?: string; properties?: { info?: { id?: unknown } } };
+  if (candidate.type !== "session.deleted") return null;
+  return typeof candidate.properties?.info?.id === "string" ? candidate.properties.info.id : null;
+}
+
 function createHooks(ctx: PluginInput): Hooks {
   const cwd = ctx.directory ?? ctx.worktree ?? process.cwd();
+  const agents = bundledAgents();
 
   return {
     config: async (input) => {
-      const cfg = input as typeof input & { skills?: { paths?: string[] } };
+      const cfg = input as typeof input & {
+        skills?: { paths?: string[] };
+        agent?: Record<string, AgentRegistration | Record<string, unknown> | undefined>;
+      };
       cfg.skills ??= { paths: [] };
       cfg.skills.paths ??= [];
-      if (!cfg.skills.paths.includes(skillsDir)) {
-        cfg.skills.paths.push(skillsDir);
+      if (!cfg.skills.paths.includes(skillsDir)) cfg.skills.paths.push(skillsDir);
+
+      cfg.agent ??= {};
+      for (const [name, registration] of agents) {
+        cfg.agent[name] ??= registration;
       }
     },
 
     "experimental.chat.messages.transform": async (_input, output) => {
-      const sessionId = sessionIdFromMessages(output.messages);
-      injectBootstrapOnce(output.messages, sessionId);
+      const messages = output.messages as SessionMessage[];
+      injectBootstrapOnce(messages, sessionIdFromMessages(messages));
     },
 
     "chat.message": async (input, output) => {
@@ -118,31 +377,40 @@ function createHooks(ctx: PluginInput): Hooks {
         .join("\n");
       if (!prompt) return;
 
-      const payload = JSON.stringify({ session_id: input.sessionID, cwd, prompt });
-      const router = spawnHook(hooksDir, "router.sh", JSON.parse(payload));
-      if (router.additionalContext) appendContext(output.parts, router.additionalContext);
-
-      const grill = spawnHook(hooksDir, "grill-prompt.sh", JSON.parse(payload));
-      if (grill.additionalContext) appendContext(output.parts, grill.additionalContext);
+      const payload = { session_id: input.sessionID, cwd, prompt };
+      const contexts = new Set<string>();
+      for (const scriptName of ["router.sh", "grill-prompt.sh"]) {
+        const result = await spawnHook(hooksDir, scriptName, payload);
+        const context = hookContext(result);
+        if (context) contexts.add(context);
+        if (result.unavailable) break;
+      }
+      for (const context of contexts) appendContext(output.parts as MessagePart[], context);
     },
 
     "tool.execute.after": async (input, output) => {
       if (!isEditTool(input.tool)) return;
 
-      const payload = buildHookPayload({
-        sessionID: input.sessionID,
-        cwd,
-        tool: input.tool,
-        args: input.args
-      });
-
-      const result = spawnHook(hooksDir, "write-quality-lint.sh", payload);
-      if (result.additionalContext) {
-        output.output = `${output.output ?? ""}\n${result.additionalContext}`.trim();
-      }
+      const result = await spawnHook(
+        hooksDir,
+        "write-quality-lint.sh",
+        buildHookPayload({
+          sessionID: input.sessionID,
+          cwd,
+          tool: input.tool,
+          args: input.args
+        })
+      );
+      const context = hookContext(result);
+      if (context) output.output = `${output.output ?? ""}\n${context}`.trim();
     },
 
     event: async ({ event }) => {
+      const deletedSession = sessionIdFromDeletedEvent(event);
+      if (deletedSession) {
+        injectedSessions.delete(deletedSession);
+        return;
+      }
       if (event.type !== "session.idle") return;
 
       const props = (event as { properties?: Record<string, unknown> }).properties ?? {};
@@ -150,46 +418,57 @@ function createHooks(ctx: PluginInput): Hooks {
         (typeof props.sessionID === "string" && props.sessionID) ||
         (typeof props.id === "string" && props.id) ||
         "";
-
       if (!sessionID) return;
 
-      const client = ctx.client as unknown as {
-        session?: { messages?: (input: { sessionID: string; limit?: number; order?: "asc" | "desc" }) => Promise<unknown> };
-        tui?: { showToast?: (input: { message: string; variant?: string }) => Promise<unknown> };
-      };
-      const response = client.session?.messages
-        ? await client.session.messages({ sessionID, limit: 400, order: "asc" }).catch(() => null)
-        : null;
-      const transcriptPath = response ? writeOpenCodeTranscript(sessionID, cwd, response) : null;
-      if (!transcriptPath) return;
-
-      const payload = buildHookPayload({
-        sessionID,
-        cwd,
-        transcriptPath,
-        stopHookActive: false
-      });
-
-      const result = spawnHook(hooksDir, "verification-gate.sh", payload);
-      const reminder = result.blockReason ?? result.additionalContext;
-      if (!reminder) return;
-
-      const tier = readSessionTier(sessionID, cwd);
-      const text = `[do-it verification-gate${tier ? ` · ${tier}` : ""}] ${reminder}`;
-
-      const notifier = ctx.client as unknown as {
-        tui?: { showToast?: (input: { message: string; variant?: string }) => Promise<unknown> };
-        session?: { notify?: (input: { sessionID: string; message: string }) => Promise<unknown> };
-      };
-
-      if (notifier.tui?.showToast) {
-        await notifier.tui.showToast({ message: text, variant: "warning" }).catch(() => undefined);
+      const response = await ctx.client.session.messages({
+        path: { id: sessionID },
+        query: { directory: cwd, limit: 400 }
+      }).catch(() => null);
+      if (!response) {
+        const tier = readSessionTier(sessionID, cwd);
+        await notify(
+          ctx,
+          `[do-it verification-gate${tier ? ` · ${tier}` : ""}] session messages unavailable; state NOT_VERIFIED`
+        );
+        return;
+      }
+      const transcript = createVerificationTranscript(sessionID, { data: response.data });
+      if (!transcript) {
+        if (sessionNeedsVerificationReminder({ data: response.data })) {
+          const tier = readSessionTier(sessionID, cwd);
+          await notify(
+            ctx,
+            `[do-it verification-gate${tier ? ` · ${tier}` : ""}] could not synthesize transcript for claim check; state NOT_VERIFIED`
+          );
+        }
         return;
       }
 
-      if (notifier.session?.notify) {
-        await notifier.session.notify({ sessionID, message: text }).catch(() => undefined);
+      try {
+        const result = await spawnHook(
+          hooksDir,
+          "verification-gate.sh",
+          buildHookPayload({
+            sessionID,
+            cwd,
+            transcriptPath: transcript.path,
+            stopHookActive: false
+          })
+        );
+        const reminder = result.blockReason ?? result.additionalContext ?? result.diagnostic;
+        if (!reminder) return;
+
+        const tier = readSessionTier(sessionID, cwd);
+        await notify(ctx, `[do-it verification-gate${tier ? ` · ${tier}` : ""}] ${reminder}`);
+      } finally {
+        transcript.cleanup();
       }
+    },
+
+    dispose: async () => {
+      injectedSessions.clear();
+      cleanupStaleVerificationTemps();
+      terminateActiveProcesses();
     }
   };
 }
@@ -197,4 +476,4 @@ function createHooks(ctx: PluginInput): Hooks {
 const plugin: Plugin = async (ctx) => createHooks(ctx);
 
 export default plugin;
-export { plugin as DoItOpencodePlugin, injectedSessions, writeOpenCodeTranscript };
+export { plugin as DoItOpencodePlugin, injectedSessions };

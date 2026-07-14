@@ -9,11 +9,13 @@ make durable edits.
 Working rule:
 
 1. Edit the maintained repository copy.
-2. Prefer plugin marketplace install on each host. Optional: deploy with
-   `do-it setup` (or `npm exec --package . -- do-it setup`) for doctor /
-   migration. `./install/install.sh` remains for legacy/compat workflows.
-3. Validate with `do-it doctor` (or `./install/doctor.sh` for legacy/compat).
-4. Avoid hand-editing deployed files under `~/.codex`.
+2. Use the host's current path: marketplace-first for Codex / Claude, local copy
+   or Team Import for Cursor while public listing is pending, and local
+   `opencode.json` registration for OpenCode while npm publication is pending.
+3. Use `do-it setup` only for managed CLI doctor / migration. Ordinary `doctor`
+   verifies that managed state; it does not verify Cursor's standalone local-copy
+   installer or OpenCode registration.
+4. Avoid hand-editing deployed files under host configuration roots.
 
 Exception: for an intentional live-global rebaseline, copy only
 manifest-managed targets from `~/.codex` back into this repository, then run the
@@ -29,11 +31,12 @@ after behavior and review are proven so documentation follows current truth.
 
 ## Package And CLI Coordination
 
-The durable public concept is **plugin marketplace install** on each host, plus
-optional CLI setup for doctor and migration. Keep docs stable:
+The durable public concept is **host-native plugin delivery**, plus optional
+managed CLI setup for doctor and migration. Keep docs honest:
 
-- use plugin marketplace as the primary public install path for Codex, Claude,
-  Cursor, and OpenCode
+- use marketplace-first language for Codex and Claude Code
+- describe Cursor as local copy / Team Import until its public listing is verified
+- describe OpenCode as local `opencode.json` registration until npm publication is verified
 - demote `do-it setup` / GitHub tarball + setup to optional/legacy
 - mention `npm install -g @tdwhere/do-it` only as the registry path after
   registry publication is verified
@@ -87,7 +90,9 @@ previous live target.
 
 `doctor` treats a missing, malformed, version-mismatched, or stale install
 state file as drift. A clean file copy is not enough when the state marker that
-protects future upgrades is missing.
+protects future upgrades is missing. Therefore run ordinary `doctor` only for a
+managed CLI install/setup; verify Cursor local-copy installs by exact directory,
+plugin metadata, and Hooks UI inspection after reload.
 
 ## Host Capability Matrix
 
@@ -96,8 +101,26 @@ protects future upgrades is missing.
 | Codex plugin marketplace | Generated under `plugins/do-it/skills/` | Generated under `plugins/do-it/agents/` | None | Plugin hooks (trust under `/hooks`) | Optional via CLI | `npm run build:codex-plugin` and `CODEX_HOME=/tmp/do-it-plugin-test codex plugin marketplace add /path/to/do-it` then `codex plugin add do-it@tdwhere-do-it` |
 | Codex CLI setup (legacy) | Managed from `manifest.json` | TOML from `agents/` | CLI `do-it` | Root `hooks.json` plus do-it-managed files under `hooks/` | Default target | `CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it setup` |
 | Claude Code plugin | Same maintained `skills/do-it/` source | Generated Markdown under `dist/claude/agents/` | `commands/` | Do-it-managed files under `hooks/`, including `hooks/hooks.json` | `--target=claude` | `CLAUDE_PLUGIN_ROOT_OVERRIDE=/tmp/do-it-claude-test npm exec --package . -- do-it setup --target=claude` |
-| Cursor plugin | Full 8 from `ALL_SKILLS` under `plugins/do-it-cursor/skills/` (+ `references/`) | Generated under `plugins/do-it-cursor/agents/` | None | Medium: `sessionStart`, `beforeSubmitPrompt`, `postToolUse`/`afterFileEdit`, `stop` (no `grill-pretool`) | `--target=cursor` | `npm run install:cursor-local` (real copy under `~/.cursor/plugins/local/`) or `do-it setup --target=cursor`; Reload Window |
-| OpenCode plugin | Generated under `plugins/do-it-opencode/skills/` | Generated under `plugins/do-it-opencode/agents/` | None | Medium-Light: transform bootstrap, `tool.execute.after`, `session.idle` soft reminder | No CLI doctor | `npm run build:opencode-plugin && npm run test-opencode` (manual `opencode.json` registration may be required) |
+| Cursor local / Team Import (public listing pending) | Full 8 from `ALL_SKILLS` under `plugins/do-it-cursor/skills/` plus generated discovery/reference files | Generated under `plugins/do-it-cursor/agents/` | None | Medium: `sessionStart`, `beforeSubmitPrompt`, `postToolUse`/`afterFileEdit`, paired-evidence `stop` (no `grill-pretool`) | Managed CLI setup only: `--target=cursor`; not standalone local copy | `npm run install:cursor-local`, Reload Window, inspect exact directory + Hooks UI; or `do-it setup --target=cursor` for managed doctor |
+| OpenCode local registration (npm publication pending) | Generated under `plugins/do-it-opencode/skills/` | Generated under `plugins/do-it-opencode/agents/` | None | Medium-Light: transform bootstrap, `tool.execute.after`, `session.idle` soft reminder | No CLI doctor | `npm run build:opencode-plugin && npm run test-opencode`, then inspect the exact `opencode.json` registration |
+
+## Safe Cleanup Runbook
+
+Cleanup is host-owned and exact-path only. Back up any shared JSON before editing;
+never delete an entire `~/.codex`, `~/.claude`, `~/.cursor`, project config, or
+plugin directory tree just to remove do-it.
+
+| Host / install path | Safe cleanup |
+|---|---|
+| Codex marketplace | Remove only `do-it@tdwhere-do-it` through Codex's plugin manager. Keep the marketplace registration if other plugins use it; otherwise remove only the `tdwhere-do-it` registration through that manager. Inspect `/hooks` afterward. Do not recursively delete `CODEX_HOME`. |
+| Claude Code marketplace | Remove only `do-it@do-it` through `/plugin` management. Remove the marketplace registration only when no other installed entry depends on it. Do not recursively delete `~/.claude`. |
+| Cursor local copy | Close Cursor, back up `~/.cursor/hooks.json`, remove only hook objects whose `command` path contains `do-it-cursor/hooks/`, and then remove exactly `~/.cursor/plugins/local/do-it-cursor`. On native Windows use the corresponding `%USERPROFILE%\.cursor\...` paths; on WSL clean only the caller's mirrored profile. Reload and confirm the do-it entries disappeared while unrelated hooks remain. |
+| Cursor Team Import | Remove the imported do-it plugin in the Team dashboard. If a local copy was also installed, clean it separately with the preceding row; do not delete all team plugins. |
+| OpenCode local registration | Back up the applicable project or user `opencode.json`, remove only the do-it absolute-path entry from its `"plugin"` array, restart OpenCode, and confirm unrelated entries still load. Do not delete the project config or the checkout. |
+| Managed CLI setup | There is no broad uninstall command. Use the target's `.do-it-install-state*.json` as an ownership inventory and remove only entries proven do-it-managed; preserve unmarked/user-owned files. Prefer testing and abandoning a temporary home over manually cleaning a shared live home. |
+
+If ownership is unclear, stop and restore the backup rather than using a glob,
+recursive home-directory deletion, or `DO_IT_FORCE=1` as cleanup.
 
 Deprecated legacy skill targets use the same safety rule: install removes them
 only when they are marked as do-it-managed in the state file or when
@@ -205,13 +228,17 @@ specialists can support drills or fixes, but they should not be counted as the
 only Heavy review lens unless the parent explicitly scopes them as read-only and
 the report satisfies the review schema.
 
-Each agent should keep the subagent tier contract explicit:
+Each agent requires the parent prompt to carry the full Delegation Contract:
 
-- default delegated implementation is a `Standard` do-it slice;
-- `Light` is allowed only for tightly bounded mechanical checks;
-- `Heavy` requires explicit parent assignment;
-- if unassigned Heavy work is required, the agent stops with
-  `BLOCKED: requires heavy escalation` and evidence.
+- tier and lens;
+- scope and non-goals;
+- write ownership and restricted paths (or explicit read-only);
+- facts to verify and proof target;
+- stop condition;
+- return schema using `DONE | NEEDS_CONTEXT | BLOCKED`.
+
+If any field is missing or ambiguous, the agent returns `NEEDS_CONTEXT` with the
+missing fields before inspecting or editing. Agents never self-escalate to Heavy.
 
 ## Claude Code Target
 
@@ -247,8 +274,9 @@ the same `agents/*.toml` source-of-truth. The Claude target adds:
   the running host model; only use a uniform `model: inherit` compatibility
   fallback if a tested Claude Code version requires the field.
 - **Hook keyword change:** edit `hooks/data/*.tsv` and keep
-  `hooks/data/SCHEMA.md` aligned. End users override locally via
-  `<cwd>/.do-it/keywords.local.sh` (sourced after defaults).
+  `hooks/data/SCHEMA.md` aligned. End users extend known tables through the
+  data-only `<cwd>/.do-it/keywords.local.tsv` format documented there. The
+  legacy executable `.do-it/keywords.local.sh` path is ignored.
 - **Hook behavior change:** edit the relevant `hooks/*.sh`. Hook scripts must
   remain bash, jq-only, and degrade silently (exit 0) on unexpected input.
 
@@ -269,8 +297,8 @@ target installs the **full** skill inventory (`ALL_SKILLS`) and adds:
   `beforeSubmitPrompt`, `postToolUse`/`afterFileEdit`, `stop`). No
   `grill-pretool` / `preToolUse` plan gate.
 - `scripts/build-cursor-plugin.mjs` — the only supported way to refresh the
-  generated Cursor bundle (`do-it setup --target=cursor` also filters to core
-  skills at install time).
+  generated Cursor bundle; both local copy and managed CLI setup install the
+  full eight-skill bundle.
 
 ### Maintaining the Cursor Target
 
@@ -281,12 +309,13 @@ target installs the **full** skill inventory (`ALL_SKILLS`) and adds:
   `plugins/do-it-cursor/skills/` or `plugins/do-it-cursor/agents/`.
 - **Hook change:** edit kernel scripts under `hooks/` and Cursor mapping under
   `install/cursor-hooks.json`; regenerate with `npm run build:cursor-plugin`.
-- **Install verification:** run `npm run install:cursor-local` (or
-  `do-it setup --target=cursor` / `CURSOR_PLUGIN_ROOT_OVERRIDE=…`), then
-  `do-it doctor --target=cursor`. Confirm all eight skill directories (plus
-  `references/`) land under `~/.cursor/plugins/local/do-it-cursor` as a **real
-  directory** (not an external symlink). Reload Window after install — Cursor
-  does not use Claude `/plugin` slash commands.
+- **Install verification:** for `npm run install:cursor-local`, confirm all eight
+  skill directories plus generated discovery/reference files land under
+  `~/.cursor/plugins/local/do-it-cursor` as a **real directory**, Reload Window,
+  and inspect Customize → Hooks for do-it `.cmd` entries. Do not run ordinary
+  `doctor` for this standalone copy because it has no managed install state. For
+  `do-it setup --target=cursor` / `CURSOR_PLUGIN_ROOT_OVERRIDE=…`, `setup` runs
+  managed install plus doctor; later `do-it doctor --target=cursor` is valid.
 
 ## OpenCode Plugin Target
 
@@ -412,10 +441,11 @@ unstructured side quest. When adding or changing an agent:
 - remind implementation agents that the parent owns integration and final
   claims.
 
-The delegated prompt contract belongs in the parent agent (plain-text slice
-contract + `subagent-stance` hook) and should be reflected in agent
-descriptions when practical: tier, scope, write ownership, forbidden paths,
-current truth, must-verify facts, stop condition, and return schema.
+The delegated prompt contract belongs in the parent prompt (plain-text slice
+contract + `subagent-stance` hook), not in a link the worker must discover.
+Every agent definition carries the same field checklist and missing-context
+behavior. `scripts/validate-agent-bundle.mjs` rejects broken local Markdown
+instruction links while preserving the model-agnostic policy.
 
 ## Verification
 
@@ -432,7 +462,8 @@ CODEX_HOME=/tmp/do-it-codex-test ./install/doctor.sh
 CODEX_HOME=/tmp/do-it-plugin-test codex plugin marketplace add /path/to/do-it
 CODEX_HOME=/tmp/do-it-plugin-test codex plugin add do-it@tdwhere-do-it
 CLAUDE_PLUGIN_ROOT_OVERRIDE=/tmp/do-it-claude-test npm exec --package . -- do-it setup --target=claude
-npm pack --dry-run --json
+npm run validate:release -- vX.Y.Z
+npm run smoke:package
 ```
 
 Also run targeted sweeps for stale references after substantial rewrites, for

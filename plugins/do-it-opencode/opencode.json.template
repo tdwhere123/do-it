@@ -5,9 +5,6 @@
     "paths": []
   },
   "permission": {
-    "skill": "allow",
-    "edit": "allow",
-    "write": "allow",
-    "bash": "allow"
+    "skill": "allow"
   }
 }

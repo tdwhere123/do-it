@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # do-it router (UserPromptSubmit hook).
 # Classifies the prompt as Light / Standard / Heavy and records routing state.
-# User-visible pressure-test reminders belong to grill-prompt.sh. Never blocks
-# on its own.
+# Standard emits one compact stance reminder; Light and Heavy stay silent.
+# Pressure-test reminders belong to grill-prompt.sh. Never blocks on its own.
 
 set -uo pipefail
 
@@ -44,6 +44,24 @@ do_it_prompt_requires_durable_plan() {
   return 1
 }
 
+# One explicit high-consequence action is enough for Heavy. Nouns alone are
+# not: explanation questions have already short-circuited to Light above, and
+# topical statements still use the two-signal rule below.
+do_it_prompt_has_strong_heavy_action() {
+  local prompt_lc="$1"
+  # High-consequence verbs keep the full surface list (api/schema/interface/…).
+  local action='(release|publish|deploy|ship|roll[ -]?out|cut[ -]?over|migrate|migration|secure|harden|remediate|rotate|revoke|break|deprecat(e|ion)|upgrade|irreversible|发布|上线|部署|迁移|切换|加固|修复安全|轮换|吊销|破坏|不兼容|弃用|升级|不可逆)'
+  local surface='(production|prod|package|registry|version|v?[0-9]+\.[0-9]+|migration|database|schema|security|vulnerabilit(y|ies)|credential|secret|token|certificate|api|interface|contract|breaking|irreversible|版本|生产|包|仓库|迁移|数据库|安全|漏洞|凭据|密钥|令牌|证书|接口|契约|不兼容|不可逆)'
+  # Structural remove/delete/drop/rename/rewrite only escalate on HIGH surfaces —
+  # not bare api/schema/interface/contract (those stay Standard via normal signals).
+  local destructive='(remove|delete|drop|rename|rewrite|移除|删除|重命名|重写)'
+  local high_surface='(production|prod|package|registry|version|v?[0-9]+\.[0-9]+|migration|database|security|vulnerabilit(y|ies)|credential|secret|token|certificate|breaking|irreversible|deprecated|版本|生产|包|仓库|迁移|数据库|安全|漏洞|凭据|密钥|令牌|证书|不兼容|不可逆|弃用)'
+  if printf '%s' "$prompt_lc" | grep -qiE "${action}.*${surface}|${surface}.*${action}"; then
+    return 0
+  fi
+  printf '%s' "$prompt_lc" | grep -qiE "${destructive}.*${high_surface}|${high_surface}.*${destructive}"
+}
+
 # Escape / skip keywords: write only the parsed skip targets for this turn.
 targets="$(do_it_parse_skip_targets "$PROMPT")"
 if [[ -n "$targets" ]]; then
@@ -80,10 +98,11 @@ else
   fi
 fi
 
-# Heavy upgrade requires ≥2 heavy signals to land. Single signal demotes to
-# Standard so casual mentions of `schema` / `api` / `migration` do not pull
-# the whole Heavy ceremony in by themselves.
+# Heavy upgrade uses either one explicit high-consequence action or ≥2 topical
+# signals. This keeps casual mentions Standard while routing actual release,
+# migration, security, breaking, and irreversible work to Heavy.
 heavy_count=0
+strong_heavy_action=0
 if [[ -z "$TIER" ]]; then
   PROMPT_LC="$(do_it_lc "$PROMPT")"
   for signal in "${DO_IT_HEAVY_SIGNALS[@]}"; do
@@ -96,10 +115,13 @@ if [[ -z "$TIER" ]]; then
     fi
     [[ "$heavy_count" -ge 2 ]] && break
   done
+  if do_it_prompt_has_strong_heavy_action "$PROMPT_LC"; then
+    strong_heavy_action=1
+  fi
 fi
 
 if [[ -z "$TIER" ]]; then
-  if [[ "$heavy_count" -ge 2 ]]; then
+  if [[ "$strong_heavy_action" -eq 1 || "$heavy_count" -ge 2 ]]; then
     TIER="Heavy"
   elif [[ "$PROMPT_LEN" -lt 60 ]] && do_it_prompt_has_any "$PROMPT" DO_IT_LIGHT_SIGNALS; then
     TIER="Light"
@@ -282,9 +304,14 @@ do_it_session_state_set_many "$SESSION_ID" \
   dim_needs_tdd "$DIM_NEEDS_TDD" \
   dim_needs_review_loop "$DIM_NEEDS_REVIEW_LOOP"
 
-do_it_debug router "tier=$TIER heavy_count=$heavy_count prompt_len=$PROMPT_LEN dims=touch:${DIM_TOUCHES_CODE},pkg:${DIM_CROSSES_PACKAGES},iface:${DIM_BREAKS_INTERFACE},tdd:${DIM_NEEDS_TDD},review:${DIM_NEEDS_REVIEW_LOOP}"
+do_it_debug router "tier=$TIER heavy_count=$heavy_count strong_action=$strong_heavy_action prompt_len=$PROMPT_LEN dims=touch:${DIM_TOUCHES_CODE},pkg:${DIM_CROSSES_PACKAGES},iface:${DIM_BREAKS_INTERFACE},tdd:${DIM_NEEDS_TDD},review:${DIM_NEEDS_REVIEW_LOOP}"
 
-# Router is state-only: it writes tier/dimensions for downstream hooks and
-# skills. User-visible pressure-test guidance belongs to grill-prompt.sh, and
-# debug traces stay on stderr through do_it_debug.
+# Standard receives one compact stance reminder. It names no mandatory chain;
+# the agent still self-selects only the meaning skills the work needs. Light is
+# intentionally quiet, and Heavy is already explicit enough to avoid another
+# routine injection.
+if [[ "$TIER" == "Standard" ]]; then
+  do_it_emit_context UserPromptSubmit \
+    "do-it tier: Standard. Inspect current truth, name premise and blast radius, make the smallest coherent change, and run targeted proof. Select meaning skills only when needed."
+fi
 exit 0

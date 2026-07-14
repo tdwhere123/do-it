@@ -79,7 +79,6 @@ while IFS= read -r line || [[ -n "$line" ]]; do
   (
     _isolate_state "$data_dir"
     out=$(_run_router "$prompt" "$sid")
-    [[ -z "$out" ]] || { printf 'unexpected output: %s\n' "$out" >&2; exit 11; }
 
     tier_want=""
     kind_want=""
@@ -96,6 +95,12 @@ while IFS= read -r line || [[ -n "$line" ]]; do
 
     if [[ -n "$skip_want" ]]; then
       _check_skip_flags "$sid" "$skip_want" || exit 13
+    fi
+
+    if [[ "$tier_want" == "Standard" ]]; then
+      [[ "$out" == *'do-it tier: Standard.'* ]] || { printf 'missing Standard context: %s\n' "$out" >&2; exit 11; }
+    else
+      [[ -z "$out" ]] || { printf 'unexpected output: %s\n' "$out" >&2; exit 11; }
     fi
 
     state="$(_state_for "$sid")"

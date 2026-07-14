@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import fs from "node:fs";
-import crypto from "node:crypto";
+import os from "node:os";
 import path from "node:path";
 import process from "node:process";
 import { spawnSync } from "node:child_process";
@@ -111,22 +111,31 @@ function copyHooks() {
   }
 }
 
-function opencodeDistIsCurrent() {
-  const distIndex = path.join(pluginRoot, "dist", "index.js");
-  const srcDir = path.join(pluginRoot, "src");
-  if (!fs.existsSync(distIndex) || !fs.existsSync(srcDir)) {
-    return false;
-  }
-
-  const distMtime = fs.statSync(distIndex).mtimeMs;
-  let srcMtime = 0;
-  for (const name of fs.readdirSync(srcDir)) {
-    if (!name.endsWith(".ts")) {
-      continue;
+function listFiles(rootDir) {
+  const files = [];
+  function visit(currentDir) {
+    for (const entry of fs.readdirSync(currentDir, { withFileTypes: true })) {
+      const entryPath = path.join(currentDir, entry.name);
+      if (entry.isDirectory()) visit(entryPath);
+      else files.push(path.relative(rootDir, entryPath));
     }
-    srcMtime = Math.max(srcMtime, fs.statSync(path.join(srcDir, name)).mtimeMs);
   }
-  return srcMtime <= distMtime;
+  if (fs.existsSync(rootDir)) visit(rootDir);
+  return files.sort();
+}
+
+function directoriesMatch(expectedDir, actualDir) {
+  const expectedFiles = listFiles(expectedDir);
+  const actualFiles = listFiles(actualDir);
+  if (expectedFiles.length !== actualFiles.length) return false;
+
+  return expectedFiles.every(
+    (relativePath, index) =>
+      relativePath === actualFiles[index] &&
+      fs.readFileSync(path.join(expectedDir, relativePath)).equals(
+        fs.readFileSync(path.join(actualDir, relativePath))
+      )
+  );
 }
 
 function ensureOpencodeDeps() {
@@ -157,16 +166,6 @@ function ensureOpencodeDeps() {
 }
 
 function compileTypeScript() {
-  const distIndex = path.join(pluginRoot, "dist", "index.js");
-  const lifecycle = process.env.npm_lifecycle_event || "";
-  // npm pack/prepack cannot reliably install typescript devDeps; trust committed dist.
-  if (fs.existsSync(distIndex) && (lifecycle === "prepack" || lifecycle === "pack")) {
-    return;
-  }
-  if (opencodeDistIsCurrent()) {
-    return;
-  }
-
   const pluginPkgDir = pluginRoot;
   ensureOpencodeDeps();
   const localTsc = path.join(pluginPkgDir, "node_modules", ".bin", "tsc");
@@ -174,17 +173,29 @@ function compileTypeScript() {
     throw new Error("typescript is required to compile the OpenCode plugin (run npm install in plugins/do-it-opencode)");
   }
 
-  const result = spawnSync(localTsc, ["-p", "tsconfig.json"], {
-    cwd: pluginPkgDir,
-    encoding: "utf8",
-    stdio: "pipe"
-  });
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-opencode-dist-"));
+  const expectedDist = path.join(tempRoot, "dist");
+  try {
+    const result = spawnSync(localTsc, ["-p", "tsconfig.json", "--outDir", expectedDist], {
+      cwd: pluginPkgDir,
+      encoding: "utf8",
+      stdio: "pipe"
+    });
 
-  if (result.status !== 0) {
-    console.error("TypeScript compilation failed:");
-    if (result.stdout) console.error(result.stdout.trim());
-    if (result.stderr) console.error(result.stderr.trim());
-    throw new Error("TypeScript compilation is required to build the OpenCode plugin.");
+    if (result.status !== 0) {
+      console.error("TypeScript compilation failed:");
+      if (result.stdout) console.error(result.stdout.trim());
+      if (result.stderr) console.error(result.stderr.trim());
+      throw new Error("TypeScript compilation is required to build the OpenCode plugin.");
+    }
+
+    const committedDist = path.join(pluginPkgDir, "dist");
+    if (!directoriesMatch(expectedDist, committedDist)) {
+      fs.rmSync(committedDist, { recursive: true, force: true });
+      fs.cpSync(expectedDist, committedDist, { recursive: true });
+    }
+  } finally {
+    fs.rmSync(tempRoot, { recursive: true, force: true });
   }
 }
 

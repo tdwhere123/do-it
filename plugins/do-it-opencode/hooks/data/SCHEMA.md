@@ -8,7 +8,7 @@ This directory holds the data-driven keyword tables consumed by `hooks/lib/keywo
 |---|---|---|
 | `intent-verbs.tsv` | `router.sh` | Promote to Standard tier; does not trigger grill by itself |
 | `uncertainty-words.tsv` | `grill-prompt.sh` | Trigger grill #2 (premise pressure-test) |
-| `heavy-signals.tsv` | `router.sh` | Contribute to Heavy tier; current default requires at least two matches |
+| `heavy-signals.tsv` | `router.sh` | Contribute to Heavy tier; two topical signals or one action-shaped release/security/migration signal promote to Heavy |
 | `light-signals.tsv` | `router.sh` | Cap at Light tier (with short input) |
 | `escape-words.tsv` | All hooks | Set skip flags for this turn |
 | `long-input-hints.tsv` | `grill-prompt.sh` | Trigger grill #3 when input is long + topical |
@@ -44,7 +44,7 @@ This directory holds the data-driven keyword tables consumed by `hooks/lib/keywo
 | `leading-ws` | Prepend a single space to the term before matching. Kept only for legacy project overrides; the shipped tables should not need it because ASCII terms get word-boundary matching automatically. |
 | `trailing-ws` | Append a single space to the term before matching. Same caveat as `leading-ws`. |
 
-> **0.5.0 note.** ASCII terms are matched with `grep -wF` (word-boundary) automatically — no flag needed for that case. Single-character CJK terms are intentionally absent from the shipped tables to suppress over-firing; if you must add one in your project override, do it in `.do-it/keywords.local.sh` and accept the substring semantics.
+> **0.5.0 note.** ASCII terms are matched with `grep -wF` (word-boundary) automatically — no flag needed for that case. Single-character CJK terms are intentionally absent from the shipped tables to suppress over-firing; if you must add one in your project override, use `.do-it/keywords.local.tsv` and accept the substring semantics.
 
 ## Why two columns instead of one
 
@@ -61,11 +61,14 @@ When adding a term, ask:
 
 ## Project-level overrides
 
-`<cwd>/.do-it/keywords.local.sh` is sourced after the tsv tables are loaded. Use it to append project-specific words:
+`<cwd>/.do-it/keywords.local.tsv` is parsed after the shipped tables are loaded. It is data-only: hooks never source or evaluate project configuration. Each row names a known table, then a literal term, then optional flags:
 
-```bash
-# .do-it/keywords.local.sh
-DO_IT_INTENT_VERBS+=("微调" "审稿")
+```text
+intent-verbs	微调
+intent-verbs	审稿
+heavy-signals	cutover	trailing-ws
 ```
+
+Allowed table names are `intent-verbs`, `uncertainty-words`, `heavy-signals`, `light-signals`, `escape-words`, `long-input-hints`, `question-hints`, and `intent-objects`. Only the flags listed above are accepted. Unknown tables or flags, empty terms, and extra columns are ignored with a warning. Legacy `.do-it/keywords.local.sh` files are inert and produce a migration warning.
 
 Removing terms from the defaults is intentionally not supported through the local override — fork the tsv into your project if that's needed.

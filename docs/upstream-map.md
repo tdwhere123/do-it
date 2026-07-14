@@ -3,8 +3,10 @@
 This file records where do-it deliberately absorbs outside workflow ideas. It is
 not an install manifest; `manifest.json` is the install source of truth.
 
-The public package installs only do-it-native skill names. As of `0.14.0`, those
-are meaning buckets (see migration table in [`CHANGELOG.md`](../CHANGELOG.md)).
+The source version `0.14.0` defines eight user/runnable do-it-native skill names
+plus one generated discovery entry; this is version metadata, not a publication
+claim. The skills are meaning buckets (see the migration table in
+[`CHANGELOG.md`](../CHANGELOG.md)).
 
 ## Installed Skills
 
@@ -19,8 +21,10 @@ are meaning buckets (see migration table in [`CHANGELOG.md`](../CHANGELOG.md)).
 | `do-it-handbook` | lean handbook + worklog bootstrap | Seeds `.do-it/handbook/` and worklog templates; promotes stable facts without owning per-task review artifacts. |
 | `do-it-skill-authoring` | skill creation and maintenance | Absorbs progressive-disclosure skill writing and repo-managed skill validation. |
 
-Delegation has **no installed skill** — parent plain-text contract +
-`subagent-stance` hook.
+Delegation has **no installed skill** — the parent prompt supplies the full
+contract (tier/lens, scope/non-goals, write/restricted paths, facts to verify,
+proof target, stop, return) and `subagent-stance` reinforces it. Missing fields
+produce `NEEDS_CONTEXT` before worker inspection or edits.
 
 ## External Idea Map
 
@@ -97,14 +101,15 @@ retained set or retired from the default install.
 
 ## Adapter Notes
 
-- Plugin-first delivery is primary: Codex, Claude Code, and Cursor use their
-  marketplaces; OpenCode uses an `opencode.json` plugin entry. Codex plugin hooks
-  are trusted under `/hooks`. Optional CLI `do-it setup` remains for doctor /
-  migration.
+- Host-native delivery is primary: Codex and Claude Code are marketplace-first;
+  Cursor uses local copy / Team Import while public listing is pending; OpenCode
+  uses local `opencode.json` registration while npm publication is pending.
+  Optional CLI `do-it setup` remains for managed doctor / migration.
 - Each host should reuse the same do-it roles and translate only mechanics:
   skill invocation, subagent dispatch, file tools, sandbox controls, and
   verification commands.
-- Subagents should receive a do-it slice contract: route, write ownership,
-  current facts, verification expectation, stop condition, and return shape.
+- Subagents must receive the complete Delegation Contract in the parent prompt:
+  tier/lens, scope/non-goals, write/restricted paths, facts to verify, proof
+  target, stop, and a `DONE | NEEDS_CONTEXT | BLOCKED` return schema.
 - Source-inspired text must be rewritten before installation. Do not vendor raw
   workflow copies into the public package.

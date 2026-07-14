@@ -361,6 +361,101 @@ case "$?" in
 esac
 
 # -------------------------------------------------------------------------
+echo "Case 13: local keyword TSV accepts only known tables and flags"
+(
+  _isolate_env "/tmp/doit-test-local-keywords-valid"
+  source "$COMMON"
+  source "$REPO_ROOT/hooks/lib/keywords.sh"
+  proj="$(mktemp -d)"
+  mkdir -p "$proj/.do-it"
+  printf '%s\n' \
+    $'intent-verbs\tcalibrate' \
+    $'heavy-signals\tcutover\ttrailing-ws' \
+    $'question-hints\twalk me through' \
+    > "$proj/.do-it/keywords.local.tsv"
+  do_it_source_local_keywords "$proj"
+  do_it_prompt_has_any "calibrate src/app.ts" DO_IT_INTENT_VERBS || exit 131
+  found_cutover=0
+  for word in "${DO_IT_HEAVY_SIGNALS[@]}"; do
+    [[ "$word" == "cutover " ]] && found_cutover=1
+  done
+  [[ "$found_cutover" -eq 1 ]] || exit 132
+  do_it_prompt_has_any "walk me through this" DO_IT_QUESTION_HINTS || exit 133
+  rm -rf "$proj"
+)
+case "$?" in
+  0)   _pass "legal local TSV rows append to known keyword tables" ;;
+  131) _fail "legal intent-verbs row was not loaded" ;;
+  132) _fail "legal flagged heavy-signals row was not loaded" ;;
+  133) _fail "legal question-hints row was not loaded" ;;
+  *)   _fail "legal local TSV parser crashed (exit=$?)" ;;
+esac
+
+# -------------------------------------------------------------------------
+echo "Case 14: local keyword TSV rejects malformed rows without executing data"
+(
+  _isolate_env "/tmp/doit-test-local-keywords-invalid"
+  source "$COMMON"
+  source "$REPO_ROOT/hooks/lib/keywords.sh"
+  proj="$(mktemp -d)"
+  marker="$proj/side-effect"
+  mkdir -p "$proj/.do-it"
+  printf '%s\n' \
+    $'unknown-table\tbadword' \
+    $'intent-verbs\tbadflag\teval' \
+    $'intent-verbs\ttoo\tmany\tcolumns' \
+    $'intent-verbs\t' \
+    > "$proj/.do-it/keywords.local.tsv"
+  printf 'intent-verbs\t%s\n' "\$(touch $marker)" \
+    >> "$proj/.do-it/keywords.local.tsv"
+  warning_file="$proj/warning"
+  do_it_source_local_keywords "$proj" 2> "$warning_file"
+  warning="$(cat "$warning_file")"
+  [[ ! -e "$marker" ]] || exit 141
+  found_literal=0
+  for word in "${DO_IT_INTENT_VERBS[@]}"; do
+    [[ "$word" == "\$(touch $marker)" ]] && found_literal=1
+  done
+  [[ "$found_literal" -eq 1 ]] || exit 142
+  if do_it_prompt_has_any "badword badflag too" DO_IT_INTENT_VERBS; then exit 143; fi
+  [[ "$warning" == *"ignored invalid"* ]] || exit 144
+  rm -rf "$proj"
+)
+case "$?" in
+  0)   _pass "malformed rows are skipped and shell-shaped terms stay inert" ;;
+  141) _fail "TSV content executed a side effect" ;;
+  142) _fail "shell-shaped TSV term was not treated as literal data" ;;
+  143) _fail "invalid TSV row reached a keyword array" ;;
+  144) _fail "invalid TSV rows emitted no migration/config warning" ;;
+  *)   _fail "invalid local TSV parser crashed (exit=$?)" ;;
+esac
+
+# -------------------------------------------------------------------------
+echo "Case 15: legacy keywords.local.sh is inert and warns to migrate"
+(
+  _isolate_env "/tmp/doit-test-local-keywords-legacy"
+  source "$COMMON"
+  source "$REPO_ROOT/hooks/lib/keywords.sh"
+  proj="$(mktemp -d)"
+  marker="$proj/legacy-side-effect"
+  mkdir -p "$proj/.do-it"
+  printf 'touch %q\nDO_IT_INTENT_VERBS+=("legacyword")\n' "$marker" \
+    > "$proj/.do-it/keywords.local.sh"
+  warning="$(do_it_source_local_keywords "$proj" 2>&1)"
+  [[ ! -e "$marker" ]] || exit 151
+  if do_it_prompt_has_any "legacyword" DO_IT_INTENT_VERBS; then exit 152; fi
+  [[ "$warning" == *"keywords.local.sh"* && "$warning" == *"keywords.local.tsv"* ]] || exit 153
+  rm -rf "$proj"
+)
+case "$?" in
+  0)   _pass "legacy executable override is ignored with migration warning" ;;
+  151) _fail "legacy keywords.local.sh executed a side effect" ;;
+  152) _fail "legacy shell override changed keyword arrays" ;;
+  153) _fail "legacy shell override emitted no migration warning" ;;
+  *)   _fail "legacy override handling crashed (exit=$?)" ;;
+esac
+
+# -------------------------------------------------------------------------
 echo
 echo "Summary: $PASS passed, $FAIL failed"
 if [[ "$FAIL" -gt 0 ]]; then

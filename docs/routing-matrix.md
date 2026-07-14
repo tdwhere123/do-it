@@ -7,9 +7,9 @@
 
 ## Product Contract
 
-`do-it` exposes eight user skills: five core capabilities plus three persistence
-or maintenance skills. The generated `_index.md` is discovery metadata, not a
-ninth capability.
+`do-it` exposes eight user/runnable skills: five core capabilities plus three
+persistence or maintenance skills, along with ten portable agents. The generated
+`_index.md` is one discovery entry, not a ninth capability.
 
 | Capability | Canonical skill | Use when |
 | --- | --- | --- |
@@ -75,11 +75,13 @@ do not run or cite an unrelated command merely to satisfy a gate.
 
 ## Delegation
 
-Delegation has no standalone skill. The parent supplies the shared **Parent
-Delegation Contract** in
-[`workflow-kernel.md`](../skills/do-it/references/workflow-kernel.md): tier and
-lens, scope/non-goals, write ownership, facts to verify, proof target, stop
-condition, and a compact `DONE | NEEDS_CONTEXT | BLOCKED` return.
+Delegation has no standalone skill. The parent prompt itself supplies the full
+**Delegation Contract**: tier and lens, scope and non-goals, write ownership and
+restricted paths (or explicit read-only), facts to verify, proof target, stop
+condition, and a compact `DONE | NEEDS_CONTEXT | BLOCKED` return schema.
+Portable agent definitions do not rely on a repository-relative instruction
+link. A worker returns `NEEDS_CONTEXT` with the missing fields before inspection
+or edits when the parent contract is incomplete.
 
 Workers do not self-escalate to Heavy, expand into unassigned boundaries, commit,
 merge, or revert peer work by default. The parent owns integration and final
@@ -89,10 +91,10 @@ claims.
 
 | Host | Distribution | Skills | Verification behavior |
 | --- | --- | --- | --- |
-| Codex | Marketplace plugin; optional CLI migration/doctor | All eight | Stop hook can block unsupported success claims |
-| Claude Code | Marketplace plugin | All eight | Stop hook can block unsupported success claims |
-| Cursor | Marketplace plugin | Five core + discovery/reference files | Stop hook can block unsupported success claims |
-| OpenCode | `opencode.json` plugin | All eight | Per-message routing/grill and idle verification are advisory/soft |
+| Codex | Marketplace-first plugin; optional CLI migration/doctor | All eight + generated discovery entry | Hard heuristic Stop check can block unsupported success claims |
+| Claude Code | Marketplace-first plugin | All eight + generated discovery entry | Hard heuristic Stop check can block unsupported success claims |
+| Cursor | Local copy / Team Import today; public listing pending | All eight + generated discovery/reference files | Hard heuristic Stop check can block unsupported success claims |
+| OpenCode | Local `opencode.json` registration today; npm publication pending | All eight + generated discovery entry | Per-message routing/grill and idle verification are advisory/soft |
 
 No host registers `grill-pretool` or a pre-edit plan gate. `write-quality-lint`
 is advisory everywhere. The adapter matrix documents exact events and capability

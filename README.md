@@ -48,16 +48,21 @@ full decide budget by default.
 Sub-agents are useful only when the parent gives them a real boundary. `do-it`
 treats delegation as a contract, not a scheduling problem.
 
-Every delegated slice pins down:
+Every delegated slice pins down the complete **Delegation Contract**:
 
 | Field | What it pins down |
 |---|---|
-| `scope` | The single bounded outcome the sub-agent owns. |
-| `write ownership` | Which paths the sub-agent is allowed to edit. |
-| `forbidden paths` | Which paths the sub-agent must not touch, even if it would help. |
-| `must-verify facts` | Concrete claims the sub-agent must confirm before acting. |
+| `tier + lens` | Light / Standard / Heavy and the assigned perspective. |
+| `scope + non-goals` | The single bounded outcome and what stays out. |
+| `write ownership + restricted paths` | Exactly what may and may not be edited (or explicitly read-only). |
+| `facts to verify` | Concrete claims the sub-agent must confirm before acting. |
+| `proof target` | The evidence that will establish the assigned outcome. |
 | `stop condition` | The exact event that ends the sub-agent's run. |
-| `return schema` | The structured shape of its final report. |
+| `return schema` | A compact `DONE | NEEDS_CONTEXT | BLOCKED` report. |
+
+The parent must include those fields in the prompt itself. Portable agents do not
+assume a repository-relative instruction file is available; they return
+`NEEDS_CONTEXT` and list missing fields before inspecting or editing.
 
 No external orchestrator is required. The parent agent stays responsible, and
 the contract is plain text that any host with skills and sub-agents can use.
@@ -93,8 +98,17 @@ security, and accessibility stay in.
 
 ## Install (plugin-first)
 
-Primary path is **plugin-first**, but each host has a **different** official
-install UX. Plugin bundles ship skills, agents, and hooks together.
+Delivery is host-specific. Codex and Claude Code are **marketplace-first**;
+Cursor is **local copy or Team Import today, with public listing pending**; and
+OpenCode is **local `opencode.json` registration today, with npm publication
+pending**. Plugin bundles ship skills, agents, and hooks together.
+
+| Truth plane | What this repository can claim |
+|---|---|
+| Source/package metadata | This checkout declares `0.14.0`, 8 user/runnable skills + 1 generated discovery entry, and 10 agents. |
+| Git tag | This checkout has no matching `v0.14.0` tag; version metadata is not a release tag. |
+| Marketplace / npm | Coordinates and future publish paths are documented, but metadata alone does not prove a public listing or registry publication. |
+| Live host | Only an install/inspection on that host proves what is active there; do not infer it from source or a packed artifact. |
 
 ### Codex
 
@@ -116,7 +130,8 @@ CODEX_HOME=/tmp/do-it-plugin-test codex plugin add do-it@tdwhere-do-it
 ```
 
 The Codex plugin bundle lives at `plugins/do-it/` (generated from
-`manifest.json`): 8 skills and 10 agents, plus plugin-local hooks.
+`manifest.json`): 8 user/runnable skills, 1 generated `_index.md` discovery
+entry, and 10 agents, plus plugin-local hooks.
 
 ### Claude Code
 
@@ -146,12 +161,15 @@ listed there yet**. Until it is submitted/reviewed, use:
    Windows open in the editor instead of executing). On **native Windows**
    the target is `%USERPROFILE%\.cursor\plugins\local\do-it-cursor` (never
    `/mnt/c/...`). On Windows+WSL the script also mirrors into that Windows
-   profile when it can see `/mnt/c/Users`. Confirm with
-   `do-it doctor --target=cursor` — Customize → Hooks should list user-level
-   do-it `.cmd` entries after reload, and Agent turns must not pop `.sh`
-   source.
-2. **CLI setup:** `do-it setup --target=cursor` then reload (same
-   `…/plugins/local/do-it-cursor` path + user hooks merge).
+   profile when it can see `/mnt/c/Users`. After reload, verify the exact
+   plugin directory exists and Customize → Hooks lists user-level do-it `.cmd`
+   entries; Agent turns must not pop `.sh` source. This local-copy path does not
+   create managed CLI install state, so ordinary `do-it doctor` is not its
+   verifier.
+2. **Managed CLI setup:** `do-it setup --target=cursor` then reload (same
+   `…/plugins/local/do-it-cursor` path + user hooks merge). `setup` runs managed
+   install plus `doctor`; later `do-it doctor --target=cursor` applies only to
+   this managed CLI setup.
 3. **Team Import (no public listing needed):** Dashboard → Plugins → Import
    from Repo → `https://github.com/tdwhere123/do-it` (reads
    `.cursor-plugin/marketplace.json`).
@@ -210,11 +228,11 @@ targets. Prefer a temporary home (`CODEX_HOME=…`, `CLAUDE_PLUGIN_ROOT_OVERRIDE
 
 ## What It Installs
 
-Skill matrix (8 skills in `manifest.json`; tiers in `scripts/skill-tiers.mjs`):
+Runnable skill matrix (tiers in `scripts/skill-tiers.mjs`):
 
-| Host | Skills installed |
-|---|---|
-| Codex / Claude / Cursor / OpenCode | Full tree — 5 core + 3 extended |
+| Host | User/runnable skills | Discovery metadata | Agents |
+|---|---|---|---|
+| Codex / Claude / Cursor / OpenCode | 8 — 5 core + 3 extended | 1 generated `_index.md` entry (not a ninth skill) | 10 |
 
 - Meaning-bucket skills: `do-it-router`, `do-it-code-quality` (write defense),
   `do-it-review` (review + fix), `do-it-decide` (pressure-test / diverge /
@@ -227,10 +245,16 @@ Skill matrix (8 skills in `manifest.json`; tiers in `scripts/skill-tiers.mjs`):
   `documentation-engineer`.
 - Plugin-bundled hooks on all four hosts: router, Heavy-only `grill-prompt`,
   `subagent-stance`, advisory `write-quality-lint`, and `verification-gate`.
-  No `grill-pretool` plan gate.
+  Codex / Claude / Cursor use a hard heuristic Stop check for unsupported done
+  claims; OpenCode can only issue a soft idle reminder. No host registers a
+  `grill-pretool` plan gate.
 - Claude slash commands under `commands/` (`do-it-skip`, `do-it-handbook`); no legacy workflow command aliases.
 - Copy-based installer / `doctor` for optional CLI targets and migration.
 - Root `index.json` for external discovery and coverage checks.
+
+For exact-path, host-specific removal that preserves unrelated plugins and hook
+entries, use the [safe cleanup runbook](./docs/maintenance.md#safe-cleanup-runbook).
+Never recursively delete a host configuration root to remove do-it.
 
 ## The Flow
 
@@ -388,10 +412,11 @@ pressure via `do-it-decide`.
 
 ### Install truth
 
-Plugin-first on all four hosts. Refresh the marketplace plugin (and trust Codex
-`/hooks`) so skills and hooks match the package. Optional `do-it setup` is for
-doctor / migration / temp-home smoke — pick **either** plugin **or** legacy
-global copy, not both.
+Codex and Claude are marketplace-first. Cursor uses local copy / Team Import
+until a public listing exists. OpenCode uses local `opencode.json` registration
+until npm publication is verified. Optional `do-it setup` is for managed CLI
+doctor / migration / temp-home smoke — pick **either** a host plugin install or
+a legacy/managed copy, not both.
 
 Cursor CLI setup writes only under `~/.cursor` (not `~/.claude`).
 
@@ -454,7 +479,8 @@ npm run build:cursor-plugin
 CODEX_HOME=/tmp/do-it-plugin-test codex plugin marketplace add /path/to/do-it
 CODEX_HOME=/tmp/do-it-plugin-test codex plugin add do-it@tdwhere-do-it
 CLAUDE_PLUGIN_ROOT_OVERRIDE=/tmp/do-it-claude-test npm exec --package . -- do-it doctor --target=claude
-npm pack --dry-run --json
+npm run validate:release -- vX.Y.Z
+npm run smoke:package
 ```
 
 Prefer marketplace / plugin smoke first; optional `do-it setup` is for legacy
