@@ -164,16 +164,21 @@ Cursor 装 **完整 9 个 skill**（`do-it-router`、`do-it-code-quality`、`do-
 
 ### OpenCode
 
-OpenCode 从 `opencode.json` 的 `"plugin"` 数组加载插件。**当前以本地路径为主：**
+OpenCode 从 `opencode.json` 的 `"plugin"` 数组加载插件。**当前以全局 vendor
+安装为主**（不要把日常宿主指到 git checkout）：
 
 ```bash
-npm run build:opencode-plugin
-cd plugins/do-it-opencode && npm install   # 首次或缺依赖时
+npm run install:opencode-global
 ```
 
-在项目或全局 `opencode.json` 中用绝对路径注册构建后的插件目录（见 [`plugins/do-it-opencode/docs/README.opencode.md`](./plugins/do-it-opencode/docs/README.opencode.md)）。
+会构建插件、拷到 `~/.config/opencode/vendor/do-it-opencode`，并在全局配置里注册
+`@tdwhere/do-it-opencode`（详见
+[`plugins/do-it-opencode/docs/README.opencode.md`](./plugins/do-it-opencode/docs/README.opencode.md)）。
+安装后重启 OpenCode。
 
-`@tdwhere/do-it-opencode` 发布到 npm 后，OpenCode 可在启动时从 `"plugin"` 数组自动安装——在此之前请用本地路径。
+`@tdwhere/do-it-opencode` 发布到 npm 后，优先用
+`opencode plugin @tdwhere/do-it-opencode -g`（或在 `"plugin"` 里写包名）。
+仓库绝对路径仅作 **开发调试**。
 
 ```bash
 npm run test-opencode

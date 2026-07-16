@@ -9,7 +9,7 @@ CLI setup path:
    generated agents.
 3. Cursor — local copy or Team Import today; public marketplace listing is
    pending. The bundle has medium-depth hooks.
-4. OpenCode — local `opencode.json` registration today; npm publication is
+4. OpenCode — global vendor / package-name registration today; npm publication is
    pending. The TypeScript plugin has per-message routing and selective bridges.
 5. Optional / legacy: `do-it setup` for managed doctor, temp-home smoke, and
    migration from older global installs.
@@ -53,7 +53,8 @@ codex plugin add do-it@tdwhere-do-it
 # then Developer: Reload Window. Or: do-it setup --target=cursor
 # Team Import from Repo / public marketplace when listed
 
-# OpenCode — local path in opencode.json (see plugins/do-it-opencode/docs/README.opencode.md)
+# OpenCode — global vendor install (see plugins/do-it-opencode/docs/README.opencode.md)
+# npm run install:opencode-global
 # npm @tdwhere/do-it-opencode when published
 ```
 
@@ -113,7 +114,7 @@ for doctor and migration — do not require pairing it with marketplace install.
 - Agents: 10 retained after merges.
 - Hooks: Heavy-only `grill-prompt`; `grill-pretool` removed; quality families
   overhaul; Codex plugin bundles hooks.
-- Host-native delivery: marketplace-first for Codex / Claude; local copy or Team Import for Cursor pending public listing; local `opencode.json` registration for OpenCode pending npm publication.
+- Host-native delivery: marketplace-first for Codex / Claude; local copy or Team Import for Cursor pending public listing; global vendor / package-name registration for OpenCode pending npm publication.
 
 ## 0.13.1
 

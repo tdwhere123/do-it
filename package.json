@@ -70,6 +70,7 @@
     "build:opencode-plugin": "npm run build:generated && node scripts/build-opencode-plugin.mjs",
     "build:cursor-plugin": "npm run build:generated && node scripts/build-cursor-plugin.mjs && node scripts/validate-cursor-plugin.mjs && node scripts/validate-harness-matrix.mjs",
     "install:cursor-local": "npm run build:cursor-plugin && node scripts/install-cursor-local.mjs",
+    "install:opencode-global": "npm run build:opencode-plugin && node scripts/install-opencode-global.mjs",
     "validate:harness-matrix": "node scripts/validate-harness-matrix.mjs",
     "validate:quality-families": "node scripts/validate-quality-families.mjs",
     "validate:core-skill-boundaries": "node scripts/validate-core-skill-boundaries.mjs",
