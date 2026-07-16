@@ -1,6 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "plugin": ["/absolute/path/to/do-it/plugins/do-it-opencode"],
+  "plugin": ["@tdwhere/do-it-opencode"],
   "skills": {
     "paths": []
   },

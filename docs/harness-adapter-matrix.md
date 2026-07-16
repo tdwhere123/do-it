@@ -12,7 +12,7 @@ every host.
 | **Codex** | marketplace-first; `do-it setup` optional/legacy | Full | Trust plugin hooks under `/hooks`; session state via plugin data or `CODEX_HOME/do-it-data` |
 | **Claude Code** | marketplace-first | Full | `${CLAUDE_PLUGIN_ROOT}` hooks; `${CLAUDE_PLUGIN_DATA}` session state |
 | **Cursor** | local / Team Import today; public listing pending | Medium | Official [marketplace](https://cursor.com/marketplace) exists; **do-it not listed yet**. No Claude `/plugin` commands. |
-| **OpenCode** | local `opencode.json` registration today; npm publication pending | Medium | TS plugin: transform bootstrap; `tool.execute.after`; `session.idle` soft reminder |
+| **OpenCode** | global vendor / package-name registration today; npm publication pending | Medium | TS plugin: transform bootstrap; `tool.execute.after`; `session.idle` soft reminder |
 
 Workflow logic lives once in `skills/do-it/` and `hooks/`. Host-specific install
 paths, tool names, and hook event names live in

@@ -205,20 +205,21 @@ stance), `postToolUse` / `afterFileEdit` advisory `write-quality-lint`, and
 
 ### OpenCode
 
-OpenCode loads plugins from the `"plugin"` array in `opencode.json`. **Local
-path is primary today:**
+OpenCode loads plugins from the `"plugin"` array in `opencode.json`. **Global
+vendor install is primary today** (do not point live hosts at a git checkout):
 
 ```bash
-npm run build:opencode-plugin
-cd plugins/do-it-opencode && npm install   # once, if dependencies are missing
+npm run install:opencode-global
 ```
 
-Register the built plugin directory with an absolute path in project or global
-`opencode.json` (see
+That builds the plugin, copies it under `~/.config/opencode/vendor/do-it-opencode`,
+and registers `@tdwhere/do-it-opencode` in the global config (see
 [`plugins/do-it-opencode/docs/README.opencode.md`](./plugins/do-it-opencode/docs/README.opencode.md)).
+Restart OpenCode after install.
 
-When `@tdwhere/do-it-opencode` is published to npm, OpenCode can auto-install it
-from the `"plugin"` array at startup — use the local path until then.
+When `@tdwhere/do-it-opencode` is published to npm, prefer
+`opencode plugin @tdwhere/do-it-opencode -g` (or the package name in `"plugin"`).
+A checkout absolute path remains a **dev-only** option.
 
 ```bash
 npm run test-opencode

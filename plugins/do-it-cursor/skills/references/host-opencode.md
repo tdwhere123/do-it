@@ -10,37 +10,17 @@ OpenCode loads plugins from the `"plugin"` array in project `opencode.json` or
 `~/.config/opencode/plugins/`. See
 [opencode.ai/docs/plugins](https://opencode.ai/docs/plugins).
 
-### Local path (recommended today)
+### Global install (recommended today)
 
-From a clone of the do-it repo:
+Until `@tdwhere/do-it-opencode` is on npm, vendor a built copy into OpenCode's
+config home — do **not** point `"plugin"` at a do-it git checkout for daily use.
 
 ```bash
-npm run build:opencode-plugin
-cd plugins/do-it-opencode && npm install   # once, if dependencies are missing
+npm run install:opencode-global
 ```
 
-Register the built plugin directory in `opencode.json` (project) or
-`~/.config/opencode/opencode.json` (global). Use an absolute path (or a path
-relative to the config file):
-
-```json
-{
-  "$schema": "https://opencode.ai/config.json",
-  "plugin": ["/absolute/path/to/do-it/plugins/do-it-opencode"],
-  "permission": {
-    "skill": "allow"
-  }
-}
-```
-
-Starter template: `plugins/do-it-opencode/opencode.json.template`. The plugin
-registers `skills/do-it/` paths in `config`; session state lives under
-`$OPENCODE_DATA/sessions/`.
-
-### npm package (when published)
-
-When `@tdwhere/do-it-opencode` is published to npm, OpenCode can auto-install it
-from the `"plugin"` array at startup (Bun). Intended config:
+That registers `@tdwhere/do-it-opencode` via
+`~/.config/opencode/vendor/do-it-opencode` + `package.json` `file:` dependency:
 
 ```json
 {
@@ -52,8 +32,27 @@ from the `"plugin"` array at startup (Bun). Intended config:
 }
 ```
 
-That package is **not on npm yet**; use the local path above until it is
-published.
+Restart OpenCode after install. Details:
+[`plugins/do-it-opencode/docs/README.opencode.md`](../../../plugins/do-it-opencode/docs/README.opencode.md).
+
+### npm package (when published)
+
+When `@tdwhere/do-it-opencode` is published:
+
+```bash
+opencode plugin @tdwhere/do-it-opencode -g
+```
+
+That package is **not on npm yet**.
+
+### Dev checkout path (optional)
+
+For plugin development only, an absolute path to `plugins/do-it-opencode` in a
+local clone works. Prefer the global vendor install for live hosts.
+
+Starter template: `plugins/do-it-opencode/opencode.json.template`. The plugin
+registers `skills/do-it/` paths in `config`; session state lives under
+`$OPENCODE_DATA/sessions/`.
 
 ### Verify build
 

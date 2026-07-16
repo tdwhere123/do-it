@@ -8,43 +8,24 @@ write-quality and verification bridges, and bundled skills.
 OpenCode discovers plugins via the `"plugin"` array in `opencode.json` (project)
 or `~/.config/opencode/opencode.json` (global), or from `.opencode/plugins/` /
 `~/.config/opencode/plugins/`. Package names in the array are auto-installed by
-Bun at startup; local absolute or relative paths work for development. See
+Bun at startup. See
 [opencode.ai/docs/plugins](https://opencode.ai/docs/plugins).
 
-### Local path (recommended today)
+### Global install (recommended today)
+
+Until `@tdwhere/do-it-opencode` is on npm, install a **vendored copy into
+OpenCode's own config home** — do **not** point `"plugin"` at a do-it git
+checkout (that couples the live host to a mutable worktree).
 
 From the do-it repo root:
 
 ```bash
-npm run build:opencode-plugin
-cd plugins/do-it-opencode && npm install   # once, if dependencies are missing
+npm run install:opencode-global
 ```
 
-Add to `opencode.json` (project) or `~/.config/opencode/opencode.json`
-(global):
-
-```json
-{
-  "$schema": "https://opencode.ai/config.json",
-  "plugin": ["/absolute/path/to/do-it/plugins/do-it-opencode"],
-  "permission": {
-    "skill": "allow"
-  }
-}
-```
-
-Replace the path with your clone location. OpenCode resolves
-`@opencode-ai/plugin` from this directory's `package.json`.
-
-See [`opencode.json.template`](../opencode.json.template) for a fuller starter
-config (edit permissions, skills paths).
-
-### npm package (when published)
-
-`@tdwhere/do-it-opencode` is the intended published package name. **It is not
-on npm yet** — do not use it until the package is published.
-
-When available, OpenCode will auto-install it from the `"plugin"` array:
+This builds the plugin, copies it to
+`~/.config/opencode/vendor/do-it-opencode`, links it as
+`@tdwhere/do-it-opencode` via `~/.config/opencode/package.json`, and sets:
 
 ```json
 {
@@ -55,6 +36,44 @@ When available, OpenCode will auto-install it from the `"plugin"` array:
   }
 }
 ```
+
+Restart OpenCode after install. Override the config home with
+`OPENCODE_CONFIG_DIR` when needed.
+
+Equivalent manual shape (same as Cursor's "real copy under the host home"):
+
+```bash
+npm run build:opencode-plugin
+# copy plugins/do-it-opencode → ~/.config/opencode/vendor/do-it-opencode
+# add package.json dependency: "@tdwhere/do-it-opencode": "file:./vendor/do-it-opencode"
+# register "@tdwhere/do-it-opencode" in opencode.json (not a /path/to/clone/...)
+```
+
+`opencode plugin <module> -g` is the host CLI for npm modules. A tarball still
+sitting **inside** the do-it checkout will write a checkout path into
+`opencode.json` — move the tarball under the config home (or use
+`npm run install:opencode-global`) instead.
+
+### npm package (when published)
+
+`@tdwhere/do-it-opencode` is the intended published package name. **It is not
+on npm yet.**
+
+When published:
+
+```bash
+opencode plugin @tdwhere/do-it-opencode -g
+# or add "@tdwhere/do-it-opencode" to the plugin array and let Bun install it
+```
+
+### Dev checkout path (optional)
+
+For plugin development only, an absolute path to
+`plugins/do-it-opencode` in a local clone works. Prefer the global vendor
+install for daily use.
+
+See [`opencode.json.template`](../opencode.json.template) for the package-name
+starter config.
 
 ## Session state
 
