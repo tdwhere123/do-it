@@ -8,6 +8,11 @@ set -uo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 HOOK="$REPO_ROOT/hooks/strict-external-actions.sh"
 [[ -x "$HOOK" || -f "$HOOK" ]] || { echo "FAIL: missing $HOOK" >&2; exit 1; }
+BASH_BIN="${BASH:-}"
+if [[ ! -x "$BASH_BIN" ]]; then
+  BASH_BIN="$(command -v bash 2>/dev/null || true)"
+fi
+[[ -x "$BASH_BIN" ]] || { echo "FAIL: unable to resolve bash" >&2; exit 1; }
 
 PASS=0
 FAIL=0
@@ -59,7 +64,7 @@ echo "Case 3: deny is an explicit emergency stop, not a confirmation"
 _assert_decision "deny emits a valid PreToolUse denial" deny "terraform apply" "$(_run deny terraform-apply 'terraform apply -auto-approve')"
 
 echo "Case 4: hook does not depend on jq or external parsing"
-out="$(printf '%s' '{"tool_name":"Bash","tool_input":{"command":"kubectl apply -f deployment.yaml"}}' | PATH=/definitely-missing DO_IT_STRICT_EXTERNAL_ACTIONS=ask /usr/bin/bash "$HOOK" kubectl-apply)"
+out="$(printf '%s' '{"tool_name":"Bash","tool_input":{"command":"kubectl apply -f deployment.yaml"}}' | PATH=/definitely-missing DO_IT_STRICT_EXTERNAL_ACTIONS=ask "$BASH_BIN" "$HOOK" kubectl-apply)"
 _assert_decision "ask still works without jq on PATH" ask "kubectl apply" "$out"
 
 if [[ "$FAIL" -ne 0 ]]; then
