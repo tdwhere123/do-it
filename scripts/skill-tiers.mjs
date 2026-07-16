@@ -14,8 +14,10 @@ export const CORE_SKILLS = [
   "do-it-verify"
 ];
 
-/** On-demand extended skills — none in the meaning-centric default set. */
-export const EXTENDED_ON_DEMAND = [];
+/** On-demand extended skills — deliberately outside the meaning-centric default set. */
+export const EXTENDED_ON_DEMAND = [
+  "do-it-retrospective"
+];
 
 export const EXTENDED_MAINTENANCE = [
   "do-it-handbook",

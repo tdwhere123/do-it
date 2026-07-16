@@ -72,6 +72,49 @@ case "$?" in
 esac
 
 # -------------------------------------------------------------------------
+echo "Case 1b: question wording + explicit child-agent delegation → Standard"
+(
+  _isolate_state "/tmp/doit-test-router-c1b"
+  prompt="为什么我体感上，好像不怎么调用我预先设计好的子智能体？另外排查一下，并行编排子智能体去推进；先不改代码。"
+  out=$(_run_router "$prompt" "c1b-1")
+  [[ "$out" == *'do-it tier: Standard.'* ]] || { printf 'missing Standard context: %s\n' "$out" >&2; exit 11; }
+  state="$(_state_for c1b-1)"
+  [[ "$(jq -r '.tier' "$state")" == "Standard" ]] || { cat "$state" >&2; exit 12; }
+  [[ "$(jq -r '.last_prompt_kind' "$state")" == "work" ]] || { cat "$state" >&2; exit 13; }
+)
+case "$?" in
+  0)  _pass "explicit child-agent delegation overrides question-shaped Light cap" ;;
+  11) _fail "explicit delegation emitted no Standard context" ;;
+  12) _fail "explicit delegation did not route Standard" ;;
+  13) _fail "explicit delegation remained a question turn" ;;
+  *)  _fail "question + delegation routing failed (exit $?)" ;;
+esac
+
+# -------------------------------------------------------------------------
+echo "Case 1c: generic and named agent commands remain work"
+(
+  _isolate_state "/tmp/doit-test-router-c1c"
+  out=$(_run_router "Please dispatch agents to inspect this?" "c1c-generic")
+  [[ "$out" == *'do-it tier: Standard.'* ]] || exit 11
+  [[ "$(jq -r '.tier' "$(_state_for c1c-generic)")" == "Standard" ]] || exit 12
+  [[ "$(jq -r '.last_prompt_kind' "$(_state_for c1c-generic)")" == "work" ]] || exit 13
+  out=$(_run_router "请调用 reviewer 审查当前 diff？" "c1c-named")
+  [[ "$out" == *'do-it tier: Standard.'* ]] || exit 14
+  [[ "$(jq -r '.tier' "$(_state_for c1c-named)")" == "Standard" ]] || exit 15
+  [[ "$(jq -r '.last_prompt_kind' "$(_state_for c1c-named)")" == "work" ]] || exit 16
+)
+case "$?" in
+  0)  _pass "generic and named agent commands override question-shaped Light cap" ;;
+  11) _fail "generic agent command emitted no Standard context" ;;
+  12) _fail "generic agent command did not route Standard" ;;
+  13) _fail "generic agent command remained a question turn" ;;
+  14) _fail "named agent command emitted no Standard context" ;;
+  15) _fail "named agent command did not route Standard" ;;
+  16) _fail "named agent command remained a question turn" ;;
+  *)  _fail "generic/named agent routing failed (exit $?)" ;;
+esac
+
+# -------------------------------------------------------------------------
 echo "Case 2: bare intent verb without code object → Light fallback (silent)"
 (
   _isolate_state "/tmp/doit-test-router-c2"
@@ -94,6 +137,8 @@ echo "Case 3: intent verb + code object → Standard state and compact context"
   [[ "$out" == *'"hookEventName":"UserPromptSubmit"'* ]] || { printf 'missing context: %s\n' "$out" >&2; exit 11; }
   [[ "$out" == *'do-it tier: Standard.'* ]] || exit 12
   [[ "$out" != *'do-it-code-quality'* && "$out" != *'do-it-verify'* ]] || exit 13
+  [[ "$out" == *"honor the user's action boundary"* ]] || exit 16
+  [[ "$out" == *'skills or agents only when task-fit helps'* ]] || exit 15
   state="$(_state_for c3-1)"
   [[ "$(jq -r '.tier' "$state")" == "Standard" ]] || { cat "$state" >&2; exit 14; }
 )
@@ -102,7 +147,57 @@ case "$?" in
   11) _fail "Standard emitted no additionalContext" ;;
   12) _fail "Standard context omitted tier" ;;
   13) _fail "Standard context restored a skill chain" ;;
+  16) _fail "Standard context omitted the user action boundary" ;;
+  15) _fail "Standard context did not expose optional agents" ;;
   *)  _fail "Standard state missing" ;;
+esac
+
+# -------------------------------------------------------------------------
+echo "Case 3b: review and plan requests preserve their no-edit boundary"
+(
+  _isolate_state "/tmp/doit-test-router-c3b"
+  out=$(_run_router "Review the current API diff; do not edit." "c3b-review")
+  [[ "$out" == *"honor the user's action boundary"* ]] || exit 11
+  [[ "$out" != *"make the smallest coherent change"* ]] || exit 12
+  [[ "$(jq -r '.tier' "$(_state_for c3b-review)")" == "Standard" ]] || exit 13
+  out=$(_run_router "Plan the API migration; do not implement." "c3b-plan")
+  [[ "$out" == *"honor the user's action boundary"* ]] || exit 14
+  [[ "$out" != *"make the smallest coherent change"* ]] || exit 15
+  [[ "$(jq -r '.tier' "$(_state_for c3b-plan)")" == "Standard" ]] || exit 16
+)
+case "$?" in
+  0)  _pass "Standard reminder preserves review and plan no-edit boundaries" ;;
+  11) _fail "review-only task omitted action boundary" ;;
+  12) _fail "review-only task received an edit instruction" ;;
+  13) _fail "review-only task did not route Standard" ;;
+  14) _fail "plan-only task omitted action boundary" ;;
+  15) _fail "plan-only task received an edit instruction" ;;
+  16) _fail "plan-only task did not route Standard" ;;
+  *)  _fail "review/plan action-boundary regression" ;;
+esac
+
+# -------------------------------------------------------------------------
+echo "Case 3c: why wording does not erase a direct repair request"
+(
+  _isolate_state "/tmp/doit-test-router-c3c"
+  out=$(_run_router "为什么认证重试失败；请修复 src/auth.ts。" "c3c-why-fix")
+  [[ "$out" == *'do-it tier: Standard.'* ]] || { printf 'missing Standard context: %s\n' "$out" >&2; exit 11; }
+  state="$(_state_for c3c-why-fix)"
+  [[ "$(jq -r '.tier' "$state")" == "Standard" ]] || { cat "$state" >&2; exit 12; }
+  [[ "$(jq -r '.last_prompt_kind' "$state")" == "work" ]] || { cat "$state" >&2; exit 13; }
+  out=$(_run_router "Why is auth retry failing? Please fix src/auth.ts." "c3c-why-fix-en")
+  [[ "$out" == *'do-it tier: Standard.'* ]] || { printf 'missing English Standard context: %s\n' "$out" >&2; exit 14; }
+  state="$(_state_for c3c-why-fix-en)"
+  [[ "$(jq -r '.tier' "$state")" == "Standard" ]] || { cat "$state" >&2; exit 15; }
+)
+case "$?" in
+  0)  _pass "direct repair intent overrides why/explanation wording" ;;
+  11) _fail "why + repair request emitted no Standard context" ;;
+  12) _fail "why + repair request did not route Standard" ;;
+  13) _fail "why + repair request remained a question turn" ;;
+  14) _fail "English why + repair request emitted no Standard context" ;;
+  15) _fail "English why + repair request did not route Standard" ;;
+  *)  _fail "why + repair routing regression" ;;
 esac
 
 # -------------------------------------------------------------------------
@@ -130,13 +225,42 @@ echo "Case 4b: one strong action signal upgrades while explanation stays Light"
   out=$(_run_router "what is the release process?" "c4b-question")
   [[ -z "$out" ]] || exit 13
   [[ "$(jq -r '.tier' "$(_state_for c4b-question)")" == "Light" ]] || exit 14
+  out=$(_run_router "Can you publish the release to production?" "c4b-question-action")
+  [[ -z "$out" ]] || exit 15
+  [[ "$(jq -r '.tier' "$(_state_for c4b-question-action)")" == "Heavy" ]] || exit 16
+  [[ "$(jq -r '.last_prompt_kind' "$(_state_for c4b-question-action)")" == "work" ]] || exit 17
+  out=$(_run_router "how do database migrations work?" "c4b-explanation-action")
+  [[ -z "$out" ]] || exit 18
+  [[ "$(jq -r '.tier' "$(_state_for c4b-explanation-action)")" == "Light" ]] || exit 19
+  [[ "$(jq -r '.last_prompt_kind' "$(_state_for c4b-explanation-action)")" == "question" ]] || exit 20
+  out=$(_run_router "Can you explain how database migrations work?" "c4b-addressed-explanation")
+  [[ -z "$out" ]] || exit 21
+  [[ "$(jq -r '.tier' "$(_state_for c4b-addressed-explanation)")" == "Light" ]] || exit 22
+  out=$(_run_router "可以解释一下数据库迁移吗？" "c4b-chinese-explanation")
+  [[ -z "$out" ]] || exit 23
+  [[ "$(jq -r '.tier' "$(_state_for c4b-chinese-explanation)")" == "Light" ]] || exit 24
+  out=$(_run_router "请告诉我如何迁移数据库？" "c4b-chinese-how-to")
+  [[ -z "$out" ]] || exit 25
+  [[ "$(jq -r '.tier' "$(_state_for c4b-chinese-how-to)")" == "Light" ]] || exit 26
 )
 case "$?" in
-  0)  _pass "release action is Heavy; release explanation is Light" ;;
+  0)  _pass "release action is Heavy; explanation stays Light; action question remains work" ;;
   11) _fail "strong Heavy action emitted context" ;;
   12) _fail "release action did not route Heavy" ;;
   13) _fail "explanation question emitted context" ;;
   14) _fail "explanation question did not stay Light" ;;
+  15) _fail "high-consequence action question emitted context" ;;
+  16) _fail "high-consequence action question did not route Heavy" ;;
+  17) _fail "high-consequence action question remained a question turn" ;;
+  18) _fail "migration explanation question emitted context" ;;
+  19) _fail "migration explanation question did not stay Light" ;;
+  20) _fail "migration explanation question did not stay a question turn" ;;
+  21) _fail "addressed migration explanation emitted context" ;;
+  22) _fail "addressed migration explanation did not stay Light" ;;
+  23) _fail "Chinese migration explanation emitted context" ;;
+  24) _fail "Chinese migration explanation did not stay Light" ;;
+  25) _fail "Chinese migration how-to emitted context" ;;
+  26) _fail "Chinese migration how-to did not stay Light" ;;
   *)  _fail "strong-action routing crashed" ;;
 esac
 

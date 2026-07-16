@@ -3,7 +3,7 @@
 This file records where do-it deliberately absorbs outside workflow ideas. It is
 not an install manifest; `manifest.json` is the install source of truth.
 
-The source version `0.14.0` defines eight user/runnable do-it-native skill names
+The source version `0.14.0` defines nine user/runnable do-it-native skill names
 plus one generated discovery entry; this is version metadata, not a publication
 claim. The skills are meaning buckets (see the migration table in
 [`CHANGELOG.md`](../CHANGELOG.md)).
@@ -14,17 +14,19 @@ claim. The skills are meaning buckets (see the migration table in
 |---|---|---|
 | `do-it-router` | front door and three-tier route selection | Absorbs strict skill-selection discipline, task sizing, and parent coordination. Meaning buckets are self-selected — no mandatory chain. |
 | `do-it-code-quality` | write defense (main line) | Absorbs TDD, debugging, comments discipline, deep-module / seam vocabulary, interface/architecture contract checks, and worktree isolation into one write-time skill. |
-| `do-it-decide` | pressure-test, diverge, plan, slice | Absorbs grill, brainstorm, planning, and slicing. Standard stays lean; Heavy earns ceremony. |
+| `do-it-decide` | pressure-test, diverge, plan, slice | Absorbs grill, brainstorm, planning, and slicing. Standard stays lean; Heavy raises scrutiny when it helps. |
 | `do-it-review` | review + atomic fix / re-review | Absorbs review-loop and fix-loop: findings-first batch, then repair until Blocking/Important clear. |
-| `do-it-verify` | evidence before claims + closeout | Absorbs verification-gate **skill** and branch-closeout. The `verification-gate` **hook** remains. |
+| `do-it-verify` | evidence before claims + closeout | Absorbs claim-specific proof and branch-closeout. The `verification-gate` **hook** remains an advisory reminder. |
 | `do-it-context` | canonical terms and model alignment | Absorbs ubiquitous-language / domain-model discipline (`.do-it/CONTEXT.md`). |
 | `do-it-handbook` | lean handbook + worklog bootstrap | Seeds `.do-it/handbook/` and worklog templates; promotes stable facts without owning per-task review artifacts. |
 | `do-it-skill-authoring` | skill creation and maintenance | Absorbs progressive-disclosure skill writing and repo-managed skill validation. |
+| `do-it-retrospective` | opt-in local feedback/report loop | Keeps raw incidents local and redacted; turns repeated observations into a proposed, confirmed lesson rather than an automatic rule. |
 
-Delegation has **no installed skill** — the parent prompt supplies the full
-contract (tier/lens, scope/non-goals, write/restricted paths, facts to verify,
-proof target, stop, return) and `subagent-stance` reinforces it. Missing fields
-produce `NEEDS_CONTEXT` before worker inspection or edits.
+Delegation has **no installed skill** — bundled agents are optional capability
+experts. The parent gives a worker the goal and any needed ownership or
+side-effect boundary; `subagent-stance` reinforces autonomous work, useful
+evidence or uncertainty, and parent integration. There is no fixed contract,
+agent count, or role matrix.
 
 ## External Idea Map
 
@@ -62,21 +64,21 @@ not as installed skill names or vendored text:
 | Planning and task breakdown | `do-it-decide` | Assumption/evidence split, HITL/AFK, and task sizing. |
 | Incremental implementation and test-led thin slices | `do-it-code-quality`, `do-it-decide` | Tracer-bullet slices, RED/GREEN per behavior, reproduce-localize-reduce-fix-guard. |
 | API/interface design | `do-it-code-quality` | Producer/consumer/compatibility owner, additive change preference, migration proof. |
-| Code review quality gates | `do-it-review` | Five-axis review, change-size split, proof-quality review. |
+| Code review quality lenses | `do-it-review` | Risk-matched review axes, change-size split, proof-quality review. |
 | Code simplification and deprecation mindset | `do-it-code-quality` | Simplicity check, code-as-liability check, removal/deprecation proof. |
 | Source-driven context and security posture | `do-it-decide`, `do-it-context`, `do-it-review` | Research-first comparison for new surfaces; untrusted external-context boundary. |
 | Performance and release proof discipline | `do-it-code-quality`, `do-it-verify`, `docs/maintenance.md` | Measure/verify before claiming readiness. |
 
 Useful ideas from `gsd-build/get-shit-done` and `gsd-build/gsd-2` are absorbed
-as do-it-native gates, not as a replacement state machine:
+as do-it-native decision support, not as a replacement state machine:
 
 | Source Idea | do-it Destination | Absorbed Shape |
 |---|---|---|
 | Discuss-phase captures implementation decisions before planning | `do-it-decide` | Diverge briefly, pressure-test load-bearing premises, write shortest useful plan. |
 | Assumptions discussion mode | `do-it-decide` | Read repo truth first; ask only when preference gates the route. |
-| Decision coverage gates | `do-it-decide`, `do-it-review`, `spec-compliance-reviewer` | Requirements and decisions trace into a plan slice, delivered surface, or explicit deferral. |
+| Decision coverage | `do-it-decide`, `do-it-review`, `spec-compliance-reviewer` | Requirements and decisions trace into a plan slice, delivered surface, or explicit deferral when that coverage matters. |
 | Plan checker and source-audit gaps | `do-it-review` | Missing coverage, unwired implementation, unused surfaces, and synthetic proof become findings. |
-| Fresh context per task | parent delegation contract, `docs/routing-matrix.md` | Keep subagent slices bounded with exact facts, ownership, stop conditions, and return schemas. |
+| Fresh context per task | parent delegation guidance, `docs/routing-matrix.md` | Give a worker its goal and needed ownership boundary; let it return useful evidence or uncertainty. |
 
 ## Installed Agents
 
@@ -108,8 +110,8 @@ retained set or retired from the default install.
 - Each host should reuse the same do-it roles and translate only mechanics:
   skill invocation, subagent dispatch, file tools, sandbox controls, and
   verification commands.
-- Subagents must receive the complete Delegation Contract in the parent prompt:
-  tier/lens, scope/non-goals, write/restricted paths, facts to verify, proof
-  target, stop, and a `DONE | NEEDS_CONTEXT | BLOCKED` return schema.
+- Bundled agents are optional capability experts, not a required pipeline.
+  Parent prompts give a useful goal and only the ownership or side-effect
+  context the slice needs; the parent integrates the result.
 - Source-inspired text must be rewritten before installation. Do not vendor raw
   workflow copies into the public package.

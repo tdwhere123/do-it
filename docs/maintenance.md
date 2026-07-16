@@ -17,6 +17,12 @@ Working rule:
    installer or OpenCode registration.
 4. Avoid hand-editing deployed files under host configuration roots.
 
+For modern Codex installs, the plugin owns bundled do-it agents.
+`manifest.targets.codex.installAgents=false` deliberately leaves
+`~/.codex/agents` as user-owned space rather than a second plugin mirror. A
+legacy migration may remove only exact, confirmed old do-it duplicates; it must
+not overwrite, delete, or classify user-defined global agents as do-it state.
+
 Exception: for an intentional live-global rebaseline, copy only
 manifest-managed targets from `~/.codex` back into this repository, then run the
 doctor command to prove the repository and live global entries match. Use this
@@ -45,6 +51,7 @@ managed CLI setup for doctor and migration. Keep docs honest:
 - keep `do-it install` and `do-it doctor` documented as the underlying split
   commands for CI, debugging, or partial checks
 - do not require pairing Codex plugin install with global setup for hooks
+- keep user-defined `~/.codex/agents` separate from plugin-owned bundled agents
 - do not invent package.json scripts or release coordinates that are not present
 - make future package commands delegate to the same installer and doctor logic
 
@@ -53,6 +60,7 @@ Current validation commands:
 ```bash
 npm test
 npm run validate:agents
+npm run validate:core-skill-boundaries
 npm run build:claude-agents
 npm run build:codex-plugin
 npm exec --package . -- do-it setup
@@ -99,9 +107,9 @@ plugin metadata, and Hooks UI inspection after reload.
 | Host surface | Skills | Agents | Commands | Hooks | Doctor | Verification command |
 |---|---|---|---|---|---|---|
 | Codex plugin marketplace | Generated under `plugins/do-it/skills/` | Generated under `plugins/do-it/agents/` | None | Plugin hooks (trust under `/hooks`) | Optional via CLI | `npm run build:codex-plugin` and `CODEX_HOME=/tmp/do-it-plugin-test codex plugin marketplace add /path/to/do-it` then `codex plugin add do-it@tdwhere-do-it` |
-| Codex CLI setup (legacy) | Managed from `manifest.json` | TOML from `agents/` | CLI `do-it` | Root `hooks.json` plus do-it-managed files under `hooks/` | Default target | `CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it setup` |
+| Codex CLI setup (legacy) | Managed from `manifest.json` | Bundled Codex agents stay plugin-owned; `installAgents=false` preserves user `~/.codex/agents` | CLI `do-it` | Root `hooks.json` plus do-it-managed files under `hooks/` | Default target | `CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it setup` |
 | Claude Code plugin | Same maintained `skills/do-it/` source | Generated Markdown under `dist/claude/agents/` | `commands/` | Do-it-managed files under `hooks/`, including `hooks/hooks.json` | `--target=claude` | `CLAUDE_PLUGIN_ROOT_OVERRIDE=/tmp/do-it-claude-test npm exec --package . -- do-it setup --target=claude` |
-| Cursor local / Team Import (public listing pending) | Full 8 from `ALL_SKILLS` under `plugins/do-it-cursor/skills/` plus generated discovery/reference files | Generated under `plugins/do-it-cursor/agents/` | None | Medium: `sessionStart`, `beforeSubmitPrompt`, `postToolUse`/`afterFileEdit`, paired-evidence `stop` (no `grill-pretool`) | Managed CLI setup only: `--target=cursor`; not standalone local copy | `npm run install:cursor-local`, Reload Window, inspect exact directory + Hooks UI; or `do-it setup --target=cursor` for managed doctor |
+| Cursor local / Team Import (public listing pending) | Full 9 from `ALL_SKILLS` under `plugins/do-it-cursor/skills/` plus generated discovery/reference files | Generated under `plugins/do-it-cursor/agents/` | None | Medium: `sessionStart`, default-off feedback capture + router/grill/stance at `beforeSubmitPrompt`, `postToolUse`/`afterFileEdit`, advisory completion reminder (no `grill-pretool`) | Managed CLI setup only: `--target=cursor`; not standalone local copy | `npm run install:cursor-local`, Reload Window, inspect exact directory + Hooks UI; or `do-it setup --target=cursor` for managed doctor |
 | OpenCode local registration (npm publication pending) | Generated under `plugins/do-it-opencode/skills/` | Generated under `plugins/do-it-opencode/agents/` | None | Medium-Light: transform bootstrap, `tool.execute.after`, `session.idle` soft reminder | No CLI doctor | `npm run build:opencode-plugin && npm run test-opencode`, then inspect the exact `opencode.json` registration |
 
 ## Safe Cleanup Runbook
@@ -121,6 +129,11 @@ plugin directory tree just to remove do-it.
 
 If ownership is unclear, stop and restore the backup rather than using a glob,
 recursive home-directory deletion, or `DO_IT_FORCE=1` as cleanup.
+
+For Codex legacy migration, compare against the known do-it-managed inventory
+and remove only confirmed stale do-it duplicates. `~/.codex/agents` is otherwise
+user-owned; never use a broad agent-directory cleanup to make plugin state look
+tidy.
 
 Deprecated legacy skill targets use the same safety rule: install removes them
 only when they are marked as do-it-managed in the state file or when
@@ -209,8 +222,9 @@ has been verified.
 2. Add or update the matching `agents[]` entry in `manifest.json` only when
    inventory changes are in scope.
 3. Keep descriptions in do-it terminology.
-4. Keep instructions token-conscious: exact scope, exact files, minimal useful
-   review stack, and explicit stop conditions.
+4. Keep instructions token-conscious: say what capability is useful, when it is
+   useful, and what compact result helps the parent. Add only the boundaries the
+   slice actually needs.
 5. Verify the agent file does not include machine-specific paths, secrets, or
    runtime-only assumptions.
 6. Keep Codex TOML schema-clean and model-agnostic. Supported top-level keys
@@ -221,24 +235,15 @@ has been verified.
 7. Update `docs/routing-matrix.md` if the agent changes default planning,
    implementation, review, or closeout flow.
 
-Review coverage should stay explicit and risk-budgeted. Keep dedicated
-read-only reviewer agents for correctness, scope compliance, maintainability /
-YAGNI, and red-team, but do not run all of them for every change. Writer
-specialists can support drills or fixes, but they should not be counted as the
-only Heavy review lens unless the parent explicitly scopes them as read-only and
-the report satisfies the review schema.
+Review coverage should stay risk-budgeted, not fixed. Keep specialist reviewers
+available for correctness, scope, maintainability / YAGNI, and adversarial
+failure modes, but let the parent choose only the views that improve the task.
 
-Each agent requires the parent prompt to carry the full Delegation Contract:
-
-- tier and lens;
-- scope and non-goals;
-- write ownership and restricted paths (or explicit read-only);
-- facts to verify and proof target;
-- stop condition;
-- return schema using `DONE | NEEDS_CONTEXT | BLOCKED`.
-
-If any field is missing or ambiguous, the agent returns `NEEDS_CONTEXT` with the
-missing fields before inspecting or editing. Agents never self-escalate to Heavy.
+Bundled agents are optional capability experts, not a contract pipeline. The
+parent gives a worker the goal plus any necessary write or side-effect boundary;
+the worker inspects autonomously, returns useful evidence or uncertainty, and
+the parent integrates the result. Do not require a fixed field checklist, agent
+count, or role matrix.
 
 ## Claude Code Target
 
@@ -248,11 +253,15 @@ the same `agents/*.toml` source-of-truth. The Claude target adds:
 
 - `.claude-plugin/plugin.json` and `marketplace.json` — plugin metadata for
   `/plugin marketplace add tdwhere123/do-it` then `/plugin install do-it@do-it`.
-- `hooks/hooks.json` and hook scripts (`router.sh`, `grill-prompt.sh`,
-  `subagent-stance.sh`, `write-quality-lint.sh`, `verification-gate.sh`) — wire
-  UserPromptSubmit / PostToolUse / Stop without slash commands. `grill-pretool`
+- `hooks/hooks.json` and hook scripts (`behavior-feedback.sh`, `router.sh`,
+  `grill-prompt.sh`, `subagent-stance.sh`, `write-quality-lint.sh`,
+  `verification-gate.sh`) — wire UserPromptSubmit / UserPromptExpansion /
+  PostToolUse / Stop without required slash commands. Claude alone also receives the default-off,
+  named-command `strict-external-actions.sh` PreToolUse profile. `grill-pretool`
   is not registered.
-- `commands/do-it-skip.md` — the only slash command, an explicit escape hatch.
+- `commands/do-it-skip.md`, `commands/do-it-handbook.md`, and
+  `commands/do-it-retrospective.md` — optional Claude command surfaces; the
+  latter uses explicit `on|off|status|report` arguments.
 - `dist/claude/agents/*.md` — generated by `scripts/build-claude-agents.mjs`
   from `agents/*.toml`. The build runs automatically before
   `do-it install --target=claude` and on `npm pack` / `npm publish` (via
@@ -278,7 +287,8 @@ the same `agents/*.toml` source-of-truth. The Claude target adds:
   data-only `<cwd>/.do-it/keywords.local.tsv` format documented there. The
   legacy executable `.do-it/keywords.local.sh` path is ignored.
 - **Hook behavior change:** edit the relevant `hooks/*.sh`. Hook scripts must
-  remain bash, jq-only, and degrade silently (exit 0) on unexpected input.
+  remain portable bash with no nonstandard runtime dependency and degrade
+  silently (exit 0) on unexpected input.
 
 ## Cursor Plugin Target
 
@@ -298,7 +308,7 @@ target installs the **full** skill inventory (`ALL_SKILLS`) and adds:
   `grill-pretool` / `preToolUse` plan gate.
 - `scripts/build-cursor-plugin.mjs` — the only supported way to refresh the
   generated Cursor bundle; both local copy and managed CLI setup install the
-  full eight-skill bundle.
+  full nine-skill bundle.
 
 ### Maintaining the Cursor Target
 
@@ -309,7 +319,7 @@ target installs the **full** skill inventory (`ALL_SKILLS`) and adds:
   `plugins/do-it-cursor/skills/` or `plugins/do-it-cursor/agents/`.
 - **Hook change:** edit kernel scripts under `hooks/` and Cursor mapping under
   `install/cursor-hooks.json`; regenerate with `npm run build:cursor-plugin`.
-- **Install verification:** for `npm run install:cursor-local`, confirm all eight
+- **Install verification:** for `npm run install:cursor-local`, confirm all nine
   skill directories plus generated discovery/reference files land under
   `~/.cursor/plugins/local/do-it-cursor` as a **real directory**, Reload Window,
   and inspect Customize → Hooks for do-it `.cmd` entries. Do not run ordinary
@@ -430,22 +440,21 @@ This avoids state collisions when both targets are installed on the same machine
 
 ## Delegated Agent Maintenance
 
-Agent descriptions should make clear that subagents run a do-it slice, not an
-unstructured side quest. When adding or changing an agent:
+Agent descriptions should make clear what expertise a subagent contributes, not
+encode a parent workflow. When adding or changing an agent:
 
-- state whether it is a mapper, drill, reviewer, specialist, or implementer;
+- state the capability, the useful trigger, and the compact result it returns;
 - keep its write permissions narrow;
 - require it to inspect current truth before acting;
 - require verification evidence when it edits files;
-- require failure-mode coverage, path-map evidence when applicable, and residual risk in the return shape;
+- ask for failure-mode coverage, path-map evidence when applicable, and residual risk;
 - remind implementation agents that the parent owns integration and final
   claims.
 
-The delegated prompt contract belongs in the parent prompt (plain-text slice
-contract + `subagent-stance` hook), not in a link the worker must discover.
-Every agent definition carries the same field checklist and missing-context
-behavior. `scripts/validate-agent-bundle.mjs` rejects broken local Markdown
-instruction links while preserving the model-agnostic policy.
+The parent gives each worker only the goal and necessary boundary context;
+`subagent-stance` reinforces autonomous work and parent integration. Do not add
+fixed contract fields or refusal behavior. `scripts/validate-agent-bundle.mjs`
+still protects portable bundle integrity and model-agnostic policy.
 
 ## Verification
 
@@ -455,6 +464,7 @@ Recommended checks before committing workflow changes. For live-first rebaseline
 git diff --check
 npm test
 npm run validate:agents
+npm run validate:core-skill-boundaries
 npm run build:claude-agents
 npm run build:codex-plugin
 CODEX_HOME=/tmp/do-it-codex-test ./install/install.sh

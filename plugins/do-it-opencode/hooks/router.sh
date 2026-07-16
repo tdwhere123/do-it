@@ -45,12 +45,12 @@ do_it_prompt_requires_durable_plan() {
 }
 
 # One explicit high-consequence action is enough for Heavy. Nouns alone are
-# not: explanation questions have already short-circuited to Light above, and
-# topical statements still use the two-signal rule below.
+# not: genuine explanation questions remain Light below, while task-shaped
+# questions still get the normal risk scan.
 do_it_prompt_has_strong_heavy_action() {
   local prompt_lc="$1"
   # High-consequence verbs keep the full surface list (api/schema/interface/…).
-  local action='(release|publish|deploy|ship|roll[ -]?out|cut[ -]?over|migrate|migration|secure|harden|remediate|rotate|revoke|break|deprecat(e|ion)|upgrade|irreversible|发布|上线|部署|迁移|切换|加固|修复安全|轮换|吊销|破坏|不兼容|弃用|升级|不可逆)'
+  local action='(release|publish|deploy|ship|roll[ -]?out|cut[ -]?over|migrate|run|apply|secure|harden|remediate|rotate|revoke|break|deprecate|upgrade|irreversible|发布|上线|部署|迁移|切换|加固|修复安全|轮换|吊销|破坏|不兼容|弃用|升级|不可逆)'
   local surface='(production|prod|package|registry|version|v?[0-9]+\.[0-9]+|migration|database|schema|security|vulnerabilit(y|ies)|credential|secret|token|certificate|api|interface|contract|breaking|irreversible|版本|生产|包|仓库|迁移|数据库|安全|漏洞|凭据|密钥|令牌|证书|接口|契约|不兼容|不可逆)'
   # Structural remove/delete/drop/rename/rewrite only escalate on HIGH surfaces —
   # not bare api/schema/interface/contract (those stay Standard via normal signals).
@@ -60,6 +60,75 @@ do_it_prompt_has_strong_heavy_action() {
     return 0
   fi
   printf '%s' "$prompt_lc" | grep -qiE "${destructive}.*${high_surface}|${high_surface}.*${destructive}"
+}
+
+# Detect explanatory phrasing before treating a question-shaped prompt as a
+# task. A later direct delegation clause can still override this classification.
+do_it_prompt_is_explanatory_question() {
+  local prompt_lc
+  prompt_lc="$(do_it_lc "$1")"
+  # Reuse the data-driven question vocabulary so router behavior cannot drift
+  # from `question-hints.tsv`; punctuation alone remains insufficient because
+  # a direct request may legitimately end in a question mark.
+  if do_it_prompt_has_any "$prompt_lc" DO_IT_QUESTION_HINTS; then
+    return 0
+  fi
+  case "$prompt_lc" in
+    *"explain"*|*"how to "*|*"解释"*|*"介绍"*|*"说明"*|*"告诉我"*)
+      return 0
+      ;;
+  esac
+  return 1
+}
+
+# Question wording alone is not a task, but direct-request forms such as
+# "Can you deploy…?" or "请迁移…？" are. Keep this narrow so explanatory
+# questions such as "how do migrations work?" remain informational.
+do_it_prompt_is_direct_request_question() {
+  local prompt_lc
+  prompt_lc="$(do_it_lc "$1")"
+  if do_it_prompt_is_explanatory_question "$prompt_lc"; then
+    return 1
+  fi
+  case "$prompt_lc" in
+    can\ you\ *|could\ you\ *|would\ you\ *|will\ you\ *|please\ *|\
+    "请"*|"帮我"*|"麻烦"*|"能否"*|"是否可以"*|"可以"*|"你能"*|"你可以"*)
+      return 0
+      ;;
+  esac
+  return 1
+}
+
+# A question can still explicitly ask the parent to use child agents. Treat
+# that as work rather than letting a conversational word such as "为什么" erase
+# the user's requested action. This is deliberately a narrow, two-part signal:
+# an orchestration verb plus a generic, child, or bundled-agent target. Naming
+# agents alone remains a normal low-noise question.
+do_it_prompt_has_explicit_delegation_intent() {
+  local prompt_lc
+  prompt_lc="$(do_it_lc "$1")"
+  local orchestration='(并行|编排|委派|派遣|调用|调度|交给|交由|parallel(ize|ise|ized|ised|ing)?|delegate|delegation|dispatch|orchestrat(e|ion|ing)|spawn)'
+  local agent_target='(子智能体|子代理|sub[ -]?agents?|child[ -]?agents?|multi[ -]?agents?|智能体|代理|agents?|architecture-strategist|code-mapper|code-quality-cleaner|documentation-engineer|plan-challenger|product-strategist|red-team-reviewer|reviewer|spec-compliance-reviewer|tdd-red-writer)'
+  printf '%s' "$prompt_lc" | grep -qiE "${orchestration}.*${agent_target}|${agent_target}.*${orchestration}"
+}
+
+# An explanation may contain a genuine second imperative clause (for example,
+# "why is auth failing? Please fix src/auth.ts"). Preserve discussion-only
+# questions, but let a clearly separated direct request win over the opener.
+do_it_prompt_has_direct_code_request_clause() {
+  local prompt="$1" prompt_lc
+  do_it_prompt_has_any "$prompt" DO_IT_INTENT_VERBS || return 1
+  do_it_prompt_has_code_object "$prompt" || return 1
+  prompt_lc="$(do_it_lc "$prompt")"
+  case "$prompt_lc" in
+    *"；请"*|*"；帮我"*|*"；麻烦"*|*"；修复"*|*"；实现"*|*"；修改"*|\
+    *"？请"*|*"? please "*|*"? can you "*|*"? could you "*|\
+    *"; please "*|*"; can you "*|*"; could you "*|\
+    *"; fix "*|*"; implement "*|*"; refactor "*|*"; rewrite "*)
+      return 0
+      ;;
+  esac
+  return 1
 }
 
 # Escape / skip keywords: write only the parsed skip targets for this turn.
@@ -82,14 +151,51 @@ fi
 
 PROMPT_LEN=${#PROMPT}
 TIER=""
+QUESTION_LIKE=0
+EXPLICIT_TASK_INTENT=0
+PROMPT_LC="$(do_it_lc "$PROMPT")"
+strong_heavy_action=0
 
-# Question / discussion mode short-circuits to Light. Track this separately
-# from the "already grilled" marker so one question turn cannot suppress the
-# next implementation turn in the same session.
 if do_it_prompt_is_question "$PROMPT"; then
+  QUESTION_LIKE=1
+fi
+if do_it_prompt_has_explicit_delegation_intent "$PROMPT"; then
+  EXPLICIT_TASK_INTENT=1
+elif do_it_prompt_has_strong_heavy_action "$PROMPT_LC" \
+     && { [[ "$QUESTION_LIKE" == "0" ]] || do_it_prompt_is_direct_request_question "$PROMPT"; }; then
+  # High-consequence actions remain work even when phrased as a question. A
+  # question mark changes tone, not the user's request to deploy/migrate/etc.
+  EXPLICIT_TASK_INTENT=1
+  strong_heavy_action=1
+elif do_it_prompt_has_any "$PROMPT" DO_IT_INTENT_VERBS \
+     && do_it_prompt_has_code_object "$PROMPT" \
+     && { ! do_it_prompt_is_explanatory_question "$PROMPT" \
+          || do_it_prompt_has_direct_code_request_clause "$PROMPT"; }; then
+  # A concrete edit / investigation request remains work even if written as a
+  # question. Direct intent takes precedence over a "why" / explanation cue;
+  # the router must not turn a requested repair into a discussion-only turn.
+  EXPLICIT_TASK_INTENT=1
+fi
+
+# Save the user action boundary before downstream hooks consume the state. A
+# fresh no-write request wins over any conflicting mutation word in the same
+# prompt. Once active, only an explicit reopening can clear the boundary.
+NO_WRITE_BOUNDARY="$(do_it_session_state_get "$SESSION_ID" no_write_boundary)"
+[[ "$NO_WRITE_BOUNDARY" == "1" ]] || NO_WRITE_BOUNDARY=0
+if do_it_prompt_requests_no_write "$PROMPT"; then
+  NO_WRITE_BOUNDARY=1
+elif do_it_prompt_reopens_writes "$PROMPT"; then
+  NO_WRITE_BOUNDARY=0
+fi
+do_it_session_state_set "$SESSION_ID" no_write_boundary "$NO_WRITE_BOUNDARY"
+
+# Question-shaped prompts stay quiet only when they contain no concrete task
+# request. This preserves low-noise discussion behavior without making
+# question words a hard ceiling over direct intent or high-consequence action.
+if [[ "$QUESTION_LIKE" == "1" && "$EXPLICIT_TASK_INTENT" == "0" ]]; then
   TIER="Light"
   do_it_session_state_set "$SESSION_ID" last_prompt_kind "question"
-  do_it_debug router "question=true tier=Light"
+  do_it_debug router "question=true task_intent=false tier=Light"
 else
   do_it_session_state_set "$SESSION_ID" last_prompt_kind "work"
   do_it_user_turn_bump "$SESSION_ID"
@@ -102,9 +208,7 @@ fi
 # signals. This keeps casual mentions Standard while routing actual release,
 # migration, security, breaking, and irreversible work to Heavy.
 heavy_count=0
-strong_heavy_action=0
 if [[ -z "$TIER" ]]; then
-  PROMPT_LC="$(do_it_lc "$PROMPT")"
   for signal in "${DO_IT_HEAVY_SIGNALS[@]}"; do
     [[ -z "$signal" ]] && continue
     sig_lc="$(do_it_lc "$signal")"
@@ -123,6 +227,11 @@ fi
 if [[ -z "$TIER" ]]; then
   if [[ "$strong_heavy_action" -eq 1 || "$heavy_count" -ge 2 ]]; then
     TIER="Heavy"
+  elif [[ "$EXPLICIT_TASK_INTENT" == "1" ]]; then
+    # A concrete task stays work even when phrased as a question. Explicit
+    # delegation is permission for the model to choose useful child work, not
+    # an instruction to follow a fixed multi-agent pipeline.
+    TIER="Standard"
   elif [[ "$PROMPT_LEN" -lt 60 ]] && do_it_prompt_has_any "$PROMPT" DO_IT_LIGHT_SIGNALS; then
     TIER="Light"
   elif [[ "$heavy_count" -ge 1 ]]; then
@@ -304,14 +413,17 @@ do_it_session_state_set_many "$SESSION_ID" \
   dim_needs_tdd "$DIM_NEEDS_TDD" \
   dim_needs_review_loop "$DIM_NEEDS_REVIEW_LOOP"
 
-do_it_debug router "tier=$TIER heavy_count=$heavy_count strong_action=$strong_heavy_action prompt_len=$PROMPT_LEN dims=touch:${DIM_TOUCHES_CODE},pkg:${DIM_CROSSES_PACKAGES},iface:${DIM_BREAKS_INTERFACE},tdd:${DIM_NEEDS_TDD},review:${DIM_NEEDS_REVIEW_LOOP}"
+do_it_debug router "tier=$TIER question=$QUESTION_LIKE task_intent=$EXPLICIT_TASK_INTENT no_write=$NO_WRITE_BOUNDARY heavy_count=$heavy_count strong_action=$strong_heavy_action prompt_len=$PROMPT_LEN dims=touch:${DIM_TOUCHES_CODE},pkg:${DIM_CROSSES_PACKAGES},iface:${DIM_BREAKS_INTERFACE},tdd:${DIM_NEEDS_TDD},review:${DIM_NEEDS_REVIEW_LOOP}"
 
-# Standard receives one compact stance reminder. It names no mandatory chain;
-# the agent still self-selects only the meaning skills the work needs. Light is
-# intentionally quiet, and Heavy is already explicit enough to avoid another
-# routine injection.
-if [[ "$TIER" == "Standard" ]]; then
+# Standard receives one compact stance reminder. It names no mandatory chain or
+# implementation step: the user still owns the action boundary, and the agent
+# self-selects only the skills or workers the task needs. Light is intentionally
+# quiet, and Heavy is already explicit enough to avoid another routine injection.
+if [[ "$NO_WRITE_BOUNDARY" == "1" ]]; then
   do_it_emit_context UserPromptSubmit \
-    "do-it tier: Standard. Inspect current truth, name premise and blast radius, make the smallest coherent change, and run targeted proof. Select meaning skills only when needed."
+    "do-it tier: ${TIER}. honor the user's action boundary: a no-write boundary is active for this session. Inspect, diagnose, plan, or review only; do not edit files, run change-producing commands, or delegate implementation until the user explicitly reopens it."
+elif [[ "$TIER" == "Standard" ]]; then
+  do_it_emit_context UserPromptSubmit \
+    "do-it tier: Standard. Inspect current truth, honor the user's action boundary, and use task-relevant evidence. Select skills or agents only when task-fit helps."
 fi
 exit 0

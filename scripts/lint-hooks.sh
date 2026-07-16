@@ -35,6 +35,8 @@ if [[ "${1:-}" == "--strict" ]]; then
 fi
 
 entry_points=(
+  hooks/behavior-feedback.sh
+  hooks/strict-external-actions.sh
   hooks/router.sh
   hooks/grill-prompt.sh
   hooks/subagent-stance.sh

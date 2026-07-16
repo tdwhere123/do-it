@@ -11,7 +11,7 @@ more than one runtime.
 | parent agent | The orchestrating agent in the active session | "main Claude", "Composer" |
 | subagent / child agent | A delegated worker with bounded scope | "Task tool", "subprocess" |
 | skill | A loadable workflow file (`SKILL.md`) | upstream product names |
-| hook | Host-invoked shell gate (`router.sh`, etc.) | "rule", "MCP" |
+| hook | Host-invoked shell helper (`router.sh`, etc.) | "rule", "MCP" |
 | tier | `Light` / `Standard` / `Heavy` routing label | host-specific modes |
 | truth plane | Where evidence was collected (see `verification-gate` hook / `do-it-verify`) | "environment" loosely |
 | system-reminder | Host-injected advisory text from a hook | "notification" |

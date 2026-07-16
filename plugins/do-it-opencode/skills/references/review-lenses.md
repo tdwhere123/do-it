@@ -4,7 +4,8 @@ Detail for `do-it-review`. Load when running comments, research-first, YAGNI, or
 
 ## Review Axes
 
-Check every non-trivial diff through five axes before polish:
+Choose the axes that expose a credible risk in the diff; do not turn a local
+review into a five-axis ceremony:
 
 - **Requirements:** task, non-goals, acceptance evidence.
 - **Correctness:** wrong behavior on real inputs, state, timing, failure paths.
@@ -51,7 +52,9 @@ Inspect evidence itself:
 
 ## Comments Lens
 
-**When:** diff contains added/modified comments. Standard: must run. Heavy: default; skip only with explicit reason in review output.
+**When:** a changed comment could affect maintainability, an invariant, or a
+user-facing instruction. Use it when that risk is present; do not create a
+comment review ritual for unrelated code changes.
 
 Loads comment rules from `do-it-code-quality` § Comments. Finding shape: severity / location / cause class / required fix. Cause classes: `what` / `history` / `task-ref` / `tombstone` / `orphan-todo` / `fix-narrative` / `stale-invariant` / `broken-reference`.
 
@@ -67,19 +70,27 @@ Findings use standard shape. Memory-pick without fresh search is `Blocking`.
 
 ## YAGNI Lens
 
-**When:** diff adds new abstraction, export, dependency, or `Phase 2` scaffolding — or `write-quality-lint` flagged any family on changed files (`no-consumer`, `copy-paste`, `case-list`, `edit-bloat`, comment/YAGNI families). Heavy: must run when signals present. Standard: required when any signal; skip only with explicit reason.
+**When:** a diff adds an abstraction, export, dependency, or `Phase 2`
+scaffolding — or an advisory hook flags a related family on changed files
+(`no-consumer`, `copy-paste`, `case-list`, `edit-bloat`, comment/YAGNI
+families). Use the lens when the signal could change the design; do not force a
+formal rebuttal for a clearly inapplicable advisory.
 
-For each L0 family flagged on a changed file: emit finding or explicit rebuttal — silent ignore is Important. Family definitions: [`write-quality-families.md`](write-quality-families.md).
+For a relevant L0 family, emit a finding or a short rebuttal. Family
+definitions: [`write-quality-families.md`](write-quality-families.md).
 
 Loads `code-quality-cleaner` (maintainability + decision ladder from [`workflow-kernel.md`](workflow-kernel.md)). Tags: `delete:` / `stdlib:` / `native:` / `yagni:` / `shrink:` plus `net: -<N> lines possible` or `Lean already. Ship.`
 
-## Heavy Multi-Lens Defaults
+## Heavy Multi-Lens Starting Point
 
-Heavy release/workflow/policy: two lenses — changed skill/policy behavior + install/release readiness.
+For Heavy release/workflow/policy work, start with the changed behavior and
+install/release readiness lenses when they fit. Add another lens only for a
+concrete migration, security, public-interface, state, or architecture risk.
+Correctness/contract review often fits `reviewer`; security/auth/concurrency/
+replay often fits `red-team-reviewer`.
 
-Add more lenses only for migration, adversarial security (via `red-team-reviewer`), broad public interfaces, state/persistence, or phase-scale architecture. Pre-implementation interface drill counts toward Heavy review only when a read-only reviewer rechecks delivered diff against contract. Correctness/contract review: `reviewer`; security/auth/concurrency/replay: `red-team-reviewer`.
-
-Subagents counted toward Heavy gate must be `tier: Heavy` in prompt. Standard-tier review informs parent but does not satisfy Heavy sufficiency.
+Judge a delegated review by its evidence and coverage, not a worker's tier
+label or a required lens count. The parent integrates the result.
 
 ## QA Intake Mode
 

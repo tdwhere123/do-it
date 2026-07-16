@@ -9,9 +9,9 @@
 > Stop asking AI agents to remember process. Install it.
 
 `do-it` turns AI coding discipline into an installable workflow for **Codex**,
-**Claude Code**, **Cursor**, and **OpenCode**. It routes work by risk, delegates
-sub-agents with explicit contracts, and requires fresh evidence before an agent
-can claim done.
+**Claude Code**, **Cursor**, and **OpenCode**. It gives work an advisory risk
+label, offers optional sub-agent expertise, and keeps completion claims tied to
+fresh, claim-specific evidence.
 
 This is the workflow I use every day for real project work. If it fits your
 style, use it. If something feels wrong, open an issue, send a PR, or fork it
@@ -21,16 +21,17 @@ and reshape it for your own agent setup.
 
 ### Route the work
 
-Every prompt is classified as `Light`, `Standard`, or `Heavy` before the agent
-starts acting. The router then names which **meaning buckets** to load — not a
-fixed pipeline.
+Every prompt gets an advisory `Light`, `Standard`, or `Heavy` label. The router
+then suggests which **meaning buckets** may help — not a fixed pipeline. Direct
+user intent and the model's reading of the task take precedence over keyword
+classification.
 
 - `Light`: small local edits, docs tweaks, one-off checks.
 - `Standard`: normal non-trivial engineering work — load buckets only when the
   task needs them.
 - `Heavy`: releases, architecture changes, cross-module policy, public
-  workflow changes, or multi-agent delivery — `do-it-decide` pressure-test is
-  the default.
+  workflow changes, or irreversible closeout — pressure-test a premise or load
+  a decision capability when it would change the route.
 
 | Bucket | Skill | When |
 |---|---|---|
@@ -40,40 +41,51 @@ fixed pipeline.
 | Verify | `do-it-verify` | Before done / ready / merge claims |
 
 The point is not more ceremony. Small work stays small; Standard work does not
-carry a mandatory brainstorm → grill → plan → review chain; Heavy earns the
-full decide budget by default.
+carry a mandatory brainstorm → grill → plan → review chain; Heavy earns extra
+scrutiny only when the risk is real. Independent sub-agent work can help at any
+tier when the task calls for it.
 
-### Contract the delegation
+### Delegate freely
 
-Sub-agents are useful only when the parent gives them a real boundary. `do-it`
-treats delegation as a contract, not a scheduling problem.
+Bundled sub-agents are optional capability experts, not a pipeline. Use one
+when an independent map, review, or specialist view improves the work—especially
+after a direct user request. Give a worker the goal, any necessary ownership or
+side-effect boundary, and the useful result or evidence; add context only when
+the slice needs it.
 
-Every delegated slice pins down the complete **Delegation Contract**:
-
-| Field | What it pins down |
-|---|---|
-| `tier + lens` | Light / Standard / Heavy and the assigned perspective. |
-| `scope + non-goals` | The single bounded outcome and what stays out. |
-| `write ownership + restricted paths` | Exactly what may and may not be edited (or explicitly read-only). |
-| `facts to verify` | Concrete claims the sub-agent must confirm before acting. |
-| `proof target` | The evidence that will establish the assigned outcome. |
-| `stop condition` | The exact event that ends the sub-agent's run. |
-| `return schema` | A compact `DONE | NEEDS_CONTEXT | BLOCKED` report. |
-
-The parent must include those fields in the prompt itself. Portable agents do not
-assume a repository-relative instruction file is available; they return
-`NEEDS_CONTEXT` and list missing fields before inspecting or editing.
-
-No external orchestrator is required. The parent agent stays responsible, and
-the contract is plain text that any host with skills and sub-agents can use.
+Workers can inspect autonomously, return uncertainty, and leave integration and
+final claims to the parent. There is no required delegation contract, agent
+count, or role matrix. User-defined global agents stay outside do-it's
+plugin-owned inventory and are not overwritten by plugin updates.
 
 ### Prove the result
 
-`do-it` treats "done" as an evidence claim. If files changed, the agent needs
-fresh verification output before it can claim the task is complete.
+`do-it` treats "done" as an evidence claim. `do-it-verify` asks for fresh,
+claim-specific proof from the current worktree; if proof is unavailable, say
+`NOT_VERIFIED` and name the next check.
 
-That keeps the closeout tied to the repository's actual state, not the agent's
-confidence.
+The `verification-gate` hook is only an advisory reminder. It does not whitelist
+commands or block ordinary local work. That keeps closeout tied to the
+repository's actual state, not the agent's confidence.
+
+For external side effects, do-it asks the agent to confirm first; only the
+host's sandbox, approval policy, and command rules can enforce that boundary.
+Treat a plugin hook reminder as advisory, never as a substitute for host-native
+permissions. Claude alone also has an optional, default-off named-command
+profile that returns a real host `ask` decision; it is not a universal veto.
+See [strict external actions](./docs/strict-external-actions.md).
+
+### Learn from behavior without adding default noise
+
+The feedback recorder is off by default. Use
+`/do-it-retrospective on` to start redacted, project-local capture and
+`/do-it-retrospective report` for a compact report (valid/skipped events,
+repeated signals, at most three candidate lessons, and remaining uncertainty).
+It never injects prompt context, conservatively ignores ordinary work prompts,
+and never writes
+`AGENTS.md` or `CLAUDE.md` without an exact later confirmation.
+In a Git checkout, its runtime directory is hidden through the worktree-local
+Git exclude; it does not edit the project's `.gitignore`.
 
 ### Keep it small
 
@@ -85,8 +97,8 @@ works wins.
 
 It is wired into three points, not bolted on as a linter:
 
-- **Before** you write, `do-it-decide` opens with the necessity question when
-  premises are load-bearing (Heavy default).
+- **Before** you write, use `do-it-decide` when a load-bearing premise needs a
+  necessity question.
 - **While** you write, `do-it-code-quality` plus the advisory
   `write-quality-lint` hook flag comment discipline, coarse anti-patterns, and
   integrity smells on newly-added lines (one reminder per file; never blocks).
@@ -105,7 +117,7 @@ pending**. Plugin bundles ship skills, agents, and hooks together.
 
 | Truth plane | What this repository can claim |
 |---|---|
-| Source/package metadata | This checkout declares `0.14.0`, 8 user/runnable skills + 1 generated discovery entry, and 10 agents. |
+| Source/package metadata | This checkout declares `0.14.0`, 9 user/runnable skills + 1 generated discovery entry, and 10 agents. |
 | Git tag | This checkout has no matching `v0.14.0` tag; version metadata is not a release tag. |
 | Marketplace / npm | Coordinates and future publish paths are documented, but metadata alone does not prove a public listing or registry publication. |
 | Live host | Only an install/inspection on that host proves what is active there; do not infer it from source or a packed artifact. |
@@ -119,8 +131,8 @@ codex plugin add do-it@tdwhere-do-it
 
 `codex plugin marketplace add` only registers the marketplace — it does not
 install the plugin. After install, **trust the plugin hooks** under `/hooks` so
-routing, Heavy grill nudge, subagent stance, write-quality lint, and the
-verification gate run automatically.
+the default-off feedback recorder, routing, Heavy grill nudge, subagent stance,
+write-quality lint, and the verification reminder are available.
 
 Local checkout smoke test (use a temp `CODEX_HOME` if needed):
 
@@ -130,8 +142,13 @@ CODEX_HOME=/tmp/do-it-plugin-test codex plugin add do-it@tdwhere-do-it
 ```
 
 The Codex plugin bundle lives at `plugins/do-it/` (generated from
-`manifest.json`): 8 user/runnable skills, 1 generated `_index.md` discovery
+`manifest.json`): 9 user/runnable skills, 1 generated `_index.md` discovery
 entry, and 10 agents, plus plugin-local hooks.
+
+Modern Codex plugins own those bundled do-it agents.
+`manifest.targets.codex.installAgents=false` keeps `~/.codex/agents` for
+user-defined agents; legacy migration removes only confirmed old do-it
+duplicates.
 
 ### Claude Code
 
@@ -176,9 +193,9 @@ listed there yet**. Until it is submitted/reviewed, use:
 4. **Public listing later:** submit at
    [cursor.com/marketplace/publish](https://cursor.com/marketplace/publish).
 
-Cursor gets the **full 8 skills** (`do-it-router`, `do-it-code-quality`,
+Cursor gets the **full 9 skills** (`do-it-router`, `do-it-code-quality`,
 `do-it-review`, `do-it-decide`, `do-it-verify`, plus `do-it-handbook`,
-`do-it-context`, `do-it-skill-authoring`) with skills index and `references/`
+`do-it-context`, `do-it-skill-authoring`, and `do-it-retrospective`) with skills index and `references/`
 — the same set as Codex, Claude, and OpenCode.
 
 Medium hook depth: `sessionStart`, `beforeSubmitPrompt` (router / Heavy grill /
@@ -212,7 +229,8 @@ npm run test-opencode
 CLI setup remains for doctor checks, temp-home smoke tests, and migration from
 older global installs. It is **not** the recommended first install. Prefer the
 plugin marketplace; use setup only to mirror or migrate — do not run plugin
-install and a live global skill tree at the same time.
+install and a live, do-it-managed legacy mirror at the same time. User-defined
+global agents can remain separate.
 
 ```bash
 npm install -g https://github.com/tdwhere123/do-it/archive/refs/heads/main.tar.gz
@@ -232,23 +250,26 @@ Runnable skill matrix (tiers in `scripts/skill-tiers.mjs`):
 
 | Host | User/runnable skills | Discovery metadata | Agents |
 |---|---|---|---|
-| Codex / Claude / Cursor / OpenCode | 8 — 5 core + 3 extended | 1 generated `_index.md` entry (not a ninth skill) | 10 |
+| Codex / Claude / Cursor / OpenCode | 9 — 5 core + 4 extended | 1 generated `_index.md` entry (not a tenth skill) | 10 |
 
 - Meaning-bucket skills: `do-it-router`, `do-it-code-quality` (write defense),
   `do-it-review` (review + fix), `do-it-decide` (pressure-test / diverge /
   plan / slice), `do-it-verify` (evidence + closeout), plus extended
-  `do-it-handbook`, `do-it-context`, `do-it-skill-authoring`.
+  `do-it-handbook`, `do-it-context`, `do-it-skill-authoring`, and
+  on-demand `do-it-retrospective`.
 - Ten portable agents: decide lenses (`product-strategist`,
   `architecture-strategist`, `plan-challenger`), write lenses (`code-mapper`,
   `code-quality-cleaner`, `tdd-red-writer`), review lenses (`reviewer`,
   `red-team-reviewer`, `spec-compliance-reviewer`), and
   `documentation-engineer`.
-- Plugin-bundled hooks on all four hosts: router, Heavy-only `grill-prompt`,
+- Plugin-bundled hooks on all four hosts: default-off, silent
+  `behavior-feedback`; router; Heavy-only `grill-prompt`;
   `subagent-stance`, advisory `write-quality-lint`, and `verification-gate`.
-  Codex / Claude / Cursor use a hard heuristic Stop check for unsupported done
-  claims; OpenCode can only issue a soft idle reminder. No host registers a
+  The verification hook is an advisory reminder on every host; `do-it-verify`
+  remains responsible for claim-specific proof. No host registers a
   `grill-pretool` plan gate.
-- Claude slash commands under `commands/` (`do-it-skip`, `do-it-handbook`); no legacy workflow command aliases.
+- Claude slash commands under `commands/` (`do-it-skip`, `do-it-handbook`,
+  `do-it-retrospective`); no legacy workflow command aliases.
 - Copy-based installer / `doctor` for optional CLI targets and migration.
 - Root `index.json` for external discovery and coverage checks.
 
@@ -269,17 +290,16 @@ flowchart TD
     CQ --> E[execute]
     D --> E
     E --> WQ[PostToolUse: write-quality-lint]
-    WQ --> V[Stop]
-    RV --> V
-    VY --> V
-    V --> VG[verification-gate:<br/>fresh evidence required]
-    VG --> Done[done]
+    E --> VG[verification-gate:<br/>advisory completion reminder]
+    VG --> VY
+    RV --> VY
+    VY --> Done[claim with proof<br/>or NOT_VERIFIED]
 ```
 
 In practice:
 
-1. `do-it-router` classifies the task and names which meaning buckets to load
-   (or skip with a reason). No mandatory skill chain.
+1. `do-it-router` supplies an advisory risk label and suggests meaning buckets.
+   Direct user intent and model judgment win; there is no mandatory skill chain.
 2. `do-it-code-quality` is the main defense while writing: scope/blast radius,
    comments, deep modules, TDD when behavior changes, debugging, contracts.
 3. `do-it-decide` pressure-tests load-bearing premises (Heavy default), diverges
@@ -287,8 +307,8 @@ In practice:
    only when the work is large.
 4. `do-it-review` reviews the delivered surface and repairs Blocking/Important
    findings before closeout.
-5. `do-it-verify` requires fresh evidence before done / ready / merge claims;
-   host hooks reinforce that rule where the host can enforce it, otherwise they remind.
+5. `do-it-verify` asks for fresh, claim-specific evidence before done / ready /
+   merge claims; host hooks only remind and never substitute for that judgment.
 
 Full routing policy: [`docs/routing-matrix.md`](./docs/routing-matrix.md).
 
@@ -296,10 +316,11 @@ Full routing policy: [`docs/routing-matrix.md`](./docs/routing-matrix.md).
 
 - No slash command vocabulary for the automatic path. Plugin hooks fire at the
   host lifecycle points where they matter. Claude also ships optional slash
-  commands under `commands/` (`/do-it-skip`, `/do-it-handbook`); you do not need
-  them for the automatic path.
-- No external orchestration runtime. Delegation is a plain-text parent contract
-  plus the `subagent-stance` hook — there is no separate orchestration skill.
+  commands under `commands/` (`/do-it-skip`, `/do-it-handbook`,
+  `/do-it-retrospective on|off|status|report`); you do not need them for the
+  automatic path.
+- No external orchestration runtime. Bundled agents are optional capability
+  experts; the parent gives useful goal and boundary context, then integrates.
 - One-turn bypass (see `commands/do-it-skip.md`). Full escape for that turn:
   `yolo`, `just do it`, `直接做`, `我已经想清楚`, `skip do-it`, `随便聊`,
   `先聊聊`, `just thinking`, or `/do-it-skip`. Partial escape: `skip grill` /
@@ -393,6 +414,7 @@ artifacts. It is ignored by Git and is not installed.
 | Verify | `do-it-verify` | Fresh evidence before done / ready / merge; branch closeout |
 | Persist | `do-it-handbook`, `do-it-context` | Project truth + glossary (extended hosts) |
 | Meta | `do-it-skill-authoring` | Authoring do-it skills themselves |
+| Learn | `do-it-retrospective` | Opt-in, redacted local behavior report; propose durable lessons only after confirmation |
 
 **Standard** self-selects buckets. There is no mandatory brainstorm → grill → plan
 chain. **Heavy** (or explicit “grill”) is when `grill-prompt` injects premise
@@ -402,13 +424,15 @@ pressure via `do-it-decide`.
 
 | Hook | Behavior |
 |---|---|
-| `router` | Tier + orthogonal DIM signals into session state |
+| `behavior-feedback` | Disabled by default; silently stores only redacted explicit behavioral feedback for a user-requested report |
+| `router` | Advisory tier + orthogonal DIM signals into session state; direct user intent wins |
 | `grill-prompt` | **Heavy or explicit only** — Standard stays silent |
 | `subagent-stance` | Compact integrity stance for workers |
 | `write-quality-lint` | Advisory PostToolUse families (never blocks) |
-| `verification-gate` | **Evidence-only** Stop check: after edits, completion language needs a fresh relevant `Bash`/`Shell` command this turn (`apply_patch` counts as an edit on Codex) |
+| `verification-gate` | Advisory Stop reminder for edited completion claims; it never infers proof from command names |
 
-`grill-pretool` is gone. The gate does **not** require review-loop markers.
+`grill-pretool` is gone. `do-it-verify`, not the hook, keeps completion claims
+honest with task-relevant proof.
 
 ### Install truth
 

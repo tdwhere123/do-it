@@ -5,6 +5,11 @@
         "hooks": [
           {
             "type": "command",
+            "command": "DO_IT_HOOK_DATA=\"${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-/tmp/do-it-data}}\" \"${PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}/hooks/behavior-feedback.sh\"",
+            "timeout": 10
+          },
+          {
+            "type": "command",
             "command": "DO_IT_HOOK_DATA=\"${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-/tmp/do-it-data}}\" \"${PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}/hooks/router.sh\"",
             "timeout": 25
           },

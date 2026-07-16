@@ -34,7 +34,7 @@ if not errorlevel 1 (
 REM Allowlist of shipped hook scripts.
 set "ALLOWED=0"
 for %%A in (
-    session-start.sh router.sh grill-prompt.sh subagent-stance.sh
+    session-start.sh behavior-feedback.sh router.sh grill-prompt.sh subagent-stance.sh
     write-quality-lint.sh verification-gate.sh
     anti-patterns-lint.sh comments-lint.sh
 ) do if /i "%SCRIPT_NAME%"=="%%A" set "ALLOWED=1"
@@ -112,7 +112,7 @@ case "$SCRIPT_NAME" in
 esac
 
 case "$SCRIPT_NAME" in
-  session-start.sh|router.sh|grill-prompt.sh|subagent-stance.sh|write-quality-lint.sh|verification-gate.sh|anti-patterns-lint.sh|comments-lint.sh)
+  session-start.sh|behavior-feedback.sh|router.sh|grill-prompt.sh|subagent-stance.sh|write-quality-lint.sh|verification-gate.sh|anti-patterns-lint.sh|comments-lint.sh)
     ;;
   *)
     echo "run-hook.cmd: unknown hook script ${SCRIPT_NAME}" >&2

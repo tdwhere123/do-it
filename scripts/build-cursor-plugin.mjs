@@ -19,6 +19,18 @@ const skillsSource = path.join(repoRoot, "skills", "do-it");
 const agentsSource = path.join(repoRoot, "dist", "claude", "agents");
 const hooksSource = path.join(repoRoot, "hooks");
 const cursorHooksSource = path.join(repoRoot, "install", "cursor-hooks.json");
+const cursorHookScripts = [
+  "session-start.sh",
+  "behavior-feedback.sh",
+  "router.sh",
+  "grill-prompt.sh",
+  "subagent-stance.sh",
+  "write-quality-lint.sh",
+  "verification-gate.sh",
+  "anti-patterns-lint.sh",
+  "comments-lint.sh",
+  "run-hook.cmd"
+];
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf8"));
@@ -106,9 +118,12 @@ function copyHooks() {
   fs.rmSync(targetDir, { recursive: true, force: true });
   fs.mkdirSync(targetDir, { recursive: true });
 
-  for (const name of fs.readdirSync(hooksSource)) {
-    if (!name.endsWith(".sh") && !name.endsWith(".cmd")) continue;
-    fs.copyFileSync(path.join(hooksSource, name), path.join(targetDir, name));
+  for (const name of cursorHookScripts) {
+    const sourcePath = path.join(hooksSource, name);
+    if (!fs.existsSync(sourcePath)) {
+      throw new Error(`Cursor hook script missing: ${path.relative(repoRoot, sourcePath)}`);
+    }
+    fs.copyFileSync(sourcePath, path.join(targetDir, name));
     try {
       fs.chmodSync(path.join(targetDir, name), 0o755);
     } catch {

@@ -9,6 +9,7 @@
       "do-it-verify"
     ],
     "extended": [
+      "do-it-retrospective",
       "do-it-handbook",
       "do-it-context",
       "do-it-skill-authoring"
@@ -61,6 +62,7 @@
       "rootEnv": "CODEX_HOME",
       "rootDefault": "$HOME/.codex",
       "stateFile": ".do-it-install-state.json",
+      "installAgents": false,
       "agentSourceFrom": "agents",
       "agentSourceExt": ".toml",
       "agentTargetExt": ".toml",
@@ -106,9 +108,15 @@
           ]
         },
         {
+          "name": "hooks-behavior-feedback",
+          "kind": "file",
+          "source": "hooks/behavior-feedback.sh",
+          "target": "hooks/behavior-feedback.sh"
+        },
+        {
           "name": "hooks-hooks-json",
           "kind": "file",
-          "source": "hooks/hooks.json",
+          "source": "install/codex-hooks.json",
           "target": "hooks/hooks.json",
           "legacyHashes": [
             "3ad92bd21dd919e2c1095b848016a0c64566229a1c847a1e9f9b45a763a08f95"
@@ -214,6 +222,18 @@
             "0027ac59706ac8cd94f09d71ebe3b9520983486951500006dcd66fa86b937664",
             "17570b906f4b99629ba76d4c3e1488bfd629c58d36b8684ffe0dd8afb9aefc17"
           ]
+        },
+        {
+          "name": "hooks-behavior-feedback",
+          "kind": "file",
+          "source": "hooks/behavior-feedback.sh",
+          "target": "hooks/behavior-feedback.sh"
+        },
+        {
+          "name": "hooks-strict-external-actions",
+          "kind": "file",
+          "source": "hooks/strict-external-actions.sh",
+          "target": "hooks/strict-external-actions.sh"
         },
         {
           "name": "hooks-hooks-json",
@@ -333,6 +353,12 @@
           "kind": "file",
           "source": "hooks/grill-prompt.sh",
           "target": "hooks/grill-prompt.sh"
+        },
+        {
+          "name": "hooks-behavior-feedback",
+          "kind": "file",
+          "source": "hooks/behavior-feedback.sh",
+          "target": "hooks/behavior-feedback.sh"
         },
         {
           "name": "hooks-hooks-json",
@@ -731,6 +757,12 @@
       "name": "do-it-verify",
       "source": "skills/do-it/do-it-verify",
       "target": "skills/do-it-verify",
+      "origin": "do-it"
+    },
+    {
+      "name": "do-it-retrospective",
+      "source": "skills/do-it/do-it-retrospective",
+      "target": "skills/do-it-retrospective",
       "origin": "do-it"
     },
     {

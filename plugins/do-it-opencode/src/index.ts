@@ -63,6 +63,33 @@ function sessionIdFromMessages(messages: SessionMessage[]): string {
   return "unknown";
 }
 
+function retrospectiveConfigPath(cwd: string): string | null {
+  let current = path.resolve(cwd);
+  while (true) {
+    const config = path.join(current, ".do-it", "runtime", "retrospective", "config.json");
+    if (fs.existsSync(config)) return config;
+    if (fs.existsSync(path.join(current, ".git"))) return null;
+    const parent = path.dirname(current);
+    if (parent === current) return null;
+    current = parent;
+  }
+}
+
+function isExactRetrospectiveCommand(prompt: string): boolean {
+  return /^\s*\/do-it-retrospective\s+(on|off|status|report)\s*$/i.test(prompt);
+}
+
+function feedbackRecorderMayRun(cwd: string, prompt: string): boolean {
+  if (isExactRetrospectiveCommand(prompt)) return true;
+  const configPath = retrospectiveConfigPath(cwd);
+  if (!configPath) return false;
+  try {
+    return JSON.parse(fs.readFileSync(configPath, "utf8")).enabled === true;
+  } catch {
+    return false;
+  }
+}
+
 function injectBootstrapOnce(messages: SessionMessage[], sessionId: string): void {
   if (injectedSessions.has(sessionId)) return;
 
@@ -420,6 +447,20 @@ function createHooks(ctx: PluginInput): Hooks {
   const cwd = ctx.directory ?? ctx.worktree ?? process.cwd();
   const agents = bundledAgents();
 
+  async function canRunBehaviorFeedback(sessionID: string, prompt: string): Promise<boolean> {
+    if (!feedbackRecorderMayRun(cwd, prompt)) return false;
+    try {
+      const session = await ctx.client.session.get({
+        path: { id: sessionID },
+        query: { directory: cwd }
+      });
+      return !session.data?.parentID;
+    } catch {
+      // Do not capture feedback when the host cannot establish parentage.
+      return false;
+    }
+  }
+
   return {
     config: async (input) => {
       const cfg = input as typeof input & {
@@ -451,7 +492,11 @@ function createHooks(ctx: PluginInput): Hooks {
 
       const payload = { session_id: input.sessionID, cwd, prompt };
       const contexts = new Set<string>();
-      for (const scriptName of ["router.sh", "grill-prompt.sh"]) {
+      const scriptNames = ["router.sh", "grill-prompt.sh"];
+      if (await canRunBehaviorFeedback(input.sessionID, prompt)) {
+        scriptNames.unshift("behavior-feedback.sh");
+      }
+      for (const scriptName of scriptNames) {
         const result = await spawnHook(hooksDir, scriptName, payload);
         const context = hookContext(result);
         if (context) contexts.add(context);

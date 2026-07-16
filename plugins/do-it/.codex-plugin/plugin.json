@@ -1,7 +1,7 @@
 {
   "name": "do-it",
   "version": "0.14.0",
-  "description": "Installable AI coding workflow for Codex, Claude Code, Cursor, and OpenCode with risk-based routing, scoped sub-agents, and evidence-backed completion.",
+  "description": "Autonomy-first AI coding workflow for Codex, Claude Code, Cursor, and OpenCode with task-fit skills, optional subagents, and evidence-backed completion.",
   "author": {
     "name": "tdwhere123"
   },
@@ -22,8 +22,8 @@
   "hooks": "./hooks/hooks.json",
   "interface": {
     "displayName": "do-it",
-    "shortDescription": "Meaning-centric workflow discipline for Codex.",
-    "longDescription": "Install do-it via the Codex plugin marketplace. Skills cover route, code-quality, review, decide, and verify. Plugin-bundled hooks enforce quality lint and verification; trust them in /hooks after install.",
+    "shortDescription": "Autonomy-first workflow discipline for Codex.",
+    "longDescription": "Install do-it via the Codex plugin marketplace. Skills and bundled agents are selected only when task-fit helps; plugin hooks provide compact routing and evidence reminders. Trust plugin hooks in /hooks after install.",
     "developerName": "tdwhere123",
     "category": "Coding",
     "capabilities": [
@@ -33,9 +33,7 @@
     ],
     "websiteURL": "https://github.com/tdwhere123/do-it",
     "defaultPrompt": [
-      "Use do-it-router to pick Light/Standard/Heavy, then self-select meaning skills.",
-      "Write with do-it-code-quality (premise, blast radius, bounded chain).",
-      "Review with do-it-review; close with do-it-verify."
+      "Work autonomously: choose do-it skills or bundled agents only when task-fit helps; honor direct user intent, keep external/destructive actions confirmed, and report task-relevant evidence."
     ],
     "brandColor": "#2563EB"
   }

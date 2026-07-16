@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
-import { ALL_SKILLS, CORE_SKILLS, EXTENDED_MAINTENANCE } from "./skill-tiers.mjs";
+import { ALL_SKILLS, CORE_SKILLS, EXTENDED_SKILLS } from "./skill-tiers.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const allSkills = [...ALL_SKILLS];
@@ -60,13 +60,58 @@ function assertBundledHookScripts(relativePath) {
   if (!fs.existsSync(path.join(hooksDir, "run-hook.cmd"))) {
     throw new Error(`${relativePath}: missing bundled run-hook.cmd`);
   }
-  const names = ["session-start", "router", "grill-prompt", "subagent-stance", "write-quality-lint", "verification-gate"];
   const serialized = JSON.stringify(data);
+  const names = new Set();
+  for (const match of serialized.matchAll(/run-hook\.cmd\s+([a-z0-9-]+)/g)) {
+    names.add(match[1]);
+  }
+  if (names.size === 0) {
+    throw new Error(`${relativePath}: no run-hook.cmd hook names found`);
+  }
   for (const name of names) {
-    if (!serialized.includes(name)) continue;
     const script = `${name}.sh`;
     if (!fs.existsSync(path.join(hooksDir, script))) {
       throw new Error(`${relativePath}: references missing bundled hook ${script}`);
+    }
+  }
+}
+
+function assertClaudeStrictProfile(relativePath) {
+  const data = readJson(relativePath);
+  const expected = [
+    ["Bash(git push *)", "git-push"],
+    ["Bash(gh pr merge *)", "gh-pr-merge"],
+    ["Bash(npm publish *)", "npm-publish"],
+    ["Bash(pnpm publish *)", "pnpm-publish"],
+    ["Bash(yarn npm publish *)", "yarn-npm-publish"],
+    ["Bash(kubectl apply *)", "kubectl-apply"],
+    ["Bash(terraform apply *)", "terraform-apply"]
+  ];
+  const handlers = (data.hooks?.PreToolUse ?? []).flatMap((group) => group.hooks ?? []);
+  const commandPrefix = '"${CLAUDE_PLUGIN_ROOT}/hooks/strict-external-actions.sh" ';
+  const actual = handlers.map((handler) => {
+    const action = typeof handler.command === "string" && handler.command.startsWith(commandPrefix)
+      ? handler.command.slice(commandPrefix.length)
+      : "";
+    return `${handler.if ?? ""}|${action}`;
+  });
+  assertEqualSets(
+    `${relativePath}: strict external-action handlers`,
+    actual,
+    expected.map(([condition, action]) => `${condition}|${action}`)
+  );
+  for (const handler of handlers) {
+    const action = typeof handler.command === "string" && handler.command.startsWith(commandPrefix)
+      ? handler.command.slice(commandPrefix.length)
+      : "";
+    if (
+      handler.type !== "command" ||
+      !expected.some(([condition, expectedAction]) => handler.if === condition && action === expectedAction) ||
+      Object.hasOwn(handler, "args") ||
+      handler.shell !== "bash" ||
+      handler.timeout !== 10
+    ) {
+      throw new Error(`${relativePath}: strict external-action handler has an unsafe shape`);
     }
   }
 }
@@ -78,7 +123,23 @@ function main() {
     .map((entry) => entry.name);
   assertEqualSets("manifest runnable skills", declared, allSkills);
   assertEqualSets("manifest core tier", manifest.skillTiers?.core ?? [], CORE_SKILLS);
-  assertEqualSets("manifest extended tier", manifest.skillTiers?.extended ?? [], EXTENDED_MAINTENANCE);
+  assertEqualSets("manifest extended tier", manifest.skillTiers?.extended ?? [], EXTENDED_SKILLS);
+  for (const target of ["codex", "cursor"]) {
+    const strictExtras = (manifest.targets?.[target]?.extras ?? [])
+      .filter((entry) => entry.name === "hooks-strict-external-actions");
+    if (strictExtras.length !== 0) {
+      throw new Error(`${target}: strict external-action hook must remain Claude-only`);
+    }
+  }
+  const claudeStrictExtras = (manifest.targets?.claude?.extras ?? [])
+    .filter((entry) => entry.name === "hooks-strict-external-actions");
+  if (
+    claudeStrictExtras.length !== 1 ||
+    claudeStrictExtras[0].source !== "hooks/strict-external-actions.sh" ||
+    claudeStrictExtras[0].target !== "hooks/strict-external-actions.sh"
+  ) {
+    throw new Error("Claude strict external-action hook must be installed exactly once");
+  }
 
   readJson(".cursor-plugin/marketplace.json");
   assertCursorHooks("install/cursor-hooks.json");
@@ -90,10 +151,29 @@ function main() {
 
   for (const hooksJson of ["hooks/hooks.json", "install/codex-hooks.json", "install/cursor-hooks.json", "plugins/do-it-cursor/hooks/hooks.json"]) {
     const raw = JSON.stringify(readJson(hooksJson));
-    if (raw.includes("grill-pretool") || raw.includes("PreToolUse")) {
+    if (raw.includes("grill-pretool")) {
       throw new Error(`${hooksJson}: must not include pre-edit plan gate registration`);
     }
+    if (hooksJson !== "hooks/hooks.json" && raw.includes("PreToolUse")) {
+      throw new Error(`${hooksJson}: only the Claude source config may register strict PreToolUse`);
+    }
   }
+  const codexHooksExtra = (manifest.targets?.codex?.extras ?? [])
+    .find((entry) => entry.name === "hooks-hooks-json");
+  if (codexHooksExtra?.source !== "install/codex-hooks.json") {
+    throw new Error("Codex must install its own PreToolUse-free hook configuration");
+  }
+  const expansionHandlers = dataHooks => dataHooks.hooks?.UserPromptExpansion ?? [];
+  const claudeExpansion = expansionHandlers(readJson("hooks/hooks.json"));
+  if (
+    claudeExpansion.length !== 1 ||
+    claudeExpansion[0]?.matcher !== "^do-it-retrospective$" ||
+    claudeExpansion[0]?.hooks?.length !== 1 ||
+    claudeExpansion[0].hooks[0]?.command !== "${CLAUDE_PLUGIN_ROOT}/hooks/behavior-feedback.sh"
+  ) {
+    throw new Error("Claude must receive the narrow retrospective slash-expansion recorder");
+  }
+  assertClaudeStrictProfile("hooks/hooks.json");
   assertBundledHookScripts("plugins/do-it-cursor/hooks/hooks.json");
 
   const matrixPath = path.join(repoRoot, "docs", "harness-adapter-matrix.md");

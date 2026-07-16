@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+### Feedback, routing, and safety profiles
+
+- **Direct intent wins:** a why/explanation prefix no longer downgrades a
+  concrete fix/edit request to Light; Chinese and English mixed requests have
+  regression coverage.
+- **Action boundary:** explicit no-write / 先不改 state persists until an actual
+  reopen instruction, not a question about whether editing is possible.
+- **Opt-in retrospective:** added default-off, silent, project-local redacted
+  feedback capture plus `do-it-retrospective on|off|status|report`. Reports
+  propose at most three lessons and never edit durable instructions without
+  confirmation.
+- **External actions:** added a default-off Claude-only named-command
+  `PreToolUse` profile. `ask` requests host confirmation; `deny` is an
+  explicit stop. Codex, Cursor, and OpenCode documentation now points to their
+  real native permission boundaries instead of claiming a universal hook veto.
+- **Release guard:** registered hook sources must be Git-tracked, so a clean
+  checkout cannot silently omit a newly wired hook.
+
 ### Fixes — Cursor on native Windows
 
 - **Install path:** `install-cursor-local.mjs` no longer rewrites `%USERPROFILE%`

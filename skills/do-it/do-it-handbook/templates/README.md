@@ -23,7 +23,7 @@ experiments, temporary status, and lessons live in `.do-it/worklog/`.
 
 Process guidance is owned by skills, not this handbook: decisions and plan cards →
 `do-it-decide`, review protocol → `do-it-review`, delegation →
-`workflow-kernel.md` Parent Delegation Contract, execution routing →
+`workflow-kernel.md` delegation boundary guidance, execution routing →
 `do-it-router`. The handbook update rules live in the `do-it-handbook` SKILL
 `## Maintenance` section.
 

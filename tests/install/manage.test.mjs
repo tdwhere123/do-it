@@ -24,11 +24,16 @@ import {
 } from "../../install/migrate.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const manageScript = path.join(repoRoot, "install/manage.mjs");
 const manifest = JSON.parse(
   fs.readFileSync(path.join(repoRoot, "manifest.json"), "utf8")
 );
 const MANIFEST_VERSION = manifest.version;
+const CODEX_PLUGIN_VERSION = JSON.parse(
+  fs.readFileSync(
+    path.join(repoRoot, "plugins", "do-it", ".codex-plugin", "plugin.json"),
+    "utf8"
+  )
+).version;
 
 const noop = () => {};
 
@@ -140,16 +145,106 @@ test("bundled manifest migrations cover 0.7.x and 0.8.x", () => {
 
 // --- integration: install flow -------------------------------------------
 
-function runManage(args, env) {
-  return spawnSync(process.execPath, [manageScript, ...args], {
-    cwd: repoRoot,
+function runManageAt(packageRoot, args, env) {
+  return spawnSync(process.execPath, [path.join(packageRoot, "install", "manage.mjs"), ...args], {
+    cwd: packageRoot,
     env: { ...process.env, ...env },
     encoding: "utf8"
   });
 }
 
+function runManage(args, env) {
+  return runManageAt(repoRoot, args, env);
+}
+
 function freshRoot(label) {
   return fs.mkdtempSync(path.join(os.tmpdir(), `do-it-${label}-`));
+}
+
+function writeDoItPluginConfig(root) {
+  fs.writeFileSync(
+    path.join(root, "config.toml"),
+    ['[plugins."do-it@tdwhere-do-it"]', "enabled = true", ""].join("\n")
+  );
+}
+
+function enableDoItPlugin(
+  root,
+  {
+    sourceRoot = path.join(repoRoot, "plugins", "do-it"),
+    version = CODEX_PLUGIN_VERSION
+  } = {}
+) {
+  writeDoItPluginConfig(root);
+  const bundleRoot = path.join(
+    root,
+    "plugins",
+    "cache",
+    "tdwhere-do-it",
+    "do-it",
+    version
+  );
+  fs.mkdirSync(path.join(bundleRoot, ".codex-plugin"), { recursive: true });
+  fs.copyFileSync(
+    path.join(sourceRoot, ".codex-plugin", "plugin.json"),
+    path.join(bundleRoot, ".codex-plugin", "plugin.json")
+  );
+  fs.cpSync(path.join(sourceRoot, "agents"), path.join(bundleRoot, "agents"), {
+    recursive: true
+  });
+}
+
+function createCachebusterPackageFixture(root) {
+  const packageRoot = path.join(root, "cachebuster-package");
+  for (const entry of ["install", "scripts", "agents", "manifest.json"]) {
+    fs.cpSync(path.join(repoRoot, entry), path.join(packageRoot, entry), {
+      recursive: entry !== "manifest.json"
+    });
+  }
+  fs.cpSync(
+    path.join(repoRoot, "plugins", "do-it"),
+    path.join(packageRoot, "plugins", "do-it"),
+    { recursive: true }
+  );
+
+  const pluginManifestPath = path.join(
+    packageRoot,
+    "plugins",
+    "do-it",
+    ".codex-plugin",
+    "plugin.json"
+  );
+  const pluginManifest = JSON.parse(fs.readFileSync(pluginManifestPath, "utf8"));
+  pluginManifest.version = `${MANIFEST_VERSION}+codex.test-cachebuster`;
+  fs.writeFileSync(pluginManifestPath, `${JSON.stringify(pluginManifest, null, 2)}\n`);
+
+  return { packageRoot, pluginVersion: pluginManifest.version };
+}
+
+function legacyCanonicalAgentContent(name = "code-mapper") {
+  return [
+    `name = "${name}"`,
+    'developer_instructions = """Dispatch (required from parent prompt):',
+    "- return status: DONE | NEEDS_CONTEXT | BLOCKED",
+    "Full dispatch contract: see `do-it-subagent-orchestration` § Required Prompt Contract.",
+    '"""',
+    ""
+  ].join("\n");
+}
+
+function canonicalAgentContent(name = "code-mapper") {
+  return fs.readFileSync(path.join(repoRoot, "agents", `${name}.toml`), "utf8");
+}
+
+function fileHash(content) {
+  return crypto.createHash("sha256").update(content).digest("hex");
+}
+
+function writeLegacyState(root, entries) {
+  fs.writeFileSync(
+    path.join(root, ".do-it-install-state.json"),
+    `${JSON.stringify({ version: MANIFEST_VERSION, entries }, null, 2)}\n`
+  );
 }
 
 test("install populates a fresh codex root with a versioned state file", () => {
@@ -163,6 +258,32 @@ test("install populates a fresh codex root with a versioned state file", () => {
     const state = JSON.parse(fs.readFileSync(statePath, "utf8"));
     assert.equal(state.version, MANIFEST_VERSION);
     assert.ok(Object.keys(state.entries).length > 0, "state should record entries");
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("Codex legacy install leaves canonical agents to the marketplace plugin", () => {
+  const root = freshRoot("codex-plugin-agents");
+  try {
+    assert.equal(
+      manifest.targets.codex.installAgents,
+      false,
+      "manifest must make the plugin the only canonical Codex agent source"
+    );
+    const result = runManage(["install"], { CODEX_HOME: root });
+    assert.equal(result.status, 0, result.stderr);
+    assert.ok(
+      !fs.existsSync(path.join(root, "agents", "code-mapper.toml")),
+      "optional global install must not recreate plugin-owned agents"
+    );
+    const state = JSON.parse(
+      fs.readFileSync(path.join(root, ".do-it-install-state.json"), "utf8")
+    );
+    assert.ok(
+      !Object.keys(state.entries).some((target) => target.startsWith("agents/")),
+      "install state must not claim plugin-owned canonical agents"
+    );
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
@@ -308,6 +429,282 @@ test("DO_IT_FORCE removes a modified retired path", () => {
   }
 });
 
+test("migrate-legacy defaults to a read-only inventory of proven do-it targets", () => {
+  const root = freshRoot("legacy-dry-run");
+  const canonical = path.join(root, "agents", "code-mapper.toml");
+  const retired = path.join(root, "agents", "architect-reviewer.toml");
+  const personal = path.join(root, "agents", "personal-agent.toml");
+  const retiredContent = 'name = "architect-reviewer"\n';
+  try {
+    enableDoItPlugin(root);
+    fs.mkdirSync(path.dirname(canonical), { recursive: true });
+    fs.writeFileSync(canonical, canonicalAgentContent());
+    fs.writeFileSync(retired, retiredContent);
+    fs.writeFileSync(personal, 'name = "personal-agent"\n');
+    writeLegacyState(root, {
+      "agents/architect-reviewer.toml": {
+        kind: "agent",
+        name: "architect-reviewer",
+        hash: fileHash(retiredContent)
+      }
+    });
+
+    const result = runManage(["migrate-legacy"], { CODEX_HOME: root });
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /mode: dry-run/);
+    assert.match(result.stdout, /REMOVABLE legacy-agent:code-mapper/);
+    assert.match(result.stdout, /REMOVABLE deprecated-agent:architect-reviewer/);
+    assert.doesNotMatch(result.stdout, /personal-agent/);
+    assert.ok(fs.existsSync(canonical), "dry-run must not remove canonical agent");
+    assert.ok(fs.existsSync(retired), "dry-run must not remove deprecated agent");
+    assert.ok(fs.existsSync(personal), "unrelated global agent must stay untouched");
+    assert.ok(
+      !fs.existsSync(path.join(root, ".do-it-legacy-migration-backups")),
+      "dry-run must not create backups"
+    );
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("migrate-legacy preserves a signature-only retired do-it agent for manual review", () => {
+  const root = freshRoot("legacy-retired-signature");
+  const retired = path.join(root, "agents", "architect-reviewer.toml");
+  try {
+    enableDoItPlugin(root);
+    fs.mkdirSync(path.dirname(retired), { recursive: true });
+    fs.writeFileSync(retired, legacyCanonicalAgentContent("architect-reviewer"));
+
+    const result = runManage(["migrate-legacy"], { CODEX_HOME: root });
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(
+      result.stdout,
+      /REFUSED deprecated-agent:architect-reviewer .*lacks state\/hash\/source proof; manual review required/
+    );
+    assert.ok(fs.existsSync(retired), "dry-run must not remove deprecated agent");
+
+    const apply = runManage(["migrate-legacy", "--apply"], { CODEX_HOME: root });
+    assert.equal(apply.status, 1, apply.stdout || apply.stderr);
+    assert.ok(fs.existsSync(retired), "signature-only target must remain after apply");
+    assert.ok(
+      !fs.existsSync(path.join(root, ".do-it-legacy-migration-backups")),
+      "signature-only refusal must not create a backup/migration"
+    );
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("migrate-legacy --apply removes only proven targets and keeps recoverable backups", () => {
+  const root = freshRoot("legacy-apply");
+  const canonical = path.join(root, "agents", "code-mapper.toml");
+  const retired = path.join(root, "agents", "architect-reviewer.toml");
+  const personal = path.join(root, "agents", "personal-agent.toml");
+  const retiredContent = 'name = "architect-reviewer"\n';
+  try {
+    enableDoItPlugin(root);
+    fs.mkdirSync(path.dirname(canonical), { recursive: true });
+    fs.writeFileSync(canonical, canonicalAgentContent());
+    fs.writeFileSync(retired, retiredContent);
+    fs.writeFileSync(personal, 'name = "personal-agent"\n');
+    writeLegacyState(root, {
+      "agents/architect-reviewer.toml": {
+        kind: "agent",
+        name: "architect-reviewer",
+        hash: fileHash(retiredContent)
+      }
+    });
+
+    const result = runManage(["migrate-legacy", "--apply"], { CODEX_HOME: root });
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /mode: apply/);
+    assert.ok(!fs.existsSync(canonical), "proven legacy canonical agent should be removed");
+    assert.ok(!fs.existsSync(retired), "proven deprecated agent should be removed");
+    assert.ok(fs.existsSync(personal), "unrelated global agent must stay untouched");
+
+    const state = JSON.parse(
+      fs.readFileSync(path.join(root, ".do-it-install-state.json"), "utf8")
+    );
+    assert.equal(state.entries["agents/architect-reviewer.toml"], undefined);
+
+    const backupBase = path.join(root, ".do-it-legacy-migration-backups");
+    const backupIds = fs.readdirSync(backupBase);
+    assert.equal(backupIds.length, 1, "one persistent migration backup is expected");
+    const backupRoot = path.join(backupBase, backupIds[0]);
+    assert.equal(
+      fs.readFileSync(path.join(backupRoot, "agents", "code-mapper.toml"), "utf8"),
+      canonicalAgentContent()
+    );
+    assert.equal(
+      fs.readFileSync(path.join(backupRoot, "agents", "architect-reviewer.toml"), "utf8"),
+      retiredContent
+    );
+    assert.ok(
+      fs.existsSync(path.join(backupRoot, ".do-it-install-state.json")),
+      "changed install state should be backed up too"
+    );
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("migrate-legacy --apply preserves ambiguous agents while cleaning proven targets", () => {
+  const root = freshRoot("legacy-refuse");
+  const canonical = path.join(root, "agents", "code-mapper.toml");
+  const retired = path.join(root, "agents", "architect-reviewer.toml");
+  const retiredContent = 'name = "architect-reviewer"\n';
+  try {
+    enableDoItPlugin(root);
+    fs.mkdirSync(path.dirname(canonical), { recursive: true });
+    fs.writeFileSync(
+      canonical,
+      'name = "code-mapper"\ndeveloper_instructions = "NEEDS_CONTEXT only"\n'
+    );
+    fs.writeFileSync(retired, retiredContent);
+    writeLegacyState(root, {
+      "agents/architect-reviewer.toml": {
+        kind: "agent",
+        name: "architect-reviewer",
+        hash: fileHash(retiredContent)
+      }
+    });
+
+    const result = runManage(["migrate-legacy", "--apply"], { CODEX_HOME: root });
+    assert.equal(result.status, 1, result.stdout || result.stderr);
+    assert.match(result.stdout, /REFUSED legacy-agent:code-mapper/);
+    assert.match(result.stderr, /Legacy migration incomplete/);
+    assert.ok(fs.existsSync(canonical), "ambiguous canonical agent must remain");
+    assert.ok(!fs.existsSync(retired), "independently proven deprecated agent should be removed");
+    assert.ok(
+      fs.existsSync(path.join(root, ".do-it-legacy-migration-backups")),
+      "each removed target must retain a backup even when another target is refused"
+    );
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("migrate-legacy --apply requires an enabled and verified marketplace bundle", () => {
+  const root = freshRoot("legacy-plugin-required");
+  const canonical = path.join(root, "agents", "code-mapper.toml");
+  try {
+    writeDoItPluginConfig(root);
+    fs.mkdirSync(path.dirname(canonical), { recursive: true });
+    fs.writeFileSync(canonical, canonicalAgentContent());
+
+    const result = runManage(["migrate-legacy", "--apply"], { CODEX_HOME: root });
+    assert.equal(result.status, 1, result.stdout || result.stderr);
+    assert.match(result.stdout, /plugin source of truth: UNCONFIRMED/);
+    assert.match(result.stdout, /installed plugin bundle is missing/);
+    assert.match(result.stderr, /until do-it@tdwhere-do-it is enabled and its current plugin bundle is verified/);
+    assert.ok(fs.existsSync(canonical), "plugin preflight failure must not remove legacy agent");
+    assert.ok(
+      !fs.existsSync(path.join(root, ".do-it-legacy-migration-backups")),
+      "plugin preflight failure must not create a backup/migration"
+    );
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("migrate-legacy --apply rejects an enabled plugin with stale agent content", () => {
+  const root = freshRoot("legacy-stale-plugin");
+  const canonical = path.join(root, "agents", "code-mapper.toml");
+  const installedAgent = path.join(
+    root,
+    "plugins",
+    "cache",
+    "tdwhere-do-it",
+    "do-it",
+    CODEX_PLUGIN_VERSION,
+    "agents",
+    "code-mapper.toml"
+  );
+  try {
+    enableDoItPlugin(root);
+    fs.appendFileSync(installedAgent, "\n# stale fixture\n");
+    fs.mkdirSync(path.dirname(canonical), { recursive: true });
+    fs.writeFileSync(canonical, canonicalAgentContent());
+
+    const result = runManage(["migrate-legacy", "--apply"], { CODEX_HOME: root });
+    assert.equal(result.status, 1, result.stdout || result.stderr);
+    assert.match(result.stdout, /plugin source of truth: UNCONFIRMED/);
+    assert.match(result.stdout, /installed plugin agents .* do not match this do-it package/);
+    assert.ok(fs.existsSync(canonical), "stale plugin bundle must not permit removal");
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("migrate-legacy --apply rejects a stale generated Codex agent bundle", () => {
+  const root = freshRoot("legacy-stale-generated-bundle");
+  const canonical = path.join(root, "agents", "code-mapper.toml");
+  try {
+    const { packageRoot, pluginVersion } = createCachebusterPackageFixture(root);
+    const packagePluginRoot = path.join(packageRoot, "plugins", "do-it");
+    fs.appendFileSync(
+      path.join(packagePluginRoot, "agents", "code-mapper.toml"),
+      "\n# stale generated fixture\n"
+    );
+    enableDoItPlugin(root, {
+      sourceRoot: packagePluginRoot,
+      version: pluginVersion
+    });
+    fs.mkdirSync(path.dirname(canonical), { recursive: true });
+    fs.writeFileSync(
+      canonical,
+      fs.readFileSync(path.join(packageRoot, "agents", "code-mapper.toml"), "utf8")
+    );
+
+    const result = runManageAt(packageRoot, ["migrate-legacy", "--apply"], {
+      CODEX_HOME: root
+    });
+    assert.equal(result.status, 1, result.stdout || result.stderr);
+    assert.match(result.stdout, /plugin source of truth: UNCONFIRMED/);
+    assert.match(
+      result.stdout,
+      /package plugin agents .* do not match canonical agents .* run npm run build:codex-plugin/
+    );
+    assert.ok(fs.existsSync(canonical), "stale generated bundle must not permit removal");
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("migrate-legacy derives the Codex cache directory from a cachebuster plugin version", () => {
+  const root = freshRoot("legacy-cachebuster");
+  const canonical = path.join(root, "agents", "code-mapper.toml");
+  try {
+    const { packageRoot, pluginVersion } = createCachebusterPackageFixture(root);
+    assert.equal(
+      JSON.parse(fs.readFileSync(path.join(packageRoot, "manifest.json"), "utf8")).version,
+      MANIFEST_VERSION,
+      "root manifest remains on its base version"
+    );
+    enableDoItPlugin(root, {
+      sourceRoot: path.join(packageRoot, "plugins", "do-it"),
+      version: pluginVersion
+    });
+    fs.mkdirSync(path.dirname(canonical), { recursive: true });
+    fs.writeFileSync(
+      canonical,
+      fs.readFileSync(path.join(packageRoot, "agents", "code-mapper.toml"), "utf8")
+    );
+
+    const result = runManageAt(packageRoot, ["migrate-legacy", "--apply"], {
+      CODEX_HOME: root
+    });
+    assert.equal(result.status, 0, result.stdout || result.stderr);
+    assert.ok(
+      result.stdout.includes(path.join("do-it", pluginVersion)),
+      "migration should verify the cachebuster-named bundle rather than the base manifest version"
+    );
+    assert.ok(!fs.existsSync(canonical), "verified cachebuster bundle should permit proven cleanup");
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("codex and claude targets install into independent state files", () => {
   const codexRoot = freshRoot("codex-sym");
   const claudeRoot = freshRoot("claude-sym");
@@ -333,6 +730,36 @@ test("codex and claude targets install into independent state files", () => {
     // Each target keeps its own state file; one install never writes the other.
     assert.ok(
       !fs.existsSync(path.join(codexRoot, ".do-it-install-state-claude.json"))
+    );
+    assert.ok(
+      !fs.existsSync(path.join(codexRoot, "hooks", "strict-external-actions.sh")),
+      "Codex must not receive the Claude-only strict external-action hook"
+    );
+    assert.ok(
+      fs.existsSync(path.join(claudeRoot, "hooks", "strict-external-actions.sh")),
+      "Claude must receive the opt-in strict external-action hook"
+    );
+    assert.ok(
+      fs.existsSync(path.join(claudeRoot, "commands", "do-it-retrospective.md")),
+      "Claude must receive the retrospective report command"
+    );
+    const claudeHooks = JSON.parse(
+      fs.readFileSync(path.join(claudeRoot, "hooks", "hooks.json"), "utf8")
+    );
+    assert.ok(
+      claudeHooks.hooks?.PreToolUse?.[0]?.hooks?.every(
+        (entry) =>
+          typeof entry.command === "string" &&
+          entry.command.startsWith('"${CLAUDE_PLUGIN_ROOT}/hooks/strict-external-actions.sh" ') &&
+          entry.shell === "bash" &&
+          !Object.hasOwn(entry, "args")
+      ),
+      "Claude strict profile must stay scoped to its named PreToolUse handlers"
+    );
+    assert.equal(
+      claudeHooks.hooks?.UserPromptExpansion?.[0]?.matcher,
+      "^do-it-retrospective$",
+      "Claude must receive a direct slash-command recorder path"
     );
   } finally {
     fs.rmSync(codexRoot, { recursive: true, force: true });
@@ -533,6 +960,15 @@ test("cursor target installs plugin bundle with cursor hooks.json", () => {
     );
     assert.equal(hooksJson.version, 1);
     assert.ok(hooksJson.hooks.sessionStart, "cursor hooks should define sessionStart");
+    assert.equal(
+      Object.hasOwn(hooksJson.hooks, "PreToolUse"),
+      false,
+      "Cursor must not claim the Claude-only strict PreToolUse profile"
+    );
+    assert.ok(
+      !fs.existsSync(path.join(pluginRoot, "hooks", "strict-external-actions.sh")),
+      "Cursor must not receive the Claude-only strict external-action hook"
+    );
 
     const localPlugin = path.join(home, ".cursor", "plugins", "local", "do-it-cursor");
     const registered = JSON.parse(

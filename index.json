@@ -3,15 +3,16 @@
   "package": "@tdwhere/do-it",
   "repository": "https://github.com/tdwhere123/do-it",
   "domain": "agentic-workflow",
-  "total_skills": 9,
-  "total_capabilities": 8,
+  "total_skills": 10,
+  "total_capabilities": 9,
   "total_discovery_entries": 1,
   "total_agents": 10,
   "coverage": {
     "skill_groups": {
       "index": 1,
       "mainline": 5,
-      "maintenance": 3
+      "maintenance": 3,
+      "on-demand": 1
     },
     "optional_skills": []
   },
@@ -78,6 +79,16 @@
     },
     {
       "kind": "skill",
+      "name": "do-it-retrospective",
+      "description": "Use only when the user explicitly asks to enable, disable, inspect, report, or persist opt-in local do-it behavioral feedback.",
+      "origin": "do-it",
+      "optional": false,
+      "group": "on-demand",
+      "source": "skills/do-it/do-it-retrospective",
+      "target": "skills/do-it-retrospective"
+    },
+    {
+      "kind": "skill",
       "name": "do-it-context",
       "description": "Use when repo terms or invariants are drifting, or when user/docs/code naming disagrees and a canonical glossary is needed — `.do-it/CONTEXT.md` is the downstream source of truth for names, relationships, and facts.",
       "origin": "do-it",
@@ -109,7 +120,7 @@
     {
       "kind": "agent",
       "name": "architecture-strategist",
-      "description": "Use through do-it-decide when architecture choices need a read-only foundation, extension, boundary, and stage-closure lens.",
+      "description": "Use when an architectural choice or stage boundary needs a read-only view of invariants, ownership, extension seams, and proof.",
       "origin": "do-it",
       "optional": false,
       "source": "agents/architecture-strategist.toml",
@@ -118,7 +129,7 @@
     {
       "kind": "agent",
       "name": "code-mapper",
-      "description": "Use when do-it-router needs a token-bounded map of owning files, call paths, branch points, and unknowns before edits.",
+      "description": "Use when an unfamiliar or risky change needs a compact, read-only map of the smallest owning path, branch points, and unknowns.",
       "origin": "do-it",
       "optional": false,
       "source": "agents/code-mapper.toml",
@@ -127,7 +138,7 @@
     {
       "kind": "agent",
       "name": "code-quality-cleaner",
-      "description": "Use through do-it-review for read-only maintainability and YAGNI review of redundancy, dead paths, speculative abstractions, reinvented stdlib, and cleanup risk.",
+      "description": "Use when a diff needs a read-only maintainability review for dead code, duplication, needless abstraction, reinvented primitives, and safe simplification.",
       "origin": "do-it",
       "optional": false,
       "source": "agents/code-quality-cleaner.toml",
@@ -136,7 +147,7 @@
     {
       "kind": "agent",
       "name": "documentation-engineer",
-      "description": "Use for do-it documentation delivery when docs must match current tooling, install flow, adapters, and operator workflows.",
+      "description": "Use when documentation must be updated to accurately reflect verified repository behavior, tooling, installation, or operator workflows.",
       "origin": "do-it",
       "optional": false,
       "source": "agents/documentation-engineer.toml",
@@ -145,7 +156,7 @@
     {
       "kind": "agent",
       "name": "plan-challenger",
-      "description": "Use through do-it-decide as a converging sub-lens to challenge scope, acceptance, and routing — not a standalone divergence substitute.",
+      "description": "Use when a proposed plan needs a read-only challenge of outcome, scope, acceptance, risk, and cheaper credible alternatives.",
       "origin": "do-it",
       "optional": false,
       "source": "agents/plan-challenger.toml",
@@ -154,7 +165,7 @@
     {
       "kind": "agent",
       "name": "product-strategist",
-      "description": "Use through do-it-decide when product boundary, core goal, requirement shape, or option tradeoffs need a read-only lens.",
+      "description": "Use when a feature or decision needs a read-only product lens on user goal, boundary, viable options, and tradeoffs.",
       "origin": "do-it",
       "optional": false,
       "source": "agents/product-strategist.toml",
@@ -163,7 +174,7 @@
     {
       "kind": "agent",
       "name": "red-team-reviewer",
-      "description": "Use through do-it-review for read-only adversarial review of security, state, persistence, concurrency, replay, and failure modes.",
+      "description": "Use when a change or design needs a read-only adversarial review of trust boundaries, failures, state, persistence, concurrency, or replay.",
       "origin": "do-it",
       "optional": false,
       "source": "agents/red-team-reviewer.toml",
@@ -172,7 +183,7 @@
     {
       "kind": "agent",
       "name": "reviewer",
-      "description": "Use through do-it-review for PR-style correctness review of behavior regressions, contracts, and missing tests.",
+      "description": "Use when a diff or delivered behavior needs a read-only correctness review for reachability, contract regressions, errors, and missing proof.",
       "origin": "do-it",
       "optional": false,
       "source": "agents/reviewer.toml",
@@ -181,7 +192,7 @@
     {
       "kind": "agent",
       "name": "spec-compliance-reviewer",
-      "description": "Use through do-it-review for read-only scope review against the written task, plan, acceptance criteria, and ownership boundary.",
+      "description": "Use when a delivered change needs a read-only check against the written task, acceptance criteria, explicit deferrals, and ownership boundaries.",
       "origin": "do-it",
       "optional": false,
       "source": "agents/spec-compliance-reviewer.toml",
@@ -190,7 +201,7 @@
     {
       "kind": "agent",
       "name": "tdd-red-writer",
-      "description": "Use in do-it split RED/GREEN delivery when a separate agent should lock the failing behavior contract before implementation.",
+      "description": "Use when a behavior change benefits from a narrow failing test before implementation and a test-only write scope is available.",
       "origin": "do-it",
       "optional": false,
       "source": "agents/tdd-red-writer.toml",

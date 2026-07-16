@@ -5,6 +5,11 @@
         "hooks": [
           {
             "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/behavior-feedback.sh",
+            "timeout": 10
+          },
+          {
+            "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/router.sh",
             "timeout": 25
           },
@@ -16,6 +21,74 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/subagent-stance.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "UserPromptExpansion": [
+      {
+        "matcher": "^do-it-retrospective$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/behavior-feedback.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Bash(git push *)",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/strict-external-actions.sh\" git-push",
+            "shell": "bash",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "if": "Bash(gh pr merge *)",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/strict-external-actions.sh\" gh-pr-merge",
+            "shell": "bash",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "if": "Bash(npm publish *)",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/strict-external-actions.sh\" npm-publish",
+            "shell": "bash",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "if": "Bash(pnpm publish *)",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/strict-external-actions.sh\" pnpm-publish",
+            "shell": "bash",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "if": "Bash(yarn npm publish *)",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/strict-external-actions.sh\" yarn-npm-publish",
+            "shell": "bash",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "if": "Bash(kubectl apply *)",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/strict-external-actions.sh\" kubectl-apply",
+            "shell": "bash",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "if": "Bash(terraform apply *)",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/strict-external-actions.sh\" terraform-apply",
+            "shell": "bash",
             "timeout": 10
           }
         ]

@@ -21,6 +21,15 @@ function escapeRegex(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+function isExpectedVersion(label, version, expectedVersion) {
+  if (version === expectedVersion) return true;
+  // Local Codex cachebusters are build metadata, not a release-version drift.
+  // They let Codex reload the same source checkout without changing the
+  // package/marketplace release version.
+  return label === "Codex plugin metadata" &&
+    new RegExp(`^${escapeRegex(expectedVersion)}\\+codex\\.[A-Za-z0-9._-]+$`).test(version ?? "");
+}
+
 export function validateRelease(tag, repoRoot = defaultRepoRoot) {
   const match = /^v(\d+\.\d+\.\d+)$/.exec(tag ?? "");
   if (!match) {
@@ -43,7 +52,7 @@ export function validateRelease(tag, repoRoot = defaultRepoRoot) {
   ];
 
   const mismatches = versions
-    .filter(([, version]) => version !== expectedVersion)
+    .filter(([label, version]) => !isExpectedVersion(label, version, expectedVersion))
     .map(([label, version]) => `${label}: ${version ?? "<missing>"} (expected ${expectedVersion})`);
 
   const changelogPath = path.join(repoRoot, "CHANGELOG.md");

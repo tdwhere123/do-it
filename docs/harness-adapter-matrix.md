@@ -1,7 +1,7 @@
 # Harness Adapter Matrix
 
 do-it ships one **workflow kernel** (skills, hooks, agents) and four **host
-adapters** that map the same gates to each runtime's hook surface. Adapters are
+adapters** that map the same advisory signals to each runtime's hook surface. Adapters are
 honest about capability gaps — we do not copy the full Claude hook stack onto
 every host.
 
@@ -19,24 +19,26 @@ paths, tool names, and hook event names live in
 [`skills/do-it/references/host-vocabulary.md`](../skills/do-it/references/host-vocabulary.md)
 and the per-host sheets below.
 
-## Enforcement Tiers
+## Routing Tiers
 
-Hooks and skills share three routing tiers. Tier is the canonical input; boolean
-dimensions (`dim_*`) narrow intensity without changing tier.
+Hooks and skills share three routing tiers. Tier is an advisory input; boolean
+dimensions (`dim_*`) narrow intensity without changing it. Direct user intent
+and model judgment take precedence over router labels.
 
-| Tier | Router output | write-quality-lint | grill-prompt | Hard gates |
+| Tier | Router output | write-quality-lint | grill-prompt | Completion reminder |
 |---|---|---|---|---|
-| **Light** | state-only, silent | skipped | skipped | stop only when triggered |
-| **Standard** | state-only, silent | when `dim_touches_code=1` or ≥5 added lines | skipped (Heavy-only) | stop |
-| **Heavy** | state-only, silent | always (advisory) | full grill body when warranted | stop |
+| **Light** | state-only, quiet | skipped | skipped | advisory only when relevant |
+| **Standard** | state + compact advisory stance | when `dim_touches_code=1` or ≥5 added lines | skipped (Heavy-only) | advisory only when relevant |
+| **Heavy** | state-only | always (advisory) | full grill body when warranted | advisory only when relevant |
 
 Subagent contexts skip write-quality-lint (parent owns integration).
 `grill-pretool` is removed on all hosts.
 
 ## Hook Mapping
 
-| Gate | Script | Codex / Claude | Cursor | OpenCode |
+| Signal | Script | Codex / Claude | Cursor | OpenCode |
 |---|---|---|---|---|
+| Opt-in feedback capture | `behavior-feedback.sh` | `UserPromptSubmit` plus narrow `UserPromptExpansion`, silent and default off | `beforeSubmitPrompt`, silent and default off | `chat.message`, silent and default off; only a confirmed root session is eligible |
 | Classify prompt | `router.sh` | `UserPromptSubmit` | `beforeSubmitPrompt` | `chat.message` |
 | Grill nudge (Heavy) | `grill-prompt.sh` | `UserPromptSubmit` | `beforeSubmitPrompt` | `chat.message` (Heavy/explicit, advisory) |
 | Subagent stance | `subagent-stance.sh` | `UserPromptSubmit` | `beforeSubmitPrompt` | bootstrap guidance only |
@@ -46,29 +48,48 @@ Subagent contexts skip write-quality-lint (parent owns integration).
 Legacy `comments-lint.sh` and `anti-patterns-lint.sh` exec into
 `write-quality-lint.sh`; new installs register only the merged script.
 
+## Authorization Enforcement
+
+No current do-it hook is a universal permission veto. The router, grill,
+subagent stance, quality lint, and verification gate are workflow guidance;
+they must not be described as hard confirmation.
+
+- In Codex, a plugin hook can add context but cannot veto a `PreToolUse` or
+  `PermissionRequest` call. Use the host's sandbox, approval policy, and
+  command rules for a hard boundary; `--yolo` / bypass modes deliberately
+  remove that protection. See the [Codex hooks](https://learn.chatgpt.com/docs/hooks)
+  and [approval guidance](https://learn.chatgpt.com/docs/agent-approvals-security).
+- Claude Code has a default-off, narrow `PreToolUse` profile for named remote
+  publication and infrastructure-apply commands. `DO_IT_STRICT_EXTERNAL_ACTIONS=ask`
+  requests a true host confirmation; `deny` stops those named commands. It is
+  not a universal network or MCP guard. See
+  [`strict-external-actions.md`](strict-external-actions.md).
+- Cursor and OpenCode keep the same advisory workflow contract; configure
+  their native permissions separately when an operation needs enforcement.
+
 Per-host install paths and tool mapping:
 [`host-codex.md`](../skills/do-it/references/host-codex.md),
 [`host-claude.md`](../skills/do-it/references/host-claude.md),
 [`host-cursor.md`](../skills/do-it/references/host-cursor.md),
 [`host-opencode.md`](../skills/do-it/references/host-opencode.md).
 
-## Quality Enforcement Ladder
+## Quality Evidence Ladder
 
-Quality is enforced in layers. Higher layers do not replace lower ones — they
-catch what cheap checks cannot prove.
+Quality is supported in layers. Higher layers do not replace lower ones — they
+add context when cheaper checks cannot prove a claim.
 
 ```
 L0  write-time hook (advisory)  →  one system-reminder per file per turn; scoped family suppression with a reason (never secrets)
 L1  do-it-review                →  Blocking / Important finding; YAGNI + comments lenses respond to L0 families
-L2  verification-gate           →  Codex / Claude / Cursor require paired successful shell evidence (fail closed on forge/missing/failed/stale); OpenCode reminds softly
-L3  do-it-verify closeout       →  merge-ready evidence rollup; `NOT_VERIFIED` and residual risk stay visible
+L2  verification-gate           →  edited completion claims receive an advisory reminder for fresh, claim-specific proof; it does not infer proof from command names
+L3  do-it-verify closeout       →  claim-specific evidence rollup; `NOT_VERIFIED` and residual risk stay visible
 ```
 
 | Layer | Owner | Blocks write? | Blocks done claim? |
 |---|---|---|---|
 | L0 `write-quality-lint` | hook | No | No |
-| L1 `do-it-review` | skill / subagent | No | No (findings must clear first) |
-| L2 `verification-gate` | hook | No | **Paired successful evidence** on Codex / Claude / Cursor (fail closed); soft reminder on OpenCode |
+| L1 `do-it-review` | skill / subagent | No | No — unresolved findings shape the final claim |
+| L2 `verification-gate` | hook | No | No — advisory reminder only |
 | L3 `do-it-verify` | skill | No | Claim wording follows available proof |
 
 Family definitions and suppress syntax:
@@ -81,10 +102,11 @@ recurring token cost. Targets after simplification:
 
 | Component | Standard turn target | When skipped |
 |---|---|---|
-| `router.sh` | 0 visible tokens (state-only) | never — always runs |
-| `grill-prompt.sh` | 0 on Standard | Light; Standard (Heavy-only inject); no explicit grill |
-| `subagent-stance.sh` | 1 line | subagent context; parent turn without `dim_touches_code` |
-| **Combined Standard implementation turn** | **< 150 tokens** injected | excluding user prompt |
+| `behavior-feedback.sh` | 0 tokens; no stdout/context | disabled by default; ordinary prompts and unverified child sessions |
+| `router.sh` | one compact advisory line on Standard | Light and Heavy |
+| `grill-prompt.sh` | 0 unless Heavy or explicit | Light; Standard without an explicit grill |
+| `subagent-stance.sh` | one compact line once per subagent session | parent context and later child turns |
+| **Combined Standard implementation turn** | **only task-relevant advisory context** | no fixed workflow injection |
 
 PostToolUse quality reminders:
 
@@ -94,10 +116,10 @@ PostToolUse quality reminders:
   `write-quality-families.md` (L3 progressive disclosure).
 - Light tier: hook does not run — zero post-edit injection.
 
-The parent prompt must supply every Delegation Contract field: tier/lens,
-scope/non-goals, write/restricted paths, facts to verify, proof target, stop,
-and return schema. Portable agents return `NEEDS_CONTEXT` before inspection or
-edits when fields are missing; a repository-relative link is not a substitute.
+Bundled agents are optional capability experts. The parent gives a delegated
+slice its goal and any needed ownership or side-effect boundary; workers inspect
+independently, return useful evidence or uncertainty, and the parent integrates.
+There is no fixed delegation contract, agent count, or role matrix.
 
 ## Session State Resolution
 
@@ -112,7 +134,13 @@ Hooks resolve per-session state through the search order documented in
 6. `<repo>/.do-it/runtime/sessions`
 7. `${TMPDIR}/do-it-sessions`
 
-Missing state degrades to tier-only behavior — hooks never block on absence.
+Missing state degrades to minimal advisory behavior — hooks never block on
+absence.
+
+State is keyed only by the host-supplied session ID. A child assigned a
+different session ID does not automatically inherit a parent's no-write
+boundary; an adapter must pass or verify that relationship explicitly before
+claiming cross-session inheritance.
 
 ## Related Docs
 

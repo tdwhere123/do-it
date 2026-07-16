@@ -7,7 +7,8 @@
 # Current grill prompt scope:
 #   - once a session is already grilled, skip repeated reminders unless the user
 #     explicitly asks to re-grill;
-#   - skip question and discussion turns via router state plus direct detection;
+#   - let the router's advisory tier decide whether a question-shaped request
+#     deserves a reminder; question wording never suppresses direct work;
 #   - Heavy-tier turns receive the fuller fact-first grill reminder; explicit
 #     grill on any tier uses the same reminder shape.
 
@@ -49,6 +50,16 @@ fi
 do_it_source_local_keywords "$CWD"
 do_it_session_state_inc "$SESSION_ID" hook_invocations grill_prompt
 
+# Router owns persistence. Also honor a no-write phrase in this raw prompt so
+# concurrent UserPromptSubmit hooks cannot race into a write-oriented nudge.
+NO_WRITE_BOUNDARY="$(do_it_session_state_get "$SESSION_ID" no_write_boundary)"
+[[ "$NO_WRITE_BOUNDARY" == "1" ]] || NO_WRITE_BOUNDARY=0
+if do_it_prompt_requests_no_write "$PROMPT"; then
+  NO_WRITE_BOUNDARY=1
+elif do_it_prompt_reopens_writes "$PROMPT"; then
+  NO_WRITE_BOUNDARY=0
+fi
+
 # Escape / skip keywords: write only the parsed skip targets for this turn.
 targets="$(do_it_parse_skip_targets "$PROMPT")"
 if [[ -n "$targets" ]]; then
@@ -82,17 +93,6 @@ case "$PROMPT_LC" in
     ;;
 esac
 
-LAST_PROMPT_KIND="$(do_it_session_state_get "$SESSION_ID" last_prompt_kind)"
-
-# Question turns: router has already classified Light and tagged the prompt
-# kind, but keep local detection as a fallback when the hook is run alone.
-# A direct "grill this?" request is still a manual grill request, not an
-# ordinary discussion turn.
-if [[ "$EXPLICIT_GRILL" -eq 0 ]] && { [[ "$LAST_PROMPT_KIND" == "question" ]] || do_it_prompt_is_question "$PROMPT"; }; then
-  do_it_debug grill-prompt "decision=question"
-  exit 0
-fi
-
 # ---- One-shot advisory nudges (work turns only; never block) ----
 ADVISORY_TIER="$(do_it_session_state_get "$SESSION_ID" tier)"
 
@@ -116,14 +116,26 @@ if [[ "$(do_it_session_state_get "$SESSION_ID" brownfield_nudged)" != "1" ]]; th
   _touch="$(do_it_session_state_get "$SESSION_ID" dim_touches_code)"
   if [[ "$_port" == "1" ]]; then
     do_it_session_state_set "$SESSION_ID" brownfield_nudged 1
-    _doit_advisory="${_doit_advisory}<system-reminder>
+    if [[ "$NO_WRITE_BOUNDARY" == "1" ]]; then
+      _doit_advisory="${_doit_advisory}<system-reminder>
+do-it (existing code): this looks like port / restore / reintroduce work. Inspect the current packages/apps/migrations for the target name and report what already exists. A no-write boundary is active; do not edit.
+</system-reminder>"
+    else
+      _doit_advisory="${_doit_advisory}<system-reminder>
 do-it (existing code): this looks like port / restore / reintroduce work. Before writing a 'port' plan, grep/Glob the current packages/apps/migrations for the target name — it may already exist; if so, extend it instead of rebuilding. Advisory.
 </system-reminder>"
+    fi
   elif [[ "$_brown" == "1" && "$_touch" == "1" ]] && { [[ "$ADVISORY_TIER" == "Standard" || "$ADVISORY_TIER" == "Heavy" ]]; }; then
     do_it_session_state_set "$SESSION_ID" brownfield_nudged 1
-    _doit_advisory="${_doit_advisory}<system-reminder>
+    if [[ "$NO_WRITE_BOUNDARY" == "1" ]]; then
+      _doit_advisory="${_doit_advisory}<system-reminder>
+do-it (existing code): this is an established codebase. Read the target area and its existing patterns, names, and invariants (.do-it/CONTEXT.md and handbook if present), then report the evidence. A no-write boundary is active; do not edit.
+</system-reminder>"
+    else
+      _doit_advisory="${_doit_advisory}<system-reminder>
 do-it (existing code): this is an established codebase. Before editing, read the file/area you are changing and reuse its existing patterns, names, and invariants (.do-it/CONTEXT.md and handbook if present) rather than assuming greenfield. Advisory.
 </system-reminder>"
+    fi
   fi
 fi
 
@@ -131,11 +143,14 @@ fi
 # stay quiet.
 if [[ "$RE_GRILL" -eq 0 ]]; then
   GRILLED="$(do_it_session_state_get "$SESSION_ID" grilled)"
-  if [[ "$GRILLED" == "skip-question" && "$LAST_PROMPT_KIND" != "question" ]]; then
+  # Pre-advisory releases persisted this marker for a question turn. It never
+  # represents a real grill, so clear it rather than letting stale state affect
+  # a later direct request.
+  if [[ "$GRILLED" == "skip-question" ]]; then
     do_it_session_state_set "$SESSION_ID" grilled "0"
     GRILLED="0"
   fi
-  if [[ -n "$GRILLED" && "$GRILLED" != "0" && "$GRILLED" != "skip-question" ]]; then
+  if [[ -n "$GRILLED" && "$GRILLED" != "0" ]]; then
     do_it_debug grill-prompt "decision=already-grilled state=$GRILLED"
     _emit_advisory_exit
   fi
@@ -161,7 +176,7 @@ if [[ -z "$TRIGGER" ]]; then
 fi
 
 MSG="<system-reminder>
-do-it grill (trigger: ${TRIGGER}). Before planning or code: (1) necessity — does this need to exist? (2) verify the load-bearing premise against local files (path:line); (3) at most one user decision question with 2-3 options and a default. Prefer do-it-decide. Skip: 'skip grill' / /do-it-skip grill. Full escape: yolo / /do-it-skip.
+do-it grill (trigger: ${TRIGGER}): pressure-test only the load-bearing premise. Verify it locally when possible, decide inline when facts are sufficient, and ask the user only for a material preference that cannot be recovered from context. Prefer do-it-decide when a real decision remains.
 </system-reminder>"
 
 do_it_session_state_set "$SESSION_ID" grilled 1

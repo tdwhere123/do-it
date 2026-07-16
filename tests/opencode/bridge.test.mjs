@@ -217,7 +217,7 @@ test("session state lookup matches the default OpenCode data root", () => {
   }
 });
 
-test("verification transcript does not trust shell wrappers or retain command secrets", () => {
+test("verification transcript keeps shell details private and does not satisfy an advisory reminder", () => {
   const tempParent = fs.mkdtempSync(path.join(os.tmpdir(), "doit-opencode-evidence-"));
   const transcript = createVerificationTranscript("evidence", {
     data: [
@@ -249,14 +249,15 @@ test("verification transcript does not trust shell wrappers or retain command se
       env: { ...process.env, DO_IT_HOOK_DATA: path.join(tempParent, "hook-data") }
     });
     assert.equal(gate.status, 0, gate.stderr);
-    assert.equal(gate.stdout.trim(), "", "classified npm test evidence should satisfy the real gate");
+    assert.match(gate.stdout, /do-it verify \(advisory\)/);
+    assert.match(gate.stdout, /does not infer verification from command names/);
   } finally {
     transcript?.cleanup();
     fs.rmSync(tempParent, { recursive: true, force: true });
   }
 });
 
-test("verification transcript keeps only current-turn gate fields and cleans up", () => {
+test("verification transcript keeps only current-turn fields and remains advisory", () => {
   const tempParent = fs.mkdtempSync(path.join(os.tmpdir(), "doit-opencode-private-"));
   const sessionID = "../../outside/secret-session";
   const transcript = createVerificationTranscript(sessionID, {
@@ -339,7 +340,8 @@ test("verification transcript keeps only current-turn gate fields and cleans up"
       }
     });
     assert.equal(gate.status, 0, gate.stderr);
-    assert.equal(gate.stdout.trim(), "", "paired OpenCode evidence should satisfy the real gate");
+    assert.match(gate.stdout, /do-it verify \(advisory\)/);
+    assert.match(gate.stdout, /does not infer verification from command names/);
 
     assert.match(rows, /"type":"user"/);
     assert.match(rows, /"name":"Edit"/);

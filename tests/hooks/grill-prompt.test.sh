@@ -58,6 +58,15 @@ echo "Case 2: Heavy injects grill"
 )
 case "$?" in 0) _pass "Heavy injects";; *) _fail "Heavy inject";; esac
 
+echo "Case 2b: question label does not suppress Heavy"
+(
+  _isolate /tmp/doit-grill-c2b
+  _set_state g2b tier Heavy last_prompt_kind question
+  out=$(_run g2b "Can you deploy production?")
+  [[ "$out" == *"do-it grill"* && "$out" == *"heavy-tier"* ]]
+)
+case "$?" in 0) _pass "Heavy question injects";; *) _fail "Heavy question suppression";; esac
+
 echo "Case 3: explicit grill on Standard"
 (
   _isolate /tmp/doit-grill-c3

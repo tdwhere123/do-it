@@ -2,44 +2,42 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  validateAgentCapabilityPolicy,
   validateAgentInstructionLinks,
-  validateDelegationContract,
   validatePortableAgentPolicy
 } from "../scripts/validate-agent-bundle.mjs";
 
-const completeContract = `
-Delegation Contract:
-- tier and lens
-- scope and non-goals
-- write ownership and restricted paths
-- facts to verify
-- proof target
-- stop condition
-- return schema
-Return NEEDS_CONTEXT when fields are missing.
+const capabilityAgent = `
+name = "example"
+description = "Use when a focused read-only review can resolve a bounded question."
+sandbox_mode = "read-only"
+developer_instructions = "Return evidence and NOT_CHECKED."
 `;
 
 test("portable agent policy remains model-agnostic", () => {
   const errors = [];
-  validatePortableAgentPolicy("agents/example.toml", `${completeContract}\nmodel_reasoning_effort`, errors);
+  validatePortableAgentPolicy("agents/example.toml", `${capabilityAgent}\nmodel_reasoning_effort`, errors);
   assert.deepEqual(errors, [
     "agents/example.toml: must not contain host-private model or budget fields"
   ]);
 });
 
-test("delegation contract requires every portable field", () => {
+test("capability agents stay concise, safe, and free of process gates", () => {
   const errors = [];
-  validateDelegationContract("agents/example.toml", completeContract, errors);
+  validateAgentCapabilityPolicy("agents/example.toml", capabilityAgent, errors);
   assert.deepEqual(errors, []);
 
-  validateDelegationContract(
-    "agents/incomplete.toml",
-    completeContract.replace("proof target", "proof evidence"),
-    errors
-  );
+  validateAgentCapabilityPolicy("agents/incomplete.toml", capabilityAgent
+    .replace("Use when", "Maps when")
+    .replace('sandbox_mode = "read-only"', 'sandbox_mode = "unrestricted"')
+    .replace("NOT_CHECKED", "not checked")
+    .concat("\nDelegation Contract: required in the parent prompt; self-escalate."), errors);
   assert.ok(
-    errors.includes("agents/incomplete.toml: Delegation Contract must include proof target")
+    errors.includes("agents/incomplete.toml: description must start with Use when")
   );
+  assert.ok(errors.includes("agents/incomplete.toml: sandbox_mode must be read-only or workspace-write"));
+  assert.ok(errors.includes("agents/incomplete.toml: must name NOT_CHECKED in its return guidance"));
+  assert.ok(errors.includes("agents/incomplete.toml: must not retain process gate phrase Delegation Contract"));
 });
 
 test("agent instruction links reject broken local paths in link, code, or bare forms", () => {

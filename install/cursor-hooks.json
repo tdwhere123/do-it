@@ -9,6 +9,10 @@
     ],
     "beforeSubmitPrompt": [
       {
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/run-hook.cmd behavior-feedback",
+        "timeout": 10
+      },
+      {
         "command": "${CURSOR_PLUGIN_ROOT}/hooks/run-hook.cmd router",
         "timeout": 25
       },
