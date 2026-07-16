@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # do-it sessionStart bootstrap (Cursor plugin).
-# Injects compact workflow awareness once per session (<400 tokens).
+# Injects compact workflow awareness once per session.
 
 set -uo pipefail
 
@@ -14,13 +14,9 @@ SESSION_ID="$(do_it_json_get "$RAW_INPUT" session_id)"
 do_it_session_state_inc "$SESSION_ID" hook_invocations session_start 2>/dev/null || true
 
 read -r -d '' CONTEXT <<'EOF' || true
-do-it workflow discipline is active. Hooks route Light / Standard / Heavy tiers on each prompt.
+do-it is active. Match depth to the task: choose skills or subagents when they help, and keep direct user intent above hook labels.
 
-Non-trivial repo work: load skill do-it-router first — choose tier, read current truth, and pick the minimum useful workflow before editing, delegating, reviewing, or claiming done.
-
-Skip hooks when appropriate: yolo, skip grill, 直接做, 我已经想清楚, or /do-it-skip (grill|router|gate|all). Pure Q&A or status-only turns skip router pressure.
-
-Verification-gate blocks done / passed / 完成 claims without fresh command evidence in the turn (Stop hook is a soft transcript check — cite real command output in your reply).
+Read current truth before changing a repo. Keep external or destructive actions confirmed; for local work, choose task-relevant evidence and state any remaining uncertainty before claiming completion.
 EOF
 
 # Prefer Cursor additional_context when running under Cursor (plugin or

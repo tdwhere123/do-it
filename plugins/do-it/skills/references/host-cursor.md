@@ -1,6 +1,6 @@
 # Host Adapter: Cursor
 
-Medium hook depth: bootstrap + prompt gates + write-time quality + stop
+Medium hook depth: bootstrap + advisory prompt signals + write-time quality + stop
 verification. Install via local plugin path, CLI mirror, or Cursor marketplace
 when listed.
 
@@ -11,7 +11,7 @@ OpenCode):
 
 `do-it-router`, `do-it-code-quality`, `do-it-review`, `do-it-decide`,
 `do-it-verify`, plus extended `do-it-handbook`, `do-it-context`,
-`do-it-skill-authoring`.
+`do-it-skill-authoring`, and the on-demand `do-it-retrospective`.
 
 `skills/do-it/references/` is always copied alongside (shared kernel — not a
 registered skill).
@@ -160,7 +160,7 @@ plugins/do-it-cursor/.cursor-plugin/plugin.json
 ~/.cursor/plugins/local/do-it-cursor/   # real copy (not an external symlink)
 ├── .cursor-plugin/plugin.json
 ├── assets/logo.svg
-├── skills/          # full 8 skills + references/
+├── skills/          # full 9 skills + references/
 ├── agents/
 └── hooks/
     ├── hooks.json          # also mirrored into ~/.cursor/hooks.json
@@ -179,9 +179,10 @@ search order).
 | Event | Scripts | Matcher | Notes |
 |---|---|---|---|
 | `sessionStart` | `session-start.sh` | — | Light bootstrap; skills index hint |
+| `beforeSubmitPrompt` (default off) | `behavior-feedback.sh` | — | Silent local feedback capture; no additional context |
 | `beforeSubmitPrompt` | `router.sh` → `grill-prompt.sh` → `subagent-stance.sh` | — | Grill injects Heavy-only |
 | `postToolUse` / `afterFileEdit` | `write-quality-lint.sh` | `StrReplace\|Write\|EditNotebook` | Single advisory reminder |
-| `stop` | `verification-gate.sh` | — | Hard done-claim block |
+| `stop` | `verification-gate.sh` | — | Advisory evidence reminder after an edited completion claim |
 
 ## Tool Mapping
 

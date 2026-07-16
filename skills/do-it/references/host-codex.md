@@ -1,6 +1,6 @@
 # Host Adapter: Codex
 
-Reference adapter for do-it hooks and install. Other hosts mirror this gate set
+Reference adapter for do-it hooks and install. Other hosts mirror this hook set
 with different event names.
 
 ## Install (plugin-first)
@@ -47,9 +47,19 @@ do-it doctor
 
 | Event | Scripts |
 |---|---|
+| `UserPromptSubmit` (default off) | `behavior-feedback.sh` records only explicit behavioral feedback locally; it emits no context |
 | `UserPromptSubmit` | `router.sh` → `grill-prompt.sh` (Heavy-only) → `subagent-stance.sh` |
 | `PostToolUse` (Edit\|Write\|MultiEdit\|NotebookEdit) | `write-quality-lint.sh` |
 | `Stop` | `verification-gate.sh` |
+
+## Authorization
+
+The bundled hooks are advisory, not a hard external-action gate. Codex plugin
+hooks can add context but cannot veto a `PreToolUse` or `PermissionRequest`
+call. Keep a real boundary in Codex's sandbox, approval policy, and command
+rules; bypass modes intentionally remove that protection.
+For an opt-in, host-accurate boundary rather than a fake plugin veto, see
+[`strict-external-actions.md`](../../../docs/strict-external-actions.md).
 
 ## Tool Mapping
 

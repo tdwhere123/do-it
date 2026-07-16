@@ -103,17 +103,15 @@ function buildPluginManifest() {
     hooks: "./hooks/hooks.json",
     interface: {
       displayName: "do-it",
-      shortDescription: "Meaning-centric workflow discipline for Codex.",
+      shortDescription: "Autonomy-first workflow discipline for Codex.",
       longDescription:
-        "Install do-it via the Codex plugin marketplace. Skills cover route, code-quality, review, decide, and verify. Plugin-bundled hooks enforce quality lint and verification; trust them in /hooks after install.",
+        "Install do-it via the Codex plugin marketplace. Skills and bundled agents are selected only when task-fit helps; plugin hooks provide compact routing and evidence reminders. Trust plugin hooks in /hooks after install.",
       developerName: "tdwhere123",
       category: "Coding",
       capabilities: ["Skills", "Agents", "Hooks"],
       websiteURL: "https://github.com/tdwhere123/do-it",
       defaultPrompt: [
-        "Use do-it-router to pick Light/Standard/Heavy, then self-select meaning skills.",
-        "Write with do-it-code-quality (premise, blast radius, bounded chain).",
-        "Review with do-it-review; close with do-it-verify."
+        "Work autonomously: choose do-it skills or bundled agents only when task-fit helps; honor direct user intent, keep external/destructive actions confirmed, and report task-relevant evidence."
       ],
       brandColor: "#2563EB"
     }
@@ -168,6 +166,7 @@ function main() {
   fs.mkdirSync(hooksTarget, { recursive: true });
   for (const name of [
     "hooks.json",
+    "behavior-feedback.sh",
     "router.sh",
     "grill-prompt.sh",
     "subagent-stance.sh",
@@ -189,6 +188,12 @@ function main() {
       UserPromptSubmit: [
         {
           hooks: [
+            {
+              type: "command",
+              command:
+                'DO_IT_HOOK_DATA="${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-/tmp/do-it-data}}" "${PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}/hooks/behavior-feedback.sh"',
+              timeout: 10
+            },
             {
               type: "command",
               command:

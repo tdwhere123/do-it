@@ -6,7 +6,7 @@ Leading words: **premise**, **blast radius**, **bounded chain**.
 
 ## Premise
 
-One sentence before editing:
+For a non-trivial change, keep one sentence in the working context:
 
 > If \<this fact\> is wrong, the change is wrong or unsafe.
 
@@ -49,6 +49,7 @@ Prefer one bounded chain over a package tour. No consumer in-task → do not inv
 
 ## Quick Checks
 
-- New export/route/event with no in-task consumer? Unused surface — stop.
+- New export/route/event with no in-task consumer? Treat it as an unused surface
+  unless the user explicitly asked for the extension point.
 - Tests mock away the chain under proof? Test fiction — tighten or add a real-path check.
 - Docs/generated output disagree with the contract? Fix both sides or defer explicitly.

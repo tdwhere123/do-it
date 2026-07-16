@@ -20,28 +20,33 @@ import {
 } from "../scripts/register-cursor-plugin.mjs";
 import { resolveUserHome, looksLikeWindowsPath, toWslMountPath } from "../scripts/lib/user-home.mjs";
 
-const VALID_COMMANDS = new Set(["install", "doctor", "setup"]);
+const VALID_COMMANDS = new Set(["install", "doctor", "setup", "migrate-legacy"]);
 const HELP_FLAGS = new Set(["-h", "--help", "help"]);
 const FORCE_INSTALL = process.env.DO_IT_FORCE === "1";
 const DEFAULT_TARGET = process.env.DO_IT_TARGET || "codex";
+const CODEX_PLUGIN_ID = "do-it@tdwhere-do-it";
+const CODEX_PLUGIN_NAME = "do-it";
+const CODEX_MARKETPLACE_NAME = "tdwhere-do-it";
 
 function usage(stream = console.error) {
   const commandName =
     process.env.DO_IT_CLI_NAME ||
     path.basename(process.argv[1] || "manage.mjs");
 
-  stream(`Usage: ${commandName} <install|doctor|setup> [--target=<name>]`);
+  stream(`Usage: ${commandName} <install|doctor|setup|migrate-legacy> [--target=<name>]`);
   stream("");
   stream("Commands:");
-  stream("  install  Copy managed skills and agents into the install root");
+  stream("  install  Copy managed do-it entries into the install root");
   stream("  doctor   Verify managed entries in the install root");
   stream("  setup    Run install, then doctor");
+  stream("  migrate-legacy  Inspect legacy Codex do-it targets; use --apply to remove proven duplicates");
   stream("");
   stream("Options:");
   stream("  --target=<name>   Pick install target (default: codex). Available: codex, claude, cursor.");
   stream("  --with-optional   Include any skills marked optional in the manifest.");
   stream("  --session=<id>    With doctor: pretty-print session state (hook invocations, tier history) for the given session id.");
   stream("  --no-migrate      With install: refuse to silently migrate from an older install-state version (exit code 2).");
+  stream("  --apply           With migrate-legacy: remove only preflight-proven legacy targets after persistent backups.");
   stream("");
   stream("Environment:");
   stream("  CODEX_HOME                    Override codex install root (default: $HOME/.codex)");
@@ -57,11 +62,14 @@ function parseArgs(argv) {
   let withOptional = false;
   let sessionId = null;
   let noMigrate = false;
+  let apply = false;
   for (const arg of argv) {
     if (arg === "--with-optional") {
       withOptional = true;
     } else if (arg === "--no-migrate") {
       noMigrate = true;
+    } else if (arg === "--apply") {
+      apply = true;
     } else if (arg.startsWith("--target=")) {
       targetName = arg.slice("--target=".length);
     } else if (arg.startsWith("--session=")) {
@@ -70,10 +78,10 @@ function parseArgs(argv) {
       positional.push(arg);
     }
   }
-  return { positional, targetName, withOptional, sessionId, noMigrate };
+  return { positional, targetName, withOptional, sessionId, noMigrate, apply };
 }
 
-const { positional, targetName, withOptional, sessionId, noMigrate } = parseArgs(process.argv.slice(2));
+const { positional, targetName, withOptional, sessionId, noMigrate, apply } = parseArgs(process.argv.slice(2));
 const command = positional[0];
 
 if (HELP_FLAGS.has(command)) {
@@ -102,6 +110,16 @@ if (!targetConfig) {
   console.error(
     `Unknown target: ${targetName}. Available: ${Object.keys(targetsConfig).join(", ") || "(none)"}.`
   );
+  process.exit(2);
+}
+
+if (apply && command !== "migrate-legacy") {
+  console.error("--apply is only valid with migrate-legacy.");
+  process.exit(2);
+}
+
+if (command === "migrate-legacy" && targetName !== "codex") {
+  console.error("migrate-legacy supports only the Codex target (--target=codex).");
   process.exit(2);
 }
 
@@ -159,7 +177,11 @@ function skillAllowedForTarget(entry) {
 const skillEntries = manifest.skills
   .filter(skillAllowedForTarget)
   .map((entry) => adaptEntry(entry, "skill"));
-const agentEntries = manifest.agents.map((entry) => adaptEntry(entry, "agent"));
+// Codex marketplace plugins are the canonical home for bundled agents. The
+// optional legacy copy deliberately excludes them once `installAgents` is
+// disabled, while migration below can still identify the former targets.
+const canonicalAgentEntries = manifest.agents.map((entry) => adaptEntry(entry, "agent"));
+const agentEntries = targetConfig.installAgents === false ? [] : canonicalAgentEntries;
 const extraEntries = (targetConfig.extras ?? []).map((extra) => ({
   ...extra,
   kind: "extra",
@@ -408,6 +430,564 @@ function hashPath(targetPath) {
   }
 
   return hash.digest("hex");
+}
+
+function readLegacyMigrationState() {
+  const stateFile = pathState(statePath);
+  if (!stateFile) {
+    return { exists: false, state: null, hash: null, error: null };
+  }
+  if (stateFile.isSymbolicLink()) {
+    return {
+      exists: true,
+      state: null,
+      hash: null,
+      error: "install state is a symlink"
+    };
+  }
+
+  try {
+    const state = JSON.parse(fs.readFileSync(statePath, "utf8"));
+    if (!state || typeof state !== "object" || Array.isArray(state)) {
+      throw new Error("install state must be a JSON object");
+    }
+    if (
+      state.entries !== undefined &&
+      (!state.entries || typeof state.entries !== "object" || Array.isArray(state.entries))
+    ) {
+      throw new Error("install state entries must be an object when present");
+    }
+    return { exists: true, state, hash: hashPath(statePath), error: null };
+  } catch (error) {
+    return { exists: true, state: null, hash: null, error: error.message };
+  }
+}
+
+function readExpectedCodexPluginManifest() {
+  const manifestPath = resolveRepoPath("plugins/do-it/.codex-plugin/plugin.json");
+  let pluginManifest;
+  try {
+    pluginManifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+  } catch (error) {
+    throw new Error(`cannot read package plugin manifest at ${manifestPath}: ${error.message}`);
+  }
+
+  const version = typeof pluginManifest?.version === "string" ? pluginManifest.version : "";
+  const baseVersion = version.split("+", 1)[0];
+  if (pluginManifest?.name !== CODEX_PLUGIN_NAME) {
+    throw new Error(`package plugin manifest at ${manifestPath} is not ${CODEX_PLUGIN_NAME}`);
+  }
+  if (!version || !/^[A-Za-z0-9][A-Za-z0-9.+-]*$/.test(version)) {
+    throw new Error(`package plugin manifest has an unsafe version: ${JSON.stringify(version)}`);
+  }
+  if (baseVersion !== manifest.version) {
+    throw new Error(
+      `package plugin base version ${baseVersion || "<missing>"} does not match manifest ${manifest.version}`
+    );
+  }
+  const cachebusterPrefix = `${manifest.version}+codex.`;
+  if (
+    version.includes("+") &&
+    (!version.startsWith(cachebusterPrefix) || version.length === cachebusterPrefix.length)
+  ) {
+    throw new Error(`package plugin cachebuster must use ${manifest.version}+codex.<token>`);
+  }
+
+  return { manifestPath, version };
+}
+
+function codexPluginBundleStatus() {
+  let expectedPlugin;
+  try {
+    expectedPlugin = readExpectedCodexPluginManifest();
+  } catch (error) {
+    return {
+      configured: false,
+      bundlePath: null,
+      reason: error.message
+    };
+  }
+
+  const expectedAgentsPath = resolveRepoPath("plugins/do-it/agents");
+  const canonicalAgentsPath = resolveRepoPath("agents");
+  const bundlePath = resolveHomePath(
+    `plugins/cache/${CODEX_MARKETPLACE_NAME}/${CODEX_PLUGIN_NAME}/${expectedPlugin.version}`
+  );
+  const canonicalAgentsState = pathState(canonicalAgentsPath);
+  if (
+    !canonicalAgentsState ||
+    canonicalAgentsState.isSymbolicLink() ||
+    !canonicalAgentsState.isDirectory()
+  ) {
+    return {
+      configured: false,
+      bundlePath,
+      reason: `this do-it package has no readable canonical agents at ${canonicalAgentsPath}`
+    };
+  }
+  const expectedAgentsState = pathState(expectedAgentsPath);
+  if (!expectedAgentsState || expectedAgentsState.isSymbolicLink() || !expectedAgentsState.isDirectory()) {
+    return {
+      configured: false,
+      bundlePath,
+      reason: `this do-it package has no readable plugin agent bundle at ${expectedAgentsPath}`
+    };
+  }
+
+  try {
+    if (!treesMatch(canonicalAgentsPath, expectedAgentsPath)) {
+      return {
+        configured: false,
+        bundlePath,
+        reason:
+          `package plugin agents at ${expectedAgentsPath} do not match canonical agents at ${canonicalAgentsPath}; ` +
+          "run npm run build:codex-plugin"
+      };
+    }
+  } catch (error) {
+    return {
+      configured: false,
+      bundlePath,
+      reason: `could not verify package plugin agents: ${error.message}`
+    };
+  }
+
+  const bundleState = pathState(bundlePath);
+  if (!bundleState || bundleState.isSymbolicLink() || !bundleState.isDirectory()) {
+    return {
+      configured: false,
+      bundlePath,
+      reason: `installed plugin bundle is missing at ${bundlePath}`
+    };
+  }
+
+  const pluginManifestPath = path.join(bundlePath, ".codex-plugin", "plugin.json");
+  let pluginManifest;
+  try {
+    pluginManifest = JSON.parse(fs.readFileSync(pluginManifestPath, "utf8"));
+  } catch (error) {
+    return {
+      configured: false,
+      bundlePath,
+      reason: `installed plugin manifest is unreadable at ${pluginManifestPath}: ${error.message}`
+    };
+  }
+  if (
+    pluginManifest?.name !== CODEX_PLUGIN_NAME ||
+    pluginManifest?.version !== expectedPlugin.version
+  ) {
+    return {
+      configured: false,
+      bundlePath,
+      reason: `installed plugin manifest at ${pluginManifestPath} does not identify ${CODEX_PLUGIN_NAME}@${expectedPlugin.version}`
+    };
+  }
+
+  const installedAgentsPath = path.join(bundlePath, "agents");
+  const installedAgentsState = pathState(installedAgentsPath);
+  if (!installedAgentsState || installedAgentsState.isSymbolicLink() || !installedAgentsState.isDirectory()) {
+    return {
+      configured: false,
+      bundlePath,
+      reason: `installed plugin agent bundle is missing at ${installedAgentsPath}`
+    };
+  }
+
+  try {
+    if (!treesMatch(expectedAgentsPath, installedAgentsPath)) {
+      return {
+        configured: false,
+        bundlePath,
+        reason: `installed plugin agents at ${installedAgentsPath} do not match this do-it package`
+      };
+    }
+  } catch (error) {
+    return {
+      configured: false,
+      bundlePath,
+      reason: `could not verify installed plugin agents: ${error.message}`
+    };
+  }
+
+  return { configured: true, bundlePath, reason: null };
+}
+
+function codexPluginStatus() {
+  const configPath = resolveHomePath("config.toml");
+  if (!pathState(configPath)) {
+    return {
+      configured: false,
+      configPath,
+      bundlePath: null,
+      reason: `Codex config is missing at ${configPath}`
+    };
+  }
+
+  let config;
+  try {
+    config = fs.readFileSync(configPath, "utf8");
+  } catch (error) {
+    return {
+      configured: false,
+      configPath,
+      bundlePath: null,
+      reason: `cannot read Codex config: ${error.message}`
+    };
+  }
+
+  const header = `[plugins."${CODEX_PLUGIN_ID}"]`;
+  const lines = config.split(/\r?\n/);
+  const headerIndex = lines.findIndex((line) => line.trim() === header);
+  if (headerIndex === -1) {
+    return {
+      configured: false,
+      configPath,
+      bundlePath: null,
+      reason: `${CODEX_PLUGIN_ID} is not configured`
+    };
+  }
+
+  const nextHeaderIndex = lines.findIndex(
+    (line, index) => index > headerIndex && line.trimStart().startsWith("[")
+  );
+  const section = lines.slice(headerIndex + 1, nextHeaderIndex === -1 ? undefined : nextHeaderIndex).join("\n");
+  if (!/^\s*enabled\s*=\s*true\s*(?:#.*)?$/m.test(section)) {
+    return {
+      configured: false,
+      configPath,
+      bundlePath: null,
+      reason: `${CODEX_PLUGIN_ID} is not enabled`
+    };
+  }
+
+  const bundle = codexPluginBundleStatus();
+  return {
+    ...bundle,
+    configPath
+  };
+}
+
+function stateProvesLegacyOwnership(state, entry, targetHash) {
+  const stateEntry = state?.entries?.[entry.target];
+  return Boolean(
+    stateEntry &&
+      stateEntry.kind === entry.kind &&
+      stateEntry.name === entry.name &&
+      stateEntry.hash === targetHash
+  );
+}
+
+function canonicalSourceProof(entry, targetHash) {
+  const candidateSources = [
+    entry.source,
+    `plugins/do-it/agents/${entry.name}${targetConfig.agentTargetExt}`
+  ];
+
+  for (const source of candidateSources) {
+    const sourcePath = resolveRepoPath(source);
+    const sourceState = pathState(sourcePath);
+    if (!sourceState || sourceState.isSymbolicLink() || !sourceState.isFile()) continue;
+    if (hashPath(sourcePath) === targetHash) {
+      return source === entry.source
+        ? "matches legacy package source"
+        : "matches plugin agent bundle";
+    }
+  }
+
+  return null;
+}
+
+function hasHighConfidenceLegacyAgentSignature(targetPath, targetState) {
+  if (!targetState.isFile()) return false;
+
+  let content;
+  try {
+    content = fs.readFileSync(targetPath, "utf8");
+  } catch {
+    return false;
+  }
+
+  const hasNeedsContext = content.includes("NEEDS_CONTEXT");
+  const hasOldDispatchMarker =
+    content.includes("do-it-subagent-orchestration") ||
+    content.includes("Dispatch (required from parent prompt):") ||
+    content.includes("Full dispatch contract:");
+
+  return hasNeedsContext && hasOldDispatchMarker;
+}
+
+function inspectLegacyMigrationTarget(entry, category, state) {
+  assertManagedTargetShape(entry);
+
+  const targetPath = resolveHomePath(entry.target);
+  const targetState = pathState(targetPath);
+  const label = `${category}:${entry.name}`;
+  if (!targetState) {
+    return { entry, category, label, targetPath, status: "ABSENT", reason: "not present" };
+  }
+
+  if (targetState.isSymbolicLink()) {
+    return {
+      entry,
+      category,
+      label,
+      targetPath,
+      status: "REFUSED",
+      reason: "target is a symlink; ownership cannot be proven safely"
+    };
+  }
+
+  if (entry.kind === "agent" && !targetState.isFile()) {
+    return {
+      entry,
+      category,
+      label,
+      targetPath,
+      status: "REFUSED",
+      reason: "agent target is not a regular file"
+    };
+  }
+
+  const targetHash = hashPath(targetPath);
+  if (stateProvesLegacyOwnership(state, entry, targetHash)) {
+      return {
+        entry,
+        category,
+        label,
+        targetPath,
+        status: "REMOVABLE",
+        targetHash,
+        reason: "matching do-it install-state hash"
+    };
+  }
+
+  if (entry.kind === "agent") {
+    const sourceProof =
+      category === "legacy-agent" ? canonicalSourceProof(entry, targetHash) : null;
+    if (sourceProof) {
+      return {
+        entry,
+        category,
+        label,
+        targetPath,
+        status: "REMOVABLE",
+        targetHash,
+        reason: sourceProof
+      };
+    }
+
+  }
+
+  if ((entry.legacyHashes ?? []).includes(targetHash)) {
+    return {
+      entry,
+      category,
+      label,
+      targetPath,
+      status: "REMOVABLE",
+      targetHash,
+      reason: "matching manifest legacy hash"
+    };
+  }
+
+  if (entry.kind === "agent" && hasHighConfidenceLegacyAgentSignature(targetPath, targetState)) {
+    return {
+      entry,
+      category,
+      label,
+      targetPath,
+      status: "REFUSED",
+      reason: "matches a retired do-it dispatch signature but lacks state/hash/source proof; manual review required"
+    };
+  }
+
+  return {
+    entry,
+    category,
+    label,
+    targetPath,
+    status: "REFUSED",
+    reason: "content is not proven do-it-owned; preserving it as user-owned or ambiguous"
+  };
+}
+
+function collectLegacyMigrationTargets(state) {
+  return [
+    ...canonicalAgentEntries.map((entry) =>
+      inspectLegacyMigrationTarget(entry, "legacy-agent", state)
+    ),
+    ...deprecatedEntries.map((entry) =>
+      inspectLegacyMigrationTarget(entry, `deprecated-${entry.kind}`, state)
+    )
+  ];
+}
+
+function createLegacyMigrationBackupRoot() {
+  const timestamp = new Date().toISOString().replace(/[.:]/g, "-");
+  const backupRoot = path.join(
+    installRoot,
+    ".do-it-legacy-migration-backups",
+    `${timestamp}-${crypto.randomUUID()}`
+  );
+  assertWithinInstallRoot(backupRoot);
+  fs.mkdirSync(backupRoot, { recursive: true });
+  return backupRoot;
+}
+
+function legacyMigrationBackupPath(backupRoot, relativePath) {
+  const backupPath = path.join(backupRoot, relativePath);
+  assertWithinInstallRoot(backupPath);
+  return backupPath;
+}
+
+function removeLegacyMigrationTarget(candidate, backupRoot) {
+  const targetState = pathState(candidate.targetPath);
+  if (!targetState || targetState.isSymbolicLink()) {
+    throw new Error(`legacy migration target changed during apply: ${candidate.targetPath}`);
+  }
+  if (hashPath(candidate.targetPath) !== candidate.targetHash) {
+    throw new Error(`legacy migration target content changed during apply: ${candidate.targetPath}`);
+  }
+
+  const backupPath = legacyMigrationBackupPath(backupRoot, candidate.entry.target);
+  copyEntry(candidate.targetPath, backupPath);
+  fs.rmSync(candidate.targetPath, {
+    recursive: targetState.isDirectory(),
+    force: false
+  });
+  return { ...candidate, backupPath };
+}
+
+function restoreLegacyMigrationTargets(removed) {
+  for (const candidate of [...removed].reverse()) {
+    if (!pathState(candidate.backupPath)) continue;
+    if (pathState(candidate.targetPath)) {
+      throw new Error(`cannot restore target recreated during rollback: ${candidate.targetPath}`);
+    }
+    copyEntry(candidate.backupPath, candidate.targetPath);
+  }
+}
+
+function writeLegacyMigrationState(stateInfo, removed, backupRoot) {
+  if (!stateInfo.state) return false;
+  if (!pathState(statePath) || hashPath(statePath) !== stateInfo.hash) {
+    throw new Error(`install state changed during apply: ${statePath}`);
+  }
+
+  const updated = JSON.parse(JSON.stringify(stateInfo.state));
+  const entries = updated.entries ?? {};
+  let changed = false;
+  for (const candidate of removed) {
+    if (Object.hasOwn(entries, candidate.entry.target)) {
+      delete entries[candidate.entry.target];
+      changed = true;
+    }
+  }
+  if (!changed) return false;
+
+  updated.entries = entries;
+  copyEntry(statePath, legacyMigrationBackupPath(backupRoot, path.basename(statePath)));
+  writeFileAtomic(statePath, `${JSON.stringify(updated, null, 2)}\n`);
+  return true;
+}
+
+function migrateLegacy() {
+  const plugin = codexPluginStatus();
+  const stateInfo = readLegacyMigrationState();
+  const candidates = collectLegacyMigrationTargets(stateInfo.state);
+  const present = candidates.filter((candidate) => candidate.status !== "ABSENT");
+  const removable = candidates.filter((candidate) => candidate.status === "REMOVABLE");
+  const refused = candidates.filter((candidate) => candidate.status === "REFUSED");
+
+  console.log("legacy Codex → plugin migration");
+  console.log(`mode: ${apply ? "apply" : "dry-run"}`);
+  console.log(`legacy root: ${installRoot}`);
+  console.log(
+    plugin.configured
+      ? `plugin source of truth: ${CODEX_PLUGIN_ID} enabled in ${plugin.configPath}; verified bundle ${plugin.bundlePath}`
+      : `plugin source of truth: UNCONFIRMED (${plugin.reason})`
+  );
+  console.log(
+    "scope: only manifest-listed canonical do-it agents and deprecated do-it targets; unrelated global agents are not scanned"
+  );
+  if (stateInfo.error) {
+    console.log(`install state: unreadable (${stateInfo.error})`);
+  } else if (stateInfo.exists) {
+    console.log(`install state: ${statePath}`);
+  } else {
+    console.log("install state: absent");
+  }
+
+  for (const candidate of present) {
+    console.log(`- ${candidate.status} ${candidate.label} at ${candidate.targetPath} (${candidate.reason})`);
+  }
+  console.log(
+    `summary: ${removable.length} removable, ${refused.length} refused, ${candidates.length - present.length} absent`
+  );
+
+  if (!apply) {
+    console.log("dry-run only: no files changed. Re-run with --apply after reviewing this inventory.");
+    return;
+  }
+
+  if (removable.length === 0) {
+    if (refused.length > 0) {
+      console.error(
+        `Legacy migration incomplete: ${refused.length} target(s) are ambiguous or user-owned; no proven targets were removed.`
+      );
+      process.exitCode = 1;
+    } else {
+      console.log("nothing to remove; no backup created.");
+    }
+    return;
+  }
+
+  if (!plugin.configured) {
+    console.error(
+      `Refusing to apply legacy migration until ${CODEX_PLUGIN_ID} is enabled and its current plugin bundle is verified. ${plugin.reason}. No files changed.`
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  if (stateInfo.error) {
+    console.error(
+      `Refusing to apply legacy migration while install state is unreadable at ${statePath}. No files changed.`
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  const backupRoot = createLegacyMigrationBackupRoot();
+  const removed = [];
+  let stateChanged = false;
+  try {
+    for (const candidate of removable) {
+      removed.push(removeLegacyMigrationTarget(candidate, backupRoot));
+    }
+    stateChanged = writeLegacyMigrationState(stateInfo, removed, backupRoot);
+  } catch (error) {
+    try {
+      const stateBackup = legacyMigrationBackupPath(backupRoot, path.basename(statePath));
+      if (pathState(stateBackup)) copyEntry(stateBackup, statePath);
+      restoreLegacyMigrationTargets(removed);
+    } catch (rollbackError) {
+      throw new Error(
+        `legacy migration failed: ${error.message}; rollback also failed: ${rollbackError.message}; backups remain at ${backupRoot}`
+      );
+    }
+    throw new Error(`legacy migration failed: ${error.message}; backups remain at ${backupRoot}`);
+  }
+
+  console.log(`migration applied: removed ${removed.length} proven legacy do-it target(s).`);
+  console.log(`backup: ${backupRoot}`);
+  console.log(stateChanged ? "install state: updated" : "install state: unchanged");
+  if (refused.length > 0) {
+    console.error(
+      `Legacy migration incomplete: ${refused.length} ambiguous or user-owned target(s) were preserved. Review the dry-run inventory before any manual action.`
+    );
+    process.exitCode = 1;
+  }
 }
 
 function readInstallState() {
@@ -1105,6 +1685,8 @@ if (command === "install") {
   install();
 } else if (command === "doctor") {
   doctor();
+} else if (command === "migrate-legacy") {
+  migrateLegacy();
 } else {
   install();
   doctor();

@@ -18,7 +18,7 @@ CLI setup path:
 
 | Plane | Current repository evidence |
 |---|---|
-| Source/package | `package.json`, manifest, and plugin metadata declare `0.14.0`; inventory is 8 user/runnable skills + 1 generated discovery entry + 10 agents. |
+| Source/package | `package.json`, manifest, and plugin metadata declare `0.14.0`; inventory is 9 user/runnable skills + 1 generated discovery entry + 10 agents. |
 | Git tag | This checkout has no matching `v0.14.0` tag. The latest local tag is `v0.6.0`; version metadata alone is not a release. |
 | Marketplace/npm | Install coordinates and publish workflows exist, but this checkout does not prove public marketplace listing or npm publication. Cursor listing and OpenCode npm publication remain pending. |
 | Live host | Only host install/inspection evidence proves an active version. Source, package, tag, and live host may differ. |
@@ -30,6 +30,9 @@ CLI setup path:
   `do-it-handbook` / `do-it-context` / `do-it-skill-authoring`. Agents reduced
   to 10. Plugin-first install; `grill-pretool` removed; `grill-prompt`
   Heavy-only. See [`CHANGELOG.md`](../CHANGELOG.md).
+- Current checkout follow-up: adds the default-off `do-it-retrospective`
+  feedback/report surface and a Claude-only, default-off strict external-action
+  profile. These are source changes, not a publication claim.
 - `2026-04-24`: earlier do-it rewrite installed a larger process-skill set
   (planning, grill, review-loop, …). Those names are deleted in `0.14.0`; use
   the migration table in the changelog.
@@ -99,9 +102,9 @@ for doctor and migration — do not require pairing it with marketplace install.
 | Host surface | Skills | Agents | Commands | Hooks | Doctor | Verification command |
 |---|---|---|---|---|---|---|
 | Codex plugin marketplace | Yes, under `plugins/do-it/skills/` | Yes, under `plugins/do-it/agents/` | No slash command surface | Yes, plugin hooks (trust under `/hooks`) | Optional via CLI | `npm run build:codex-plugin` then `CODEX_HOME=/tmp/do-it-plugin-test codex plugin marketplace add /path/to/do-it` and `codex plugin add do-it@tdwhere-do-it` |
-| Codex CLI setup (legacy) | Yes, from `manifest.json` | Yes, TOML from `agents/` | CLI `do-it` only | Yes, root `hooks.json` plus `hooks/` | Yes, default target | `CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it setup` |
+| Codex CLI setup (legacy) | Yes, from `manifest.json` | No — bundled agents are plugin-owned; legacy CLI only supports safe migration | CLI `do-it` only | Yes, root `hooks.json` plus `hooks/` | Yes, default target | `CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it setup` |
 | Claude Code plugin | Yes, from `skills/do-it/` | Yes, under `dist/claude/agents/` | Yes, `commands/` | Yes, plugin `hooks/hooks.json` | Yes, `--target=claude` | `CLAUDE_PLUGIN_ROOT_OVERRIDE=/tmp/do-it-claude-test npm exec --package . -- do-it setup --target=claude` |
-| Cursor local / Team Import (public listing pending) | Full 8 (`ALL_SKILLS`) plus generated discovery/reference files | Yes, under `plugins/do-it-cursor/agents/` | No | Medium: `sessionStart`, `beforeSubmitPrompt`, `postToolUse`/`afterFileEdit`, paired-evidence `stop` | Managed CLI setup only; not standalone local copy | `npm run install:cursor-local`, Reload Window, inspect exact directory + Hooks UI; or `do-it setup --target=cursor` for managed doctor |
+| Cursor local / Team Import (public listing pending) | Full 8 (`ALL_SKILLS`) plus generated discovery/reference files | Yes, under `plugins/do-it-cursor/agents/` | No | Medium: `sessionStart`, `beforeSubmitPrompt`, `postToolUse`/`afterFileEdit`, advisory-evidence `stop` | Managed CLI setup only; not standalone local copy | `npm run install:cursor-local`, Reload Window, inspect exact directory + Hooks UI; or `do-it setup --target=cursor` for managed doctor |
 | OpenCode plugin | Yes, under `plugins/do-it-opencode/skills/` | Yes, under `plugins/do-it-opencode/agents/` | No | Medium-Light: transform bootstrap, `tool.execute.after`, `session.idle` soft reminder | No CLI doctor | `npm run build:opencode-plugin && npm run test-opencode` |
 
 ## 0.14.0
@@ -199,7 +202,7 @@ release artifact.
 
 1. Run `git diff --check`.
 2. Run `npm test`.
-3. Run `npm run validate:agents`.
+3. Run `npm run validate:agents` and `npm run validate:core-skill-boundaries`.
 4. Run `npm run build:claude-agents`.
 5. Run `npm run build:codex-plugin`.
 6. Run `npm run build:cursor-plugin`.
@@ -207,23 +210,26 @@ release artifact.
 8. Smoke Codex plugin marketplace + trust hooks under `/hooks`.
 9. Optional: `CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it setup`
    and `do-it doctor`.
-10. Smoke hook commands for `UserPromptSubmit`, `PostToolUse`, and `Stop`
-    (no `PreToolUse` / `grill-pretool`). Confirm verification-gate requires
-    paired successful shell evidence after the last edit in the turn.
+10. Smoke hook commands for `UserPromptSubmit`, `PostToolUse`, and `Stop`;
+    verify default-off feedback capture stays silent. Claude alone may contain
+    the named, default-off strict `PreToolUse` profile; no host contains
+    `grill-pretool`. Confirm an edited completion claim receives only a
+    claim-specific advisory reminder, never a command whitelist or hard block.
 11. Run `CODEX_HOME=/tmp/do-it-plugin-test codex plugin marketplace add /path/to/do-it`
     then `codex plugin add do-it@tdwhere-do-it`, or inspect the local marketplace
     registration manually.
 12. Run `CLAUDE_PLUGIN_ROOT_OVERRIDE=/tmp/do-it-claude-test npm exec --package . -- do-it setup --target=claude`.
 13. Run `npm run validate:release -- vX.Y.Z` and `npm run smoke:package` (primary package gates; not `npm pack --dry-run` alone).
 14. Confirm `docs/upstream-map.md` reflects the latest imports.
-15. Confirm `manifest.json` matches the on-disk inventory (8 user/runnable skills + 1 generated discovery entry, 10 agents).
+15. Confirm `manifest.json` matches the on-disk inventory (9 user/runnable skills + 1 generated discovery entry, 10 agents).
 16. Confirm `index.json`, `.agents/plugins/marketplace.json`,
     `plugins/do-it/`, `plugins/do-it-cursor/`, `plugins/do-it-opencode/`, and
     hook configs are included in the package.
 17. Confirm the temporary/source-only rewrite material is not included in the
     package.
-18. Confirm a simulated legacy upgrade can remove unmodified deprecated targets
-    without `DO_IT_FORCE=1`.
+18. Confirm a simulated legacy upgrade removes a target only with install-state,
+    exact legacy-hash, or byte-match proof; signature-only candidates remain
+    refused for manual review.
 19. Confirm a simulated replacement failure preserves both current managed
     targets and deprecated legacy targets.
 20. Confirm `doctor` fails when `.do-it-install-state.json` is missing or stale

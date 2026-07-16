@@ -1,5 +1,11 @@
 # prompt	expected	notes
 你觉得这个方案怎么样？	tier:Light	pure question → Light
+什么是子智能体？	tier:Light;kind:question	naming child agents alone remains a low-noise question
+为什么我体感上，好像不怎么调用我预先设计好的子智能体？另外排查一下，并行编排子智能体去推进；先不改代码。	tier:Standard;kind:work	question wording + explicit parallel child-agent delegation remains work
+Please dispatch agents to inspect this?	tier:Standard;kind:work	generic agent dispatch remains work
+请调用 reviewer 审查当前 diff？	tier:Standard;kind:work	named bundled-agent command remains work
+Review the current API diff; do not edit.	tier:Standard;kind:work	review-only task remains work while action boundary stays no-edit
+Plan the API migration; do not implement.	tier:Standard;kind:work	plan-only task remains work while action boundary stays no-implementation
 typo in README.md	tier:Light	short prompt + light signal typo
 修改 README 里的拼写错误	tier:Light	short + 拼写 light signal
 实现 src/auth.ts 的登录	tier:Standard	intent verb + code object
@@ -12,9 +18,14 @@ yolo 直接做	skip:router,grill,gate	full escape — no tier write
 skip gate please implement src/foo.ts	skip:gate;tier:Standard	partial skip gate still refreshes tier/dims
 这是什么？	tier:Light;kind:question	short question
 publish the release to production	tier:Heavy	single strong release action → Heavy
+Can you publish the release to production?	tier:Heavy;kind:work	question wording does not suppress a strong release action
 run the database migration now	tier:Heavy	single strong migration action → Heavy
 harden security for credential rotation	tier:Heavy	single strong security action → Heavy
 remove the deprecated API even though it is breaking	tier:Heavy	single strong breaking action → Heavy
 remove unused api helper from schema.ts	tier:Standard	destructive+bare api/schema is not strong Heavy
 what is the release process?	tier:Light;kind:question	release explanation remains Light
 how do database migrations work?	tier:Light;kind:question	migration explanation remains Light
+Can you explain how database migrations work?	tier:Light;kind:question	direct-address explanation remains informational
+可以解释一下数据库迁移吗？	tier:Light;kind:question	Chinese explanation remains informational
+请告诉我如何迁移数据库？	tier:Light;kind:question	Chinese how-to request remains informational
+能否说明数据库迁移如何进行？	tier:Light;kind:question	Chinese explanation request remains informational

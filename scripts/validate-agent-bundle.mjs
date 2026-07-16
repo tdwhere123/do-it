@@ -120,21 +120,34 @@ export function validateAgentInstructionLinks(relativePath, content, errors) {
   }
 }
 
-export function validateDelegationContract(relativePath, content, errors) {
-  const requiredPhrases = [
-    "tier and lens",
-    "scope and non-goals",
-    "write ownership and restricted paths",
-    "facts to verify",
-    "proof target",
-    "stop condition",
-    "return schema",
-    "NEEDS_CONTEXT"
+export function validateAgentCapabilityPolicy(relativePath, content, errors) {
+  const description = readTomlStringValue(content, "description");
+  const sandboxMode = readTomlStringValue(content, "sandbox_mode");
+  const prohibitedPhrases = [
+    "Delegation Contract",
+    "required in the parent prompt",
+    "NEEDS_CONTEXT",
+    "Use through do-it",
+    "self-escalate"
   ];
 
-  for (const phrase of requiredPhrases) {
-    if (!content.includes(phrase)) {
-      errors.push(`${relativePath}: Delegation Contract must include ${phrase}`);
+  if (!description?.startsWith("Use when ")) {
+    errors.push(`${relativePath}: description must start with Use when`);
+  } else if (description.length > 200) {
+    errors.push(`${relativePath}: description must be 200 characters or fewer`);
+  }
+
+  if (!new Set(["read-only", "workspace-write"]).has(sandboxMode)) {
+    errors.push(`${relativePath}: sandbox_mode must be read-only or workspace-write`);
+  }
+
+  if (!content.includes("NOT_CHECKED")) {
+    errors.push(`${relativePath}: must name NOT_CHECKED in its return guidance`);
+  }
+
+  for (const phrase of prohibitedPhrases) {
+    if (content.toLowerCase().includes(phrase.toLowerCase())) {
+      errors.push(`${relativePath}: must not retain process gate phrase ${phrase}`);
     }
   }
 }
@@ -216,8 +229,12 @@ function validateVersions(pkg, manifest, errors) {
   }
 
   const codexPlugin = readJson("plugins/do-it/.codex-plugin/plugin.json");
-  if (codexPlugin.version !== pkg.version) {
-    errors.push(`plugins/do-it/.codex-plugin/plugin.json version ${codexPlugin.version} does not match package.json ${pkg.version}`);
+  const codexPluginBaseVersion = String(codexPlugin.version ?? "").split("+", 1)[0];
+  if (codexPluginBaseVersion !== pkg.version) {
+    errors.push(`plugins/do-it/.codex-plugin/plugin.json base version ${codexPluginBaseVersion || "<missing>"} does not match package.json ${pkg.version}`);
+  }
+  if (String(codexPlugin.version ?? "").includes("+") && !String(codexPlugin.version).startsWith(`${pkg.version}+codex.`)) {
+    errors.push(`plugins/do-it/.codex-plugin/plugin.json cachebuster must use ${pkg.version}+codex.<token>`);
   }
 
   const claudePlugin = readJson(".claude-plugin/plugin.json");
@@ -246,7 +263,7 @@ function validateSourceAgents(manifest, errors) {
     const source = fs.readFileSync(filePath, "utf8");
     validatePortableAgentPolicy(relativePath, source, errors);
     validateAgentInstructionLinks(relativePath, source, errors);
-    validateDelegationContract(relativePath, source, errors);
+    validateAgentCapabilityPolicy(relativePath, source, errors);
     const keys = parseTomlTopLevelKeys(source, filePath);
     const agentName = readTomlStringValue(source, "name");
     const expectedName = fileName.replace(/\.toml$/, "");

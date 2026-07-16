@@ -81,8 +81,9 @@ _do_it_hash_key() {
 # instead of editing the repo's top-level `.gitignore`. This keeps worktrees
 # clean (no spurious modification of `.gitignore`) and makes the ignore rule
 # survive even when the parent repo has no `.gitignore`. The runtime dir is
-# `<repo>/.do-it/runtime/`; placing `.gitignore` with body `*` at that path
-# tells git to ignore everything inside it.
+# `<repo>/.do-it/runtime/`; the marker ignores its contents, and a narrow local
+# Git exclude hides that untracked nested directory without editing project
+# rules.
 #
 # Args: <runtime_dir> (e.g. `<repo_root>/.do-it/runtime`).
 # Idempotent and best-effort; failures stay silent.
@@ -90,9 +91,35 @@ _do_it_ensure_runtime_gitignore() {
   local runtime_dir="$1"
   [[ -z "$runtime_dir" || ! -d "$runtime_dir" ]] && return 0
   local marker="${runtime_dir}/.gitignore"
-  # Memoize: once written, do not re-stat / re-write on every hook call.
-  [[ -f "$marker" ]] && return 0
-  printf '%s\n' '*' '!.gitignore' > "$marker" 2>/dev/null || return 0
+  # Migrate the former two-line marker, which left `.do-it/` visible as an
+  # untracked directory in projects without a parent ignore rule.
+  if [[ -f "$marker" ]]; then
+    if [[ "$(<"$marker")" == $'*\n!.gitignore' ]]; then
+      printf '%s\n' '*' > "$marker" 2>/dev/null || true
+    fi
+  else
+    printf '%s\n' '*' > "$marker" 2>/dev/null || return 0
+  fi
+  _do_it_ensure_runtime_git_exclude "$runtime_dir"
+}
+
+# Keep `.do-it/runtime` local even when a repository does not track a parent
+# `.gitignore`. This only touches Git's per-worktree metadata and never changes
+# project files. Non-git directories simply retain the self-contained marker.
+_do_it_ensure_runtime_git_exclude() {
+  local runtime_dir="$1" root exclude
+  root="$(git -C "$runtime_dir" rev-parse --show-toplevel 2>/dev/null || true)"
+  [[ -n "$root" && "$runtime_dir" == "$root/.do-it/runtime" ]] || return 0
+  exclude="$(git -C "$runtime_dir" rev-parse --git-path info/exclude 2>/dev/null || true)"
+  [[ -n "$exclude" ]] || return 0
+  [[ "$exclude" == /* ]] || exclude="$root/$exclude"
+  [[ -L "$exclude" ]] && return 0
+  mkdir -p "$(dirname "$exclude")" 2>/dev/null || return 0
+  if [[ ! -e "$exclude" ]]; then
+    printf '%s\n' '/.do-it/runtime/' > "$exclude" 2>/dev/null || return 0
+  elif ! grep -Fqx '/.do-it/runtime/' "$exclude" 2>/dev/null; then
+    printf '\n%s\n' '/.do-it/runtime/' >> "$exclude" 2>/dev/null || return 0
+  fi
 }
 
 # Compute a session-scoped data dir. Caller is responsible for mkdir.
@@ -414,6 +441,46 @@ do_it_lc() {
   printf '%s' "$1" | tr '[:upper:]' '[:lower:]'
 }
 
+# Explicit user action boundaries are session state, not a best-effort prose
+# hint. Keep recognition deliberately narrow: this detects a request to defer
+# implementation, not ordinary discussion of an unchanged file.
+# Args: <prompt>. Returns 0 when the user has explicitly asked for no writes.
+do_it_prompt_requests_no_write() {
+  local lc
+  lc="$(do_it_lc "$1")"
+  case "$lc" in
+    *"先不改"*|*"先别改"*|*"暂不改"*|*"不要改"*|*"不改代码"*|\
+    *"不修改代码"*|*"先不实施"*|*"不实施"*|*"只审查"*|*"只做计划"*|\
+    *"do not edit"*|*"don't edit"*|*"do not implement"*|\
+    *"don't implement"*|*"no code changes"*|*"plan only"*|\
+    *"review only"*|*"read only"*|*"read-only"*)
+      return 0
+      ;;
+  esac
+  return 1
+}
+
+# Args: <prompt>. Returns 0 only for an explicit reversal of a previously
+# requested no-write boundary. A generic "continue" is intentionally not a
+# reversal: it may mean continue the investigation or plan. A question such as
+# "现在可以改吗？" asks whether implementation may resume; it does not grant
+# that permission.
+do_it_prompt_reopens_writes() {
+  local lc
+  do_it_prompt_is_question "$1" && return 1
+  lc="$(do_it_lc "$1")"
+  case "$lc" in
+    *"现在可以改"*|*"现在可以开始"*"实现"*|*"可以开始实现"*|\
+    *"可以实施"*|*"开始修改"*|*"开始改代码"*|\
+    *"now you can edit"*|*"you can edit now"*|\
+    *"go ahead and edit"*|*"go ahead and implement"*|\
+    *"proceed with implementation"*|*"make the changes now"*)
+      return 0
+      ;;
+  esac
+  return 1
+}
+
 # Internal: detect whether a term is pure ASCII (printable + space). CJK and
 # other multi-byte content fall through to substring matching.
 _do_it_term_is_ascii() {
@@ -514,11 +581,12 @@ do_it_prompt_has_escape() {
 # Signal sources (any one is sufficient):
 #   - CLAUDE_AGENT_CONTEXT non-empty
 #   - CLAUDE_SUBAGENT non-empty
-#   - explicit transcript_path argument contains an `/agents/` segment
+#   - explicit transcript_path argument contains an `/agents/` or `/subagents/`
+#     segment
 #     (the host actually delivers transcript_path on stdin JSON, not as an
 #     env var; callers should read it from the JSON payload and pass it
 #     here)
-#   - $transcript_path env var contains `/agents/` (best-effort, NOT
+#   - $transcript_path env var contains `/agents/` or `/subagents/` (best-effort, NOT
 #     guaranteed by the host — kept only as a last-resort signal for
 #     environments that happen to export it)
 #
@@ -531,13 +599,13 @@ do_it_in_subagent_context() {
   if [[ -n "${CLAUDE_SUBAGENT:-}" ]]; then
     return 0
   fi
-  if [[ -n "$tp_arg" && "$tp_arg" == *"/agents/"* ]]; then
+  if [[ -n "$tp_arg" && ( "$tp_arg" == *"/agents/"* || "$tp_arg" == *"/subagents/"* ) ]]; then
     return 0
   fi
   # Best-effort env fallback. Host is not contractually required to export
   # transcript_path; this branch only fires if the surrounding shell
   # happened to set it.
-  if [[ -n "${transcript_path:-}" && "${transcript_path}" == *"/agents/"* ]]; then
+  if [[ -n "${transcript_path:-}" && ( "${transcript_path}" == *"/agents/"* || "${transcript_path}" == *"/subagents/"* ) ]]; then
     return 0
   fi
   if [[ -n "${CURSOR_SUBAGENT:-}" || -n "${CURSOR_AGENT_CONTEXT:-}" ]]; then
@@ -612,8 +680,9 @@ do_it_prompt_has_code_object() {
   return 1
 }
 
-# Detect whether the current turn is a question / discussion (router caps at
-# Light, grill hook suppressed). Triggered by:
+# Detect whether the current turn is question-shaped. The router may classify
+# a genuinely informational question Light, but direct task intent and
+# high-consequence actions still win. Triggered by:
 #   - any term in DO_IT_QUESTION_HINTS
 #   - prompt ends with `?`, `？`, `吗？`, `呢？`, `吗?`, or `呢?` (after trim)
 do_it_prompt_is_question() {
@@ -871,8 +940,8 @@ do_it_session_summary() {
 }
 
 # Internal: escape a string for embedding inside a JSON string literal. Used by
-# the jq-free fallbacks of do_it_emit_context / do_it_emit_block so that a host
-# without jq still receives valid JSON instead of an empty (dropped) decision.
+# the jq-free fallback of do_it_emit_context so that a host without jq still
+# receives valid JSON instead of an empty (dropped) reminder.
 # Backslash must be replaced first. Args: <string>.
 _do_it_json_escape() {
   local s="$1"
@@ -893,16 +962,6 @@ do_it_emit_context() {
   else
     printf '{"hookSpecificOutput":{"hookEventName":"%s","additionalContext":"%s"}}\n' \
       "$(_do_it_json_escape "$event")" "$(_do_it_json_escape "$text")"
-  fi
-}
-
-# Emit Stop-hook block decision. Args: <reason>.
-do_it_emit_block() {
-  local reason="$1"
-  if [[ "$DO_IT_HAVE_JQ" == "1" ]]; then
-    jq -nc --arg r "$reason" '{decision: "block", reason: $r}'
-  else
-    printf '{"decision":"block","reason":"%s"}\n' "$(_do_it_json_escape "$reason")"
   fi
 }
 

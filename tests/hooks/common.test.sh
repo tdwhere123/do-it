@@ -3,7 +3,7 @@
 #   - flock-missing race no longer evaporates state.json
 #   - SESSION_ID path-injection is sanitized
 #   - empty SESSION_ID + non-git cwd no longer share a global `nosession` bucket
-#   - do_it_in_subagent_context honors a transcript_path argument
+#   - do_it_in_subagent_context honors Claude and generic transcript_path arguments
 #   - runtime gitignore is self-contained (does not modify repo .gitignore)
 #
 # Usage: bash tests/hooks/common.test.sh
@@ -149,13 +149,15 @@ echo "Case 4: do_it_in_subagent_context honors transcript_path argument"
   source "$COMMON"
   if do_it_in_subagent_context "/Users/x/.claude/projects/foo/transcript.jsonl"; then exit 41; fi
   if ! do_it_in_subagent_context "/Users/x/.claude/agents/foo/transcript.jsonl"; then exit 42; fi
-  if do_it_in_subagent_context ""; then exit 43; fi
+  if ! do_it_in_subagent_context "/Users/x/.claude/projects/foo/subagents/agent-x.jsonl"; then exit 43; fi
+  if do_it_in_subagent_context ""; then exit 44; fi
 )
 case "$?" in
-  0)  _pass "argument-based agents/ detection works" ;;
+  0)  _pass "argument-based agents/ and subagents/ detection works" ;;
   41) _fail "non-agents transcript triggered subagent context" ;;
   42) _fail "agents/ transcript did not trigger subagent context" ;;
-  43) _fail "empty arg + no env returned subagent context" ;;
+  43) _fail "subagents/ transcript did not trigger subagent context" ;;
+  44) _fail "empty arg + no env returned subagent context" ;;
   *)  _fail "subshell crashed (exit=$?)" ;;
 esac
 
@@ -168,6 +170,8 @@ echo "Case 5: runtime gitignore is self-contained (parent .gitignore untouched)"
   cd "$PROJ"
   git init -q
   echo 'node_modules/' > .gitignore
+  git add .gitignore
+  git -c user.name=do-it-test -c user.email=do-it-test@example.invalid commit -qm init
   ORIG="$(cat .gitignore)"
   source "$COMMON"
   do_it_session_dir new_session > /dev/null
@@ -177,36 +181,37 @@ echo "Case 5: runtime gitignore is self-contained (parent .gitignore untouched)"
   if [[ ! -f .do-it/runtime/.gitignore ]]; then
     rm -rf "$PROJ"; exit 52
   fi
+  STATUS="$(git status --porcelain --untracked-files=all)"
+  if [[ -n "$STATUS" ]]; then
+    printf 'runtime git status: %s\n' "$STATUS" >&2
+    rm -rf "$PROJ"; exit 53
+  fi
   rm -rf "$PROJ"
 )
 case "$?" in
-  0)  _pass "parent .gitignore unchanged; .do-it/runtime/.gitignore exists" ;;
+  0)  _pass "parent .gitignore unchanged; runtime state stays invisible to git" ;;
   51) _fail "parent .gitignore was modified" ;;
   52) _fail "self-contained .do-it/runtime/.gitignore was not written" ;;
+  53) _fail "runtime marker leaked into git status" ;;
   *)  _fail "subshell crashed (exit=$?)" ;;
 esac
 
 # -------------------------------------------------------------------------
-echo "Case 6: do_it_emit_block / do_it_emit_context emit valid JSON without jq"
+echo "Case 6: do_it_emit_context emits valid JSON without jq"
 (
   _isolate_env "/tmp/doit-test-emitjq"
   source "$COMMON"
   # Force the jq-free fallback path regardless of whether jq is installed.
   DO_IT_HAVE_JQ=0
-  block="$(do_it_emit_block 'do-it gate: no evidence. Bypass: "skip gate".')"
   ctx="$(do_it_emit_context "Stop" "$(printf 'line one\ttab\nline two \\ end')")"
-  [[ -n "$block" ]] || exit 61
   [[ -n "$ctx" ]] || exit 62
   if command -v jq >/dev/null 2>&1; then
-    printf '%s' "$block" | jq -e '.decision == "block"' >/dev/null 2>&1 || exit 63
     printf '%s' "$ctx" | jq -e '.hookSpecificOutput.hookEventName == "Stop"' >/dev/null 2>&1 || exit 64
   fi
 )
 case "$?" in
   0)  _pass "jq-free emit fallbacks produce valid JSON" ;;
-  61) _fail "do_it_emit_block produced no output without jq" ;;
   62) _fail "do_it_emit_context produced no output without jq" ;;
-  63) _fail "do_it_emit_block fallback is not valid block JSON" ;;
   64) _fail "do_it_emit_context fallback is not valid context JSON" ;;
   *)  _fail "subshell crashed (exit=$?)" ;;
 esac

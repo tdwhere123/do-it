@@ -6,13 +6,13 @@ This directory holds the data-driven keyword tables consumed by `hooks/lib/keywo
 
 | File | Used by | Effect when matched |
 |---|---|---|
-| `intent-verbs.tsv` | `router.sh` | Promote to Standard tier; does not trigger grill by itself |
-| `uncertainty-words.tsv` | `grill-prompt.sh` | Trigger grill #2 (premise pressure-test) |
+| `intent-verbs.tsv` | `router.sh` | Contribute to direct work classification when paired with a concrete code object; does not trigger grill by itself |
+| `uncertainty-words.tsv` | compatibility loader only | Currently inert; retained so existing data-only project overrides remain parseable |
 | `heavy-signals.tsv` | `router.sh` | Contribute to Heavy tier; two topical signals or one action-shaped release/security/migration signal promote to Heavy |
 | `light-signals.tsv` | `router.sh` | Cap at Light tier (with short input) |
 | `escape-words.tsv` | All hooks | Set skip flags for this turn |
-| `long-input-hints.tsv` | `grill-prompt.sh` | Trigger grill #3 when input is long + topical |
-| `question-hints.tsv` | `router.sh`, `grill-prompt.sh` | Cap at Light and suppress auto-grill; explicit grill / re-grill requests still emit |
+| `long-input-hints.tsv` | compatibility loader only | Currently inert; input length never triggers a grill reminder |
+| `question-hints.tsv` | `router.sh` | Recognize likely informational prompts; direct task, delegation, and high-consequence action intent still wins |
 | `quality-families.tsv` | `hooks/lib/write-quality-scan.sh` | Closed-set advisory family registry for `write-quality-lint.sh` (L0); not prompt-keyword driven |
 
 ## `quality-families.tsv` format

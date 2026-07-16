@@ -18,6 +18,7 @@ const skillsSource = path.join(repoRoot, "skills", "do-it");
 const agentsSource = path.join(repoRoot, "dist", "claude", "agents");
 const hooksSource = path.join(repoRoot, "hooks");
 const hookScripts = [
+  "behavior-feedback.sh",
   "router.sh",
   "grill-prompt.sh",
   "subagent-stance.sh",

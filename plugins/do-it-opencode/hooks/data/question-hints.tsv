@@ -1,6 +1,7 @@
 # Question hints — when the prompt matches any of these (or ends with `?` /
 # `？` / 吗 / 呢, handled directly in do_it_prompt_is_question), the router
-# caps at Light and the grill hook is suppressed.
+# keeps a genuinely discussion-shaped turn at Light. A concrete task request
+# still takes precedence.
 #
 # Format: see hooks/data/SCHEMA.md.
 #

@@ -110,7 +110,19 @@ cat > "$transcript" <<'JSONL'
 {"type":"assistant","message":{"content":[{"type":"text","text":"done"}]}}
 JSONL
 gate_after_work="$(run_stop "$question_session" "$transcript")"
-assert_contains "$gate_after_work" '"decision":"block"' "question skip must not stick to later work gate"
+assert_contains "$gate_after_work" '"additionalContext"' "question skip must not stick to later work verify reminder"
+assert_contains "$gate_after_work" 'do-it verify (advisory)' "later edited completion should receive verify reminder"
+
+risk_question_session="risk-question-work"
+run_router "$risk_question_session" "Can you publish the release to production?"
+[[ "$(state_value "$risk_question_session" tier)" == "Heavy" ]] \
+  || fail "high-consequence question should remain Heavy work"
+[[ "$(state_value "$risk_question_session" last_prompt_kind)" == "work" ]] \
+  || fail "high-consequence question should remain a work turn"
+risk_question_grill="$(run_grill "$risk_question_session" "Can you publish the release to production?")"
+assert_contains "$risk_question_grill" "do-it grill" "question wording must not suppress Heavy grill"
+risk_question_gate="$(run_stop "$risk_question_session" "$transcript")"
+assert_contains "$risk_question_gate" 'do-it verify (advisory)' "question wording must not suppress completion reminder"
 
 light_session="light-doc"
 run_router "$light_session" "typo in docs"
@@ -249,5 +261,62 @@ run_router "$greenfield_session" "Implement the cleanup in src/util.ts" "$greenf
 green_out="$(run_grill "$greenfield_session" "Implement the cleanup in src/util.ts" "$greenfield_project")"
 [[ "$green_out" != *"established codebase"* ]] \
   || fail "greenfield repo should not emit the read-existing nudge"
+
+# A Chinese no-write request is a session boundary, not merely a generic
+# reminder. It must survive a follow-up turn, keep port/brownfield nudges
+# inspection-only, and clear only after explicit implementation permission.
+no_write_port_project="$TMP_ROOT/no-write-port-project"
+mkdir -p "$no_write_port_project"
+no_write_port_session="no-write-port"
+no_write_port_prompt="先不改代码；先移植 BudgetService 前排查现有实现。"
+run_router "$no_write_port_session" "$no_write_port_prompt" "$no_write_port_project"
+[[ "$(state_value "$no_write_port_session" no_write_boundary)" == "1" ]] \
+  || fail "Chinese 先不改代码 should persist no_write_boundary=1"
+no_write_port_out="$(run_grill "$no_write_port_session" "$no_write_port_prompt" "$no_write_port_project")"
+assert_contains "$no_write_port_out" "no-write boundary" \
+  "port nudge must make the active no-write boundary explicit"
+assert_not_contains "$no_write_port_out" "Before writing" \
+  "port nudge must not encourage writing under a no-write boundary"
+
+no_write_brown_project="$TMP_ROOT/no-write-brownfield-project"
+mkdir -p "$no_write_brown_project/.do-it"
+printf '# context\n' > "$no_write_brown_project/.do-it/CONTEXT.md"
+no_write_brown_session="no-write-brownfield"
+no_write_brown_prompt="先不改，先审查 src/util.ts 的现有实现。"
+run_router "$no_write_brown_session" "$no_write_brown_prompt" "$no_write_brown_project"
+[[ "$(state_value "$no_write_brown_session" no_write_boundary)" == "1" ]] \
+  || fail "Chinese 先不改 should persist no_write_boundary=1"
+no_write_brown_out="$(run_grill "$no_write_brown_session" "$no_write_brown_prompt" "$no_write_brown_project")"
+assert_contains "$no_write_brown_out" "no-write boundary" \
+  "brownfield nudge must make the active no-write boundary explicit"
+assert_not_contains "$no_write_brown_out" "Before editing" \
+  "brownfield nudge must not encourage editing under a no-write boundary"
+
+no_write_followup="$(json_prompt "$no_write_brown_session" "继续排查 src/util.ts 的调用方。" "$no_write_brown_project" | bash hooks/router.sh)"
+assert_contains "$no_write_followup" "no-write boundary" \
+  "follow-up work turn must retain the no-write boundary"
+[[ "$(state_value "$no_write_brown_session" no_write_boundary)" == "1" ]] \
+  || fail "follow-up work turn should not clear no_write_boundary"
+
+# A mutation word inside an explanation is not permission to reopen writes.
+# This is deliberately the same ambiguous shape that previously routed a
+# repair request incorrectly: "why ... fix" must retain the user boundary
+# unless the user explicitly says implementation may resume.
+no_write_explanation="$(json_prompt "$no_write_brown_session" "为什么要修复 src/util.ts？" "$no_write_brown_project" | bash hooks/router.sh)"
+assert_contains "$no_write_explanation" "no-write boundary" \
+  "an explanatory why+fix prompt must not implicitly reopen writes"
+[[ "$(state_value "$no_write_brown_session" no_write_boundary)" == "1" ]] \
+  || fail "an explanatory why+fix prompt must retain no_write_boundary"
+
+# Asking whether a change may resume is not the same as authorizing it.
+no_write_permission_question="$(json_prompt "$no_write_brown_session" "现在可以改吗？" "$no_write_brown_project" | bash hooks/router.sh)"
+assert_contains "$no_write_permission_question" "no-write boundary" \
+  "a permission question must not implicitly reopen writes"
+[[ "$(state_value "$no_write_brown_session" no_write_boundary)" == "1" ]] \
+  || fail "a permission question must retain no_write_boundary"
+
+run_router "$no_write_brown_session" "现在可以开始实现 src/util.ts。" "$no_write_brown_project"
+[[ "$(state_value "$no_write_brown_session" no_write_boundary)" == "0" ]] \
+  || fail "explicit implementation permission should clear no_write_boundary"
 
 echo "[test-hooks] ok"

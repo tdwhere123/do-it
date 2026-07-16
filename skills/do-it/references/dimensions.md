@@ -31,28 +31,30 @@ prompt and tier the same way the router would:
 - path / extension / code object → code-touch intensity
 - ≥2 top-level package segments → ownership / blast-radius check
 - breaking change / schema rewrite / endpoint rename → contract + adversarial review
-- behaviour-modifying intent **and** a code object → prefer TDD at a real seam
-  (`do-it-code-quality`), with escape for mechanical / docs-only / generated work
+- behaviour-modifying intent **and** a code object → consider TDD at a real seam
+  (`do-it-code-quality`) when it gives meaningful feedback
 - Heavy **or** interface-breaking → raise `do-it-review` intensity
 
 ## Enforcement Boundary
 
-`verification-gate.sh` is **evidence-only**: after edits, a done/fixed/ready
-claim needs a fresh relevant shell command in the **current turn**. It does
-**not** require review traces, plan markers, or interface attestation.
+`verification-gate.sh` is an **advisory evidence reminder**: after edits, a
+done/fixed/ready claim should name fresh, task-relevant proof in the current
+turn or say `NOT_VERIFIED`. It does not prescribe a command form, require
+review traces, plan markers, or interface attestation.
 
 Review / contract intensity is skill judgment (`do-it-review`,
-`do-it-code-quality`), not a Stop-hook hard gate. Always name an escape reason
-when skipping a raised intensity (silent skip is a review finding).
+`do-it-code-quality`), not a Stop-hook hard gate. When a raised signal is
+relevant but you intentionally do less, briefly name why; otherwise do not
+manufacture an escape ritual.
 
 ## Consumer Table
 
 | Dim | Hook consumers | Skill intensity |
 |---|---|---|
-| `dim_touches_code` | `grill-prompt` (Heavy inject); `write-quality-lint` (Standard gate) | `do-it-code-quality` when editing |
+| `dim_touches_code` | `grill-prompt` (Heavy inject); `write-quality-lint` (advisory on code-shaped Standard edits) | `do-it-code-quality` when editing |
 | `dim_crosses_packages` | — | ownership / blast-radius in `do-it-code-quality` / `do-it-decide` |
 | `dim_breaks_interface` | — (signal only) | contracts + adversarial `do-it-review` |
-| `dim_needs_tdd` | — | TDD mode in `do-it-code-quality` (with escape) |
+| `dim_needs_tdd` | — | TDD lens in `do-it-code-quality` when it gives useful feedback |
 | `dim_needs_review_loop` | — (signal only) | raise `do-it-review` intensity on done-claim turns |
 
 Policy mirror (repo docs, not shipped in plugins):

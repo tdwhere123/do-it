@@ -10,7 +10,7 @@ Authoritative machine list: [`hooks/data/quality-families.tsv`](../../../hooks/d
 |---|---|
 | L0 | This hook — advisory reminder (main defense while writing) |
 | L1 | `do-it-review` — respond to flagged families or rebut |
-| L2 | `verification-gate` hook — hard block on unsubstantiated done claims |
+| L2 | `verification-gate` hook — advisory reminder to substantiate done claims |
 
 Suppress one advisory family with `write-quality-lint-allow: <family-id> — <reason>` on an added line. `secret-leak` is never suppressible.
 

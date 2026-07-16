@@ -69,6 +69,7 @@ npm run test-opencode
 | OpenCode event | Kernel script | Notes |
 |---|---|---|
 | `experimental.chat.messages.transform` | cached bootstrap | stable host guidance and skills index |
+| `chat.message` (default off) | `behavior-feedback.sh` | silent local feedback capture for a confirmed root session only; parentage uncertainty skips capture |
 | `chat.message` | `router.sh`, `grill-prompt.sh` | classifier every message; grill only Heavy or explicit and always advisory |
 | `config` | — | registers `skills/do-it/` paths |
 | `tool.execute.after` | `write-quality-lint.sh` | advisory bash bridge |

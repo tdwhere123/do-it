@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# do-it verification-gate (Stop hook).
+# do-it verification reminder (Stop hook).
 #
-# Claim-integrity guard: after edits, completion language needs fresh, relevant
-# current-turn evidence. Evidence is a paired verification tool_use and an
-# explicit successful tool result, not command-shaped transcript text.
-# `NOT_VERIFIED` is always an honest alternative.
+# Claim-integrity advisory: after edits, a completion claim deserves fresh,
+# claim-specific proof from this worktree. The hook never infers proof from a
+# command shape and never blocks ordinary local work. `NOT_VERIFIED` remains an
+# honest alternative.
 
 set -uo pipefail
 
@@ -26,65 +26,6 @@ _gate_finish() {
   exit "${1:-0}"
 }
 
-# Anchored evidence matcher (mirrors OpenCode evidenceCommand): peel the
-# leftmost of && / || / ; / | each iteration (|| before | so pipe is not
-# matched inside or-or), strip env prefixes, require the verification token
-# at the start of a segment. Substring carriers like `echo pnpm test` do not
-# count.
-_gate_command_is_evidence() {
-  local command="$1"
-  local normalized segment rest
-  local best_pos best_len cand_pos cand_len delim prefix
-  normalized="$(printf '%s' "$command" | tr '\r\n\t' ' ' | tr -s ' ' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
-  [[ -n "$normalized" ]] || return 1
-  rest="$normalized"
-  while [[ -n "$rest" ]]; do
-    # Left-to-right delimiter pick: smallest index wins; on a tie prefer the
-    # longer token so `||` wins over `|` at the same position.
-    best_pos=-1
-    best_len=0
-    for delim in '&&' '||' ';' '|'; do
-      prefix="${rest%%"${delim}"*}"
-      if [[ "$prefix" != "$rest" ]]; then
-        cand_pos=${#prefix}
-        cand_len=${#delim}
-        if [[ $best_pos -lt 0 || $cand_pos -lt $best_pos || ( $cand_pos -eq $best_pos && $cand_len -gt $best_len ) ]]; then
-          best_pos=$cand_pos
-          best_len=$cand_len
-        fi
-      fi
-    done
-    if [[ $best_pos -lt 0 ]]; then
-      segment="$rest"
-      rest=""
-    else
-      segment="${rest:0:best_pos}"
-      rest="${rest:$((best_pos + best_len))}"
-    fi
-    segment="$(printf '%s' "$segment" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
-    segment="$(printf '%s' "$segment" | sed -E 's/^(env[[:space:]]+)?([A-Za-z_][A-Za-z0-9_]*=("[^"]*"|'\''[^'\'']*'\''|[^[:space:];|&]+)[[:space:]]+)+//')"
-    segment="$(printf '%s' "$segment" | sed -E 's/^command[[:space:]]+//')"
-    [[ -n "$segment" ]] || continue
-    if printf '%s' "$segment" | grep -qiE '^(pnpm[[:space:]]+(test|build|exec|run)|npm[[:space:]]+(test|run|exec)|yarn[[:space:]]+(test|run|build)|vitest|jest|playwright|pytest|mypy|tsc|eslint|ruff|biome|prettier|cargo[[:space:]]+(test|run|build|check|clippy)|go[[:space:]]+(test|run|build|vet)|do-it[[:space:]]+doctor|git[[:space:]]+diff\b|node[[:space:]].*(validate|check|test|build)|python(3)?[[:space:]].*(test|check|validate))([[:space:]]|$)'; then
-      return 0
-    fi
-  done
-  return 1
-}
-
-_gate_paired_commands_have_evidence() {
-  local line cmd
-  while IFS= read -r line || [[ -n "$line" ]]; do
-    [[ -z "$line" ]] && continue
-    cmd="${line#*$'\t'}"
-    [[ "$cmd" == "$line" ]] && cmd="$line"
-    if _gate_command_is_evidence "$cmd"; then
-      return 0
-    fi
-  done <<< "$1"
-  return 1
-}
-
 if [[ "$STOP_HOOK_ACTIVE" == "true" ]]; then
   do_it_debug verification-gate "decision=skip-recursion"
   _gate_finish 0
@@ -92,13 +33,6 @@ fi
 
 if do_it_check_skip "$SESSION_ID" gate; then
   do_it_debug verification-gate "decision=skip-flag"
-  _gate_finish 0
-fi
-
-LAST_PROMPT_KIND="$(do_it_session_state_get "$SESSION_ID" last_prompt_kind)"
-GRILLED_FLAG="$(do_it_session_state_get "$SESSION_ID" grilled)"
-if [[ "$LAST_PROMPT_KIND" == "question" ]] || [[ -z "$LAST_PROMPT_KIND" && "$GRILLED_FLAG" == "skip-question" ]]; then
-  do_it_debug verification-gate "decision=skip-question"
   _gate_finish 0
 fi
 
@@ -110,8 +44,7 @@ fi
 TAIL_BUF="$(tail -n 400 "$TRANSCRIPT_PATH" 2>/dev/null || true)"
 [[ -z "$TAIL_BUF" ]] && _gate_finish 0
 
-# Shared jq helpers reused by turn slice, edit detect, and paired evidence.
-# Keep one copy so success/pairing fixes cannot drift across programs.
+# Shared jq helpers for current-turn slicing and edit detection.
 JQ_GATE_PRELUDE='
   def parse_args:
     if type == "string" then (try (fromjson) catch {}) else . end;
@@ -127,13 +60,6 @@ JQ_GATE_PRELUDE='
            input: (((.function.arguments // .arguments // {}) | parse_args) // {})
          }
        else empty end];
-  def success:
-    if has("is_error") then .is_error == false
-    elif has("status") then
-      ((.status | tostring | ascii_downcase) as $s
-       | ($s == "success" or $s == "succeeded" or $s == "completed" or $s == "ok"))
-    elif (.type? == "tool_result") then true
-    else false end;
   def human_user:
     ((.type? == "user" or .role? == "user") and
      (([blocks[]? | select(.type? == "tool_result")] | length) == 0));
@@ -141,8 +67,8 @@ JQ_GATE_PRELUDE='
 
 # Parse JSONL before making any claim decision. The current turn starts after
 # the last human user message; user-shaped tool_result frames stay inside it.
-# Without a structurally valid slice, raw transcript text cannot safely prove a
-# result, so completion after an apparent edit fails closed below.
+# Without a structurally valid slice, only a bounded raw fallback may decide
+# whether to emit a reminder; it never establishes or denies proof.
 CURRENT_TURN_JSON=""
 PARSE_OK=0
 if [[ "$DO_IT_HAVE_JQ" == "1" ]]; then
@@ -199,7 +125,7 @@ if [[ "$PARSE_OK" -eq 1 ]]; then
   ' >/dev/null 2>&1; then
     HAVE_EDIT=1
   fi
-elif printf '%s' "$TAIL_BUF" | grep -qiE '"name"[[:space:]]*:[[:space:]]*"(Edit|Write|MultiEdit|NotebookEdit|StrReplace|EditNotebook|apply_patch)"'; then
+elif printf '%s' "$UNPARSED_SLICE" | grep -qiE '"name"[[:space:]]*:[[:space:]]*"(Edit|Write|MultiEdit|NotebookEdit|StrReplace|EditNotebook|apply_patch)"'; then
   HAVE_EDIT=1
 fi
 
@@ -221,62 +147,9 @@ elif printf '%s' "$UNPARSED_SLICE" | grep -qiE '\bNOT_VERIFIED\b'; then
   _gate_finish 0
 fi
 
-# Normalize supported transcript shapes into successful tool-use pairs:
-# - Claude-style content blocks: tool_use.id + tool_result.tool_use_id,
-#   with is_error:false, an explicit success status, or omitted is_error on
-#   type:tool_result (Claude success convention).
-# - role-based tool frames: assistant tool_use + role:tool/tool_call_id,
-#   with an explicit success status (missing status proves nothing).
-# A result must follow its matching use in this turn, and the use must come
-# after the last edit in the turn. Missing ids, failed results, and
-# unpaired/forged results prove nothing.
-PAIRED_COMMANDS=""
-if [[ "$PARSE_OK" -eq 1 ]]; then
-  PAIRED_COMMANDS="$(printf '%s' "$CURRENT_TURN_JSON" | jq -r --arg re "$EDIT_TOOL_PATTERN" "${JQ_GATE_PRELUDE}"'
-    ([to_entries[] as $entry
-      | $entry.value as $frame
-      | $frame | tool_uses[]
-      | select((.name? // "") | test($re))
-      | $entry.key] | max // -1) as $last_edit
-    | [to_entries[] as $entry
-      | $entry.value as $frame
-      | $frame | tool_uses[]
-      | {index: $entry.key,
-         id: (.id? // ""),
-         name: (.name? // ""),
-         command: (.input.command? // "")}
-      | select((.id | type) == "string" and .id != "")
-      | select((.command | type) == "string" and .command != "")
-      | select(.name == "Bash" or .name == "Shell" or .name == "bash" or .name == "shell")
-    ] as $uses
-    | [to_entries[] as $entry
-       | $entry.value as $frame
-       | (([$frame | blocks[]?
-             | select(.type? == "tool_result")
-             | {index: $entry.key,
-                id: (.tool_use_id? // .call_id? // .id? // ""),
-                ok: success}])
-          + (if ($frame.role? == "tool" or $frame.type? == "tool_result") then
-               [{index: $entry.key,
-                 id: ($frame.tool_call_id? // $frame.tool_use_id? // $frame.call_id? // $frame.id? // ""),
-                 ok: ($frame | success)}]
-             else [] end))[]
-       | select((.id | type) == "string" and .id != "" and .ok == true)
-      ] as $results
-    | $uses[] as $use
-    | select($use.index > $last_edit)
-    | select(any($results[]; .id == $use.id and .index > $use.index))
-    | [$use.id, ($use.command | gsub("[\\r\\n\\t]+"; " "))]
-    | @tsv
-  ' 2>/dev/null || true)"
-fi
-
-if [[ -n "$PAIRED_COMMANDS" ]] && _gate_paired_commands_have_evidence "$PAIRED_COMMANDS"; then
-  do_it_debug verification-gate "decision=have-successful-paired-evidence"
-  _gate_finish 0
-fi
-
-REASON="do-it gate: completion was claimed after edits without fresh, relevant current-turn proof. Run a targeted test/build/type/lint/package/doctor check or a focused diff/config inspection and cite its successful result; otherwise state NOT_VERIFIED with the missing proof and next action. Bypass: say 'skip gate' or run /do-it-skip gate."
-do_it_debug verification-gate "decision=block reason=no-successful-paired-evidence"
-do_it_emit_block "$REASON"
+REMINDER="<system-reminder>
+do-it verify (advisory): an edited completion claim needs fresh, claim-specific proof from this worktree. Before finalizing, compare that proof with the claim and report its actual result; if proof is unavailable, state NOT_VERIFIED with the missing proof and next action. This hook does not infer verification from command names.
+</system-reminder>"
+do_it_debug verification-gate "decision=advisory reason=edited-completion-claim"
+do_it_emit_context Stop "$REMINDER"
 _gate_finish 0

@@ -29,11 +29,23 @@ list (Claude validates agents as a file-path array, not a directory string;
 
 | Event | Scripts |
 |---|---|
+| `UserPromptSubmit` (default off) | `behavior-feedback.sh` records only explicit behavioral feedback locally; it emits no context |
+| `UserPromptExpansion` (`do-it-retrospective` only) | `behavior-feedback.sh` receives the original slash text for `on|off|status|report` |
 | `UserPromptSubmit` | `router.sh` → `grill-prompt.sh` (Heavy-only) → `subagent-stance.sh` |
 | `PostToolUse` (Edit\|Write\|MultiEdit\|NotebookEdit) | `write-quality-lint.sh` |
 | `Stop` | `verification-gate.sh` |
 
 `grill-pretool` is not registered.
+
+## Authorization
+
+The bundled workflow hooks are advisory. Claude Code additionally ships a
+default-off, named-command `PreToolUse` profile for `git push`, publication,
+and named infrastructure-apply actions. Set
+`DO_IT_STRICT_EXTERNAL_ACTIONS=ask` before launching Claude to request a real
+host confirmation; `deny` is an explicit stop, not a confirmation. Its scope
+is deliberately narrow; see
+[`strict-external-actions.md`](../../../docs/strict-external-actions.md).
 
 ## Tool Mapping
 

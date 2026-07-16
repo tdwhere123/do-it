@@ -2,21 +2,24 @@
 
 Shared finding schema, path map chain, and failure-mode classes. Meaning skills point here — do not duplicate full definitions elsewhere.
 
-## When Forecast And Path Map Apply
+## When Forecast And Path Map Help
 
-**Standard / Heavy** work that touches behavior, interfaces, runtime state, or surfaces needs both unless clearly N/A.
+Use a forecast or path map when behavior, interfaces, runtime state, or a
+cross-boundary handoff makes it change the route or proof. Keep it as short as
+the decision needs; do not complete a form for bounded local work.
 
-**N/A:** docs-only (no install/release/workflow policy) or mechanical with obvious local verification. State `failure-mode forecast: none identified` and `path map: not applicable` with a one-line reason.
-
-Light skips unless a parent assigns them to a slice.
+Docs-only or mechanical work with obvious local verification normally skips
+both. A brief `N/A` note is useful only when another worker or session could
+otherwise misread the boundary. Light normally skips unless its assigned slice
+has a real risk boundary.
 
 ### Tier precedents (forecast / path map)
 
 | Work shape | Tier | Forecast / path map |
 | --- | --- | --- |
 | Single-file typo, log copy, or comment-only | Light | Not required |
-| 1–3 file bounded fix, no interface change | Standard | `none identified (local fix)` + `path map: not applicable (single-module)` |
-| Cross-package refactor, schema/API, multi-agent wave | Heavy | Full forecast + path map before edits |
+| 1–3 file bounded fix, no interface change | Standard | Usually skip; add a one-line local risk only if it changes proof |
+| Cross-package refactor, schema/API, or multi-agent wave | Heavy | Usually map the live path and likely failure modes when they guide ownership or verification |
 
 ## Failure-Mode Forecast Classes
 
@@ -60,26 +63,21 @@ Never cut safety: trust boundaries, data-loss, security, accessibility, or expli
 
 Unknown is not impossible, but possibility is not proof. Record the current baseline and success metric, keep the known-correct path available, and probe the breakthrough hypothesis with the cheapest falsifier first. Scale investment only when the observation survives that test and materially improves the baseline.
 
-## Parent Delegation Contract
+## Delegation Boundary
 
-The parent owns integration. A delegated slice must state:
+The parent owns integration. Delegate when an independent slice is useful; do
+not make a fixed contract or a named role a prerequisite for exploration.
 
-- tier + route/lens;
-- scope and non-goals;
-- write ownership and restricted paths;
-- supplied facts versus facts the worker must verify;
-- acceptance/proof target and stop condition.
+Give a worker only what it needs:
 
-Return one compact result:
+- the goal or question to resolve;
+- the slice and any write/side-effect boundary;
+- the result, uncertainty, or evidence that would help the parent decide.
 
-```text
-status: DONE | NEEDS_CONTEXT | BLOCKED
-paths: changed or inspected
-proof: command/inspection result, or NOT_CHECKED
-residual risk: ...
-```
-
-Workers do not commit, merge, revert peer work, or expand into unassigned boundaries by default.
+The worker should return a compact result in its own useful shape and name what
+it did not check. Add explicit facts, proof targets, or stop conditions only
+when the task has a real ambiguity or risk boundary. Workers do not commit,
+merge, revert peer work, or expand into unassigned write boundaries by default.
 
 ## Finding Schema
 
@@ -100,8 +98,11 @@ NOT_CHECKED: explicit list of scope/checks not performed (required even if empty
 skipped: <skill-or-hook> because <reason>
 ```
 
-## Output Fields (Routing / Planning)
+## Useful Fields (Routing / Planning)
 
-Internal: tier; current facts; failure-mode forecast; path map or N/A; selected meaning buckets; next action; stop/approval gate.
+For a handoff or durable plan, record only the fields another worker needs:
+tier, current facts, a forecast/path map when useful, selected capabilities,
+next action, and any real approval boundary.
 
-Final delivery: changed files; verification; fresh branch/worktree evidence; review status; steps used/skipped; residual risk.
+For final delivery, report the changed surface, relevant fresh evidence, and
+residual risk or uncertainty. Do not manufacture a fixed report shape.
