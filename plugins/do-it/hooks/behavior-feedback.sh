@@ -113,7 +113,7 @@ bf_redact_excerpt() {
     -e 's#```[^`]*```#[REDACTED_CODE]#g' \
     -e 's#https?://[^[:space:]"<>]+#[REDACTED_URL]#g' \
     -e 's#[[:alnum:]._%+-]+@[[:alnum:].-]+\.[[:alpha:]]{2,}#[REDACTED_EMAIL]#g' \
-    -e 's#([A-Za-z]:\\Users\\|/(home|Users|mnt|tmp)/)[^[:space:]"<>]*#[REDACTED_PATH]#g' \
+    -e 's#([A-Za-z]:\\|/)[^[:space:]"<>]*#[REDACTED_PATH]#g' \
     -e 's#eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}#[REDACTED_JWT]#g' \
     -e 's/sk-[A-Za-z0-9_-]{12,}/[REDACTED_SECRET]/g' \
     -e 's/ghp_[A-Za-z0-9]{12,}/[REDACTED_SECRET]/g' \

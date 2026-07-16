@@ -62,16 +62,17 @@ echo "Case 3: explicit behavioral feedback records a redacted local excerpt once
 secret='sk-abcdefghijklmnopqrstuvwxyz123456'
 email='person@example.test'
 url='https://example.test/private?token=long-secret-value'
-absolute_path="$TMP_ROOT/private/src/auth.ts"
+absolute_path='/var/folders/do-it-feedback-test/private/src/auth.ts'
+windows_path='C:\Users\do-it\private\src\auth.ts'
 jwt='eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJwcml2YXRlLXVzZXIifQ.signature-value-123456'
 code='```const apiKey = "never-store-this";```'
-prompt="do-it 的行为不对：你没有调用我预先设计好的子智能体。Bearer $secret access_token=long-secret-value email=$email url=$url path=$absolute_path jwt=$jwt $code"
+prompt="do-it 的行为不对：你没有调用我预先设计好的子智能体。Bearer $secret access_token=long-secret-value email=$email url=$url path=$absolute_path windows_path=$windows_path jwt=$jwt $code"
 out="$(_run s1 "$prompt" "$project")"
 _assert_empty "feedback recorder is silent" "$out"
 _assert "feedback event has bounded schema" "jq -e '.schema == 1 and .kind == \"behavior-feedback\" and .host == \"claude\" and (.session | test(\"^[0-9a-f]{12}$\")) and (.signals | contains(\"delegation\"))' \"$events\" >/dev/null"
 _assert "feedback event keeps a redacted excerpt" "jq -e '.prompt_excerpt | contains(\"[REDACTED_SECRET]\")' \"$events\" >/dev/null"
 _assert "feedback event redacts common local identifiers" "jq -e '.prompt_excerpt | contains(\"[REDACTED_EMAIL]\") and contains(\"[REDACTED_URL]\") and contains(\"[REDACTED_PATH]\") and contains(\"[REDACTED_JWT]\") and contains(\"[REDACTED_CODE]\")' \"$events\" >/dev/null"
-_assert "feedback event omits raw credential, local identifiers, code, and session id" "! grep -Fq \"$secret\" \"$events\" && ! grep -Fq \"$email\" \"$events\" && ! grep -Fq \"$url\" \"$events\" && ! grep -Fq \"$absolute_path\" \"$events\" && ! grep -Fq \"$jwt\" \"$events\" && ! grep -Fq 'never-store-this' \"$events\" && ! grep -Fq s1 \"$events\""
+_assert "feedback event omits raw credential, local identifiers, code, and session id" "! grep -Fq \"$secret\" \"$events\" && ! grep -Fq \"$email\" \"$events\" && ! grep -Fq \"$url\" \"$events\" && ! grep -Fq \"$absolute_path\" \"$events\" && ! grep -Fq \"$windows_path\" \"$events\" && ! grep -Fq \"$jwt\" \"$events\" && ! grep -Fq 'never-store-this' \"$events\" && ! grep -Fq s1 \"$events\""
 
 line_count="$(wc -l < "$events" | tr -d ' ')"
 out="$(_run s1 "$prompt" "$project")"
