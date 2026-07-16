@@ -71,7 +71,7 @@ _assert_empty "feedback recorder is silent" "$out"
 _assert "feedback event has bounded schema" "jq -e '.schema == 1 and .kind == \"behavior-feedback\" and .host == \"claude\" and (.session | test(\"^[0-9a-f]{12}$\")) and (.signals | contains(\"delegation\"))' \"$events\" >/dev/null"
 _assert "feedback event keeps a redacted excerpt" "jq -e '.prompt_excerpt | contains(\"[REDACTED_SECRET]\")' \"$events\" >/dev/null"
 _assert "feedback event redacts common local identifiers" "jq -e '.prompt_excerpt | contains(\"[REDACTED_EMAIL]\") and contains(\"[REDACTED_URL]\") and contains(\"[REDACTED_PATH]\") and contains(\"[REDACTED_JWT]\") and contains(\"[REDACTED_CODE]\")' \"$events\" >/dev/null"
-_assert "feedback event omits raw credential, local identifiers, code, and session id" "! rg -q --fixed-strings \"$secret\" \"$events\" && ! rg -q --fixed-strings \"$email\" \"$events\" && ! rg -q --fixed-strings \"$url\" \"$events\" && ! rg -q --fixed-strings \"$absolute_path\" \"$events\" && ! rg -q --fixed-strings \"$jwt\" \"$events\" && ! rg -q --fixed-strings 'never-store-this' \"$events\" && ! rg -q --fixed-strings s1 \"$events\""
+_assert "feedback event omits raw credential, local identifiers, code, and session id" "! grep -Fq \"$secret\" \"$events\" && ! grep -Fq \"$email\" \"$events\" && ! grep -Fq \"$url\" \"$events\" && ! grep -Fq \"$absolute_path\" \"$events\" && ! grep -Fq \"$jwt\" \"$events\" && ! grep -Fq 'never-store-this' \"$events\" && ! grep -Fq s1 \"$events\""
 
 line_count="$(wc -l < "$events" | tr -d ' ')"
 out="$(_run s1 "$prompt" "$project")"
