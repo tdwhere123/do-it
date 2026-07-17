@@ -1,6 +1,6 @@
 # Release Notes
 
-This workflow bundle has four host delivery surfaces plus an optional managed
+This workflow bundle has five host delivery surfaces plus an optional managed
 CLI setup path:
 
 1. Codex — marketplace-first, with skills, agents, and plugin hooks (trust under
@@ -11,17 +11,32 @@ CLI setup path:
    pending. The bundle has medium-depth hooks.
 4. OpenCode — global vendor / package-name registration today; npm publication is
    pending. The TypeScript plugin has per-message routing and selective bridges.
-5. Optional / legacy: `do-it setup` for managed doctor, temp-home smoke, and
+5. Kimi Code — repo-root `kimi.plugin.json` installed via `/plugins install`
+   (per-user). Skills, commands, and manifest hooks; no custom subagents on
+   this host, so agents are not shipped.
+6. Optional / legacy: `do-it setup` for managed doctor, temp-home smoke, and
    migration from older global installs.
 
 ## Current Truth Planes
 
 | Plane | Current repository evidence |
 |---|---|
-| Source/package | `package.json`, manifest, and plugin metadata declare `0.14.0`; inventory is 9 user/runnable skills + 1 generated discovery entry + 10 agents. |
-| Git tag | This checkout has no matching `v0.14.0` tag. The latest local tag is `v0.6.0`; version metadata alone is not a release. |
+| Source/package | `package.json`, manifest, and plugin metadata declare `0.14.1`; inventory is 9 user/runnable skills + 1 generated discovery entry + 10 agents. |
+| Git tag | This checkout has no matching `v0.14.1` tag. The latest local tag is `v0.6.0`; version metadata alone is not a release. |
 | Marketplace/npm | Install coordinates and publish workflows exist, but this checkout does not prove public marketplace listing or npm publication. Cursor listing and OpenCode npm publication remain pending. |
 | Live host | Only host install/inspection evidence proves an active version. Source, package, tag, and live host may differ. |
+
+## Tag Policy
+
+- Every release ends with a `vX.Y.Z` git tag on the release commit — the tag is
+  what triggers `.github/workflows/release.yml` (verify → pack → optional npm
+  publish). A version bump without a tag is not a release.
+- After a release, `main` bumps to the next patch version (e.g. `0.14.1`)
+  promptly, so a checkout never claims a published version it has already
+  moved past.
+- Historical gap: `0.6.1`–`0.14.0` shipped without tags (latest tag was
+  `v0.6.0`). Retro-tag old release commits only with maintainer confirmation;
+  going forward, tag at release time.
 
 ## Baseline
 
@@ -56,6 +71,10 @@ codex plugin add do-it@tdwhere-do-it
 # OpenCode — global vendor install (see plugins/do-it-opencode/docs/README.opencode.md)
 # npm run install:opencode-global
 # npm @tdwhere/do-it-opencode when published
+
+# Kimi Code — repo-root plugin, no build step:
+# /plugins install https://github.com/tdwhere123/do-it  (then /reload)
+# local checkout smoke: /plugins install /path/to/do-it
 ```
 
 Optional CLI (legacy / doctor / migration):
@@ -105,8 +124,9 @@ for doctor and migration — do not require pairing it with marketplace install.
 | Codex plugin marketplace | Yes, under `plugins/do-it/skills/` | Yes, under `plugins/do-it/agents/` | No slash command surface | Yes, plugin hooks (trust under `/hooks`) | Optional via CLI | `npm run build:codex-plugin` then `CODEX_HOME=/tmp/do-it-plugin-test codex plugin marketplace add /path/to/do-it` and `codex plugin add do-it@tdwhere-do-it` |
 | Codex CLI setup (legacy) | Yes, from `manifest.json` | No — bundled agents are plugin-owned; legacy CLI only supports safe migration | CLI `do-it` only | Yes, root `hooks.json` plus `hooks/` | Yes, default target | `CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it setup` |
 | Claude Code plugin | Yes, from `skills/do-it/` | Yes, under `dist/claude/agents/` | Yes, `commands/` | Yes, plugin `hooks/hooks.json` | Yes, `--target=claude` | `CLAUDE_PLUGIN_ROOT_OVERRIDE=/tmp/do-it-claude-test npm exec --package . -- do-it setup --target=claude` |
-| Cursor local / Team Import (public listing pending) | Full 8 (`ALL_SKILLS`) plus generated discovery/reference files | Yes, under `plugins/do-it-cursor/agents/` | No | Medium: `sessionStart`, `beforeSubmitPrompt`, `postToolUse`/`afterFileEdit`, advisory-evidence `stop` | Managed CLI setup only; not standalone local copy | `npm run install:cursor-local`, Reload Window, inspect exact directory + Hooks UI; or `do-it setup --target=cursor` for managed doctor |
+| Cursor local / Team Import (public listing pending) | Full 9 (`ALL_SKILLS`) plus generated discovery/reference files | Yes, under `plugins/do-it-cursor/agents/` | No | Medium: `sessionStart`, `beforeSubmitPrompt`, `postToolUse`/`afterFileEdit`, advisory-evidence `stop` | Managed CLI setup only; not standalone local copy | `npm run install:cursor-local`, Reload Window, inspect exact directory + Hooks UI; or `do-it setup --target=cursor` for managed doctor |
 | OpenCode plugin | Yes, under `plugins/do-it-opencode/skills/` | Yes, under `plugins/do-it-opencode/agents/` | No | Medium-Light: transform bootstrap, `tool.execute.after`, `session.idle` soft reminder | No CLI doctor | `npm run build:opencode-plugin && npm run test-opencode` |
+| Kimi Code plugin (repo root) | Full 9 via root `kimi.plugin.json` `skills` | No — host has no custom subagents | Yes, `/do-it:*` namespaced | Full-minus-subagent: manifest `hooks[]` (`UserPromptSubmit`×3, `PostToolUse`, `Stop`) | No — `/plugins info do-it` is the host-side check | `npm run validate:kimi-plugin`; live: `/plugins install /path/to/do-it` then `/reload` |
 
 ## 0.14.0
 
@@ -207,7 +227,9 @@ release artifact.
 4. Run `npm run build:claude-agents`.
 5. Run `npm run build:codex-plugin`.
 6. Run `npm run build:cursor-plugin`.
-7. Run `npm run build:opencode-plugin && npm run test-opencode`.
+7. Run `npm run build:opencode-plugin && npm run test-opencode`; run
+   `npm run validate:kimi-plugin` (the Kimi root manifest ships unbuilt — this
+   validator is its only gate).
 8. Smoke Codex plugin marketplace + trust hooks under `/hooks`.
 9. Optional: `CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it setup`
    and `do-it doctor`.

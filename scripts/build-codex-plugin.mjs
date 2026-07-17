@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
 import fs from "node:fs";
-import crypto from "node:crypto";
 import path from "node:path";
-import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { rewritePluginReferenceLinks } from "./lib/rewrite-plugin-ref-links.mjs";
+import { readJson, writeJsonAtomic, assertVersionParity } from "./lib/plugin-build.mjs";
+import { CODEX_HOOK_FILES, codexHooksJson } from "./lib/hook-manifest.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, "..");
@@ -15,37 +15,6 @@ const pkg = readJson(path.join(repoRoot, "package.json"));
 const pluginRoot = path.join(repoRoot, "plugins", "do-it");
 const pluginManifestDir = path.join(pluginRoot, ".codex-plugin");
 const marketplacePath = path.join(repoRoot, ".agents", "plugins", "marketplace.json");
-
-function readJson(filePath) {
-  return JSON.parse(fs.readFileSync(filePath, "utf8"));
-}
-
-function writeJsonAtomic(filePath, value) {
-  const content = `${JSON.stringify(value, null, 2)}\n`;
-  const current = fs.existsSync(filePath) ? fs.readFileSync(filePath, "utf8") : null;
-  if (current === content) return false;
-
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  const tempPath = path.join(
-    path.dirname(filePath),
-    `.do-it-${path.basename(filePath)}.${process.pid}.${crypto.randomUUID()}.tmp`
-  );
-
-  try {
-    fs.writeFileSync(tempPath, content);
-    fs.renameSync(tempPath, filePath);
-  } finally {
-    fs.rmSync(tempPath, { force: true });
-  }
-
-  return true;
-}
-
-function assertVersionParity() {
-  if (manifest.version !== pkg.version) {
-    throw new Error(`manifest version ${manifest.version} does not match package version ${pkg.version}`);
-  }
-}
 
 function basenameFromTarget(target, expectedPrefix) {
   const prefix = `${expectedPrefix}/`;
@@ -142,7 +111,7 @@ function buildMarketplace() {
 }
 
 function main() {
-  assertVersionParity();
+  assertVersionParity(manifest, pkg);
 
   const skills = manifest.skills ?? [];
   const agents = manifest.agents ?? [];
@@ -164,85 +133,15 @@ function main() {
   const hooksTarget = path.join(pluginRoot, "hooks");
   fs.rmSync(hooksTarget, { recursive: true, force: true });
   fs.mkdirSync(hooksTarget, { recursive: true });
-  for (const name of [
-    "hooks.json",
-    "behavior-feedback.sh",
-    "router.sh",
-    "grill-prompt.sh",
-    "subagent-stance.sh",
-    "write-quality-lint.sh",
-    "verification-gate.sh",
-    "anti-patterns-lint.sh",
-    "comments-lint.sh",
-    "session-start.sh"
-  ]) {
+  for (const name of CODEX_HOOK_FILES) {
     const src = path.join(hooksSource, name);
     if (fs.existsSync(src)) fs.cpSync(src, path.join(hooksTarget, name));
   }
   fs.cpSync(path.join(hooksSource, "lib"), path.join(hooksTarget, "lib"), { recursive: true });
   fs.cpSync(path.join(hooksSource, "data"), path.join(hooksTarget, "data"), { recursive: true });
 
-  // Codex plugin hooks should use PLUGIN_ROOT / PLUGIN_DATA, not Claude env only.
-  const pluginHooksJson = {
-    hooks: {
-      UserPromptSubmit: [
-        {
-          hooks: [
-            {
-              type: "command",
-              command:
-                'DO_IT_HOOK_DATA="${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-/tmp/do-it-data}}" "${PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}/hooks/behavior-feedback.sh"',
-              timeout: 10
-            },
-            {
-              type: "command",
-              command:
-                'DO_IT_HOOK_DATA="${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-/tmp/do-it-data}}" "${PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}/hooks/router.sh"',
-              timeout: 25
-            },
-            {
-              type: "command",
-              command:
-                'DO_IT_HOOK_DATA="${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-/tmp/do-it-data}}" "${PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}/hooks/grill-prompt.sh"',
-              timeout: 25
-            },
-            {
-              type: "command",
-              command:
-                'DO_IT_HOOK_DATA="${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-/tmp/do-it-data}}" "${PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}/hooks/subagent-stance.sh"',
-              timeout: 10
-            }
-          ]
-        }
-      ],
-      PostToolUse: [
-        {
-          matcher: "Edit|Write|MultiEdit|NotebookEdit",
-          hooks: [
-            {
-              type: "command",
-              command:
-                'DO_IT_HOOK_DATA="${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-/tmp/do-it-data}}" "${PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}/hooks/write-quality-lint.sh"',
-              timeout: 15
-            }
-          ]
-        }
-      ],
-      Stop: [
-        {
-          hooks: [
-            {
-              type: "command",
-              command:
-                'DO_IT_HOOK_DATA="${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-/tmp/do-it-data}}" "${PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}/hooks/verification-gate.sh"',
-              timeout: 25
-            }
-          ]
-        }
-      ]
-    }
-  };
-  writeJsonAtomic(path.join(hooksTarget, "hooks.json"), pluginHooksJson);
+  // Codex wiring lives in scripts/lib/hook-manifest.mjs (single source).
+  writeJsonAtomic(path.join(hooksTarget, "hooks.json"), codexHooksJson());
 
   writeJsonAtomic(path.join(pluginManifestDir, "plugin.json"), buildPluginManifest());
   writeJsonAtomic(marketplacePath, buildMarketplace());

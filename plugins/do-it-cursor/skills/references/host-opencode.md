@@ -101,3 +101,8 @@ load, or OpenCode tool events — not repo-only proof.
   needed.
 - Cache bootstrap payload across turns within a session.
 - Quality lint scans **added lines only** — same contract as bash hook.
+
+## Known Limitations
+
+- The bash bridge hook commands assume POSIX `sh`; no Windows (`.cmd`) story
+  exists for this adapter (Cursor is the only one with a Windows path).

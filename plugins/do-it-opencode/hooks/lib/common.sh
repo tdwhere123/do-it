@@ -59,6 +59,18 @@ do_it_json_get() {
   fi
 }
 
+# Get the submitted prompt text. Hosts disagree on shape: Claude/Codex/Cursor/
+# OpenCode send a plain string; Kimi Code sends a ContentPart array
+# ([{"type":"text","text":"…"}]). Args: <json>. Echoes "" if unavailable.
+do_it_json_get_prompt() {
+  local json="$1"
+  if [[ "$DO_IT_HAVE_JQ" == "1" ]]; then
+    printf '%s' "$json" | jq -r \
+      '.prompt // "" | if type == "array" then [ .[]?.text // empty ] | join("\n") else . end' \
+      2>/dev/null
+  fi
+}
+
 # Get a nested field with dot syntax. Args: <json> <a.b.c>.
 do_it_json_get_nested() {
   local json="$1" pathspec="$2"
@@ -123,16 +135,20 @@ _do_it_ensure_runtime_git_exclude() {
 }
 
 # Compute a session-scoped data dir. Caller is responsible for mkdir.
-# Resolution order:
+# Canonical resolution order — mirrored by install/manage.mjs
+# (sessionsBaseDir), plugins/do-it-opencode/src/bridge.ts
+# (resolveSessionStateDir), and docs/harness-adapter-matrix.md; keep all
+# four in sync:
 #   1. $CURSOR_PLUGIN_DATA/sessions   (Cursor plugin data)
 #   2. $CLAUDE_PLUGIN_DATA/sessions   (host-provided plugin data)
 #   3. $PLUGIN_DATA/sessions          (Codex plugin data; also set via DO_IT_HOOK_DATA in hooks.json)
 #   4. $DO_IT_HOOK_DATA/sessions      (explicit override / wrapped PLUGIN_DATA)
 #   5. $OPENCODE_DATA/sessions        (OpenCode plugin data)
-#   6. $CODEX_HOME/do-it-data/sessions
-#   7. <git repo root>/.do-it/runtime/sessions
-#   8. ${TMPDIR:-/tmp}/do-it-sessions
-# A writable check guards (1)–(4) so an unwritable mount silently falls
+#   6. $KIMI_CODE_HOME/do-it-data/sessions  (Kimi Code; never KIMI_PLUGIN_ROOT — managed, read-only)
+#   7. $CODEX_HOME/do-it-data/sessions
+#   8. <git repo root>/.do-it/runtime/sessions
+#   9. ${TMPDIR:-/tmp}/do-it-sessions
+# A writable check guards (1)–(7) so an unwritable mount silently falls
 # through. The repo-root path also ensures `.do-it/runtime/` is gitignored.
 do_it_session_dir() {
   local session_id_in="${1:-}"
@@ -213,6 +229,12 @@ do_it_session_dir() {
   fi
   if [[ -z "$base" && -n "${OPENCODE_DATA:-}" ]]; then
     candidate="${OPENCODE_DATA%/}/sessions"
+    if mkdir -p "$candidate" 2>/dev/null && [[ -w "$candidate" ]]; then
+      base="$candidate"
+    fi
+  fi
+  if [[ -z "$base" && -n "${KIMI_CODE_HOME:-}" ]]; then
+    candidate="${KIMI_CODE_HOME%/}/do-it-data/sessions"
     if mkdir -p "$candidate" 2>/dev/null && [[ -w "$candidate" ]]; then
       base="$candidate"
     fi
@@ -954,8 +976,15 @@ _do_it_json_escape() {
 }
 
 # Emit additionalContext system-reminder via JSON. Args: <event-name> <text>.
+# Kimi Code does not parse hookSpecificOutput.additionalContext: stdout is
+# appended to context verbatim (wrapped in <hook_result>). Emit plain text on
+# that host; the JSON envelope is for Claude-shaped hosts.
 do_it_emit_context() {
   local event="$1" text="$2"
+  if [[ -n "${KIMI_CODE_HOME:-}" || -n "${KIMI_PLUGIN_ROOT:-}" ]]; then
+    printf '%s\n' "$text"
+    return 0
+  fi
   if [[ "$DO_IT_HAVE_JQ" == "1" ]]; then
     jq -nc --arg e "$event" --arg t "$text" \
       '{hookSpecificOutput: {hookEventName: $e, additionalContext: $t}}'

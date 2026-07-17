@@ -178,7 +178,15 @@ wq_scan_antipattern_families() {
   esac
 
   local chunks_file copypaste_hit=0 copypaste_neighbor=""
-  chunks_file="$(mktemp 2>/dev/null || echo "/tmp/do-it-write-quality-$$-$RANDOM")"
+  chunks_file="$(mktemp 2>/dev/null || true)"
+  if [[ -z "$chunks_file" ]]; then
+    # mktemp(1) unavailable: fall back to a noclobber, owner-only temp file.
+    # If it cannot be created safely, skip the copy-paste scan (fail open).
+    chunks_file="/tmp/do-it-write-quality-$$-$RANDOM"
+    if ! ( umask 077; set -o noclobber; : > "$chunks_file" ) 2>/dev/null; then
+      return 0
+    fi
+  fi
   printf '%s\n' "$WQ_ADDED_LINES" | awk '
     function flush() {
       if (size >= 5) {

@@ -52,6 +52,7 @@ jobs:
           npm run build:codex-plugin
           npm run build:cursor-plugin
           npm run build:opencode-plugin
+          npm run validate:kimi-plugin
 
       - name: Smoke packed root and OpenCode packages
         env:

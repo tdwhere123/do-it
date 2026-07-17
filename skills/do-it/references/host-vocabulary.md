@@ -18,14 +18,14 @@ more than one runtime.
 
 ## Tool Mapping (by host)
 
-| Intent | Codex | Claude Code | Cursor | OpenCode |
-|---|---|---|---|---|
-| Read file | `Read` / shell | `Read` | `Read` | plugin file API |
-| Edit file | `Edit` / `Write` | `Edit` / `Write` / `MultiEdit` | `StrReplace` / `Write` | `edit` tool |
-| Run command | `Shell` | `Bash` | `Shell` | terminal tool |
-| Delegate worker | `Task` / agent config | `Task` subagent | `Task` subagent | plugin agent |
-| Load skill | skill discovery / `@skill` | `Skill` tool | skill discovery | `config` skills path |
-| Ask user | host question UI | `AskUserQuestion` | chat | plugin prompt |
+| Intent | Codex | Claude Code | Cursor | OpenCode | Kimi Code |
+|---|---|---|---|---|---|
+| Read file | `Read` / shell | `Read` | `Read` | plugin file API | `Read` |
+| Edit file | `Edit` / `Write` | `Edit` / `Write` / `MultiEdit` | `StrReplace` / `Write` | `edit` tool | `Edit` / `Write` (only) |
+| Run command | `Shell` | `Bash` | `Shell` | terminal tool | `Bash` |
+| Delegate worker | `Task` / agent config | `Task` subagent | `Task` subagent | plugin agent | `Agent` built-ins only |
+| Load skill | skill discovery / `@skill` | `Skill` tool | skill discovery | `config` skills path | auto-discovery / `/skill:<name>` |
+| Ask user | host question UI | `AskUserQuestion` | chat | plugin prompt | `AskUserQuestion` |
 
 When a skill says "run the smallest real experiment", pick the host's command
 tool — do not hard-code `Bash` in shared skill text.
@@ -38,6 +38,7 @@ tool — do not hard-code `Bash` in shared skill text.
 | Claude | plugin marketplace (primary) | `${CLAUDE_PLUGIN_ROOT}/skills/` | `${CLAUDE_PLUGIN_ROOT}/hooks/hooks.json` |
 | Cursor | local plugin path / `do-it setup --target=cursor` (primary); Team Import / public marketplace when listed | plugin `skills/` | user `~/.cursor/hooks.json` → `run-hook.cmd` (plugin `hooks/hooks.json` not registered by current Cursor) |
 | OpenCode | `opencode.json` plugin (primary) | plugin `skills/` | TS plugin events |
+| Kimi Code | `/plugins install` git URL (primary) | root manifest `./skills/do-it/` | root `kimi.plugin.json` `hooks[]` (cwd = plugin root) |
 
 Authoritative install list: `manifest.json`. Doctor: `install/doctor.sh` (optional CLI path).
 
@@ -55,6 +56,7 @@ Verification and subagent prompts name the plane evidence came from:
 | `live-claude` | Claude Code plugin runtime |
 | `live-cursor` | Cursor plugin + IDE hook surface |
 | `live-opencode` | OpenCode plugin + transform/bootstrap |
+| `live-kimi` | Kimi Code plugin install + manifest hook surface |
 | `package-artifact` | Built tarball / npm pack output |
 | `host-behavior` | Generic host UX when host-specific plane not needed |
 | `external-blocked` | Network/credentials block |
@@ -67,3 +69,4 @@ Evidence from one plane does not prove another.
 - [`host-claude.md`](host-claude.md)
 - [`host-cursor.md`](host-cursor.md)
 - [`host-opencode.md`](host-opencode.md)
+- [`host-kimi.md`](host-kimi.md)

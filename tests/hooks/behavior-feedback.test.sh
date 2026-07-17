@@ -23,7 +23,8 @@ _run() {
   local session_id="$1" prompt="$2" cwd="$3" transcript="${4:-}" agent_id="${5:-}" agent_type="${6:-}" event_name="${7:-}" command_name="${8:-}"
   jq -nc --arg sid "$session_id" --arg prompt "$prompt" --arg cwd "$cwd" --arg transcript "$transcript" --arg agent_id "$agent_id" --arg agent_type "$agent_type" --arg event_name "$event_name" --arg command_name "$command_name" \
     '{session_id:$sid, prompt:$prompt, cwd:$cwd, transcript_path:$transcript, agent_id:$agent_id, agent_type:$agent_type, hook_event_name:$event_name, command_name:$command_name}' \
-    | CLAUDE_PLUGIN_DATA="$TMP_ROOT/plugin-data" CLAUDE_PLUGIN_ROOT="/tmp/do-it-plugin" bash "$HOOK"
+    | CLAUDE_PLUGIN_DATA="$TMP_ROOT/plugin-data" CLAUDE_PLUGIN_ROOT="/tmp/do-it-plugin" \
+      env -u KIMI_CODE_HOME -u KIMI_PLUGIN_ROOT bash "$HOOK"
 }
 
 _assert_empty() {

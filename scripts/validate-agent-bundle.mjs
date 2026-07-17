@@ -386,8 +386,11 @@ function validateIndexJson(pkg, manifest, errors) {
   if (index.package !== pkg.name) {
     errors.push(`index.json package ${index.package ?? "<missing>"} does not match package.json ${pkg.name}`);
   }
-  if (index.total_skills !== (manifest.skills ?? []).length) {
-    errors.push(`index.json total_skills ${index.total_skills ?? "<missing>"} does not match manifest skills`);
+  const capabilitySkillCount = Object.values(manifest.skillTiers ?? {}).flat().length;
+  if (index.total_skills !== capabilitySkillCount) {
+    errors.push(
+      `index.json total_skills ${index.total_skills ?? "<missing>"} does not match runnable skills (${capabilitySkillCount})`
+    );
   }
   if (index.total_agents !== (manifest.agents ?? []).length) {
     errors.push(`index.json total_agents ${index.total_agents ?? "<missing>"} does not match manifest agents`);

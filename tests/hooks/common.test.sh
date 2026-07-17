@@ -26,7 +26,7 @@ _pass() { echo "  ok: $1"; PASS=$((PASS + 1)); }
 _fail() { echo "  FAIL: $1" >&2; FAIL=$((FAIL + 1)); }
 
 _isolate_env() {
-  unset CLAUDE_PLUGIN_DATA CODEX_HOME transcript_path CLAUDE_AGENT_CONTEXT CLAUDE_SUBAGENT
+  unset CLAUDE_PLUGIN_DATA CODEX_HOME KIMI_CODE_HOME KIMI_PLUGIN_ROOT transcript_path CLAUDE_AGENT_CONTEXT CLAUDE_SUBAGENT
   export DO_IT_HOOK_DATA="$1"
   rm -rf "$DO_IT_HOOK_DATA"
 }
@@ -193,6 +193,29 @@ case "$?" in
   51) _fail "parent .gitignore was modified" ;;
   52) _fail "self-contained .do-it/runtime/.gitignore was not written" ;;
   53) _fail "runtime marker leaked into git status" ;;
+  *)  _fail "subshell crashed (exit=$?)" ;;
+esac
+
+# -------------------------------------------------------------------------
+echo "Case 5b: KIMI_CODE_HOME session root sits between OPENCODE_DATA and CODEX_HOME"
+(
+  _isolate_env ""
+  unset DO_IT_HOOK_DATA CURSOR_PLUGIN_DATA CLAUDE_PLUGIN_DATA PLUGIN_DATA OPENCODE_DATA
+  export KIMI_CODE_HOME=/tmp/doit-test-kimi-home
+  export CODEX_HOME=/tmp/doit-test-codex-home
+  rm -rf "$KIMI_CODE_HOME" "$CODEX_HOME"
+  source "$COMMON"
+  d="$(do_it_session_dir kimi-level)"
+  [[ "$d" == "$KIMI_CODE_HOME/do-it-data/sessions/kimi-level" ]] || exit 55
+  unset KIMI_CODE_HOME
+  d="$(do_it_session_dir kimi-level)"
+  [[ "$d" == "$CODEX_HOME/do-it-data/sessions/kimi-level" ]] || exit 56
+  rm -rf /tmp/doit-test-kimi-home /tmp/doit-test-codex-home
+)
+case "$?" in
+  0)  _pass "KIMI_CODE_HOME wins over CODEX_HOME; CODEX_HOME applies after unset" ;;
+  55) _fail "KIMI_CODE_HOME level not used for session dir" ;;
+  56) _fail "CODEX_HOME fallback after KIMI_CODE_HOME unset broken" ;;
   *)  _fail "subshell crashed (exit=$?)" ;;
 esac
 
@@ -458,6 +481,37 @@ case "$?" in
   152) _fail "legacy shell override changed keyword arrays" ;;
   153) _fail "legacy shell override emitted no migration warning" ;;
   *)   _fail "legacy override handling crashed (exit=$?)" ;;
+esac
+
+# -------------------------------------------------------------------------
+echo "Case 16: Kimi protocol helpers (prompt array + plain-text emit)"
+(
+  _isolate_env "/tmp/doit-test-kimi-proto"
+  source "$COMMON"
+  # Kimi Code sends prompt as a ContentPart array; other hosts send a string.
+  arr='{"prompt":[{"type":"text","text":"line one"},{"type":"text","text":"line two"}]}'
+  got="$(do_it_json_get_prompt "$arr")"
+  [[ "$got" == $'line one\nline two' ]] || exit 161
+  [[ "$(do_it_json_get_prompt '{"prompt":"plain prompt"}')" == "plain prompt" ]] || exit 162
+  [[ -z "$(do_it_json_get_prompt '{}')" ]] || exit 163
+  # Emit: Kimi gets plain text (its stdout goes verbatim into context);
+  # Claude-shaped hosts keep the hookSpecificOutput JSON envelope.
+  export KIMI_CODE_HOME="/tmp/doit-test-kimi-proto/home"
+  out_kimi="$(do_it_emit_context UserPromptSubmit "kimi note")"
+  [[ "$out_kimi" == "kimi note" ]] || exit 164
+  unset KIMI_CODE_HOME
+  out_json="$(do_it_emit_context UserPromptSubmit "json note")"
+  printf '%s' "$out_json" | jq -e '.hookSpecificOutput.additionalContext == "json note"' >/dev/null || exit 165
+  exit 0
+)
+case "$?" in
+  0)   _pass "prompt array extracts; emit switches plain text vs JSON envelope" ;;
+  161) _fail "ContentPart array prompt not extracted" ;;
+  162) _fail "plain string prompt broke" ;;
+  163) _fail "missing prompt not empty" ;;
+  164) _fail "kimi emit not plain text" ;;
+  165) _fail "non-kimi emit lost JSON envelope" ;;
+  *)   _fail "kimi proto case crashed (exit=$?)" ;;
 esac
 
 # -------------------------------------------------------------------------

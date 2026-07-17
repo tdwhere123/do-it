@@ -39,9 +39,12 @@ entry_points=(
   hooks/strict-external-actions.sh
   hooks/router.sh
   hooks/grill-prompt.sh
+  hooks/session-start.sh
   hooks/subagent-stance.sh
   hooks/verification-gate.sh
   hooks/write-quality-lint.sh
+  hooks/anti-patterns-lint.sh
+  hooks/comments-lint.sh
 )
 
 # `-x` lets shellcheck follow `# shellcheck source=...` lines so the lib files

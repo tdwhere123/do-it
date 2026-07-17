@@ -46,7 +46,7 @@ _run_router() {
 _isolate_state() {
   export DO_IT_HOOK_DATA="$1"
   rm -rf "$DO_IT_HOOK_DATA"
-  unset CLAUDE_PLUGIN_DATA CODEX_HOME CLAUDE_AGENT_CONTEXT CLAUDE_SUBAGENT
+  unset CLAUDE_PLUGIN_DATA CODEX_HOME KIMI_CODE_HOME KIMI_PLUGIN_ROOT CLAUDE_AGENT_CONTEXT CLAUDE_SUBAGENT
   unset DO_IT_DEBUG
 }
 
@@ -471,6 +471,27 @@ case "$?" in
   11) _fail "Heavy prompt did not set dim_needs_review_loop=1" ;;
   12) _fail "Light question did not clear dim_*" ;;
   *)  _fail "Heavy→Light sequence failed (exit $?)" ;;
+esac
+
+# -------------------------------------------------------------------------
+echo "Case K: Kimi ContentPart[] prompt routes Standard and emits plain text"
+(
+  _isolate_state "/tmp/doit-test-router-kimi"
+  export KIMI_CODE_HOME="/tmp/doit-test-router-kimi/home"
+  payload=$(jq -nc '{prompt: [{type:"text",text:"实现 src/auth.ts 的登录"}], session_id: "k1", cwd: "/tmp"}')
+  out=$(printf '%s' "$payload" | bash "$ROUTER")
+  [[ "$out" == *'do-it tier: Standard.'* ]] || { printf 'missing advisory: %s\n' "$out" >&2; exit 11; }
+  # Plain-text channel: the raw JSON envelope must not leak into context.
+  if printf '%s' "$out" | jq -e . >/dev/null 2>&1; then exit 12; fi
+  state="$(_state_for k1)"
+  [[ "$(jq -r '.tier' "$state")" == "Standard" ]] || { cat "$state" >&2; exit 13; }
+)
+case "$?" in
+  0)  _pass "Kimi array prompt routes Standard with plain-text advisory" ;;
+  11) _fail "Kimi array prompt produced no Standard advisory" ;;
+  12) _fail "Kimi advisory leaked the JSON envelope" ;;
+  13) _fail "Kimi array prompt did not persist Standard state" ;;
+  *)  _fail "Kimi router case failed (exit $?)" ;;
 esac
 
 # -------------------------------------------------------------------------

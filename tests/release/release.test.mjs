@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 
 import { validateRelease } from "../../scripts/validate-release.mjs";
 import { classifyTarball, resolveSmokeTarballs } from "../../scripts/smoke-package.mjs";
+import { targetExtras } from "../../scripts/lib/manifest-extras.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -49,8 +50,8 @@ function collectCommands(value, commands = []) {
 function registeredHookSources() {
   const manifest = JSON.parse(fs.readFileSync(path.join(repoRoot, "manifest.json"), "utf8"));
   const sourceByBasename = new Map();
-  for (const target of Object.values(manifest.targets ?? {})) {
-    for (const extra of target.extras ?? []) {
+  for (const targetName of Object.keys(manifest.targets ?? {})) {
+    for (const extra of targetExtras(manifest, targetName)) {
       if (extra.kind !== "file" || typeof extra.source !== "string" || !extra.source.startsWith("hooks/")) {
         continue;
       }
@@ -104,8 +105,8 @@ test("package scripts and registered hooks reference only tracked source; retire
     assert.equal(typeof skill.source, "string", `manifest skill is missing source: ${skill.name}`);
     assertTrackedTree(skill.source, `manifest skill source (${skill.name})`);
   }
-  for (const [targetName, target] of Object.entries(manifest.targets ?? {})) {
-    for (const extra of target.extras ?? []) {
+  for (const targetName of Object.keys(manifest.targets ?? {})) {
+    for (const extra of targetExtras(manifest, targetName)) {
       assert.equal(typeof extra.source, "string", `manifest extra is missing source: ${targetName}/${extra.name}`);
       assertTrackedTree(extra.source, `manifest extra source (${targetName}/${extra.name})`);
     }
@@ -124,6 +125,7 @@ function copyReleaseMetadata() {
     "package.json",
     "manifest.json",
     "index.json",
+    "kimi.plugin.json",
     "CHANGELOG.md",
     ".claude-plugin/plugin.json",
     ".claude-plugin/marketplace.json",
@@ -139,10 +141,12 @@ function copyReleaseMetadata() {
   return tempRoot;
 }
 
+const releaseVersion = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8")).version;
+
 test("release guard accepts a matching tag, metadata set, and changelog entry", () => {
-  const result = validateRelease("v0.14.0", repoRoot);
-  assert.equal(result.version, "0.14.0");
-  assert.equal(result.checkedVersions, 10);
+  const result = validateRelease(`v${releaseVersion}`, repoRoot);
+  assert.equal(result.version, releaseVersion);
+  assert.equal(result.checkedVersions, 11);
 });
 
 test("release guard accepts a local Codex cachebuster on the matching base version", () => {
@@ -150,17 +154,17 @@ test("release guard accepts a local Codex cachebuster on the matching base versi
   try {
     const codexPath = path.join(tempRoot, "plugins/do-it/.codex-plugin/plugin.json");
     const codex = JSON.parse(fs.readFileSync(codexPath, "utf8"));
-    codex.version = "0.14.0+codex.local-20260716";
+    codex.version = `${releaseVersion}+codex.local-20260716`;
     fs.writeFileSync(codexPath, `${JSON.stringify(codex, null, 2)}\n`);
 
-    assert.equal(validateRelease("v0.14.0", tempRoot).version, "0.14.0");
+    assert.equal(validateRelease(`v${releaseVersion}`, tempRoot).version, releaseVersion);
   } finally {
     fs.rmSync(tempRoot, { recursive: true, force: true });
   }
 });
 
 test("release guard rejects malformed tags", () => {
-  assert.throws(() => validateRelease("0.14.0", repoRoot), /must match vX\.Y\.Z/);
+  assert.throws(() => validateRelease(releaseVersion, repoRoot), /must match vX\.Y\.Z/);
 });
 
 test("release guard reports metadata and changelog drift together", () => {
@@ -173,10 +177,13 @@ test("release guard reports metadata and changelog drift together", () => {
     fs.writeFileSync(path.join(tempRoot, "CHANGELOG.md"), "# Changelog\n\n## Unreleased\n");
 
     assert.throws(
-      () => validateRelease("v0.14.0", tempRoot),
+      () => validateRelease(`v${releaseVersion}`, tempRoot),
       (error) => {
         assert.match(error.message, /Cursor plugin metadata: 0\.13\.0/);
-        assert.match(error.message, /CHANGELOG\.md: missing "## 0\.14\.0" entry/);
+        assert.match(
+          error.message,
+          new RegExp(`CHANGELOG\\.md: missing "## ${releaseVersion.replace(/\./g, "\\.")}" entry`)
+        );
         return true;
       }
     );

@@ -1,12 +1,18 @@
 #!/usr/bin/env node
 
 import fs from "node:fs";
-import crypto from "node:crypto";
 import path from "node:path";
-import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { ALL_SKILLS } from "./skill-tiers.mjs";
 import { rewritePluginReferenceLinks } from "./lib/rewrite-plugin-ref-links.mjs";
+import {
+  readJson,
+  writeJsonAtomic,
+  assertVersionParity,
+  copyAgentsDir,
+  copyHookScripts
+} from "./lib/plugin-build.mjs";
+import { CURSOR_HOOK_FILES } from "./lib/hook-manifest.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, "..");
@@ -19,49 +25,6 @@ const skillsSource = path.join(repoRoot, "skills", "do-it");
 const agentsSource = path.join(repoRoot, "dist", "claude", "agents");
 const hooksSource = path.join(repoRoot, "hooks");
 const cursorHooksSource = path.join(repoRoot, "install", "cursor-hooks.json");
-const cursorHookScripts = [
-  "session-start.sh",
-  "behavior-feedback.sh",
-  "router.sh",
-  "grill-prompt.sh",
-  "subagent-stance.sh",
-  "write-quality-lint.sh",
-  "verification-gate.sh",
-  "anti-patterns-lint.sh",
-  "comments-lint.sh",
-  "run-hook.cmd"
-];
-
-function readJson(filePath) {
-  return JSON.parse(fs.readFileSync(filePath, "utf8"));
-}
-
-function writeJsonAtomic(filePath, value) {
-  const content = `${JSON.stringify(value, null, 2)}\n`;
-  const current = fs.existsSync(filePath) ? fs.readFileSync(filePath, "utf8") : null;
-  if (current === content) return false;
-
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  const tempPath = path.join(
-    path.dirname(filePath),
-    `.do-it-${path.basename(filePath)}.${process.pid}.${crypto.randomUUID()}.tmp`
-  );
-
-  try {
-    fs.writeFileSync(tempPath, content);
-    fs.renameSync(tempPath, filePath);
-  } finally {
-    fs.rmSync(tempPath, { force: true });
-  }
-
-  return true;
-}
-
-function assertVersionParity() {
-  if (manifest.version !== pkg.version) {
-    throw new Error(`manifest version ${manifest.version} does not match package version ${pkg.version}`);
-  }
-}
 
 function copySkills() {
   if (!fs.existsSync(skillsSource)) {
@@ -97,16 +60,7 @@ function copySkills() {
 }
 
 function copyAgents() {
-  if (!fs.existsSync(agentsSource)) {
-    throw new Error(
-      "dist/claude/agents missing — run `npm run build:generated` first " +
-        "(build-claude-agents.mjs emits Claude/Cursor agent markdown from agents/*.toml)"
-    );
-  }
-
-  const targetDir = path.join(pluginRoot, "agents");
-  fs.rmSync(targetDir, { recursive: true, force: true });
-  fs.cpSync(agentsSource, targetDir, { recursive: true });
+  copyAgentsDir(agentsSource, path.join(pluginRoot, "agents"));
 }
 
 function copyHooks() {
@@ -115,29 +69,7 @@ function copyHooks() {
   }
 
   const targetDir = path.join(pluginRoot, "hooks");
-  fs.rmSync(targetDir, { recursive: true, force: true });
-  fs.mkdirSync(targetDir, { recursive: true });
-
-  for (const name of cursorHookScripts) {
-    const sourcePath = path.join(hooksSource, name);
-    if (!fs.existsSync(sourcePath)) {
-      throw new Error(`Cursor hook script missing: ${path.relative(repoRoot, sourcePath)}`);
-    }
-    fs.copyFileSync(sourcePath, path.join(targetDir, name));
-    try {
-      fs.chmodSync(path.join(targetDir, name), 0o755);
-    } catch {
-      // best-effort on platforms that ignore chmod
-    }
-  }
-
-  for (const dirName of ["lib", "data"]) {
-    const sourcePath = path.join(hooksSource, dirName);
-    if (!fs.existsSync(sourcePath)) {
-      throw new Error(`hooks/${dirName} missing`);
-    }
-    fs.cpSync(sourcePath, path.join(targetDir, dirName), { recursive: true });
-  }
+  copyHookScripts({ repoRoot, hooksSource, targetDir, scripts: CURSOR_HOOK_FILES });
 
   fs.copyFileSync(cursorHooksSource, path.join(targetDir, "hooks.json"));
 }
@@ -174,7 +106,7 @@ function buildPluginManifest() {
 }
 
 function main() {
-  assertVersionParity();
+  assertVersionParity(manifest, pkg);
 
   fs.mkdirSync(pluginManifestDir, { recursive: true });
   copySkills();

@@ -32,6 +32,8 @@ if not errorlevel 1 (
 )
 
 REM Allowlist of shipped hook scripts.
+REM Source of truth: RUN_HOOK_CMD_ALLOWLIST in scripts/lib/hook-manifest.mjs —
+REM validate-harness-matrix.mjs asserts this list (and the bash half) matches.
 set "ALLOWED=0"
 for %%A in (
     session-start.sh behavior-feedback.sh router.sh grill-prompt.sh subagent-stance.sh
@@ -111,6 +113,9 @@ case "$SCRIPT_NAME" in
     ;;
 esac
 
+# Allowlist of shipped hook scripts.
+# Source of truth: RUN_HOOK_CMD_ALLOWLIST in scripts/lib/hook-manifest.mjs —
+# validate-harness-matrix.mjs asserts this list (and the cmd half) matches.
 case "$SCRIPT_NAME" in
   session-start.sh|behavior-feedback.sh|router.sh|grill-prompt.sh|subagent-stance.sh|write-quality-lint.sh|verification-gate.sh|anti-patterns-lint.sh|comments-lint.sh)
     ;;

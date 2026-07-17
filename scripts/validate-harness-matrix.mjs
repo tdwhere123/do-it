@@ -5,6 +5,12 @@ import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { ALL_SKILLS, CORE_SKILLS, EXTENDED_SKILLS } from "./skill-tiers.mjs";
+import {
+  RUN_HOOK_CMD_ALLOWLIST,
+  STRICT_EXTERNAL_ACTIONS_SCRIPT,
+  TARGET_HOOKS_JSON
+} from "./lib/hook-manifest.mjs";
+import { targetExtras } from "./lib/manifest-extras.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const allSkills = [...ALL_SKILLS];
@@ -30,6 +36,28 @@ function assertEqualSets(label, actual, expected) {
   if (a.join("\n") !== e.join("\n")) {
     throw new Error(`${label}: expected [${e.join(", ")}], got [${a.join(", ")}]`);
   }
+}
+
+function assertUniqueExtraNames(label, entries) {
+  const names = entries.map((entry) => entry.name);
+  if (new Set(names).size !== names.length) {
+    throw new Error(`${label}: duplicate extras entry names`);
+  }
+}
+
+// hooks/run-hook.cmd is a hand-maintained polyglot; both allowlist halves must
+// match the canonical list in scripts/lib/hook-manifest.mjs.
+function assertRunHookCmdAllowlists() {
+  const text = fs.readFileSync(path.join(repoRoot, "hooks", "run-hook.cmd"), "utf8");
+  const cmdHalf = text.match(/for %%A in \(([^)]*)\) do if /);
+  const bashHalf = text.match(/^\s{2}((?:[a-z0-9-]+\.sh)(?:\|[a-z0-9-]+\.sh)*)\)$/m);
+  if (!cmdHalf || !bashHalf) {
+    throw new Error("hooks/run-hook.cmd: could not parse cmd/bash allowlists");
+  }
+  const cmdNames = cmdHalf[1].split(/\s+/).filter(Boolean);
+  const bashNames = bashHalf[1].split("|");
+  assertEqualSets("run-hook.cmd cmd-half allowlist", cmdNames, RUN_HOOK_CMD_ALLOWLIST);
+  assertEqualSets("run-hook.cmd bash-half allowlist", bashNames, RUN_HOOK_CMD_ALLOWLIST);
 }
 
 function assertCursorHooks(relativePath) {
@@ -88,7 +116,7 @@ function assertClaudeStrictProfile(relativePath) {
     ["Bash(terraform apply *)", "terraform-apply"]
   ];
   const handlers = (data.hooks?.PreToolUse ?? []).flatMap((group) => group.hooks ?? []);
-  const commandPrefix = '"${CLAUDE_PLUGIN_ROOT}/hooks/strict-external-actions.sh" ';
+  const commandPrefix = `"\${CLAUDE_PLUGIN_ROOT}/hooks/${STRICT_EXTERNAL_ACTIONS_SCRIPT}" `;
   const actual = handlers.map((handler) => {
     const action = typeof handler.command === "string" && handler.command.startsWith(commandPrefix)
       ? handler.command.slice(commandPrefix.length)
@@ -124,14 +152,18 @@ function main() {
   assertEqualSets("manifest runnable skills", declared, allSkills);
   assertEqualSets("manifest core tier", manifest.skillTiers?.core ?? [], CORE_SKILLS);
   assertEqualSets("manifest extended tier", manifest.skillTiers?.extended ?? [], EXTENDED_SKILLS);
+  assertUniqueExtraNames("commonExtras", manifest.commonExtras ?? []);
+  for (const target of Object.keys(manifest.targets ?? {})) {
+    assertUniqueExtraNames(`${target} extras`, targetExtras(manifest, target));
+  }
   for (const target of ["codex", "cursor"]) {
-    const strictExtras = (manifest.targets?.[target]?.extras ?? [])
+    const strictExtras = targetExtras(manifest, target)
       .filter((entry) => entry.name === "hooks-strict-external-actions");
     if (strictExtras.length !== 0) {
       throw new Error(`${target}: strict external-action hook must remain Claude-only`);
     }
   }
-  const claudeStrictExtras = (manifest.targets?.claude?.extras ?? [])
+  const claudeStrictExtras = targetExtras(manifest, "claude")
     .filter((entry) => entry.name === "hooks-strict-external-actions");
   if (
     claudeStrictExtras.length !== 1 ||
@@ -149,7 +181,7 @@ function main() {
   assertEqualSets("Codex skill bundle", listSkillDirs("plugins/do-it/skills"), allSkills);
   assertEqualSets("OpenCode skill bundle", listSkillDirs("plugins/do-it-opencode/skills"), allSkills);
 
-  for (const hooksJson of ["hooks/hooks.json", "install/codex-hooks.json", "install/cursor-hooks.json", "plugins/do-it-cursor/hooks/hooks.json"]) {
+  for (const hooksJson of [...Object.values(TARGET_HOOKS_JSON), "plugins/do-it-cursor/hooks/hooks.json"]) {
     const raw = JSON.stringify(readJson(hooksJson));
     if (raw.includes("grill-pretool")) {
       throw new Error(`${hooksJson}: must not include pre-edit plan gate registration`);
@@ -158,7 +190,7 @@ function main() {
       throw new Error(`${hooksJson}: only the Claude source config may register strict PreToolUse`);
     }
   }
-  const codexHooksExtra = (manifest.targets?.codex?.extras ?? [])
+  const codexHooksExtra = targetExtras(manifest, "codex")
     .find((entry) => entry.name === "hooks-hooks-json");
   if (codexHooksExtra?.source !== "install/codex-hooks.json") {
     throw new Error("Codex must install its own PreToolUse-free hook configuration");
@@ -175,6 +207,7 @@ function main() {
   }
   assertClaudeStrictProfile("hooks/hooks.json");
   assertBundledHookScripts("plugins/do-it-cursor/hooks/hooks.json");
+  assertRunHookCmdAllowlists();
 
   const matrixPath = path.join(repoRoot, "docs", "harness-adapter-matrix.md");
   if (!fs.existsSync(matrixPath)) throw new Error("missing docs/harness-adapter-matrix.md");

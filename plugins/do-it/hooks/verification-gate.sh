@@ -36,6 +36,37 @@ if do_it_check_skip "$SESSION_ID" gate; then
   _gate_finish 0
 fi
 
+# Kimi Code sends no transcript_path (its Stop payload carries only
+# stop_hook_active). The session transcript is the host-owned wire log;
+# discover it via KIMI_CODE_HOME + session_id and normalize it below.
+TRANSCRIPT_FORMAT=""
+if [[ -z "$TRANSCRIPT_PATH" && -n "${KIMI_CODE_HOME:-}" && -n "$SESSION_ID" ]]; then
+  # Same path-injection / hazard rules as do_it_session_dir: never let a
+  # hostile session_id escape the sessions/*/<id>/ sandbox via .. or controls.
+  _kimi_sid_hazard=0
+  case "$SESSION_ID" in
+    .|..) _kimi_sid_hazard=1 ;;
+    */*|*..*) _kimi_sid_hazard=1 ;;
+    *$'\n'*|*$'\r'*|*$'\t'*) _kimi_sid_hazard=1 ;;
+  esac
+  if [[ "$_kimi_sid_hazard" -eq 0 ]]; then
+    _np="$(printf '%s' "$SESSION_ID" | LC_ALL=C tr -d '[:print:][:space:]' | wc -c | tr -d ' ')"
+    if [[ "${_np:-0}" -ne 0 ]]; then
+      _kimi_sid_hazard=1
+    fi
+  fi
+  if [[ "$_kimi_sid_hazard" -eq 0 ]]; then
+    for candidate in "$KIMI_CODE_HOME"/sessions/*/"$SESSION_ID"/agents/main/wire.jsonl; do
+      if [[ -f "$candidate" ]]; then
+        TRANSCRIPT_PATH="$candidate"
+        TRANSCRIPT_FORMAT="kimi-wire"
+        break
+      fi
+    done
+  fi
+  unset _kimi_sid_hazard _np
+fi
+
 if [[ -z "$TRANSCRIPT_PATH" || ! -f "$TRANSCRIPT_PATH" ]]; then
   do_it_debug verification-gate "decision=skip-no-transcript"
   _gate_finish 0
@@ -43,6 +74,35 @@ fi
 
 TAIL_BUF="$(tail -n 400 "$TRANSCRIPT_PATH" 2>/dev/null || true)"
 [[ -z "$TAIL_BUF" ]] && _gate_finish 0
+
+# Normalize Kimi wire events into the shape the parser expects: genuine user
+# prompts (hook/skill injections stay inside the current turn), assistant text
+# parts, and tool calls. Kimi streams text as one content.part event per chunk,
+# so coalesce adjacent text chunks — the final chunk alone is a fragment, and
+# the completion check needs the whole closing message.
+if [[ "$TRANSCRIPT_FORMAT" == "kimi-wire" ]]; then
+  if [[ "$DO_IT_HAVE_JQ" == "1" ]]; then
+    TAIL_BUF="$(printf '%s\n' "$TAIL_BUF" | jq -cn '
+      def simple:
+        if .type == "context.append_message" and (.message.origin.kind // "user") == "user" and .message.role == "user" then
+          {type: "user", content: [.message.content[]? | select(.type == "text") | {type: "text", text: (.text // "")}]}
+        elif .type == "context.append_loop_event" and .event.type == "content.part" and .event.part.type == "text" then
+          {type: "assistant", content: [{type: "text", text: (.event.part.text // "")}]}
+        elif .type == "context.append_loop_event" and .event.type == "tool.call" then
+          {type: "assistant", tool_calls: [{name: (.event.name // ""), input: (.event.args // {})}]}
+        else empty end;
+      [inputs | simple] as $lines
+      | reduce $lines[] as $l ([];
+          if $l.type == "assistant" and ($l | has("content")) and (.[-1]? != null) and (.[-1].type == "assistant") and (.[-1] | has("content")) then
+            .[-1].content[0].text += $l.content[0].text
+          else . + [$l] end)
+      | .[]
+    ' 2>/dev/null || true)"
+  else
+    TAIL_BUF=""
+  fi
+  [[ -z "$TAIL_BUF" ]] && _gate_finish 0
+fi
 
 # Shared jq helpers for current-turn slicing and edit detection.
 JQ_GATE_PRELUDE='

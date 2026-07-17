@@ -38,7 +38,7 @@ test("build-index-json creates a byte-reproducible skill and agent inventory", (
   assert.equal(index.version, manifest.version);
   assert.equal(index.package, pkg.name);
   assert.ok(!Object.hasOwn(index, "generated_at"));
-  assert.equal(index.total_skills, manifest.skills.length);
+  assert.equal(index.total_skills, capabilityCount);
   assert.equal(index.total_capabilities, capabilityCount);
   assert.equal(index.total_discovery_entries, 1);
   assert.equal(index.total_agents, manifest.agents.length);

@@ -17,7 +17,7 @@ _isolate() {
   export DO_IT_HOOK_DATA="$1"
   rm -rf "$DO_IT_HOOK_DATA"
   mkdir -p "$DO_IT_HOOK_DATA"
-  unset CLAUDE_PLUGIN_DATA CODEX_HOME CLAUDE_AGENT_CONTEXT CLAUDE_SUBAGENT PLUGIN_DATA
+  unset CLAUDE_PLUGIN_DATA CODEX_HOME KIMI_CODE_HOME KIMI_PLUGIN_ROOT CLAUDE_AGENT_CONTEXT CLAUDE_SUBAGENT PLUGIN_DATA
   unset DO_IT_DEBUG
 }
 
@@ -84,6 +84,18 @@ echo "Case 4: Light never auto-grills without explicit"
   [[ "$out" != *"do-it grill"* ]]
 )
 case "$?" in 0) _pass "Light stays silent";; *) _fail "Light silence";; esac
+
+echo "Case 5: Kimi ContentPart[] prompt still grills on explicit"
+(
+  _isolate /tmp/doit-grill-kimi
+  export KIMI_CODE_HOME="/tmp/doit-grill-kimi/home"
+  _set_state gk tier Standard last_prompt_kind work
+  # Array-shaped prompt (Kimi UserPromptSubmit); emit must be plain text.
+  out=$(jq -nc '{session_id:"gk",prompt:[{type:"text",text:"please grill this migration plan"}]}' \
+    | bash "$HOOK")
+  [[ "$out" == *"do-it grill"* ]] && ! printf '%s' "$out" | jq -e . >/dev/null 2>&1
+)
+case "$?" in 0) _pass "Kimi array prompt grills as plain text";; *) _fail "Kimi array grill";; esac
 
 if [[ "$FAIL" -gt 0 ]]; then
   echo "FAILED: $PASS passed, $FAIL failed" >&2

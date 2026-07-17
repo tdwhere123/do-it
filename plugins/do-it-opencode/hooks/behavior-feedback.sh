@@ -146,6 +146,8 @@ bf_host() {
     printf 'opencode'
   elif [[ -n "${CLAUDE_PLUGIN_ROOT:-}" ]]; then
     printf 'claude'
+  elif [[ -n "${KIMI_PLUGIN_ROOT:-}" || -n "${KIMI_CODE_HOME:-}" ]]; then
+    printf 'kimi'
   elif [[ -n "${PLUGIN_ROOT:-}" || -n "${CODEX_HOME:-}" ]]; then
     printf 'codex'
   else
@@ -180,7 +182,7 @@ bf_append_event() {
 
 RAW_INPUT="$(do_it_read_stdin)"
 SESSION_ID="$(do_it_json_get "$RAW_INPUT" session_id)"
-PROMPT="$(do_it_json_get "$RAW_INPUT" prompt)"
+PROMPT="$(do_it_json_get_prompt "$RAW_INPUT")"
 CWD="$(do_it_json_get "$RAW_INPUT" cwd)"
 TRANSCRIPT_PATH="$(do_it_json_get "$RAW_INPUT" transcript_path)"
 AGENT_ID="$(do_it_json_get "$RAW_INPUT" agent_id)"

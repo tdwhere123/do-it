@@ -17,7 +17,7 @@ source "${SCRIPT_DIR}/lib/debug.sh"
 # Read stdin first so the subagent check can use the JSON-supplied
 # transcript_path (the host delivers it on stdin, not as an env var).
 RAW_INPUT="$(do_it_read_stdin)"
-PROMPT="$(do_it_json_get "$RAW_INPUT" prompt)"
+PROMPT="$(do_it_json_get_prompt "$RAW_INPUT")"
 SESSION_ID="$(do_it_json_get "$RAW_INPUT" session_id)"
 CWD="$(do_it_json_get "$RAW_INPUT" cwd)"
 TRANSCRIPT_PATH="$(do_it_json_get "$RAW_INPUT" transcript_path)"

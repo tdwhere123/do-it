@@ -115,8 +115,8 @@ plugin metadata, and Hooks UI inspection after reload.
 ## Safe Cleanup Runbook
 
 Cleanup is host-owned and exact-path only. Back up any shared JSON before editing;
-never delete an entire `~/.codex`, `~/.claude`, `~/.cursor`, project config, or
-plugin directory tree just to remove do-it.
+never delete an entire `~/.codex`, `~/.claude`, `~/.cursor`, `~/.kimi-code`,
+project config, or plugin directory tree just to remove do-it.
 
 | Host / install path | Safe cleanup |
 |---|---|
@@ -125,6 +125,7 @@ plugin directory tree just to remove do-it.
 | Cursor local copy | Close Cursor, back up `~/.cursor/hooks.json`, remove only hook objects whose `command` path contains `do-it-cursor/hooks/`, and then remove exactly `~/.cursor/plugins/local/do-it-cursor`. On native Windows use the corresponding `%USERPROFILE%\.cursor\...` paths; on WSL clean only the caller's mirrored profile. Reload and confirm the do-it entries disappeared while unrelated hooks remain. |
 | Cursor Team Import | Remove the imported do-it plugin in the Team dashboard. If a local copy was also installed, clean it separately with the preceding row; do not delete all team plugins. |
 | OpenCode local registration | Back up the applicable project or user `opencode.json`, remove only the do-it absolute-path entry from its `"plugin"` array, restart OpenCode, and confirm unrelated entries still load. Do not delete the project config or the checkout. |
+| Kimi Code plugin | `/plugins remove do-it` (deletes the install record only). The managed copy stays on disk by host design: remove exactly `$KIMI_CODE_HOME/plugins/managed/do-it/` by hand, then `/reload`. Session state under `$KIMI_CODE_HOME/do-it-data/` is do-it-owned and safe to delete. Do not delete the whole `~/.kimi-code`. |
 | Managed CLI setup | There is no broad uninstall command. Use the target's `.do-it-install-state*.json` as an ownership inventory and remove only entries proven do-it-managed; preserve unmarked/user-owned files. Prefer testing and abandoning a temporary home over manually cleaning a shared live home. |
 
 If ownership is unclear, stop and restore the backup rather than using a glob,

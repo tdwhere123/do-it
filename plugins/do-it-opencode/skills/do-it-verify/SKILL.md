@@ -28,6 +28,7 @@ Old CI, worker summaries, and memory are context, not closeout proof. Prefer che
 | `review clean` | No unresolved Blocking/Important on both axes |
 | `ready to merge` | Verify + review + intended diff + commit policy |
 | `ready to install` | Package/doctor/setup evidence for the changed surface |
+| `runs in production` | Production-side evidence (health check, metric, log) — local test output alone is not proof |
 
 ## Branch Closeout
 
@@ -36,6 +37,7 @@ When closing a branch, PR, merge, or cleanup:
 - Verification evidence for the delivery claim
 - Review / fix status
 - Intended diff only
+- Deferred-marker sweep: grep the project's convention (e.g. `TODO(@owner)`) and surface leftovers in the claim
 - Rollback note for merge/release/install changes
 - Explicit path: merge / PR / keep / discard (discard needs confirmation)
 - Clear `.do-it/runtime/pointer` when merged or discarded
