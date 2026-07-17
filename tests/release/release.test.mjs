@@ -180,9 +180,10 @@ test("release guard reports metadata and changelog drift together", () => {
       () => validateRelease(`v${releaseVersion}`, tempRoot),
       (error) => {
         assert.match(error.message, /Cursor plugin metadata: 0\.13\.0/);
+        const escapedVersion = releaseVersion.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
         assert.match(
           error.message,
-          new RegExp(`CHANGELOG\\.md: missing "## ${releaseVersion.replace(/\./g, "\\.")}" entry`)
+          new RegExp(`CHANGELOG\\.md: missing "## ${escapedVersion}" entry`)
         );
         return true;
       }
