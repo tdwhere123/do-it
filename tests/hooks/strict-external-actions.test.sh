@@ -23,7 +23,7 @@ _fail() { echo "  FAIL: $1" >&2; FAIL=$((FAIL + 1)); }
 _run() {
   local mode="$1" action="$2" command="${3:-git push secret-command-marker}"
   printf '{"tool_name":"Bash","tool_input":{"command":"%s"}}' "$command" \
-    | DO_IT_STRICT_EXTERNAL_ACTIONS="$mode" bash "$HOOK" "$action"
+    | env -u KIMI_CODE_HOME -u KIMI_PLUGIN_ROOT DO_IT_STRICT_EXTERNAL_ACTIONS="$mode" bash "$HOOK" "$action"
 }
 
 _assert_empty() {

@@ -7,6 +7,7 @@ set -uo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 HOOK="$REPO_ROOT/hooks/write-quality-lint.sh"
 export CLAUDE_PLUGIN_DATA="${TMPDIR:-/tmp}/do-it-wql-test-$$"
+unset KIMI_CODE_HOME KIMI_PLUGIN_ROOT
 rm -rf "$CLAUDE_PLUGIN_DATA"
 mkdir -p "$CLAUDE_PLUGIN_DATA"
 trap 'rm -rf "$CLAUDE_PLUGIN_DATA"' EXIT

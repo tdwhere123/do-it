@@ -1,5 +1,5 @@
 {
-  "version": "0.14.0",
+  "version": "0.14.1",
   "skillTiers": {
     "core": [
       "do-it-router",
@@ -57,6 +57,90 @@
       "actions": []
     }
   ],
+  "commonExtras": [
+    {
+      "name": "hooks-write-quality-lint",
+      "kind": "file",
+      "source": "hooks/write-quality-lint.sh",
+      "target": "hooks/write-quality-lint.sh"
+    },
+    {
+      "name": "hooks-anti-patterns-lint",
+      "kind": "file",
+      "source": "hooks/anti-patterns-lint.sh",
+      "target": "hooks/anti-patterns-lint.sh"
+    },
+    {
+      "name": "hooks-comments-lint",
+      "kind": "file",
+      "source": "hooks/comments-lint.sh",
+      "target": "hooks/comments-lint.sh"
+    },
+    {
+      "name": "hooks-data",
+      "kind": "directory",
+      "source": "hooks/data",
+      "target": "hooks/data"
+    },
+    {
+      "name": "do-it-references",
+      "kind": "directory",
+      "source": "skills/do-it/references",
+      "target": "skills/references"
+    },
+    {
+      "name": "hooks-grill-prompt",
+      "kind": "file",
+      "source": "hooks/grill-prompt.sh",
+      "target": "hooks/grill-prompt.sh",
+      "legacyHashes": [
+        "0027ac59706ac8cd94f09d71ebe3b9520983486951500006dcd66fa86b937664",
+        "17570b906f4b99629ba76d4c3e1488bfd629c58d36b8684ffe0dd8afb9aefc17"
+      ]
+    },
+    {
+      "name": "hooks-behavior-feedback",
+      "kind": "file",
+      "source": "hooks/behavior-feedback.sh",
+      "target": "hooks/behavior-feedback.sh"
+    },
+    {
+      "name": "hooks-lib",
+      "kind": "directory",
+      "source": "hooks/lib",
+      "target": "hooks/lib",
+      "legacyHashes": [
+        "3fba4dc22d4fcc9a264be12b16e89f9be162aebcdc55820f12ab5067d38fe663"
+      ]
+    },
+    {
+      "name": "hooks-router",
+      "kind": "file",
+      "source": "hooks/router.sh",
+      "target": "hooks/router.sh",
+      "legacyHashes": [
+        "f390a080b382575cb647650888ee6a2991fdf0df31b42316cfb1426f4eec9068",
+        "c98ba4854b74185c4c4a5e8b3fe8400f7f73a96284f60c9980d7c1871c309cd7"
+      ]
+    },
+    {
+      "name": "hooks-subagent-stance",
+      "kind": "file",
+      "source": "hooks/subagent-stance.sh",
+      "target": "hooks/subagent-stance.sh"
+    },
+    {
+      "name": "hooks-verification-gate",
+      "kind": "file",
+      "source": "hooks/verification-gate.sh",
+      "target": "hooks/verification-gate.sh",
+      "legacyHashes": [
+        "a8e8644c93d34fcc2f2f8d1b5943233259fdd8bff62294671a7134c25576650b",
+        "1a5e10e078343d399565c549b9efabace39caf18474380b498398a18b6279e96",
+        "9a2f6989e10c0d08a9e95281af0b9113dd9affae63c6e8facae9d37cd342a313"
+      ]
+    }
+  ],
   "targets": {
     "codex": {
       "rootEnv": "CODEX_HOME",
@@ -68,94 +152,12 @@
       "agentTargetExt": ".toml",
       "extras": [
         {
-          "name": "hooks-write-quality-lint",
-          "kind": "file",
-          "source": "hooks/write-quality-lint.sh",
-          "target": "hooks/write-quality-lint.sh"
-        },
-        {
-          "name": "hooks-anti-patterns-lint",
-          "kind": "file",
-          "source": "hooks/anti-patterns-lint.sh",
-          "target": "hooks/anti-patterns-lint.sh"
-        },
-        {
-          "name": "hooks-comments-lint",
-          "kind": "file",
-          "source": "hooks/comments-lint.sh",
-          "target": "hooks/comments-lint.sh"
-        },
-        {
-          "name": "hooks-data",
-          "kind": "directory",
-          "source": "hooks/data",
-          "target": "hooks/data"
-        },
-        {
-          "name": "do-it-references",
-          "kind": "directory",
-          "source": "skills/do-it/references",
-          "target": "skills/references"
-        },
-        {
-          "name": "hooks-grill-prompt",
-          "kind": "file",
-          "source": "hooks/grill-prompt.sh",
-          "target": "hooks/grill-prompt.sh",
-          "legacyHashes": [
-            "0027ac59706ac8cd94f09d71ebe3b9520983486951500006dcd66fa86b937664",
-            "17570b906f4b99629ba76d4c3e1488bfd629c58d36b8684ffe0dd8afb9aefc17"
-          ]
-        },
-        {
-          "name": "hooks-behavior-feedback",
-          "kind": "file",
-          "source": "hooks/behavior-feedback.sh",
-          "target": "hooks/behavior-feedback.sh"
-        },
-        {
           "name": "hooks-hooks-json",
           "kind": "file",
           "source": "install/codex-hooks.json",
           "target": "hooks/hooks.json",
           "legacyHashes": [
             "3ad92bd21dd919e2c1095b848016a0c64566229a1c847a1e9f9b45a763a08f95"
-          ]
-        },
-        {
-          "name": "hooks-lib",
-          "kind": "directory",
-          "source": "hooks/lib",
-          "target": "hooks/lib",
-          "legacyHashes": [
-            "3fba4dc22d4fcc9a264be12b16e89f9be162aebcdc55820f12ab5067d38fe663"
-          ]
-        },
-        {
-          "name": "hooks-router",
-          "kind": "file",
-          "source": "hooks/router.sh",
-          "target": "hooks/router.sh",
-          "legacyHashes": [
-            "f390a080b382575cb647650888ee6a2991fdf0df31b42316cfb1426f4eec9068",
-            "c98ba4854b74185c4c4a5e8b3fe8400f7f73a96284f60c9980d7c1871c309cd7"
-          ]
-        },
-        {
-          "name": "hooks-subagent-stance",
-          "kind": "file",
-          "source": "hooks/subagent-stance.sh",
-          "target": "hooks/subagent-stance.sh"
-        },
-        {
-          "name": "hooks-verification-gate",
-          "kind": "file",
-          "source": "hooks/verification-gate.sh",
-          "target": "hooks/verification-gate.sh",
-          "legacyHashes": [
-            "a8e8644c93d34fcc2f2f8d1b5943233259fdd8bff62294671a7134c25576650b",
-            "1a5e10e078343d399565c549b9efabace39caf18474380b498398a18b6279e96",
-            "9a2f6989e10c0d08a9e95281af0b9113dd9affae63c6e8facae9d37cd342a313"
           ]
         },
         {
@@ -184,52 +186,6 @@
           "target": ".claude-plugin"
         },
         {
-          "name": "hooks-write-quality-lint",
-          "kind": "file",
-          "source": "hooks/write-quality-lint.sh",
-          "target": "hooks/write-quality-lint.sh"
-        },
-        {
-          "name": "hooks-anti-patterns-lint",
-          "kind": "file",
-          "source": "hooks/anti-patterns-lint.sh",
-          "target": "hooks/anti-patterns-lint.sh"
-        },
-        {
-          "name": "hooks-comments-lint",
-          "kind": "file",
-          "source": "hooks/comments-lint.sh",
-          "target": "hooks/comments-lint.sh"
-        },
-        {
-          "name": "hooks-data",
-          "kind": "directory",
-          "source": "hooks/data",
-          "target": "hooks/data"
-        },
-        {
-          "name": "do-it-references",
-          "kind": "directory",
-          "source": "skills/do-it/references",
-          "target": "skills/references"
-        },
-        {
-          "name": "hooks-grill-prompt",
-          "kind": "file",
-          "source": "hooks/grill-prompt.sh",
-          "target": "hooks/grill-prompt.sh",
-          "legacyHashes": [
-            "0027ac59706ac8cd94f09d71ebe3b9520983486951500006dcd66fa86b937664",
-            "17570b906f4b99629ba76d4c3e1488bfd629c58d36b8684ffe0dd8afb9aefc17"
-          ]
-        },
-        {
-          "name": "hooks-behavior-feedback",
-          "kind": "file",
-          "source": "hooks/behavior-feedback.sh",
-          "target": "hooks/behavior-feedback.sh"
-        },
-        {
           "name": "hooks-strict-external-actions",
           "kind": "file",
           "source": "hooks/strict-external-actions.sh",
@@ -242,42 +198,6 @@
           "target": "hooks/hooks.json",
           "legacyHashes": [
             "3ad92bd21dd919e2c1095b848016a0c64566229a1c847a1e9f9b45a763a08f95"
-          ]
-        },
-        {
-          "name": "hooks-lib",
-          "kind": "directory",
-          "source": "hooks/lib",
-          "target": "hooks/lib",
-          "legacyHashes": [
-            "3fba4dc22d4fcc9a264be12b16e89f9be162aebcdc55820f12ab5067d38fe663"
-          ]
-        },
-        {
-          "name": "hooks-router",
-          "kind": "file",
-          "source": "hooks/router.sh",
-          "target": "hooks/router.sh",
-          "legacyHashes": [
-            "f390a080b382575cb647650888ee6a2991fdf0df31b42316cfb1426f4eec9068",
-            "c98ba4854b74185c4c4a5e8b3fe8400f7f73a96284f60c9980d7c1871c309cd7"
-          ]
-        },
-        {
-          "name": "hooks-subagent-stance",
-          "kind": "file",
-          "source": "hooks/subagent-stance.sh",
-          "target": "hooks/subagent-stance.sh"
-        },
-        {
-          "name": "hooks-verification-gate",
-          "kind": "file",
-          "source": "hooks/verification-gate.sh",
-          "target": "hooks/verification-gate.sh",
-          "legacyHashes": [
-            "a8e8644c93d34fcc2f2f8d1b5943233259fdd8bff62294671a7134c25576650b",
-            "1a5e10e078343d399565c549b9efabace39caf18474380b498398a18b6279e96",
-            "9a2f6989e10c0d08a9e95281af0b9113dd9affae63c6e8facae9d37cd342a313"
           ]
         },
         {
@@ -319,46 +239,10 @@
           "target": "hooks/run-hook.cmd"
         },
         {
-          "name": "hooks-write-quality-lint",
-          "kind": "file",
-          "source": "hooks/write-quality-lint.sh",
-          "target": "hooks/write-quality-lint.sh"
-        },
-        {
-          "name": "hooks-anti-patterns-lint",
-          "kind": "file",
-          "source": "hooks/anti-patterns-lint.sh",
-          "target": "hooks/anti-patterns-lint.sh"
-        },
-        {
-          "name": "hooks-comments-lint",
-          "kind": "file",
-          "source": "hooks/comments-lint.sh",
-          "target": "hooks/comments-lint.sh"
-        },
-        {
-          "name": "hooks-data",
-          "kind": "directory",
-          "source": "hooks/data",
-          "target": "hooks/data"
-        },
-        {
-          "name": "do-it-references",
-          "kind": "directory",
-          "source": "skills/do-it/references",
-          "target": "skills/references"
-        },
-        {
           "name": "hooks-grill-prompt",
           "kind": "file",
           "source": "hooks/grill-prompt.sh",
           "target": "hooks/grill-prompt.sh"
-        },
-        {
-          "name": "hooks-behavior-feedback",
-          "kind": "file",
-          "source": "hooks/behavior-feedback.sh",
-          "target": "hooks/behavior-feedback.sh"
         },
         {
           "name": "hooks-hooks-json",
@@ -377,12 +261,6 @@
           "kind": "file",
           "source": "hooks/router.sh",
           "target": "hooks/router.sh"
-        },
-        {
-          "name": "hooks-subagent-stance",
-          "kind": "file",
-          "source": "hooks/subagent-stance.sh",
-          "target": "hooks/subagent-stance.sh"
         },
         {
           "name": "hooks-verification-gate",

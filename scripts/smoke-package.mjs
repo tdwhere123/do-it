@@ -102,6 +102,18 @@ function installAndExerciseRootTarball(tarball, tempRoot) {
   const executable = path.join(prefix, "bin", process.platform === "win32" ? "do-it.cmd" : "do-it");
   assert.ok(fs.existsSync(executable), `installed do-it executable missing at ${executable}`);
 
+  // Kimi Code consumes the repo-root plugin manifest as-is; it must ride the tarball.
+  const pkgRoot = [
+    path.join(prefix, "lib", "node_modules", "@tdwhere", "do-it"),
+    path.join(prefix, "node_modules", "@tdwhere", "do-it")
+  ].find((p) => fs.existsSync(p));
+  assert.ok(pkgRoot, "installed @tdwhere/do-it package root not found");
+  const kimiManifestPath = path.join(pkgRoot, "kimi.plugin.json");
+  assert.ok(fs.existsSync(kimiManifestPath), "kimi.plugin.json missing from installed root package");
+  const kimiManifest = JSON.parse(fs.readFileSync(kimiManifestPath, "utf8"));
+  const rootVersion = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8")).version;
+  assert.equal(kimiManifest.version, rootVersion, "kimi.plugin.json version must match package.json");
+
   for (const target of ["codex", "claude", "cursor"]) {
     const env = {
       ...process.env,

@@ -1,9 +1,9 @@
 {
-  "version": "0.14.0",
+  "version": "0.14.1",
   "package": "@tdwhere/do-it",
   "repository": "https://github.com/tdwhere123/do-it",
   "domain": "agentic-workflow",
-  "total_skills": 10,
+  "total_skills": 9,
   "total_capabilities": 9,
   "total_discovery_entries": 1,
   "total_agents": 10,

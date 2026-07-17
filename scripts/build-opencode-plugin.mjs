@@ -7,6 +7,13 @@ import process from "node:process";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { rewritePluginReferenceLinks } from "./lib/rewrite-plugin-ref-links.mjs";
+import {
+  readJson,
+  assertVersionParity,
+  copyAgentsDir,
+  copyHookScripts
+} from "./lib/plugin-build.mjs";
+import { OPENCODE_HOOK_SCRIPTS } from "./lib/hook-manifest.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, "..");
@@ -17,25 +24,9 @@ const pluginRoot = path.join(repoRoot, "plugins", "do-it-opencode");
 const skillsSource = path.join(repoRoot, "skills", "do-it");
 const agentsSource = path.join(repoRoot, "dist", "claude", "agents");
 const hooksSource = path.join(repoRoot, "hooks");
-const hookScripts = [
-  "behavior-feedback.sh",
-  "router.sh",
-  "grill-prompt.sh",
-  "subagent-stance.sh",
-  "write-quality-lint.sh",
-  "verification-gate.sh",
-  "anti-patterns-lint.sh",
-  "comments-lint.sh"
-];
 
-function readJson(filePath) {
-  return JSON.parse(fs.readFileSync(filePath, "utf8"));
-}
-
-function assertVersionParity() {
-  if (manifest.version !== pkg.version) {
-    throw new Error(`manifest version ${manifest.version} does not match package version ${pkg.version}`);
-  }
+function assertOpencodeVersionParity() {
+  assertVersionParity(manifest, pkg);
 
   const pluginPkgPath = path.join(pluginRoot, "package.json");
   const pluginPkg = readJson(pluginPkgPath);
@@ -73,43 +64,16 @@ function copySkills() {
 }
 
 function copyAgents() {
-  if (!fs.existsSync(agentsSource)) {
-    throw new Error(
-      "dist/claude/agents missing — run `npm run build:generated` first " +
-        "(build-claude-agents.mjs emits agent markdown from agents/*.toml)"
-    );
-  }
-
-  const targetDir = path.join(pluginRoot, "agents");
-  fs.rmSync(targetDir, { recursive: true, force: true });
-  fs.cpSync(agentsSource, targetDir, { recursive: true });
+  copyAgentsDir(agentsSource, path.join(pluginRoot, "agents"));
 }
 
 function copyHooks() {
-  const targetDir = path.join(pluginRoot, "hooks");
-  fs.rmSync(targetDir, { recursive: true, force: true });
-  fs.mkdirSync(targetDir, { recursive: true });
-
-  for (const name of hookScripts) {
-    const sourcePath = path.join(hooksSource, name);
-    if (!fs.existsSync(sourcePath)) {
-      throw new Error(`hook script missing: ${path.relative(repoRoot, sourcePath)}`);
-    }
-    fs.copyFileSync(sourcePath, path.join(targetDir, name));
-    try {
-      fs.chmodSync(path.join(targetDir, name), 0o755);
-    } catch {
-      // best-effort
-    }
-  }
-
-  for (const dirName of ["lib", "data"]) {
-    const sourcePath = path.join(hooksSource, dirName);
-    if (!fs.existsSync(sourcePath)) {
-      throw new Error(`hooks/${dirName} missing`);
-    }
-    fs.cpSync(sourcePath, path.join(targetDir, dirName), { recursive: true });
-  }
+  copyHookScripts({
+    repoRoot,
+    hooksSource,
+    targetDir: path.join(pluginRoot, "hooks"),
+    scripts: OPENCODE_HOOK_SCRIPTS
+  });
 }
 
 function listFiles(rootDir) {
@@ -201,7 +165,7 @@ function compileTypeScript() {
 }
 
 function main() {
-  assertVersionParity();
+  assertOpencodeVersionParity();
   copySkills();
   copyAgents();
   copyHooks();
@@ -212,7 +176,7 @@ function main() {
 
   console.log(
     `built OpenCode plugin -> ${path.relative(repoRoot, pluginRoot)} ` +
-      `(${skillCount} skills, ${agentCount} agents, ${hookScripts.length} hook scripts)`
+      `(${skillCount} skills, ${agentCount} agents, ${OPENCODE_HOOK_SCRIPTS.length} hook scripts)`
   );
 }
 

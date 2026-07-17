@@ -19,6 +19,7 @@ import {
   validateCursorPlugin
 } from "../scripts/register-cursor-plugin.mjs";
 import { resolveUserHome, looksLikeWindowsPath, toWslMountPath } from "../scripts/lib/user-home.mjs";
+import { targetExtras } from "../scripts/lib/manifest-extras.mjs";
 
 const VALID_COMMANDS = new Set(["install", "doctor", "setup", "migrate-legacy"]);
 const HELP_FLAGS = new Set(["-h", "--help", "help"]);
@@ -182,7 +183,8 @@ const skillEntries = manifest.skills
 // disabled, while migration below can still identify the former targets.
 const canonicalAgentEntries = manifest.agents.map((entry) => adaptEntry(entry, "agent"));
 const agentEntries = targetConfig.installAgents === false ? [] : canonicalAgentEntries;
-const extraEntries = (targetConfig.extras ?? []).map((extra) => ({
+// Effective extras: top-level commonExtras merged with this target's deltas.
+const extraEntries = targetExtras(manifest, targetName).map((extra) => ({
   ...extra,
   kind: "extra",
   shape: extra.kind === "directory" ? "directory" : "file"
@@ -1584,15 +1586,27 @@ function doctorCursorExtras(ok, missing, drift) {
   }
 }
 
+// Canonical order: hooks/lib/common.sh do_it_session_dir (keep in sync).
+// The repo-runtime level is hook-side only; doctor --session looks up state
+// via env roots. Never KIMI_PLUGIN_ROOT — managed plugin copy, read-only.
 function sessionsBaseDir() {
-  if (process.env.DO_IT_HOOK_DATA) {
-    return path.join(process.env.DO_IT_HOOK_DATA, "sessions");
+  if (process.env.CURSOR_PLUGIN_DATA) {
+    return path.join(process.env.CURSOR_PLUGIN_DATA, "sessions");
   }
   if (process.env.CLAUDE_PLUGIN_DATA) {
     return path.join(process.env.CLAUDE_PLUGIN_DATA, "sessions");
   }
-  if (process.env.CURSOR_PLUGIN_DATA) {
-    return path.join(process.env.CURSOR_PLUGIN_DATA, "sessions");
+  if (process.env.PLUGIN_DATA) {
+    return path.join(process.env.PLUGIN_DATA, "sessions");
+  }
+  if (process.env.DO_IT_HOOK_DATA) {
+    return path.join(process.env.DO_IT_HOOK_DATA, "sessions");
+  }
+  if (process.env.OPENCODE_DATA) {
+    return path.join(process.env.OPENCODE_DATA, "sessions");
+  }
+  if (process.env.KIMI_CODE_HOME) {
+    return path.join(process.env.KIMI_CODE_HOME, "do-it-data", "sessions");
   }
   if (process.env.CODEX_HOME) {
     return path.join(process.env.CODEX_HOME, "do-it-data", "sessions");

@@ -246,7 +246,19 @@ function readTierFromStateDir(stateDir: string): string {
 }
 
 export function resolveSessionStateDir(sessionId: string, cwd: string): string | null {
+  // Canonical order: hooks/lib/common.sh do_it_session_dir (keep in sync).
+  // This scans for existing state (first hit wins) while common.sh picks the
+  // creation base. Never KIMI_PLUGIN_ROOT — managed plugin copy, read-only.
   const bases: string[] = [];
+  if (process.env.CURSOR_PLUGIN_DATA) {
+    bases.push(path.join(process.env.CURSOR_PLUGIN_DATA, "sessions"));
+  }
+  if (process.env.CLAUDE_PLUGIN_DATA) {
+    bases.push(path.join(process.env.CLAUDE_PLUGIN_DATA, "sessions"));
+  }
+  if (process.env.PLUGIN_DATA) {
+    bases.push(path.join(process.env.PLUGIN_DATA, "sessions"));
+  }
   if (process.env.DO_IT_HOOK_DATA) {
     bases.push(path.join(process.env.DO_IT_HOOK_DATA, "sessions"));
   }
@@ -254,6 +266,12 @@ export function resolveSessionStateDir(sessionId: string, cwd: string): string |
     bases.push(path.join(process.env.OPENCODE_DATA, "sessions"));
   } else {
     bases.push(path.join(cwd, ".opencode", "sessions"));
+  }
+  if (process.env.KIMI_CODE_HOME) {
+    bases.push(path.join(process.env.KIMI_CODE_HOME, "do-it-data", "sessions"));
+  }
+  if (process.env.CODEX_HOME) {
+    bases.push(path.join(process.env.CODEX_HOME, "do-it-data", "sessions"));
   }
 
   bases.push(path.join(cwd, ".do-it", "runtime", "sessions"));

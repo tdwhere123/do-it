@@ -66,9 +66,13 @@ Symptom → reproduce → one hypothesis → falsify with the smallest check →
 
 Optimize from evidence, not assumed limits. **Unknown is not impossible**: establish a measured baseline, preserve a correct fallback, then test a plausible breakthrough path. Before investing deeply, run the **cheapest falsifier** that could disprove the key premise; promote the idea only when observed results beat the baseline on the metric that matters.
 
+A feature bound for production is not done until its **evidence surface** is named — the log line, metric, or trace that will show it alive or failing there.
+
 ## Boundaries & Worktrees
 
 Use a separate worktree only for genuinely parallel, risky, or conflicting work — not a bounded one-thread change. The parent owns shared files and integration.
+
+Merge conflicts resolve **hunk by hunk, by intent**: trace each side to its source (commit, PR, issue) and preserve both intents where possible; where they truly collide, follow the merge's stated goal and note the trade-off. Never escape via `--abort` or wholesale `--ours`/`--theirs`. Finish the operation, then run the project's checks.
 
 Public/API/schema or cross-package work needs both-side mapping: ownership and dependency direction, compatibility/rollback effect, producer → consumer proof path, and the smallest boundary check. Stop when a proposed new surface has no consumer.
 

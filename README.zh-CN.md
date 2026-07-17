@@ -8,8 +8,8 @@
 
 > 不要再要求 AI agent 记住流程。把流程装进去。
 
-`do-it` 把 AI 编程协作里的工程纪律变成 **Codex**、**Claude Code**、**Cursor**
-和 **OpenCode** 可安装的工作流：按风险给出建议、提供可选的子智能体专长，并让
+`do-it` 把 AI 编程协作里的工程纪律变成 **Codex**、**Claude Code**、**Cursor**、
+**OpenCode** 和 **Kimi Code** 可安装的工作流：按风险给出建议、提供可选的子智能体专长，并让
 完成声明绑定新鲜、与声明相关的证据。
 
 这是我自己每天真实使用的工作流，用在实际项目里。如果它适合你的习惯，可以直接
@@ -90,12 +90,13 @@ Claude 另有默认关闭、仅覆盖具名高风险命令的可选 `ask` profil
 
 交付方式按宿主区分：Codex 与 Claude Code **marketplace 优先**；Cursor
 目前走**本地拷贝或 Team Import，公开上架待完成**；OpenCode 目前走**本地
-`opencode.json` 注册，npm 发布待完成**。插件包同时携带 skills、agents 和 hooks。
+`opencode.json` 注册，npm 发布待完成**；Kimi Code 则**直接把仓库根当作插件**
+（`kimi.plugin.json`），无需构建。插件包同时携带 skills、agents 和 hooks。
 
 | 真相平面 | 本仓库可以声明的内容 |
 |---|---|
-| 源码 / 包元数据 | 当前 checkout 声明 `0.14.0`、9 个用户可运行 skill + 1 个生成式发现入口、10 个 agent。 |
-| Git tag | 当前 checkout 没有对应的 `v0.14.0` tag；版本元数据不等于发布 tag。 |
+| 源码 / 包元数据 | 当前 checkout 声明 `0.14.1`、9 个用户可运行 skill + 1 个生成式发现入口、10 个 agent。 |
+| Git tag | 当前 checkout 没有对应的 `v0.14.1` tag；版本元数据不等于发布 tag。 |
 | Marketplace / npm | 文档可以记录坐标与未来发布路径，但元数据本身不能证明已经公开上架或发布到 registry。 |
 | Live host | 只有在对应宿主安装并检查，才能证明那里实际启用了什么；不能从源码或 tarball 推断。 |
 
@@ -184,6 +185,40 @@ npm run install:opencode-global
 npm run test-opencode
 ```
 
+### Kimi Code
+
+Kimi Code 直接把仓库根当作插件——无需构建、无生成式插件包。根目录
+`kimi.plugin.json` 直接引用 `./skills/do-it/`、`./commands/` 与 `./hooks/`：
+
+```text
+/plugins install https://github.com/tdwhere123/do-it
+```
+
+然后 `/reload`（或开新会话）。安装为 per-user，落在
+`$KIMI_CODE_HOME/plugins/managed/do-it/` 并以该受管副本运行；更新需重新安装。
+
+隔离本地冒烟（不碰真实 Kimi home）：
+
+```bash
+export KIMI_CODE_HOME=/tmp/do-it-kimi-test
+# 在指向本 checkout 的 Kimi Code 会话中：
+#   /plugins install /path/to/do-it
+#   /reload
+# 确认 9 个 skill 可见、`/do-it:skip` 可用，并用一轮 prompt + Edit + stop
+# 触发 router / write-quality-lint / verification-gate。
+# 无实机会话时至少跑：
+npm run validate:kimi-plugin
+```
+
+Kimi Code 装 **完整 9 个 skill**，三个命令以 `/do-it:skip`、
+`/do-it:handbook`、`/do-it:retrospective` 提供，以及 5 条清单 hooks
+（`UserPromptSubmit` 的 router / grill / behavior-feedback、`PostToolUse`
+（matcher `Edit|Write`）的 write-quality-lint、`Stop` 的 verification-gate）。
+Kimi Code 没有自定义子智能体机制（仅内置 `coder` / `explore` / `plan`），
+因此 10 个可移植 agent **不会**装到该宿主，`subagent-stance` 也不接线
+（Kimi 的 Subagent 事件 payload 携带空 `session_id`）。协议与限制详见
+[`skills/do-it/references/host-kimi.md`](./skills/do-it/references/host-kimi.md)。
+
 ### 可选 / 遗留：`do-it setup`
 
 CLI setup 仍可用于 doctor、临时 home 冒烟，以及从旧全局安装迁移。**不是**
@@ -209,6 +244,7 @@ do-it doctor
 | Host | 用户可运行 skill | 发现元数据 | Agent |
 |---|---|---|---|
 | Codex / Claude / Cursor / OpenCode | 9 个 — 5 核心 + 4 扩展 | 1 个生成式 `_index.md` 入口（不是第十个 skill） | 10 个 |
+| Kimi Code | 9 个 — 5 核心 + 4 扩展 | 宿主原生发现（无生成式索引） | 0 — 无自定义子智能体 |
 
 - 意涵分桶 skill：`do-it-router`、`do-it-code-quality`（写码主防线）、
   `do-it-review`（审查 + 修复）、`do-it-decide`（压测 / 发散 / 计划 / 切片）、
@@ -219,11 +255,14 @@ do-it doctor
   `code-quality-cleaner` / `tdd-red-writer`；审查侧 `reviewer` /
   `red-team-reviewer` / `spec-compliance-reviewer`；以及
   `documentation-engineer`。
-- 四个宿主的插件内 hooks：默认关闭、静默的 `behavior-feedback`；router、仅 Heavy 的 `grill-prompt`、
+- 五个宿主的插件内 hooks：默认关闭、静默的 `behavior-feedback`；router、仅 Heavy 的 `grill-prompt`、
   `subagent-stance`、旁路 `write-quality-lint`、`verification-gate`。
+  在 Kimi Code 上 `subagent-stance` 不接线（Kimi 的 Subagent 事件携带空 `session_id`），
+  其余 hooks 由根目录插件清单携带。
   verification hook 在所有宿主都只做建议性提醒；`do-it-verify` 仍负责声明级的
   证明。任何宿主都不再注册 `grill-pretool` 计划闸。
-- Claude 斜杠命令（`do-it-skip`、`do-it-handbook`、`do-it-retrospective`），不保留旧工作流命令别名。
+- 斜杠命令（`do-it-skip`、`do-it-handbook`、`do-it-retrospective`）：Claude 直接装载，
+  Kimi Code 以 `/do-it:*` 命名空间注册；不保留旧工作流命令别名。
 - 可选 CLI 安装器 / `doctor`，用于迁移与冒烟。
 - 根目录 `index.json`，供外部发现与覆盖检查。
 
@@ -266,7 +305,7 @@ flowchart TD
 ## 不需要你记住的事
 
 - 自动路径不需要背斜杠命令。插件 hooks 会在合适的 host lifecycle 事件上触发。
-  Claude 另有可选斜杠命令（`/do-it-skip`、`/do-it-handbook`、
+  Claude 与 Kimi Code 另有可选斜杠命令（`/do-it-skip`、`/do-it-handbook`、
   `/do-it-retrospective on|off|status|report`）；走自动路径时不必记住它们。
 - 没有外部 orchestration runtime。插件内 agent 是可选能力专家；父 agent 给出
   有用的目标和边界上下文后负责整合，没有单独的编排 skill。
@@ -281,7 +320,7 @@ flowchart TD
 
 ```bash
 npm pack
-npm install -g ./tdwhere-do-it-0.14.0.tgz
+npm install -g ./tdwhere-do-it-0.14.1.tgz
 do-it setup   # 可选 / 遗留全局拷贝
 ```
 
@@ -334,6 +373,7 @@ docs/            路由、维护、来源映射和发布说明
 hooks/           Host hook 脚本
 index.json       生成后的 skill/agent 发现清单
 install/         安装器、doctor 和 shell wrapper 入口
+kimi.plugin.json Kimi Code 根插件清单（仓库根即插件，无需构建）
 plugins/do-it/          生成后的 Codex plugin bundle
 plugins/do-it-cursor/   生成后的 Cursor plugin bundle（完整 9 个 skill）
 plugins/do-it-opencode/ OpenCode TS 插件与 hook 桥接
@@ -381,7 +421,7 @@ hook 决定。
 
 ### 安装真相
 
-Codex 与 Claude marketplace 优先；Cursor 在公开上架前使用本地拷贝 / Team Import；OpenCode 在确认 npm 发布前使用本地 `opencode.json` 注册。可选的 `do-it setup` 只用于受管 CLI doctor / 迁移 / 临时 HOME 冒烟——宿主插件安装与旧版/受管拷贝二选一，不要双装。
+Codex 与 Claude marketplace 优先；Cursor 在公开上架前使用本地拷贝 / Team Import；OpenCode 在确认 npm 发布前使用本地 `opencode.json` 注册；Kimi Code 通过 `/plugins install` 安装仓库根插件（per-user）。可选的 `do-it setup` 只用于受管 CLI doctor / 迁移 / 临时 HOME 冒烟——宿主插件安装与旧版/受管拷贝二选一，不要双装。
 
 Cursor CLI setup 只写 `~/.cursor`（不再写 `~/.claude`）。
 

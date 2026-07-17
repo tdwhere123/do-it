@@ -118,6 +118,7 @@ Update triggers:
   landing, sweep for contradictions and file backlog issues for any you cannot
   fix in the same change.
 - **Term stabilized** → promote `.do-it/CONTEXT.md` → `glossary.md` when it is durable project vocabulary; leave one canonical home.
+- **Route settled for good** → when a grill/decide conclusion permanently fixes a route ("we chose X over Y because Z"), promote it to one paragraph in `decisions.md`. One file, one paragraph per decision; promotion-triggered, never per-task ceremony.
 
 Keep any single handbook file under ~15 KB. Worklogs may be archived by day or
 goal; do not require routine agents to read old worklogs unless the active

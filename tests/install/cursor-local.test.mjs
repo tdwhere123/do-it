@@ -445,13 +445,16 @@ test("toWindowsPathIfWslMount leaves ordinary Unix paths unchanged", () => {
 
 test("validateCursorPlugin rejects intermediate directory symlinks", () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-cursor-symlink-tree-"));
+  const expectedVersion = JSON.parse(
+    fs.readFileSync(path.join(repoRoot, "package.json"), "utf8")
+  ).version;
   try {
     const plugin = path.join(root, "plugin");
     const external = path.join(root, "external-hooks");
     fs.mkdirSync(path.join(plugin, ".cursor-plugin"), { recursive: true });
     fs.writeFileSync(
       path.join(plugin, ".cursor-plugin", "plugin.json"),
-      JSON.stringify({ name: "do-it-cursor", version: "0.14.0" })
+      JSON.stringify({ name: "do-it-cursor", version: expectedVersion })
     );
     fs.mkdirSync(path.join(plugin, "skills", "do-it-router"), { recursive: true });
     fs.writeFileSync(path.join(plugin, "skills", "do-it-router", "SKILL.md"), "# router\n");
@@ -463,7 +466,7 @@ test("validateCursorPlugin rejects intermediate directory symlinks", () => {
     fs.writeFileSync(path.join(external, "session-start.sh"), "#!/bin/sh\n");
     fs.symlinkSync(external, path.join(plugin, "hooks"), process.platform === "win32" ? "junction" : "dir");
     assert.throws(
-      () => validateCursorPlugin(plugin, { requireRuntime: true, expectedVersion: "0.14.0" }),
+      () => validateCursorPlugin(plugin, { requireRuntime: true, expectedVersion }),
       /must not contain symlinks/
     );
   } finally {
@@ -621,11 +624,14 @@ test("windowsHomeCandidates prefers USERPROFILE mount and does not scan all user
 test("registerCursorPlugin rejects an incomplete runtime bundle", () => {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-cursor-incomplete-"));
   const incomplete = path.join(home, "incomplete");
+  const expectedVersion = JSON.parse(
+    fs.readFileSync(path.join(repoRoot, "package.json"), "utf8")
+  ).version;
   try {
     fs.mkdirSync(path.join(incomplete, ".cursor-plugin"), { recursive: true });
     fs.writeFileSync(
       path.join(incomplete, ".cursor-plugin", "plugin.json"),
-      '{"name":"do-it-cursor","version":"0.14.0"}\n'
+      JSON.stringify({ name: "do-it-cursor", version: expectedVersion }) + "\n"
     );
 
     assert.throws(

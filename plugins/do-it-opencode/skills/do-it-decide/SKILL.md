@@ -30,13 +30,15 @@ Interview relentlessly on **decisions**; never on readable **facts**.
 4. For each question: 2–3 options, tradeoffs, **recommended default**.
 5. Do not enact the plan until shared understanding is confirmed (or the user explicitly skips).
 
+Fresh-context challenge applies **in-flight** too: doubt the route while deciding, not only the finished diff.
+
 ## Diverge Briefly
 
 Surface real alternatives (skip → stdlib/native → existing → minimal custom). Do not invent fog. Hand route-changing choices to grill.
 
 ## Research-First Surfaces
 
-For a new dependency, datastore, framework/runtime, protocol, or other permanent external surface: inspect repository constraints, compare at least two viable candidates, and record compatibility, maintenance/activity, license, operational fit, and a recommendation. Ask the user only when a preference changes the selected route; never memory-pick a permanent dependency.
+For a new dependency, datastore, framework/runtime, protocol, or other permanent external surface: inspect repository constraints, compare at least two viable candidates, and record compatibility, maintenance/activity, license, operational fit, and a recommendation. Ask the user only when a preference changes the selected route; never memory-pick a permanent dependency. Cite primary sources (official docs, the source repo) over summaries; when findings are durable, capture them in the worklog or handbook instead of re-researching next session.
 
 ## Shortest Plan Card
 

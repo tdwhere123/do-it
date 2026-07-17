@@ -5,22 +5,22 @@
         "hooks": [
           {
             "type": "command",
-            "command": "DO_IT_HOOK_DATA=\"${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-/tmp/do-it-data}}\" \"${PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}/hooks/behavior-feedback.sh\"",
+            "command": "DO_IT_HOOK_DATA=\"${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-/tmp/do-it-data}}\" \"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-.}}/hooks/behavior-feedback.sh\"",
             "timeout": 10
           },
           {
             "type": "command",
-            "command": "DO_IT_HOOK_DATA=\"${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-/tmp/do-it-data}}\" \"${PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}/hooks/router.sh\"",
+            "command": "DO_IT_HOOK_DATA=\"${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-/tmp/do-it-data}}\" \"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-.}}/hooks/router.sh\"",
             "timeout": 25
           },
           {
             "type": "command",
-            "command": "DO_IT_HOOK_DATA=\"${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-/tmp/do-it-data}}\" \"${PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}/hooks/grill-prompt.sh\"",
+            "command": "DO_IT_HOOK_DATA=\"${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-/tmp/do-it-data}}\" \"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-.}}/hooks/grill-prompt.sh\"",
             "timeout": 25
           },
           {
             "type": "command",
-            "command": "DO_IT_HOOK_DATA=\"${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-/tmp/do-it-data}}\" \"${PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}/hooks/subagent-stance.sh\"",
+            "command": "DO_IT_HOOK_DATA=\"${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-/tmp/do-it-data}}\" \"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-.}}/hooks/subagent-stance.sh\"",
             "timeout": 10
           }
         ]
@@ -32,7 +32,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "DO_IT_HOOK_DATA=\"${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-/tmp/do-it-data}}\" \"${PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}/hooks/write-quality-lint.sh\"",
+            "command": "DO_IT_HOOK_DATA=\"${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-/tmp/do-it-data}}\" \"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-.}}/hooks/write-quality-lint.sh\"",
             "timeout": 15
           }
         ]
@@ -43,7 +43,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "DO_IT_HOOK_DATA=\"${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-/tmp/do-it-data}}\" \"${PLUGIN_ROOT:-$CLAUDE_PLUGIN_ROOT}/hooks/verification-gate.sh\"",
+            "command": "DO_IT_HOOK_DATA=\"${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-/tmp/do-it-data}}\" \"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-.}}/hooks/verification-gate.sh\"",
             "timeout": 25
           }
         ]

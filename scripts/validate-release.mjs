@@ -42,6 +42,7 @@ export function validateRelease(tag, repoRoot = defaultRepoRoot) {
     ["package.json", readJson(repoRoot, "package.json").version],
     ["manifest.json", readJson(repoRoot, "manifest.json").version],
     ["index.json", readJson(repoRoot, "index.json").version],
+    ["kimi.plugin.json", readJson(repoRoot, "kimi.plugin.json").version],
     ["Claude plugin metadata", readJson(repoRoot, ".claude-plugin/plugin.json").version],
     ["Claude marketplace metadata", readJson(repoRoot, ".claude-plugin/marketplace.json").plugins?.[0]?.version],
     ["Codex plugin metadata", readJson(repoRoot, "plugins/do-it/.codex-plugin/plugin.json").version],

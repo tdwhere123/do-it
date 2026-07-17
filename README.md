@@ -9,7 +9,8 @@
 > Stop asking AI agents to remember process. Install it.
 
 `do-it` turns AI coding discipline into an installable workflow for **Codex**,
-**Claude Code**, **Cursor**, and **OpenCode**. It gives work an advisory risk
+**Claude Code**, **Cursor**, **OpenCode**, and **Kimi Code**. It gives work an
+advisory risk
 label, offers optional sub-agent expertise, and keeps completion claims tied to
 fresh, claim-specific evidence.
 
@@ -111,14 +112,15 @@ security, and accessibility stay in.
 ## Install (plugin-first)
 
 Delivery is host-specific. Codex and Claude Code are **marketplace-first**;
-Cursor is **local copy or Team Import today, with public listing pending**; and
+Cursor is **local copy or Team Import today, with public listing pending**;
 OpenCode is **local `opencode.json` registration today, with npm publication
-pending**. Plugin bundles ship skills, agents, and hooks together.
+pending**; and Kimi Code reads the **repository root as the plugin** — no build
+step. Plugin bundles ship skills, agents, and hooks together.
 
 | Truth plane | What this repository can claim |
 |---|---|
-| Source/package metadata | This checkout declares `0.14.0`, 9 user/runnable skills + 1 generated discovery entry, and 10 agents. |
-| Git tag | This checkout has no matching `v0.14.0` tag; version metadata is not a release tag. |
+| Source/package metadata | This checkout declares `0.14.1`, 9 user/runnable skills + 1 generated discovery entry, and 10 agents. |
+| Git tag | This checkout has no matching `v0.14.1` tag; version metadata is not a release tag. |
 | Marketplace / npm | Coordinates and future publish paths are documented, but metadata alone does not prove a public listing or registry publication. |
 | Live host | Only an install/inspection on that host proves what is active there; do not infer it from source or a packed artifact. |
 
@@ -225,6 +227,42 @@ A checkout absolute path remains a **dev-only** option.
 npm run test-opencode
 ```
 
+### Kimi Code
+
+Kimi Code reads the repository root as the plugin — no build step, no generated
+bundle. The root `kimi.plugin.json` points straight at `./skills/do-it/`,
+`./commands/`, and `./hooks/`:
+
+```text
+/plugins install https://github.com/tdwhere123/do-it
+```
+
+Then `/reload` (or a new session). Installs are per-user under
+`$KIMI_CODE_HOME/plugins/managed/do-it/` and run from that managed copy;
+reinstall to pick up updates.
+
+Isolated local smoke (does not touch your real Kimi home):
+
+```bash
+export KIMI_CODE_HOME=/tmp/do-it-kimi-test
+# From a Kimi Code session pointed at this checkout:
+#   /plugins install /path/to/do-it
+#   /reload
+# Then: confirm 9 skills appear, `/do-it:skip` resolves, and a prompt + Edit +
+# stop turn exercises router / write-quality-lint / verification-gate.
+# Or run the packaged validator without a live session:
+npm run validate:kimi-plugin
+```
+
+Kimi Code ships the **full 9 skills**, the three commands as `/do-it:skip`,
+`/do-it:handbook`, `/do-it:retrospective`, and 5 manifest hooks
+(`UserPromptSubmit` router / grill / behavior-feedback, `PostToolUse` on
+`Edit|Write` write-quality-lint, `Stop` verification-gate). Kimi Code has no
+custom-subagent mechanism (built-in `coder` / `explore` / `plan` only), so the
+10 portable agents are **not** installed on this host, and `subagent-stance`
+stays unwired (Kimi's Subagent events carry an empty `session_id`). Protocol
+and limits: [`skills/do-it/references/host-kimi.md`](./skills/do-it/references/host-kimi.md).
+
 ### Optional / legacy: `do-it setup`
 
 CLI setup remains for doctor checks, temp-home smoke tests, and migration from
@@ -252,6 +290,7 @@ Runnable skill matrix (tiers in `scripts/skill-tiers.mjs`):
 | Host | User/runnable skills | Discovery metadata | Agents |
 |---|---|---|---|
 | Codex / Claude / Cursor / OpenCode | 9 — 5 core + 4 extended | 1 generated `_index.md` entry (not a tenth skill) | 10 |
+| Kimi Code | 9 — 5 core + 4 extended | host-native discovery (no generated index) | 0 — no custom subagents |
 
 - Meaning-bucket skills: `do-it-router`, `do-it-code-quality` (write defense),
   `do-it-review` (review + fix), `do-it-decide` (pressure-test / diverge /
@@ -263,14 +302,17 @@ Runnable skill matrix (tiers in `scripts/skill-tiers.mjs`):
   `code-quality-cleaner`, `tdd-red-writer`), review lenses (`reviewer`,
   `red-team-reviewer`, `spec-compliance-reviewer`), and
   `documentation-engineer`.
-- Plugin-bundled hooks on all four hosts: default-off, silent
+- Plugin-bundled hooks on all five hosts: default-off, silent
   `behavior-feedback`; router; Heavy-only `grill-prompt`;
   `subagent-stance`, advisory `write-quality-lint`, and `verification-gate`.
+  On Kimi Code, `subagent-stance` is not wired (Kimi's Subagent events carry an
+  empty `session_id`); the other hooks ship in the root plugin manifest.
   The verification hook is an advisory reminder on every host; `do-it-verify`
   remains responsible for claim-specific proof. No host registers a
   `grill-pretool` plan gate.
-- Claude slash commands under `commands/` (`do-it-skip`, `do-it-handbook`,
-  `do-it-retrospective`); no legacy workflow command aliases.
+- Slash commands under `commands/` (`do-it-skip`, `do-it-handbook`,
+  `do-it-retrospective`) on Claude and — namespaced as `/do-it:*` — Kimi Code;
+  no legacy workflow command aliases.
 - Copy-based installer / `doctor` for optional CLI targets and migration.
 - Root `index.json` for external discovery and coverage checks.
 
@@ -316,8 +358,8 @@ Full routing policy: [`docs/routing-matrix.md`](./docs/routing-matrix.md).
 ## What You Do Not Need To Remember
 
 - No slash command vocabulary for the automatic path. Plugin hooks fire at the
-  host lifecycle points where they matter. Claude also ships optional slash
-  commands under `commands/` (`/do-it-skip`, `/do-it-handbook`,
+  host lifecycle points where they matter. Claude and Kimi Code also ship
+  optional slash commands from `commands/` (`/do-it-skip`, `/do-it-handbook`,
   `/do-it-retrospective on|off|status|report`); you do not need them for the
   automatic path.
 - No external orchestration runtime. Bundled agents are optional capability
@@ -333,7 +375,7 @@ For a packed local release artifact:
 
 ```bash
 npm pack
-npm install -g ./tdwhere-do-it-0.14.0.tgz
+npm install -g ./tdwhere-do-it-0.14.1.tgz
 do-it setup   # optional / legacy global copy
 ```
 
@@ -388,6 +430,7 @@ docs/            Routing, maintenance, origin map, and release notes
 hooks/           Host hook scripts
 index.json       Generated skill/agent discovery inventory
 install/         Installer, doctor, and shell wrapper entrypoints
+kimi.plugin.json Kimi Code root plugin manifest (repo root is the plugin)
 plugins/do-it/   Generated Codex plugin bundle
 plugins/do-it-cursor/   Generated Cursor plugin bundle
 plugins/do-it-opencode/ OpenCode TS plugin + hook bridge
@@ -439,7 +482,8 @@ honest with task-relevant proof.
 
 Codex and Claude are marketplace-first. Cursor uses local copy / Team Import
 until a public listing exists. OpenCode uses local `opencode.json` registration
-until npm publication is verified. Optional `do-it setup` is for managed CLI
+until npm publication is verified. Kimi Code installs the repo-root plugin via
+`/plugins install` (per-user). Optional `do-it setup` is for managed CLI
 doctor / migration / temp-home smoke — pick **either** a host plugin install or
 a legacy/managed copy, not both.
 

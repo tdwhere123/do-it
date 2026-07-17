@@ -83,3 +83,6 @@ or CLI behavior — not merely on repo file contents.
 - Subagent detection uses host env vars consumed by `hooks/lib/common.sh`.
 - Default environment assumed in public docs; adapter terms live here, not in
   shared skill bodies.
+- Known limitation: plugin hook commands assume POSIX `sh` (env-assignment
+  prefixes, `.sh` scripts). Only the Cursor adapter ships a Windows
+  (`run-hook.cmd`) story; Codex on native Windows is unverified — use WSL.

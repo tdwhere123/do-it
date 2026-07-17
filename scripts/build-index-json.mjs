@@ -220,7 +220,9 @@ function main() {
     package: pkg.name,
     repository: normalizeRepoUrl(pkg),
     domain: "agentic-workflow",
-    total_skills: skillEntries.length,
+    // Runnable skills only — generated `_index.md` discovery stays in
+    // total_discovery_entries, not total_skills (docs/README: 9 + 1).
+    total_skills: capabilityEntries.length,
     total_capabilities: capabilityEntries.length,
     total_discovery_entries: discoveryEntries.length,
     total_agents: agentEntries.length,
@@ -240,7 +242,7 @@ function main() {
   }
 
   console.log(
-    `built index.json (${skillEntries.length} skills, ${agentEntries.length} agents) -> ` +
+    `built index.json (${capabilityEntries.length} runnable skills + ${discoveryEntries.length} discovery, ${agentEntries.length} agents) -> ` +
       path.relative(repoRoot, outFile)
   );
 }

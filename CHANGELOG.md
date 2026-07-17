@@ -1,6 +1,44 @@
 # Changelog
 
-## Unreleased
+## 0.14.1
+
+### Kimi Code host adapter
+
+- **Root plugin:** repository-root `kimi.plugin.json` installs via
+  `/plugins install` with no build step — skills, commands, and five
+  advisory hooks; custom subagents are not shipped (Kimi has no custom
+  subagent mechanism).
+- **Protocol:** `do_it_emit_context` emits plain text under Kimi (no
+  `additionalContext`); UserPromptSubmit `prompt` may be a ContentPart
+  array; verification-gate reads session `wire.jsonl` when
+  `transcript_path` is absent.
+- **Validate:** `npm run validate:kimi-plugin` is wired into `test`,
+  `prepack`, CI, and release.
+
+### Adapter hygiene
+
+- Hook script allowlists and Codex `hooks.json` commands now share
+  `scripts/lib/hook-manifest.mjs`; Codex hook paths fall back through
+  `PLUGIN_ROOT` → `CLAUDE_PLUGIN_ROOT` → `.` so an empty expansion cannot
+  become `/hooks/...`.
+- `manifest.json` `commonExtras` plus per-target overrides; session-dir
+  resolution is aligned across hooks, `install/manage.mjs`, and the
+  OpenCode bridge (including `$KIMI_CODE_HOME/do-it-data/sessions`).
+- `index.json` `total_skills` counts runnable skills only (9); the
+  generated `_index.md` discovery entry stays in `total_discovery_entries`.
+
+### Skill absorptions (no tenth skill)
+
+- `do-it-code-quality`: merge-conflict hunk-by-intent rule; name a
+  production evidence surface when shipping runtime features.
+- `do-it-verify`: production-run claim shortcut; deferred-marker sweep on
+  branch closeout.
+- `do-it-handbook`: optional `decisions.md` promotion when a grill route
+  settles permanently.
+- `do-it-decide`: cite primary sources / capture durable research; doubt
+  applies in-flight, not only after the diff.
+- `docs/upstream-map.md`: lineage principle (convergence ≠ lineage) plus
+  stale-name fixes and inspired-by rows for this round only.
 
 ### Feedback, routing, and safety profiles
 

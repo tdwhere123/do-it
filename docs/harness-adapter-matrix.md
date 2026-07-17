@@ -1,11 +1,11 @@
 # Harness Adapter Matrix
 
-do-it ships one **workflow kernel** (skills, hooks, agents) and four **host
+do-it ships one **workflow kernel** (skills, hooks, agents) and five **host
 adapters** that map the same advisory signals to each runtime's hook surface. Adapters are
 honest about capability gaps — we do not copy the full Claude hook stack onto
 every host.
 
-## Four Platforms
+## Five Platforms
 
 | Platform | Distribution | Hook depth | Notes |
 |---|---|---|---|
@@ -13,6 +13,7 @@ every host.
 | **Claude Code** | marketplace-first | Full | `${CLAUDE_PLUGIN_ROOT}` hooks; `${CLAUDE_PLUGIN_DATA}` session state |
 | **Cursor** | local / Team Import today; public listing pending | Medium | Official [marketplace](https://cursor.com/marketplace) exists; **do-it not listed yet**. No Claude `/plugin` commands. |
 | **OpenCode** | global vendor / package-name registration today; npm publication pending | Medium | TS plugin: transform bootstrap; `tool.execute.after`; `session.idle` soft reminder |
+| **Kimi Code** | repo-root plugin via `/plugins install` (per-user) | Full-minus-subagent | `kimi.plugin.json` at repo root — no build step. No custom subagents: agents not shipped, `subagent-stance` unwired |
 
 Workflow logic lives once in `skills/do-it/` and `hooks/`. Host-specific install
 paths, tool names, and hook event names live in
@@ -36,14 +37,14 @@ Subagent contexts skip write-quality-lint (parent owns integration).
 
 ## Hook Mapping
 
-| Signal | Script | Codex / Claude | Cursor | OpenCode |
-|---|---|---|---|---|
-| Opt-in feedback capture | `behavior-feedback.sh` | `UserPromptSubmit` plus narrow `UserPromptExpansion`, silent and default off | `beforeSubmitPrompt`, silent and default off | `chat.message`, silent and default off; only a confirmed root session is eligible |
-| Classify prompt | `router.sh` | `UserPromptSubmit` | `beforeSubmitPrompt` | `chat.message` |
-| Grill nudge (Heavy) | `grill-prompt.sh` | `UserPromptSubmit` | `beforeSubmitPrompt` | `chat.message` (Heavy/explicit, advisory) |
-| Subagent stance | `subagent-stance.sh` | `UserPromptSubmit` | `beforeSubmitPrompt` | bootstrap guidance only |
-| Write-time quality | `write-quality-lint.sh` | `PostToolUse` (Edit\|Write\|MultiEdit\|NotebookEdit) | `postToolUse` / `afterFileEdit` | `tool.execute.after` (bash bridge) |
-| Done claim | `verification-gate.sh` | `Stop` | `stop` | `session.idle` soft reminder from serialized host messages |
+| Signal | Script | Codex / Claude | Cursor | OpenCode | Kimi Code |
+|---|---|---|---|---|---|
+| Opt-in feedback capture | `behavior-feedback.sh` | `UserPromptSubmit` plus narrow `UserPromptExpansion`, silent and default off | `beforeSubmitPrompt`, silent and default off | `chat.message`, silent and default off; only a confirmed root session is eligible | `UserPromptSubmit`, silent and default off |
+| Classify prompt | `router.sh` | `UserPromptSubmit` | `beforeSubmitPrompt` | `chat.message` | `UserPromptSubmit` |
+| Grill nudge (Heavy) | `grill-prompt.sh` | `UserPromptSubmit` | `beforeSubmitPrompt` | `chat.message` (Heavy/explicit, advisory) | `UserPromptSubmit` (Heavy/explicit, advisory) |
+| Subagent stance | `subagent-stance.sh` | `UserPromptSubmit` | `beforeSubmitPrompt` | bootstrap guidance only | not wired — Subagent events carry empty `session_id` |
+| Write-time quality | `write-quality-lint.sh` | `PostToolUse` (Edit\|Write\|MultiEdit\|NotebookEdit) | `postToolUse` / `afterFileEdit` | `tool.execute.after` (bash bridge) | `PostToolUse` (Edit\|Write — the only Kimi edit tools) |
+| Done claim | `verification-gate.sh` | `Stop` | `stop` | `session.idle` soft reminder from serialized host messages | `Stop`; transcript read from session `wire.jsonl` (no `transcript_path` on this host) |
 
 Legacy `comments-lint.sh` and `anti-patterns-lint.sh` exec into
 `write-quality-lint.sh`; new installs register only the merged script.
@@ -66,12 +67,17 @@ they must not be described as hard confirmation.
   [`strict-external-actions.md`](strict-external-actions.md).
 - Cursor and OpenCode keep the same advisory workflow contract; configure
   their native permissions separately when an operation needs enforcement.
+- Kimi Code keeps the same advisory contract: do-it hooks always exit 0 and
+  only add context (`PreToolUse`/`Stop` can block on this host, but no do-it
+  hook uses that). Configure Kimi's native permission rules for a hard
+  boundary.
 
 Per-host install paths and tool mapping:
 [`host-codex.md`](../skills/do-it/references/host-codex.md),
 [`host-claude.md`](../skills/do-it/references/host-claude.md),
 [`host-cursor.md`](../skills/do-it/references/host-cursor.md),
-[`host-opencode.md`](../skills/do-it/references/host-opencode.md).
+[`host-opencode.md`](../skills/do-it/references/host-opencode.md),
+[`host-kimi.md`](../skills/do-it/references/host-kimi.md).
 
 ## Quality Evidence Ladder
 
@@ -123,16 +129,22 @@ There is no fixed delegation contract, agent count, or role matrix.
 
 ## Session State Resolution
 
-Hooks resolve per-session state through the search order documented in
-`hooks/lib/common.sh`:
+Hooks resolve per-session state through the canonical search order in
+`hooks/lib/common.sh` (`do_it_session_dir`):
 
 1. `$CURSOR_PLUGIN_DATA/sessions`
 2. `$CLAUDE_PLUGIN_DATA/sessions`
-3. `$DO_IT_HOOK_DATA/sessions`
-4. `$OPENCODE_DATA/sessions`
-5. `$CODEX_HOME/do-it-data/sessions`
-6. `<repo>/.do-it/runtime/sessions`
-7. `${TMPDIR}/do-it-sessions`
+3. `$PLUGIN_DATA/sessions`
+4. `$DO_IT_HOOK_DATA/sessions`
+5. `$OPENCODE_DATA/sessions`
+6. `$KIMI_CODE_HOME/do-it-data/sessions`
+7. `$CODEX_HOME/do-it-data/sessions`
+8. `<repo>/.do-it/runtime/sessions`
+9. `${TMPDIR}/do-it-sessions`
+
+`install/manage.mjs` (`sessionsBaseDir`) and the OpenCode bridge
+(`resolveSessionStateDir`) mirror this order. `KIMI_PLUGIN_ROOT` is never used
+for state — it is a managed plugin copy with read-only semantics.
 
 Missing state degrades to minimal advisory behavior — hooks never block on
 absence.

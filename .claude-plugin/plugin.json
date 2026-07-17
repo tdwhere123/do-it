@@ -1,7 +1,7 @@
 {
   "name": "do-it",
   "description": "Meaning-centric engineering plugin for Claude Code: tier routing, advisory write-quality, focused review, and evidence-backed completion.",
-  "version": "0.14.0",
+  "version": "0.14.1",
   "author": {
     "name": "tdwhere123"
   },

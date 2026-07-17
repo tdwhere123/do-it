@@ -89,6 +89,9 @@ jobs:
       - name: Ensure generated OpenCode plugin is committed
         run: git diff --exit-code -- plugins/do-it-opencode
 
+      - name: Validate Kimi plugin manifest (root-mounted, no build)
+        run: npm run validate:kimi-plugin
+
       - name: Smoke Cursor local install (real copy, no external symlink)
         env:
           HOME: ${{ runner.temp }}/cursor-local-home

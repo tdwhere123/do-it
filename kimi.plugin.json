@@ -1,0 +1,44 @@
+{
+  "name": "do-it",
+  "version": "0.14.1",
+  "description": "Autonomy-first AI coding workflow with task-fit skills, advisory routing tiers, and evidence-backed completion.",
+  "keywords": [
+    "agentic-workflow",
+    "ai-agents",
+    "do-it",
+    "workflow",
+    "skills"
+  ],
+  "author": "tdwhere123",
+  "homepage": "https://github.com/tdwhere123/do-it",
+  "license": "MIT",
+  "interface": {
+    "displayName": "do-it",
+    "shortDescription": "Stop asking the agent to remember process. Advisory Light/Standard/Heavy routing, write-time quality lint, and completion reminders tied to evidence."
+  },
+  "skills": "./skills/do-it/",
+  "commands": "./commands/",
+  "hooks": [
+    {
+      "event": "UserPromptSubmit",
+      "command": "./hooks/router.sh"
+    },
+    {
+      "event": "UserPromptSubmit",
+      "command": "./hooks/grill-prompt.sh"
+    },
+    {
+      "event": "UserPromptSubmit",
+      "command": "./hooks/behavior-feedback.sh"
+    },
+    {
+      "event": "PostToolUse",
+      "matcher": "Edit|Write",
+      "command": "./hooks/write-quality-lint.sh"
+    },
+    {
+      "event": "Stop",
+      "command": "./hooks/verification-gate.sh"
+    }
+  ]
+}

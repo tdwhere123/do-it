@@ -19,6 +19,7 @@ _isolate() {
   export DO_IT_HOOK_DATA="$1"
   rm -rf "$DO_IT_HOOK_DATA"
   unset CLAUDE_PLUGIN_DATA CODEX_HOME CLAUDE_AGENT_CONTEXT CLAUDE_SUBAGENT
+  unset KIMI_CODE_HOME KIMI_PLUGIN_ROOT
   unset DO_IT_DEBUG
 }
 
@@ -274,6 +275,98 @@ tx="$DO_IT_HOOK_DATA/tx.jsonl"
 _append_edit > "$tx"
 _append_result forged-id true "task done; secret-tool-result-do-not-echo" >> "$tx"
 assert_silent "tool-result text alone does not become an assistant completion claim" "$(_run_gate c17 "$tx")"
+
+# -------------------------------------------------------------------------
+echo "Case 9: Kimi wire transcript discovery (Kimi sends no transcript_path)"
+
+_kimi_wire() {  # $1=sid; heredoc on stdin becomes the fake wire log
+  local sid="$1"
+  mkdir -p "$KIMI_FAKE_HOME/sessions/wd_t/$sid/agents/main"
+  cat > "$KIMI_FAKE_HOME/sessions/wd_t/$sid/agents/main/wire.jsonl"
+}
+
+_run_gate_kimi() {
+  local sid="$1"
+  jq -nc --arg sid "$sid" '{session_id:$sid, stop_hook_active:false}' \
+    | KIMI_CODE_HOME="$KIMI_FAKE_HOME" bash "$GATE"
+}
+
+_isolate /tmp/doit-gate-k1
+KIMI_FAKE_HOME="$DO_IT_HOOK_DATA/kimi-home"
+_kimi_wire k1 <<'EOF'
+{"type":"context.append_message","message":{"role":"user","content":[{"type":"text","text":"fix the lint script"}],"origin":{"kind":"user"}}}
+{"type":"context.append_loop_event","event":{"type":"tool.call","name":"Edit","args":{"path":"x.sh"}}}
+{"type":"context.append_loop_event","event":{"type":"content.part","part":{"type":"text","text":"已修复 lint 脚本，所有检查"}}}
+{"type":"context.append_loop_event","event":{"type":"content.part","part":{"type":"text","text":"通过。"}}}
+EOF
+out="$(_run_gate_kimi k1)"
+# Kimi streams text in chunks; the coalesced closing message must trigger the
+# reminder, emitted as plain text — never the raw JSON envelope.
+if [[ "$out" == *"claim-specific proof"* ]] && ! printf '%s' "$out" | jq -e . >/dev/null 2>&1; then
+  _pass "kimi wire: streamed completion claim reminds in plain text"
+else
+  _fail "kimi wire reminder missing or not plain text (got: $out)"
+fi
+
+_isolate /tmp/doit-gate-k2
+KIMI_FAKE_HOME="$DO_IT_HOOK_DATA/kimi-home"
+_kimi_wire k2 <<'EOF'
+{"type":"context.append_message","message":{"role":"user","content":[{"type":"text","text":"look at the file"}],"origin":{"kind":"user"}}}
+{"type":"context.append_loop_event","event":{"type":"tool.call","name":"Edit","args":{"path":"x.sh"}}}
+{"type":"context.append_loop_event","event":{"type":"content.part","part":{"type":"text","text":"让我继续看看其他文件。"}}}
+EOF
+assert_silent "kimi wire: edit without completion language is silent" "$(_run_gate_kimi k2)"
+
+_isolate /tmp/doit-gate-k3
+KIMI_FAKE_HOME="$DO_IT_HOOK_DATA/kimi-home"
+_kimi_wire k3 <<'EOF'
+{"type":"context.append_message","message":{"role":"user","content":[{"type":"text","text":"ship it"}],"origin":{"kind":"user"}}}
+{"type":"context.append_loop_event","event":{"type":"tool.call","name":"Edit","args":{"path":"x.sh"}}}
+{"type":"context.append_loop_event","event":{"type":"content.part","part":{"type":"text","text":"完成了，但测试没跑：NOT_VERIFIED，下一步跑 npm test。"}}}
+EOF
+assert_silent "kimi wire: explicit NOT_VERIFIED stays silent" "$(_run_gate_kimi k3)"
+
+_isolate /tmp/doit-gate-k4
+KIMI_FAKE_HOME="$DO_IT_HOOK_DATA/kimi-home"
+_kimi_wire k4 <<'EOF'
+{"type":"context.append_message","message":{"role":"user","content":[{"type":"text","text":"fix x"}],"origin":{"kind":"user"}}}
+{"type":"context.append_loop_event","event":{"type":"tool.call","name":"Edit","args":{"path":"x.sh"}}}
+{"type":"context.append_message","message":{"role":"user","content":[{"type":"text","text":"injected hook context"}],"origin":{"kind":"hook_result"}}}
+{"type":"context.append_loop_event","event":{"type":"content.part","part":{"type":"text","text":"fix applied; all checks passed."}}}
+EOF
+out="$(_run_gate_kimi k4)"
+# A hook-result injection is not a human turn: the edit before it still counts.
+if [[ "$out" == *"claim-specific proof"* ]]; then
+  _pass "kimi wire: hook injections do not reset the current turn"
+else
+  _fail "kimi wire injection wrongly sliced the turn (got: $out)"
+fi
+
+_isolate /tmp/doit-gate-k5
+KIMI_FAKE_HOME="$DO_IT_HOOK_DATA/kimi-home"
+# No wire file for this session id: degrade silently.
+assert_silent "kimi wire: missing wire log degrades to skip" "$(_run_gate_kimi k5-missing)"
+
+_isolate /tmp/doit-gate-k6
+KIMI_FAKE_HOME="$DO_IT_HOOK_DATA/kimi-home"
+# Mid-token stream split: "pass"+"ed" must coalesce to "passed", not "pass\ned".
+_kimi_wire k6 <<'EOF'
+{"type":"context.append_message","message":{"role":"user","content":[{"type":"text","text":"fix it"}],"origin":{"kind":"user"}}}
+{"type":"context.append_loop_event","event":{"type":"tool.call","name":"Edit","args":{"path":"x.sh"}}}
+{"type":"context.append_loop_event","event":{"type":"content.part","part":{"type":"text","text":"all checks pass"}}}
+{"type":"context.append_loop_event","event":{"type":"content.part","part":{"type":"text","text":"ed."}}}
+EOF
+out="$(_run_gate_kimi k6)"
+if [[ "$out" == *"claim-specific proof"* ]]; then
+  _pass "kimi wire: mid-token stream chunks coalesce without inserted newlines"
+else
+  _fail "kimi wire mid-token coalesce failed (got: $out)"
+fi
+
+_isolate /tmp/doit-gate-k7
+KIMI_FAKE_HOME="$DO_IT_HOOK_DATA/kimi-home"
+# Path-shaped session id must not escape the sessions sandbox.
+assert_silent "kimi wire: hazardous session_id skips discovery" "$(_run_gate_kimi '../escape')"
 
 if [[ "$FAIL" -gt 0 ]]; then
   echo "FAILED: $PASS passed, $FAIL failed" >&2
