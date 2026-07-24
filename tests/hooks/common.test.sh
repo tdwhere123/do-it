@@ -3,7 +3,7 @@
 #   - flock-missing race no longer evaporates state.json
 #   - SESSION_ID path-injection is sanitized
 #   - empty SESSION_ID + non-git cwd no longer share a global `nosession` bucket
-#   - do_it_in_subagent_context honors Claude and generic transcript_path arguments
+#   - do_it_in_subagent_context honors Pi, Claude, and portable transcript paths
 #   - runtime gitignore is self-contained (does not modify repo .gitignore)
 #
 # Usage: bash tests/hooks/common.test.sh
@@ -27,6 +27,7 @@ _fail() { echo "  FAIL: $1" >&2; FAIL=$((FAIL + 1)); }
 
 _isolate_env() {
   unset CLAUDE_PLUGIN_DATA CODEX_HOME KIMI_CODE_HOME KIMI_PLUGIN_ROOT transcript_path CLAUDE_AGENT_CONTEXT CLAUDE_SUBAGENT
+  unset PI_SUBAGENT_CHILD CURSOR_SUBAGENT CURSOR_AGENT_CONTEXT
   export DO_IT_HOOK_DATA="$1"
   rm -rf "$DO_IT_HOOK_DATA"
 }
@@ -143,21 +144,27 @@ case "$?" in
 esac
 
 # -------------------------------------------------------------------------
-echo "Case 4: do_it_in_subagent_context honors transcript_path argument"
+echo "Case 4: do_it_in_subagent_context honors host and portable path signals"
 (
   _isolate_env "/tmp/doit-test-subagent"
   source "$COMMON"
   if do_it_in_subagent_context "/Users/x/.claude/projects/foo/transcript.jsonl"; then exit 41; fi
   if ! do_it_in_subagent_context "/Users/x/.claude/agents/foo/transcript.jsonl"; then exit 42; fi
   if ! do_it_in_subagent_context "/Users/x/.claude/projects/foo/subagents/agent-x.jsonl"; then exit 43; fi
-  if do_it_in_subagent_context ""; then exit 44; fi
+  if ! do_it_in_subagent_context 'C:\Users\x\.pi\subagents\agent-x.jsonl'; then exit 44; fi
+  PI_SUBAGENT_CHILD=1
+  if ! do_it_in_subagent_context ""; then exit 45; fi
+  unset PI_SUBAGENT_CHILD
+  if do_it_in_subagent_context ""; then exit 46; fi
 )
 case "$?" in
-  0)  _pass "argument-based agents/ and subagents/ detection works" ;;
+  0)  _pass "Pi env plus POSIX/Windows agents paths trigger subagent context" ;;
   41) _fail "non-agents transcript triggered subagent context" ;;
   42) _fail "agents/ transcript did not trigger subagent context" ;;
   43) _fail "subagents/ transcript did not trigger subagent context" ;;
-  44) _fail "empty arg + no env returned subagent context" ;;
+  44) _fail "Windows subagents path did not trigger subagent context" ;;
+  45) _fail "PI_SUBAGENT_CHILD=1 did not trigger subagent context" ;;
+  46) _fail "empty arg + no env returned subagent context" ;;
   *)  _fail "subshell crashed (exit=$?)" ;;
 esac
 

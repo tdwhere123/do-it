@@ -121,6 +121,77 @@ jobs:
           npm exec --package . -- do-it setup --target=cursor
           HOME="$HOME" npm run doctor:cursor
 
+  pi-plugin:
+    name: Pi plugin (${{ matrix.os }}, Node 22.x)
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.x
+
+      - name: Install Pi package development dependencies
+        run: npm ci --prefix plugins/do-it-pi --ignore-scripts
+
+      - name: Require Git Bash for native Windows hook tests
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $bash = Join-Path $env:ProgramFiles "Git\bin\bash.exe"
+          if (-not (Test-Path $bash)) { throw "Git Bash is required at $bash" }
+          "DO_IT_BASH=$bash" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          & $bash --version
+          if ($LASTEXITCODE -ne 0) { throw "Git Bash failed to start" }
+
+      - name: Build Pi plugin
+        run: npm run build:pi-plugin
+
+      - name: Ensure generated Pi skills and hooks are committed
+        run: git diff --exit-code -- plugins/do-it-pi/skills plugins/do-it-pi/hooks
+
+      - name: Smoke local Pi installer on Unix
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          export HOME="${RUNNER_TEMP}/pi-installer-home"
+          export PI_CODING_AGENT_DIR="${HOME}/.pi/agent"
+          export PATH="${GITHUB_WORKSPACE}/plugins/do-it-pi/node_modules/.bin:${PATH}"
+          node scripts/install-pi-global.mjs
+          test -f "${PI_CODING_AGENT_DIR}/settings.json"
+
+      - name: Smoke local Pi installer through pi.cmd on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $homePath = Join-Path $env:RUNNER_TEMP "pi-installer-home"
+          $env:HOME = $homePath
+          $env:USERPROFILE = $homePath
+          $env:PI_CODING_AGENT_DIR = Join-Path $homePath ".pi\agent"
+          $binPath = Join-Path $env:GITHUB_WORKSPACE "plugins\do-it-pi\node_modules\.bin"
+          $env:PATH = "$binPath;$env:PATH"
+          node scripts/install-pi-global.mjs
+          if (-not (Test-Path (Join-Path $env:PI_CODING_AGENT_DIR "settings.json"))) {
+            throw "Pi installer did not write settings.json through pi.cmd"
+          }
+
+      - name: Typecheck and test Pi plugin
+        run: npm --prefix plugins/do-it-pi test
+
+      - name: Smoke independent Pi package without optional pi-subagents
+        env:
+          NPM_CONFIG_CACHE: ${{ runner.temp }}/npm-cache
+        run: node scripts/smoke-pi-package.mjs
+
   windows-smoke:
     name: Windows smoke (Node 22.x)
     runs-on: windows-latest

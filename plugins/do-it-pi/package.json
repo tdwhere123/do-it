@@ -1,0 +1,84 @@
+{
+  "name": "@tdwhere/do-it-pi",
+  "version": "0.14.1",
+  "description": "Pi coding agent adapter for do-it workflow hooks, skills, prompts, and optional package agents",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tdwhere123/do-it.git",
+    "directory": "plugins/do-it-pi"
+  },
+  "bugs": {
+    "url": "https://github.com/tdwhere123/do-it/issues"
+  },
+  "homepage": "https://github.com/tdwhere123/do-it/tree/main/plugins/do-it-pi#readme",
+  "keywords": [
+    "pi-package",
+    "pi",
+    "do-it",
+    "workflow",
+    "skills",
+    "subagents",
+    "developer-tools"
+  ],
+  "files": [
+    "LICENSE",
+    "README.md",
+    "extensions/",
+    "hooks/",
+    "skills/",
+    "agents/",
+    "docs/"
+  ],
+  "scripts": {
+    "build:test": "tsc -p tsconfig.test.json",
+    "pack:check": "npm pack --dry-run --json --ignore-scripts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build:test && node --test ../../tests/pi/*.test.mjs"
+  },
+  "pi": {
+    "extensions": [
+      "./extensions/index.ts"
+    ],
+    "skills": [
+      "./skills"
+    ],
+    "prompts": [
+      "./agents"
+    ],
+    "subagents": {
+      "agents": [
+        "./agents"
+      ]
+    }
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": ">=0.81.1 <1",
+    "pi-subagents": ">=0.35.1 <1"
+  },
+  "peerDependenciesMeta": {
+    "@earendil-works/pi-coding-agent": {
+      "optional": true
+    },
+    "pi-subagents": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@earendil-works/pi-agent-core": "^0.81.1",
+    "@earendil-works/pi-ai": "^0.81.1",
+    "@earendil-works/pi-coding-agent": "^0.81.1",
+    "@earendil-works/pi-tui": "^0.81.1",
+    "@types/node": "^22.15.0",
+    "pi-subagents": "^0.35.1",
+    "typebox": "^1.1.38",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

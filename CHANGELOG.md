@@ -2,6 +2,27 @@
 
 ## 0.14.1
 
+### Pi host adapter and npm delivery
+
+- **Pi package:** added independently publishable `@tdwhere/do-it-pi` with one
+  TypeScript extension, shared skills/hooks, prompt templates, and ten portable
+  package agents discovered under `do-it.*` names by optional `pi-subagents`.
+- **Lifecycle:** root sessions receive bootstrap/router/grill, write-quality
+  advice, and a soft next-turn verification reminder; child processes identified
+  by `PI_SUBAGENT_CHILD=1` receive only the bounded subagent stance.
+- **Runtime hardening:** ToolResult content remains structured; hook execution is
+  async, abortable, aggregate-output-bounded, and requests Unix process-group or
+  Windows `taskkill /T /F` tree termination. A bounded cleanup grace closes hook
+  pipes and reports unconfirmed descendant cleanup rather than waiting forever.
+  Bash discovery supports Git for Windows and an explicit `DO_IT_BASH` override.
+- **Mapping:** Scout handles reconnaissance; code-mapper uses bounded
+  trace/thorough closure with resumable frontiers instead of package-owned fixed
+  turn, tool, or timeout budgets.
+- **Packages:** release automation now verifies and publishes separate npm
+  artifacts for `@tdwhere/do-it`, `@tdwhere/do-it-opencode`, and
+  `@tdwhere/do-it-pi`; Linux and Windows CI exercise Pi build, discovery, hooks,
+  package contents, and optional-dependency degradation.
+
 ### Kimi Code host adapter
 
 - **Root plugin:** repository-root `kimi.plugin.json` installs via
@@ -90,7 +111,7 @@ quality; plugin marketplace is the primary install path on all four hosts.
 Eight installed skills (5 core + 3 extended):
 
 | Bucket | Skill |
-|---|---|
+| --- | --- |
 | Route | `do-it-router` |
 | Write defense | `do-it-code-quality` |
 | Review / repair | `do-it-review` |
@@ -105,7 +126,7 @@ No mandatory brainstorm → grill → plan → orch pipeline on Standard.
 ### Migration (old skill → new skill)
 
 | Old skill | New skill |
-|---|---|
+| --- | --- |
 | `do-it-grill` | `do-it-decide` |
 | `do-it-brainstorm` | `do-it-decide` |
 | `do-it-planning` | `do-it-decide` |
@@ -696,8 +717,8 @@ Agents reduced to **10** (from ~23). Retained set absorbs merged lenses:
 
 - Single-character CJK intent verbs (`做`, `改`, `加`, `写`, `修`, `审`,
   `搭`) from the default intent-verbs table.
-- ASCII whitespace hacks (`add `, ` add `, `test `, `should `, `could `,
-  `might `, `doc `) — replaced by word-boundary matching, which handles
+- ASCII whitespace hacks (`add`, ` add `, `test`, `should`, `could`,
+  `might`, `doc`) — replaced by word-boundary matching, which handles
   `address` / `prefix` / `released` correctly without manual padding.
 
 ### Migration

@@ -1,18 +1,19 @@
 # Harness Adapter Matrix
 
-do-it ships one **workflow kernel** (skills, hooks, agents) and five **host
+do-it ships one **workflow kernel** (skills, hooks, agents) and six **host
 adapters** that map the same advisory signals to each runtime's hook surface. Adapters are
 honest about capability gaps — we do not copy the full Claude hook stack onto
 every host.
 
-## Five Platforms
+## Six Platforms
 
 | Platform | Distribution | Hook depth | Notes |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **Codex** | marketplace-first; `do-it setup` optional/legacy | Full | Trust plugin hooks under `/hooks`; session state via plugin data or `CODEX_HOME/do-it-data` |
 | **Claude Code** | marketplace-first | Full | `${CLAUDE_PLUGIN_ROOT}` hooks; `${CLAUDE_PLUGIN_DATA}` session state |
 | **Cursor** | local / Team Import today; public listing pending | Medium | Official [marketplace](https://cursor.com/marketplace) exists; **do-it not listed yet**. No Claude `/plugin` commands. |
-| **OpenCode** | global vendor / package-name registration today; npm publication pending | Medium | TS plugin: transform bootstrap; `tool.execute.after`; `session.idle` soft reminder |
+| **OpenCode** | independent `@tdwhere/do-it-opencode` npm package; global vendor fallback | Medium | TS plugin: transform bootstrap; `tool.execute.after`; `session.idle` soft reminder |
+| **Pi** | independent `@tdwhere/do-it-pi` package or local path | Medium | TS extension events; skills/prompts always available; namespaced `do-it.*` agents require optional `pi-subagents` |
 | **Kimi Code** | repo-root plugin via `/plugins install` (per-user) | Full-minus-subagent | `kimi.plugin.json` at repo root — no build step. No custom subagents: agents not shipped, `subagent-stance` unwired |
 
 Workflow logic lives once in `skills/do-it/` and `hooks/`. Host-specific install
@@ -27,7 +28,7 @@ dimensions (`dim_*`) narrow intensity without changing it. Direct user intent
 and model judgment take precedence over router labels.
 
 | Tier | Router output | write-quality-lint | grill-prompt | Completion reminder |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | **Light** | state-only, quiet | skipped | skipped | advisory only when relevant |
 | **Standard** | state + compact advisory stance | when `dim_touches_code=1` or ≥5 added lines | skipped (Heavy-only) | advisory only when relevant |
 | **Heavy** | state-only | always (advisory) | full grill body when warranted | advisory only when relevant |
@@ -37,14 +38,14 @@ Subagent contexts skip write-quality-lint (parent owns integration).
 
 ## Hook Mapping
 
-| Signal | Script | Codex / Claude | Cursor | OpenCode | Kimi Code |
-|---|---|---|---|---|---|
-| Opt-in feedback capture | `behavior-feedback.sh` | `UserPromptSubmit` plus narrow `UserPromptExpansion`, silent and default off | `beforeSubmitPrompt`, silent and default off | `chat.message`, silent and default off; only a confirmed root session is eligible | `UserPromptSubmit`, silent and default off |
-| Classify prompt | `router.sh` | `UserPromptSubmit` | `beforeSubmitPrompt` | `chat.message` | `UserPromptSubmit` |
-| Grill nudge (Heavy) | `grill-prompt.sh` | `UserPromptSubmit` | `beforeSubmitPrompt` | `chat.message` (Heavy/explicit, advisory) | `UserPromptSubmit` (Heavy/explicit, advisory) |
-| Subagent stance | `subagent-stance.sh` | `UserPromptSubmit` | `beforeSubmitPrompt` | bootstrap guidance only | not wired — Subagent events carry empty `session_id` |
-| Write-time quality | `write-quality-lint.sh` | `PostToolUse` (Edit\|Write\|MultiEdit\|NotebookEdit) | `postToolUse` / `afterFileEdit` | `tool.execute.after` (bash bridge) | `PostToolUse` (Edit\|Write — the only Kimi edit tools) |
-| Done claim | `verification-gate.sh` | `Stop` | `stop` | `session.idle` soft reminder from serialized host messages | `Stop`; transcript read from session `wire.jsonl` (no `transcript_path` on this host) |
+| Signal | Script | Codex / Claude | Cursor | OpenCode | Pi | Kimi Code |
+| --- | --- | --- | --- | --- | --- | --- |
+| Opt-in feedback capture | `behavior-feedback.sh` | `UserPromptSubmit` plus narrow `UserPromptExpansion`, silent and default off | `beforeSubmitPrompt`, silent and default off | `chat.message`, silent and default off; only a confirmed root session is eligible | not wired | `UserPromptSubmit`, silent and default off |
+| Classify prompt | `router.sh` | `UserPromptSubmit` | `beforeSubmitPrompt` | `chat.message` | root `before_agent_start` | `UserPromptSubmit` |
+| Grill nudge (Heavy) | `grill-prompt.sh` | `UserPromptSubmit` | `beforeSubmitPrompt` | `chat.message` (Heavy/explicit, advisory) | root `before_agent_start` (Heavy/explicit, advisory) | `UserPromptSubmit` (Heavy/explicit, advisory) |
+| Subagent stance | `subagent-stance.sh` | `UserPromptSubmit` | `beforeSubmitPrompt` | bootstrap guidance only | child `before_agent_start` when `PI_SUBAGENT_CHILD=1` | not wired — Subagent events carry empty `session_id` |
+| Write-time quality | `write-quality-lint.sh` | `PostToolUse` (Edit\|Write\|MultiEdit\|NotebookEdit) | `postToolUse` / `afterFileEdit` | `tool.execute.after` (bash bridge) | root `tool_result` (`edit`/`write`) | `PostToolUse` (Edit\|Write — the only Kimi edit tools) |
+| Done claim | `verification-gate.sh` | `Stop` | `stop` | `session.idle` soft reminder from serialized host messages | root `agent_end` capture + `agent_settled` reminder on the next turn | `Stop`; transcript read from session `wire.jsonl` (no `transcript_path` on this host) |
 
 Legacy `comments-lint.sh` and `anti-patterns-lint.sh` exec into
 `write-quality-lint.sh`; new installs register only the merged script.
@@ -65,7 +66,7 @@ they must not be described as hard confirmation.
   requests a true host confirmation; `deny` stops those named commands. It is
   not a universal network or MCP guard. See
   [`strict-external-actions.md`](strict-external-actions.md).
-- Cursor and OpenCode keep the same advisory workflow contract; configure
+- Cursor, OpenCode, and Pi keep the same advisory workflow contract; configure
   their native permissions separately when an operation needs enforcement.
 - Kimi Code keeps the same advisory contract: do-it hooks always exit 0 and
   only add context (`PreToolUse`/`Stop` can block on this host, but no do-it
@@ -77,6 +78,7 @@ Per-host install paths and tool mapping:
 [`host-claude.md`](../skills/do-it/references/host-claude.md),
 [`host-cursor.md`](../skills/do-it/references/host-cursor.md),
 [`host-opencode.md`](../skills/do-it/references/host-opencode.md),
+[`host-pi.md`](../skills/do-it/references/host-pi.md),
 [`host-kimi.md`](../skills/do-it/references/host-kimi.md).
 
 ## Quality Evidence Ladder
@@ -92,7 +94,7 @@ L3  do-it-verify closeout       →  claim-specific evidence rollup; `NOT_VERIFI
 ```
 
 | Layer | Owner | Blocks write? | Blocks done claim? |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | L0 `write-quality-lint` | hook | No | No |
 | L1 `do-it-review` | skill / subagent | No | No — unresolved findings shape the final claim |
 | L2 `verification-gate` | hook | No | No — advisory reminder only |
@@ -103,11 +105,11 @@ Family definitions and suppress syntax:
 
 ## Hook Token Budget
 
-UserPromptSubmit (and Cursor `beforeSubmitPrompt`) injection is the main
-recurring token cost. Targets after simplification:
+UserPromptSubmit (plus Cursor `beforeSubmitPrompt` and Pi
+`before_agent_start`) injection is the main recurring token cost. Targets after simplification:
 
 | Component | Standard turn target | When skipped |
-|---|---|---|
+| --- | --- | --- |
 | `behavior-feedback.sh` | 0 tokens; no stdout/context | disabled by default; ordinary prompts and unverified child sessions |
 | `router.sh` | one compact advisory line on Standard | Light and Heavy |
 | `grill-prompt.sh` | 0 unless Heavy or explicit | Light; Standard without an explicit grill |

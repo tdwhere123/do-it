@@ -1,0 +1,31 @@
+# Heavy signals — promote to Heavy tier (overrides Standard/Light).
+# Format: see hooks/data/SCHEMA.md.
+
+wave
+phase
+公共接口
+公开接口
+公开 api
+api 改
+api 变
+schema
+协议
+多包
+跨包
+架构
+边界
+依赖方向
+循环依赖
+发布
+release
+migration
+迁移
+breaking change
+不兼容
+数据库
+db schema
+升版
+入口
+across packages
+api change
+schema change

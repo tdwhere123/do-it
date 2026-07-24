@@ -1,14 +1,25 @@
 {
   "name": "@tdwhere/do-it-opencode",
   "version": "0.14.1",
-  "description": "OpenCode adapter for do-it workflow hooks and skills",
+  "description": "OpenCode adapter for do-it workflow hooks, skills, and agents",
   "type": "module",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tdwhere123/do-it.git",
+    "directory": "plugins/do-it-opencode"
+  },
+  "bugs": {
+    "url": "https://github.com/tdwhere123/do-it/issues"
+  },
+  "homepage": "https://github.com/tdwhere123/do-it/tree/main/plugins/do-it-opencode#readme",
   "main": "./dist/index.js",
   "exports": {
     ".": "./dist/index.js"
   },
   "files": [
+    "LICENSE",
+    "README.md",
     "dist/",
     "hooks/",
     "skills/",
@@ -24,6 +35,9 @@
     "typescript": "^5.8.3"
   },
   "engines": {
-    "node": ">=18"
+    "node": "^22.22.2 || ^24.15.0 || >=26.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

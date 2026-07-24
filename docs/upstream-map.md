@@ -3,7 +3,7 @@
 This file records where do-it deliberately absorbs outside workflow ideas. It is
 not an install manifest; `manifest.json` is the install source of truth.
 
-The source version `0.14.0` defines nine user/runnable do-it-native skill names
+The source version `0.14.1` defines nine user/runnable do-it-native skill names
 plus one generated discovery entry; this is version metadata, not a publication
 claim. The skills are meaning buckets (see the migration table in
 [`CHANGELOG.md`](../CHANGELOG.md)).
@@ -17,7 +17,7 @@ were not absorbed from get no rows.
 ## Installed Skills
 
 | Installed Skill | Role | Rewrite Notes |
-|---|---|---|
+| --- | --- | --- |
 | `do-it-router` | front door and three-tier route selection | Absorbs strict skill-selection discipline, task sizing, and parent coordination. Meaning buckets are self-selected — no mandatory chain. |
 | `do-it-code-quality` | write defense (main line) | Absorbs TDD, debugging, comments discipline, deep-module / seam vocabulary, interface/architecture contract checks, and worktree isolation into one write-time skill. |
 | `do-it-decide` | pressure-test, diverge, plan, slice | Absorbs grill, brainstorm, planning, and slicing. Standard stays lean; Heavy raises scrutiny when it helps. |
@@ -40,7 +40,7 @@ The do-it skills are rewrites, not vendored copies. Useful ideas from
 `mattpocock/skills` are mapped this way:
 
 | Source Idea | do-it Destination | Absorbed Shape |
-|---|---|---|
+| --- | --- | --- |
 | `to-spec` | `do-it-decide` | Current-context synthesis, module/test decisions, non-goals, and acceptance criteria. |
 | `to-tickets` | `do-it-decide` | Tracer-bullet vertical slices, HITL/AFK split, dependency order. |
 | `grill-me`, `zoom-out` (deleted upstream; kept as historical) | `do-it-decide` | Decision-tree interview, recommended answers, and codebase exploration instead of asking answerable questions. |
@@ -68,7 +68,7 @@ Useful ideas from `addyosmani/agent-skills` are absorbed as method rewrites,
 not as installed skill names or vendored text:
 
 | Source Idea | do-it Destination | Absorbed Shape |
-|---|---|---|
+| --- | --- | --- |
 | Skill anatomy: frontmatter, overview, trigger, workflow, rationalizations, red flags, verification | `do-it-skill-authoring` | Minimum skill anatomy for do-it-native skills. |
 | Process over prose and progressive disclosure | All `skills/do-it/*/SKILL.md` | Skills stay operational and token-conscious. |
 | Anti-rationalization tables | Core workflow skills | Common excuses rewritten as do-it-native red flags or review rules. |
@@ -88,7 +88,7 @@ Useful ideas from `gsd-build/get-shit-done` and `gsd-build/gsd-2` are absorbed
 as do-it-native decision support, not as a replacement state machine:
 
 | Source Idea | do-it Destination | Absorbed Shape |
-|---|---|---|
+| --- | --- | --- |
 | Discuss-phase captures implementation decisions before planning | `do-it-decide` | Diverge briefly, pressure-test load-bearing premises, write shortest useful plan. |
 | Assumptions discussion mode | `do-it-decide` | Read repo truth first; ask only when preference gates the route. |
 | Decision coverage | `do-it-decide`, `do-it-review`, `spec-compliance-reviewer` | Requirements and decisions trace into a plan slice, delivered surface, or explicit deferral when that coverage matters. |
@@ -97,10 +97,10 @@ as do-it-native decision support, not as a replacement state machine:
 
 ## Installed Agents
 
-Ten agents after `0.14.0` merges:
+Ten agents in `0.14.1`:
 
 | Agent | do-it Role | Notes |
-|---|---|---|
+| --- | --- | --- |
 | `architecture-strategist` | decide / architecture lens | Maps foundation, extension modules, boundaries, and verification route. |
 | `product-strategist` | decide / product lens | Maps product boundary, core goal, requirement shape, and option tradeoffs. |
 | `plan-challenger` | decide / grill sub-lens | Challenges assumptions, scope, acceptance criteria, and route sizing. |
@@ -120,7 +120,7 @@ retained set or retired from the default install.
 
 - Host-native delivery is primary: Codex and Claude Code are marketplace-first;
   Cursor uses local copy / Team Import while public listing is pending; OpenCode
-  uses local `opencode.json` registration while npm publication is pending.
+  and Pi ship independent npm packages with local or vendored fallbacks.
   Optional CLI `do-it setup` remains for managed doctor / migration.
 - Each host should reuse the same do-it roles and translate only mechanics:
   skill invocation, subagent dispatch, file tools, sandbox controls, and

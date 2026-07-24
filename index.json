@@ -129,7 +129,7 @@
     {
       "kind": "agent",
       "name": "code-mapper",
-      "description": "Use when an unfamiliar or risky change needs a compact, read-only map of the smallest owning path, branch points, and unknowns.",
+      "description": "Use when quick reconnaissance is complete and an unfamiliar or risky bounded scope needs a read-only trace or thorough map of ownership, contracts, consumers, and unknowns.",
       "origin": "do-it",
       "optional": false,
       "source": "agents/code-mapper.toml",

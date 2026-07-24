@@ -10,16 +10,19 @@ OpenCode loads plugins from the `"plugin"` array in project `opencode.json` or
 `~/.config/opencode/plugins/`. See
 [opencode.ai/docs/plugins](https://opencode.ai/docs/plugins).
 
-### Global install (recommended today)
-
-Until `@tdwhere/do-it-opencode` is on npm, vendor a built copy into OpenCode's
-config home — do **not** point `"plugin"` at a do-it git checkout for daily use.
+### npm package (recommended)
 
 ```bash
-npm run install:opencode-global
+opencode plugin @tdwhere/do-it-opencode -g
 ```
 
-That registers `@tdwhere/do-it-opencode` via
+### Global vendored fallback
+
+For checkout development or registry outages, `npm run install:opencode-global`
+vendors a built copy into OpenCode's config home. Do **not** point `"plugin"` at
+a do-it git checkout for daily use.
+
+That fallback registers `@tdwhere/do-it-opencode` via
 `~/.config/opencode/vendor/do-it-opencode` + `package.json` `file:` dependency:
 
 ```json
@@ -34,16 +37,6 @@ That registers `@tdwhere/do-it-opencode` via
 
 Restart OpenCode after install. Details:
 [`plugins/do-it-opencode/docs/README.opencode.md`](../../../plugins/do-it-opencode/docs/README.opencode.md).
-
-### npm package (when published)
-
-When `@tdwhere/do-it-opencode` is published:
-
-```bash
-opencode plugin @tdwhere/do-it-opencode -g
-```
-
-That package is **not on npm yet**.
 
 ### Dev checkout path (optional)
 
@@ -66,7 +59,7 @@ npm run test-opencode
 **Medium** — event mapping differs from Claude/Codex; no `grill-pretool`:
 
 | OpenCode event | Kernel script | Notes |
-|---|---|---|
+| --- | --- | --- |
 | `experimental.chat.messages.transform` | cached bootstrap | stable host guidance and skills index |
 | `chat.message` (default off) | `behavior-feedback.sh` | silent local feedback capture for a confirmed root session only; parentage uncertainty skips capture |
 | `chat.message` | `router.sh`, `grill-prompt.sh` | classifier every message; grill only Heavy or explicit and always advisory |
@@ -80,7 +73,7 @@ hosts, but idle verification cannot interrupt completion and must not be describ
 ## Tool Mapping
 
 | do-it intent | OpenCode surface |
-|---|---|
+| --- | --- |
 | Read / inspect | plugin file API / host read tool |
 | Edit | host `edit` / write tool |
 | Verify | terminal / exec |

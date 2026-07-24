@@ -3,6 +3,8 @@
 .do-it-data/
 .claude/
 .codex/
+.pi-subagents/
+
 # Ignore generated dist, but keep Claude agent markdown for marketplace git installs
 # (parent dirs must be un-ignored before children — git rule).
 /dist/*
@@ -14,3 +16,5 @@
 !/dist/claude/skills/**
 node_modules/
 plugins/do-it-opencode/node_modules/
+plugins/do-it-pi/node_modules/
+plugins/do-it-pi/.test-dist/

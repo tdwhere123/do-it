@@ -1,0 +1,13 @@
+# Escape words — disable router/grill/gate for the current turn.
+# Format: see hooks/data/SCHEMA.md.
+# Partial skip targets (skip grill / router / gate) are parsed in common.sh;
+# do not list them here or they become full escapes.
+
+直接做
+我已经想清楚
+yolo
+just do it
+skip do-it
+随便聊
+先聊聊
+just thinking

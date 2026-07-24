@@ -601,10 +601,11 @@ do_it_prompt_has_escape() {
 # tokens. Returns 0 when in a subagent context, 1 otherwise.
 #
 # Signal sources (any one is sufficient):
+#   - PI_SUBAGENT_CHILD=1 (pi-subagents child-process contract)
 #   - CLAUDE_AGENT_CONTEXT non-empty
 #   - CLAUDE_SUBAGENT non-empty
 #   - explicit transcript_path argument contains an `/agents/` or `/subagents/`
-#     segment
+#     segment after normalizing Windows separators
 #     (the host actually delivers transcript_path on stdin JSON, not as an
 #     env var; callers should read it from the JSON payload and pass it
 #     here)
@@ -615,19 +616,25 @@ do_it_prompt_has_escape() {
 # Args: [transcript_path] (optional). When omitted, only env signals fire.
 do_it_in_subagent_context() {
   local tp_arg="${1:-}"
+  local tp_normalized="${tp_arg//\\//}"
+  local env_tp_normalized="${transcript_path:-}"
+  env_tp_normalized="${env_tp_normalized//\\//}"
+  if [[ "${PI_SUBAGENT_CHILD:-}" == "1" ]]; then
+    return 0
+  fi
   if [[ -n "${CLAUDE_AGENT_CONTEXT:-}" ]]; then
     return 0
   fi
   if [[ -n "${CLAUDE_SUBAGENT:-}" ]]; then
     return 0
   fi
-  if [[ -n "$tp_arg" && ( "$tp_arg" == *"/agents/"* || "$tp_arg" == *"/subagents/"* ) ]]; then
+  if [[ -n "$tp_normalized" && ( "$tp_normalized" == *"/agents/"* || "$tp_normalized" == *"/subagents/"* ) ]]; then
     return 0
   fi
   # Best-effort env fallback. Host is not contractually required to export
   # transcript_path; this branch only fires if the surrounding shell
   # happened to set it.
-  if [[ -n "${transcript_path:-}" && ( "${transcript_path}" == *"/agents/"* || "${transcript_path}" == *"/subagents/"* ) ]]; then
+  if [[ -n "$env_tp_normalized" && ( "$env_tp_normalized" == *"/agents/"* || "$env_tp_normalized" == *"/subagents/"* ) ]]; then
     return 0
   fi
   if [[ -n "${CURSOR_SUBAGENT:-}" || -n "${CURSOR_AGENT_CONTEXT:-}" ]]; then

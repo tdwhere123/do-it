@@ -1,0 +1,28 @@
+# Uncertainty words — trigger grill #2 (premise pressure-test).
+# Format: see hooks/data/SCHEMA.md.
+#
+# 0.5.0: ASCII trailing-ws hacks dropped — word-boundary matching handles them.
+
+我想
+我觉得
+我希望
+应该
+大概
+可能
+也许
+或许
+是不是
+能不能
+要不要
+估计
+似乎
+i think
+maybe
+perhaps
+should
+probably
+could
+might
+wondering
+not sure
+i guess

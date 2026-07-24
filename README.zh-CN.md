@@ -9,7 +9,7 @@
 > 不要再要求 AI agent 记住流程。把流程装进去。
 
 `do-it` 把 AI 编程协作里的工程纪律变成 **Codex**、**Claude Code**、**Cursor**、
-**OpenCode** 和 **Kimi Code** 可安装的工作流：按风险给出建议、提供可选的子智能体专长，并让
+**OpenCode**、**Pi** 和 **Kimi Code** 可安装的工作流：按风险给出建议、提供可选的子智能体专长，并让
 完成声明绑定新鲜、与声明相关的证据。
 
 这是我自己每天真实使用的工作流，用在实际项目里。如果它适合你的习惯，可以直接
@@ -29,7 +29,7 @@ agent 动手之前，router 会给任务一个建议性的 `Light`、`Standard` 
 - `Heavy`：发布、架构调整、跨模块策略、公开工作流变化，或不可逆收口——仅在会改变路线时压测前提或加载决策能力。
 
 | 分桶 | Skill | 时机 |
-|---|---|---|
+| --- | --- | --- |
 | 写码主防线 | `do-it-code-quality` | 改代码时——范围、TDD、调试、契约 |
 | 决策 | `do-it-decide` | 选项不清、承重前提、需要 durable plan |
 | 审查 | `do-it-review` | 交付 diff 需要审视与修复 |
@@ -89,12 +89,12 @@ Claude 另有默认关闭、仅覆盖具名高风险命令的可选 `ask` profil
 ## 安装（插件优先）
 
 交付方式按宿主区分：Codex 与 Claude Code **marketplace 优先**；Cursor
-目前走**本地拷贝或 Team Import，公开上架待完成**；OpenCode 目前走**本地
-`opencode.json` 注册，npm 发布待完成**；Kimi Code 则**直接把仓库根当作插件**
+目前走**本地拷贝或 Team Import，公开上架待完成**；OpenCode 与 Pi 使用
+**独立 npm 包**；Kimi Code 则**直接把仓库根当作插件**
 （`kimi.plugin.json`），无需构建。插件包同时携带 skills、agents 和 hooks。
 
 | 真相平面 | 本仓库可以声明的内容 |
-|---|---|
+| --- | --- |
 | 源码 / 包元数据 | 当前 checkout 声明 `0.14.1`、9 个用户可运行 skill + 1 个生成式发现入口、10 个 agent。 |
 | Git tag | 当前 checkout 没有对应的 `v0.14.1` tag；版本元数据不等于发布 tag。 |
 | Marketplace / npm | 文档可以记录坐标与未来发布路径，但元数据本身不能证明已经公开上架或发布到 registry。 |
@@ -136,10 +136,12 @@ Codex plugin bundle 位于 `plugins/do-it/`（由 `manifest.json` 生成）：
 Cursor **有**官方公开市场（[cursor.com/marketplace](https://cursor.com/marketplace)），但 **`do-it` 目前尚未上架**。在提交并通过审核前，请用：
 
 1. **本地（今日推荐）：**
+
    ```bash
    npm run build:cursor-plugin
    node scripts/install-cursor-local.mjs
    ```
+
    然后 **Developer: Reload Window**。脚本会把插件**真实拷贝**到
    `~/.cursor/plugins/local/do-it-cursor`（Cursor **拒绝**指向 `local/` 外的
    symlink），并**合并** do-it 条目到用户级 `~/.cursor/hooks.json`（当前
@@ -165,25 +167,44 @@ Cursor 装 **完整 9 个 skill**（`do-it-router`、`do-it-code-quality`、`do-
 
 ### OpenCode
 
-OpenCode 从 `opencode.json` 的 `"plugin"` 数组加载插件。**当前以全局 vendor
-安装为主**（不要把日常宿主指到 git checkout）：
+OpenCode 从 `opencode.json` 的 `"plugin"` 数组加载插件。确认
+`npm view @tdwhere/do-it-opencode@0.14.1 version` 成功后，再安装独立 npm 包：
 
 ```bash
-npm run install:opencode-global
+opencode plugin @tdwhere/do-it-opencode -g
 ```
 
-会构建插件、拷到 `~/.config/opencode/vendor/do-it-opencode`，并在全局配置里注册
-`@tdwhere/do-it-opencode`（详见
-[`plugins/do-it-opencode/docs/README.opencode.md`](./plugins/do-it-opencode/docs/README.opencode.md)）。
-安装后重启 OpenCode。
-
-`@tdwhere/do-it-opencode` 发布到 npm 后，优先用
-`opencode plugin @tdwhere/do-it-opencode -g`（或在 `"plugin"` 里写包名）。
-仓库绝对路径仅作 **开发调试**。
+registry 尚未发布、checkout 开发或 registry 故障时，可用
+`npm run install:opencode-global` 构建并
+vendor 到 OpenCode 配置目录。日常宿主不要直接指向可变的 git checkout。详见
+[`plugins/do-it-opencode/docs/README.opencode.md`](./plugins/do-it-opencode/docs/README.opencode.md)。
 
 ```bash
 npm run test-opencode
 ```
+
+### Pi
+
+确认 `npm view @tdwhere/do-it-pi@0.14.1 version` 成功后，再安装独立的 Pi npm 包：
+
+```bash
+pi install npm:@tdwhere/do-it-pi
+```
+
+registry 尚未发布或开发该包时可使用本地 checkout：运行
+`npm run install:pi-global`，然后在 Pi 中执行
+`/reload`。核心 extension、skills 与 prompt templates 不依赖额外包。若要运行
+十个带命名空间的 package agents（例如 `do-it.code-mapper`、
+`do-it.reviewer`），再单独安装：
+
+```bash
+pi install npm:pi-subagents
+```
+
+用 `/do-it-status` 检查 Bash、Windows Git Bash、hook 诊断和可选 package-agent
+运行时。构建与独立打包验证使用 `npm run test-pi` 和
+`npm run smoke:pi-package`。详见
+[`plugins/do-it-pi/README.md`](./plugins/do-it-pi/README.md)。
 
 ### Kimi Code
 
@@ -242,7 +263,7 @@ do-it doctor
 可运行 skill 矩阵（分层见 `scripts/skill-tiers.mjs`）：
 
 | Host | 用户可运行 skill | 发现元数据 | Agent |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Codex / Claude / Cursor / OpenCode | 9 个 — 5 核心 + 4 扩展 | 1 个生成式 `_index.md` 入口（不是第十个 skill） | 10 个 |
 | Kimi Code | 9 个 — 5 核心 + 4 扩展 | 宿主原生发现（无生成式索引） | 0 — 无自定义子智能体 |
 
@@ -392,7 +413,7 @@ package.json     npm 包元数据和 CLI scripts
 ### 含义分桶（不是仪式链）
 
 | 分桶 | 技能 | 作用 |
-|---|---|---|
+| --- | --- | --- |
 | 路由 | `do-it-router` | 选 Light / Standard / Heavy；点名要加载或跳过的分桶 |
 | 写时 | `do-it-code-quality` | 前提、爆炸半径、深模块、TDD、调试、契约 |
 | 决策 | `do-it-decide` | 压测、发散、最短计划、大任务切片 |
@@ -408,7 +429,7 @@ package.json     npm 包元数据和 CLI scripts
 ### Hooks（质量，不是演戏）
 
 | Hook | 行为 |
-|---|---|
+| --- | --- |
 | `behavior-feedback` | 默认关闭；只静默记录去敏后的明确行为反馈，供用户手动出报告 |
 | `router` | 写入建议性 tier + 正交 DIM 信号；用户直接意图优先 |
 | `grill-prompt` | **仅 Heavy 或显式 grill** — Standard 保持安静 |
@@ -421,7 +442,7 @@ hook 决定。
 
 ### 安装真相
 
-Codex 与 Claude marketplace 优先；Cursor 在公开上架前使用本地拷贝 / Team Import；OpenCode 在确认 npm 发布前使用本地 `opencode.json` 注册；Kimi Code 通过 `/plugins install` 安装仓库根插件（per-user）。可选的 `do-it setup` 只用于受管 CLI doctor / 迁移 / 临时 HOME 冒烟——宿主插件安装与旧版/受管拷贝二选一，不要双装。
+Codex 与 Claude marketplace 优先；Cursor 在公开上架前使用本地拷贝 / Team Import。OpenCode 与 Pi 都有独立 npm 包坐标，但只有 registry 查询成功才能证明具体版本已发布；OpenCode 保留配置目录内的 vendored fallback，Pi 保留本地 package-path 安装。Kimi Code 通过 `/plugins install` 安装仓库根插件（per-user）。可选的 `do-it setup` 只用于受管 CLI doctor / 迁移 / 临时 HOME 冒烟——宿主插件安装与旧版/受管拷贝二选一，不要双装。
 
 Cursor CLI setup 只写 `~/.cursor`（不再写 `~/.claude`）。
 

@@ -10,8 +10,9 @@ Working rule:
 
 1. Edit the maintained repository copy.
 2. Use the host's current path: marketplace-first for Codex / Claude, local copy
-   or Team Import for Cursor while public listing is pending, and local
-   `opencode.json` registration for OpenCode while npm publication is pending.
+   or Team Import for Cursor while public listing is pending, and the independent
+   OpenCode npm package with the vendored config-home fallback. Treat registry
+   availability as unverified until `npm view` succeeds.
 3. Use `do-it setup` only for managed CLI doctor / migration. Ordinary `doctor`
    verifies that managed state; it does not verify Cursor's standalone local-copy
    installer or OpenCode registration.
@@ -42,7 +43,7 @@ managed CLI setup for doctor and migration. Keep docs honest:
 
 - use marketplace-first language for Codex and Claude Code
 - describe Cursor as local copy / Team Import until its public listing is verified
-- describe OpenCode as local `opencode.json` registration until npm publication is verified
+- describe OpenCode as an independent npm package plus vendored fallback; label registry availability unverified until `npm view` succeeds
 - demote `do-it setup` / GitHub tarball + setup to optional/legacy
 - mention `npm install -g @tdwhere/do-it` only as the registry path after
   registry publication is verified
@@ -105,12 +106,13 @@ plugin metadata, and Hooks UI inspection after reload.
 ## Host Capability Matrix
 
 | Host surface | Skills | Agents | Commands | Hooks | Doctor | Verification command |
-|---|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- | --- |
 | Codex plugin marketplace | Generated under `plugins/do-it/skills/` | Generated under `plugins/do-it/agents/` | None | Plugin hooks (trust under `/hooks`) | Optional via CLI | `npm run build:codex-plugin` and `CODEX_HOME=/tmp/do-it-plugin-test codex plugin marketplace add /path/to/do-it` then `codex plugin add do-it@tdwhere-do-it` |
 | Codex CLI setup (legacy) | Managed from `manifest.json` | Bundled Codex agents stay plugin-owned; `installAgents=false` preserves user `~/.codex/agents` | CLI `do-it` | Root `hooks.json` plus do-it-managed files under `hooks/` | Default target | `CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it setup` |
 | Claude Code plugin | Same maintained `skills/do-it/` source | Generated Markdown under `dist/claude/agents/` | `commands/` | Do-it-managed files under `hooks/`, including `hooks/hooks.json` | `--target=claude` | `CLAUDE_PLUGIN_ROOT_OVERRIDE=/tmp/do-it-claude-test npm exec --package . -- do-it setup --target=claude` |
 | Cursor local / Team Import (public listing pending) | Full 9 from `ALL_SKILLS` under `plugins/do-it-cursor/skills/` plus generated discovery/reference files | Generated under `plugins/do-it-cursor/agents/` | None | Medium: `sessionStart`, default-off feedback capture + router/grill/stance at `beforeSubmitPrompt`, `postToolUse`/`afterFileEdit`, advisory completion reminder (no `grill-pretool`) | Managed CLI setup only: `--target=cursor`; not standalone local copy | `npm run install:cursor-local`, Reload Window, inspect exact directory + Hooks UI; or `do-it setup --target=cursor` for managed doctor |
-| OpenCode local registration (npm publication pending) | Generated under `plugins/do-it-opencode/skills/` | Generated under `plugins/do-it-opencode/agents/` | None | Medium-Light: transform bootstrap, `tool.execute.after`, `session.idle` soft reminder | No CLI doctor | `npm run install:opencode-global` (vendors under `~/.config/opencode`); or `npm run build:opencode-plugin && npm run test-opencode` for checkout-only proof |
+| OpenCode npm package / global vendored fallback | Generated under `plugins/do-it-opencode/skills/` | Generated under `plugins/do-it-opencode/agents/` | None | Medium-Light: transform bootstrap, `tool.execute.after`, `session.idle` soft reminder | No CLI doctor | Exact pack + `npm run smoke:package -- <opencode.tgz>`; `npm run install:opencode-global` verifies the config-home fallback |
+| Pi npm package | Generated under `plugins/do-it-pi/skills/` | Ten portable `do-it.*` agents through optional `pi-subagents`; prompt templates remain available without it | Prompt templates | Medium: root router/grill, root write advice, soft next-turn verification; child stance only | `/do-it-status` reports Bash, hook diagnostics, and `subagent` tool registration—not agent discovery | Exact pack + `node scripts/smoke-pi-package.mjs <pi.tgz>` exercises the real Pi loader; live package-agent discovery remains a separate `pi-subagents` check |
 
 ## Safe Cleanup Runbook
 
@@ -119,12 +121,13 @@ never delete an entire `~/.codex`, `~/.claude`, `~/.cursor`, `~/.kimi-code`,
 project config, or plugin directory tree just to remove do-it.
 
 | Host / install path | Safe cleanup |
-|---|---|
+| --- | --- |
 | Codex marketplace | Remove only `do-it@tdwhere-do-it` through Codex's plugin manager. Keep the marketplace registration if other plugins use it; otherwise remove only the `tdwhere-do-it` registration through that manager. Inspect `/hooks` afterward. Do not recursively delete `CODEX_HOME`. |
 | Claude Code marketplace | Remove only `do-it@do-it` through `/plugin` management. Remove the marketplace registration only when no other installed entry depends on it. Do not recursively delete `~/.claude`. |
 | Cursor local copy | Close Cursor, back up `~/.cursor/hooks.json`, remove only hook objects whose `command` path contains `do-it-cursor/hooks/`, and then remove exactly `~/.cursor/plugins/local/do-it-cursor`. On native Windows use the corresponding `%USERPROFILE%\.cursor\...` paths; on WSL clean only the caller's mirrored profile. Reload and confirm the do-it entries disappeared while unrelated hooks remain. |
 | Cursor Team Import | Remove the imported do-it plugin in the Team dashboard. If a local copy was also installed, clean it separately with the preceding row; do not delete all team plugins. |
 | OpenCode local registration | Back up the applicable project or user `opencode.json`, remove only the do-it absolute-path entry from its `"plugin"` array, restart OpenCode, and confirm unrelated entries still load. Do not delete the project config or the checkout. |
+| Pi package | Use `pi remove` with the exact local or `npm:@tdwhere/do-it-pi` package source, then `/reload`. Remove only `~/.pi/agent/do-it-data/` if its session state is no longer needed. `pi-subagents` is independent; do not remove it when other package agents use it. |
 | Kimi Code plugin | `/plugins remove do-it` (deletes the install record only). The managed copy stays on disk by host design: remove exactly `$KIMI_CODE_HOME/plugins/managed/do-it/` by hand, then `/reload`. Session state under `$KIMI_CODE_HOME/do-it-data/` is do-it-owned and safe to delete. Do not delete the whole `~/.kimi-code`. |
 | Managed CLI setup | There is no broad uninstall command. Use the target's `.do-it-install-state*.json` as an ownership inventory and remove only entries proven do-it-managed; preserve unmarked/user-owned files. Prefer testing and abandoning a temporary home over manually cleaning a shared live home. |
 

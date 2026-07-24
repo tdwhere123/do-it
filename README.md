@@ -9,7 +9,7 @@
 > Stop asking AI agents to remember process. Install it.
 
 `do-it` turns AI coding discipline into an installable workflow for **Codex**,
-**Claude Code**, **Cursor**, **OpenCode**, and **Kimi Code**. It gives work an
+**Claude Code**, **Cursor**, **OpenCode**, **Pi**, and **Kimi Code**. It gives work an
 advisory risk
 label, offers optional sub-agent expertise, and keeps completion claims tied to
 fresh, claim-specific evidence.
@@ -35,7 +35,7 @@ classification.
   a decision capability when it would change the route.
 
 | Bucket | Skill | When |
-|---|---|---|
+| --- | --- | --- |
 | Write defense | `do-it-code-quality` | Editing code — scope, TDD, debugging, contracts |
 | Decide | `do-it-decide` | Options unclear, load-bearing premises, durable plan |
 | Review | `do-it-review` | Delivered diff needs scrutiny and repair |
@@ -113,12 +113,12 @@ security, and accessibility stay in.
 
 Delivery is host-specific. Codex and Claude Code are **marketplace-first**;
 Cursor is **local copy or Team Import today, with public listing pending**;
-OpenCode is **local `opencode.json` registration today, with npm publication
-pending**; and Kimi Code reads the **repository root as the plugin** — no build
+OpenCode and Pi ship as **independent npm packages**; and Kimi Code reads the
+**repository root as the plugin** — no build
 step. Plugin bundles ship skills, agents, and hooks together.
 
 | Truth plane | What this repository can claim |
-|---|---|
+| --- | --- |
 | Source/package metadata | This checkout declares `0.14.1`, 9 user/runnable skills + 1 generated discovery entry, and 10 agents. |
 | Git tag | This checkout has no matching `v0.14.1` tag; version metadata is not a release tag. |
 | Marketplace / npm | Coordinates and future publish paths are documented, but metadata alone does not prove a public listing or registry publication. |
@@ -168,10 +168,12 @@ Cursor has an official marketplace
 listed there yet**. Until it is submitted/reviewed, use:
 
 1. **Local (recommended today):**
+
    ```bash
    npm run build:cursor-plugin
    node scripts/install-cursor-local.mjs
    ```
+
    then **Developer: Reload Window**. This copies into
    `~/.cursor/plugins/local/do-it-cursor` as a **real directory** (Cursor
    rejects external symlinks) and merges do-it hooks into user-level
@@ -207,25 +209,48 @@ stance), `postToolUse` / `afterFileEdit` advisory `write-quality-lint`, and
 
 ### OpenCode
 
-OpenCode loads plugins from the `"plugin"` array in `opencode.json`. **Global
-vendor install is primary today** (do not point live hosts at a git checkout):
+OpenCode loads plugins from the `"plugin"` array in `opencode.json`. After
+`npm view @tdwhere/do-it-opencode@0.14.1 version` succeeds, install the
+independent npm package:
 
 ```bash
-npm run install:opencode-global
+opencode plugin @tdwhere/do-it-opencode -g
 ```
 
-That builds the plugin, copies it under `~/.config/opencode/vendor/do-it-opencode`,
-and registers `@tdwhere/do-it-opencode` in the global config (see
-[`plugins/do-it-opencode/docs/README.opencode.md`](./plugins/do-it-opencode/docs/README.opencode.md)).
-Restart OpenCode after install.
-
-When `@tdwhere/do-it-opencode` is published to npm, prefer
-`opencode plugin @tdwhere/do-it-opencode -g` (or the package name in `"plugin"`).
-A checkout absolute path remains a **dev-only** option.
+Before registry publication, for checkout development, or during registry
+outages, `npm run install:opencode-global`
+builds and vendors a copy under OpenCode's config home. Do not point a live host
+at a mutable git checkout. See
+[`plugins/do-it-opencode/docs/README.opencode.md`](./plugins/do-it-opencode/docs/README.opencode.md).
 
 ```bash
 npm run test-opencode
 ```
+
+### Pi
+
+After `npm view @tdwhere/do-it-pi@0.14.1 version` succeeds, install the
+independent Pi package from npm:
+
+```bash
+pi install npm:@tdwhere/do-it-pi
+```
+
+Before registry publication or for package development, a local checkout can
+run `npm run install:pi-global`,
+then `/reload` in Pi.
+The extension, skills, and prompt templates work without extra packages.
+Install `pi-subagents` separately to execute the ten namespaced package agents
+such as `do-it.code-mapper` and `do-it.reviewer`:
+
+```bash
+pi install npm:pi-subagents
+```
+
+Use `/do-it-status` to check Bash, Git Bash on Windows, hook diagnostics, and
+optional package-agent availability. Build and package checks are available as
+`npm run test-pi` and `npm run smoke:pi-package`. See
+[`plugins/do-it-pi/README.md`](./plugins/do-it-pi/README.md).
 
 ### Kimi Code
 
@@ -288,7 +313,7 @@ targets. Prefer a temporary home (`CODEX_HOME=…`, `CLAUDE_PLUGIN_ROOT_OVERRIDE
 Runnable skill matrix (tiers in `scripts/skill-tiers.mjs`):
 
 | Host | User/runnable skills | Discovery metadata | Agents |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Codex / Claude / Cursor / OpenCode | 9 — 5 core + 4 extended | 1 generated `_index.md` entry (not a tenth skill) | 10 |
 | Kimi Code | 9 — 5 core + 4 extended | host-native discovery (no generated index) | 0 — no custom subagents |
 
@@ -450,7 +475,7 @@ artifacts. It is ignored by Git and is not installed.
 ### Meaning buckets (not a ceremony chain)
 
 | Bucket | Skill | Role |
-|---|---|---|
+| --- | --- | --- |
 | Route | `do-it-router` | Pick Light / Standard / Heavy; name buckets to load or skip |
 | Write | `do-it-code-quality` | Premise, blast radius, deep modules, TDD, debug, contracts |
 | Decide | `do-it-decide` | Pressure-test, diverge, shortest plan, slice when large |
@@ -467,7 +492,7 @@ pressure via `do-it-decide`.
 ### Hooks (quality, not theater)
 
 | Hook | Behavior |
-|---|---|
+| --- | --- |
 | `behavior-feedback` | Disabled by default; silently stores only redacted explicit behavioral feedback for a user-requested report |
 | `router` | Advisory tier + orthogonal DIM signals into session state; direct user intent wins |
 | `grill-prompt` | **Heavy or explicit only** — Standard stays silent |
@@ -481,11 +506,13 @@ honest with task-relevant proof.
 ### Install truth
 
 Codex and Claude are marketplace-first. Cursor uses local copy / Team Import
-until a public listing exists. OpenCode uses local `opencode.json` registration
-until npm publication is verified. Kimi Code installs the repo-root plugin via
-`/plugins install` (per-user). Optional `do-it setup` is for managed CLI
-doctor / migration / temp-home smoke — pick **either** a host plugin install or
-a legacy/managed copy, not both.
+until a public listing exists. OpenCode and Pi have independent npm package
+coordinates; only a successful registry query proves that a version is
+published. OpenCode keeps a vendored config-home fallback, and Pi keeps a local
+package-path install. Kimi Code installs the repo-root plugin via `/plugins
+install` (per-user). Optional `do-it setup` is for managed CLI doctor / migration
+/ temp-home smoke — pick **either** a host plugin install or a legacy/managed
+copy, not both.
 
 Cursor CLI setup writes only under `~/.cursor` (not `~/.claude`).
 

@@ -175,7 +175,9 @@ wq_scan_extra_families "$FILE_PATH" "$SCOPE_RISK"
 # entire scan. Secret-leak is intentionally unsuppressible: a marker must not
 # hide a possible credential.
 WQ_ALLOW_FAMILIES="$(printf '%s\n' "$WQ_ADDED_LINES" \
-  | sed -nE 's/.*write-quality-lint-allow:[[:space:]]*([a-z0-9-]+)[[:space:]]+[-—][[:space:]]+.+/\1/p' \
+  | sed -nE \
+      -e 's/.*write-quality-lint-allow:[[:space:]]*([a-z0-9-]+)[[:space:]]+-[[:space:]]+.+/\1/p' \
+      -e 's/.*write-quality-lint-allow:[[:space:]]*([a-z0-9-]+)[[:space:]]+—[[:space:]]+.+/\1/p' \
   | sort -u | paste -sd, -)"
 if [[ -n "$WQ_ALLOW_FAMILIES" && -n "$WQ_HIT_FAMILIES" ]]; then
   WQ_FILTERED_FAMILIES=""

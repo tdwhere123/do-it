@@ -1,0 +1,17 @@
+# Closed-set quality families for write-quality-lint.sh
+# Columns: id	category	description
+narrative-comment	comments	Change/fix/tracker narrative in comments
+orphan-todo	comments	TODO/FIXME without owner or colon
+tombstone	comments	removed:/deleted:/gone: tombstones
+case-list	anti-pattern	Large bash case branch lists (threshold 15)
+no-consumer	anti-pattern	Exported symbol with no repo consumer
+copy-paste	anti-pattern	Duplicated multi-line block in same directory
+swallow-error	integrity	Empty catch or swallowed errors
+debug-leftover	maintainability	Debug prints left in non-test code
+test-weakened	integrity	Skipped or weakened tests
+edit-bloat	slicing	Single edit adds too many lines (threshold 120)
+scope-chain	metacognition	Non-local edit needs a bounded premise/consumer/proof nudge
+live-path	metacognition	Handler-like export with no other-file caller
+secret-leak	integrity	Possible credentials or private keys
+type-escape	metacognition	as any / @ts-ignore / as unknown as
+test-fiction	metacognition	Many mocks in one edit — fictional coverage risk

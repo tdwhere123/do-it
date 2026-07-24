@@ -101,7 +101,8 @@ are not part of its managed inventory.
 | Codex | Marketplace-first plugin; optional CLI migration/doctor | All nine + generated discovery entry | Advisory completion reminder; `do-it-verify` supplies claim-specific proof |
 | Claude Code | Marketplace-first plugin | All nine + generated discovery entry | Advisory completion reminder; `do-it-verify` supplies claim-specific proof |
 | Cursor | Local copy / Team Import today; public listing pending | All nine + generated discovery/reference files | Advisory completion reminder; `do-it-verify` supplies claim-specific proof |
-| OpenCode | Local `opencode.json` registration today; npm publication pending | All nine + generated discovery entry | Advisory completion reminder; `do-it-verify` supplies claim-specific proof |
+| OpenCode | Independent npm package; vendored config-home fallback | All nine + generated discovery entry | Advisory completion reminder; `do-it-verify` supplies claim-specific proof |
+| Pi | Independent npm package or local-path install; optional `pi-subagents` | All nine; ten namespaced package agents when discovered by `pi-subagents` | Advisory root lifecycle and child stance; `/do-it-status` diagnoses the adapter but does not prove agent discovery |
 
 No host registers `grill-pretool` or a pre-edit plan gate. `write-quality-lint`
 and `verification-gate` are advisory everywhere; `do-it-verify` remains the

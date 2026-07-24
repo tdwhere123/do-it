@@ -10,6 +10,14 @@ on:
         description: "Publish @tdwhere/do-it to npm (requires NPM_TOKEN secret)"
         type: boolean
         default: false
+      publish_opencode_npm:
+        description: "Publish @tdwhere/do-it-opencode to npm (requires NPM_TOKEN secret)"
+        type: boolean
+        default: false
+      publish_pi_npm:
+        description: "Publish @tdwhere/do-it-pi to npm (requires NPM_TOKEN secret)"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -39,6 +47,9 @@ jobs:
       - name: Install system test tools
         run: sudo apt-get update && sudo apt-get install -y jq shellcheck
 
+      - name: Install Pi package development dependencies
+        run: npm ci --prefix plugins/do-it-pi --ignore-scripts
+
       - name: Validate release tag and metadata
         if: github.event_name == 'push'
         run: npm run validate:release -- "${GITHUB_REF_NAME}"
@@ -52,16 +63,13 @@ jobs:
           npm run build:codex-plugin
           npm run build:cursor-plugin
           npm run build:opencode-plugin
+          npm run build:pi-plugin
           npm run validate:kimi-plugin
+          npm --prefix plugins/do-it-pi test
 
-      - name: Smoke packed root and OpenCode packages
-        env:
-          NPM_CONFIG_CACHE: ${{ runner.temp }}/npm-cache
-        run: npm run smoke:package
-
-      - name: Ensure generated artifacts are committed and unchanged by smoke
+      - name: Ensure generated artifacts are committed and unchanged by build
         run: |
-          git diff --exit-code -- index.json dist/claude .agents/plugins plugins/do-it plugins/do-it-cursor plugins/do-it-opencode .cursor-plugin
+          git diff --exit-code -- index.json dist/claude .agents/plugins plugins/do-it plugins/do-it-cursor plugins/do-it-opencode plugins/do-it-pi .cursor-plugin
 
       - name: Pack release tarball
         env:
@@ -70,11 +78,62 @@ jobs:
           npm pack --json --ignore-scripts | tee "${{ runner.temp }}/pack.json"
           jq -e '.[0].filename' "${{ runner.temp }}/pack.json"
 
-      - name: Upload pack artifact
+      - name: Smoke verified root tarball
+        env:
+          NPM_CONFIG_CACHE: ${{ runner.temp }}/npm-cache
+        run: |
+          ROOT_TARBALL=$(jq -r '.[0].filename' "${{ runner.temp }}/pack.json")
+          npm run smoke:package -- "./${ROOT_TARBALL}"
+
+      - name: Pack OpenCode release tarball
+        env:
+          NPM_CONFIG_CACHE: ${{ runner.temp }}/npm-cache
+        run: |
+          cd plugins/do-it-opencode
+          npm pack --json --ignore-scripts --pack-destination "${{ runner.temp }}" | tee "${{ runner.temp }}/pack-opencode.json"
+          jq -e '.[0].filename' "${{ runner.temp }}/pack-opencode.json"
+
+      - name: Smoke verified OpenCode tarball
+        env:
+          NPM_CONFIG_CACHE: ${{ runner.temp }}/npm-cache
+        run: |
+          OPENCODE_TARBALL=$(jq -r '.[0].filename' "${{ runner.temp }}/pack-opencode.json")
+          npm run smoke:package -- "${{ runner.temp }}/${OPENCODE_TARBALL}"
+
+      - name: Pack Pi release tarball
+        env:
+          NPM_CONFIG_CACHE: ${{ runner.temp }}/npm-cache
+        run: |
+          cd plugins/do-it-pi
+          npm pack --json --ignore-scripts --pack-destination "${{ runner.temp }}" | tee "${{ runner.temp }}/pack-pi.json"
+          jq -e '.[0].filename' "${{ runner.temp }}/pack-pi.json"
+
+      - name: Smoke verified Pi tarball without optional pi-subagents
+        env:
+          NPM_CONFIG_CACHE: ${{ runner.temp }}/npm-cache
+        run: |
+          PI_TARBALL=$(jq -r '.[0].filename' "${{ runner.temp }}/pack-pi.json")
+          node scripts/smoke-pi-package.mjs "${{ runner.temp }}/${PI_TARBALL}"
+
+      - name: Upload root pack artifact
         uses: actions/upload-artifact@v4
         with:
-          name: npm-pack
+          name: npm-pack-root
           path: "*.tgz"
+          if-no-files-found: error
+
+      - name: Upload OpenCode pack artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-pack-opencode
+          path: "${{ runner.temp }}/*do-it-opencode*.tgz"
+          if-no-files-found: error
+
+      - name: Upload Pi pack artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-pack-pi
+          path: "${{ runner.temp }}/*do-it-pi*.tgz"
           if-no-files-found: error
 
   publish-npm:
@@ -109,7 +168,7 @@ jobs:
       - name: Download verified package
         uses: actions/download-artifact@v4
         with:
-          name: npm-pack
+          name: npm-pack-root
 
       - name: Publish
         env:
@@ -119,6 +178,98 @@ jobs:
             echo "NPM_TOKEN secret is required to publish" >&2
             exit 1
           fi
-          TARBALL=$(find . -maxdepth 1 -name '*.tgz' -print -quit)
+          TARBALL=$(find . -maxdepth 1 -name '*do-it-[0-9]*.tgz' -print -quit)
+          test -n "${TARBALL}"
+          npm publish "${TARBALL}" --access public
+
+  publish-opencode-npm:
+    name: Publish OpenCode npm package (optional)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: verify
+    if: >-
+      github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+      || (github.event_name == 'workflow_dispatch' && inputs.publish_opencode_npm == true)
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.x
+          registry-url: https://registry.npmjs.org
+
+      - name: Validate release tag and metadata
+        run: |
+          if [ "${GITHUB_EVENT_NAME}" = "push" ]; then
+            RELEASE_TAG="${GITHUB_REF_NAME}"
+          else
+            RELEASE_VERSION=$(node -p "require('./plugins/do-it-opencode/package.json').version")
+            RELEASE_TAG="v${RELEASE_VERSION}"
+          fi
+          npm run validate:release -- "${RELEASE_TAG}"
+
+      - name: Download verified OpenCode package
+        uses: actions/download-artifact@v4
+        with:
+          name: npm-pack-opencode
+
+      - name: Publish OpenCode package
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "${NODE_AUTH_TOKEN}" ]; then
+            echo "NPM_TOKEN secret is required to publish @tdwhere/do-it-opencode" >&2
+            exit 1
+          fi
+          TARBALL=$(find . -maxdepth 1 -name '*do-it-opencode*.tgz' -print -quit)
+          test -n "${TARBALL}"
+          npm publish "${TARBALL}" --access public
+
+  publish-pi-npm:
+    name: Publish Pi npm package (optional)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: verify
+    if: >-
+      github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+      || (github.event_name == 'workflow_dispatch' && inputs.publish_pi_npm == true)
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.x
+          registry-url: https://registry.npmjs.org
+
+      - name: Validate release tag and metadata
+        run: |
+          if [ "${GITHUB_EVENT_NAME}" = "push" ]; then
+            RELEASE_TAG="${GITHUB_REF_NAME}"
+          else
+            RELEASE_VERSION=$(node -p "require('./plugins/do-it-pi/package.json').version")
+            RELEASE_TAG="v${RELEASE_VERSION}"
+          fi
+          npm run validate:release -- "${RELEASE_TAG}"
+
+      - name: Download verified Pi package
+        uses: actions/download-artifact@v4
+        with:
+          name: npm-pack-pi
+
+      - name: Publish Pi package
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "${NODE_AUTH_TOKEN}" ]; then
+            echo "NPM_TOKEN secret is required to publish @tdwhere/do-it-pi" >&2
+            exit 1
+          fi
+          TARBALL=$(find . -maxdepth 1 -name '*do-it-pi*.tgz' -print -quit)
           test -n "${TARBALL}"
           npm publish "${TARBALL}" --access public
