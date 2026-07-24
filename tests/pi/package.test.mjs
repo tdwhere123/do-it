@@ -213,9 +213,11 @@ test("pi-subagents discovers the configured package under do-it.* names", () => 
 });
 
 test("independent npm tarball contains Pi runtime assets only", () => {
+	const npmArgs = ["pack", "--dry-run", "--json", "--ignore-scripts"];
+	const npmExecPath = process.env.npm_execpath;
 	const packed = spawnSync(
-		"npm",
-		["pack", "--dry-run", "--json", "--ignore-scripts"],
+		npmExecPath ? process.execPath : "npm",
+		npmExecPath ? [npmExecPath, ...npmArgs] : npmArgs,
 		{
 			cwd: pluginRoot,
 			encoding: "utf8",
