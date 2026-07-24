@@ -8,6 +8,8 @@
   tagged `v0.14.1` publication path, then ship `0.14.2` metadata for the next
   independent root / OpenCode / Pi npm release.
 - Portable Pi smoke `npm` invocation formatting cleanup on Windows path join.
+- Stabilize Pi bridge timeout diagnostic assertion when a setsid grandchild
+  races process-tree cleanup against the grace timer.
 
 ## 0.14.1
 
