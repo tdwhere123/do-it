@@ -95,9 +95,9 @@ Claude 另有默认关闭、仅覆盖具名高风险命令的可选 `ask` profil
 
 | 真相平面 | 本仓库可以声明的内容 |
 | --- | --- |
-| 源码 / 包元数据 | 当前 checkout 声明 `0.14.1`、9 个用户可运行 skill + 1 个生成式发现入口、10 个 agent。 |
-| Git tag | 当前 checkout 没有对应的 `v0.14.1` tag；版本元数据不等于发布 tag。 |
-| Marketplace / npm | 文档可以记录坐标与未来发布路径，但元数据本身不能证明已经公开上架或发布到 registry。 |
+| 源码 / 包元数据 | 当前 checkout 声明 `0.14.2`、9 个用户可运行 skill + 1 个生成式发现入口、10 个 agent。 |
+| Git tag | `0.14.2` 发布提交必须带有 `v0.14.2`；版本元数据不等于发布 tag。 |
+| Marketplace / npm | 文档记录坐标与发布路径；只有 workflow 之后的 `npm view` 才能证明已发布到 registry。Cursor 公开上架仍待完成。 |
 | Live host | 只有在对应宿主安装并检查，才能证明那里实际启用了什么；不能从源码或 tarball 推断。 |
 
 ### Codex
@@ -168,7 +168,7 @@ Cursor 装 **完整 9 个 skill**（`do-it-router`、`do-it-code-quality`、`do-
 ### OpenCode
 
 OpenCode 从 `opencode.json` 的 `"plugin"` 数组加载插件。确认
-`npm view @tdwhere/do-it-opencode@0.14.1 version` 成功后，再安装独立 npm 包：
+`npm view @tdwhere/do-it-opencode@0.14.2 version` 成功后，再安装独立 npm 包：
 
 ```bash
 opencode plugin @tdwhere/do-it-opencode -g
@@ -185,7 +185,7 @@ npm run test-opencode
 
 ### Pi
 
-确认 `npm view @tdwhere/do-it-pi@0.14.1 version` 成功后，再安装独立的 Pi npm 包：
+确认 `npm view @tdwhere/do-it-pi@0.14.2 version` 成功后，再安装独立的 Pi npm 包：
 
 ```bash
 pi install npm:@tdwhere/do-it-pi
@@ -341,7 +341,7 @@ flowchart TD
 
 ```bash
 npm pack
-npm install -g ./tdwhere-do-it-0.14.1.tgz
+npm install -g ./tdwhere-do-it-0.14.2.tgz
 do-it setup   # 可选 / 遗留全局拷贝
 ```
 

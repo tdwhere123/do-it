@@ -24,8 +24,8 @@ CLI setup path:
 
 | Plane | Current repository evidence |
 | --- | --- |
-| Source/package | `package.json`, manifest, and plugin metadata declare `0.14.1`; inventory is 9 user/runnable skills + 1 generated discovery entry + 10 agents. |
-| Git tag | The `0.14.1` release commit must carry `v0.14.1`; version metadata alone is not a release. |
+| Source/package | `package.json`, manifest, and plugin metadata declare `0.14.2`; inventory is 9 user/runnable skills + 1 generated discovery entry + 10 agents. |
+| Git tag | The `0.14.2` release commit must carry `v0.14.2`; version metadata alone is not a release. |
 | Marketplace/npm | The release workflow publishes separate `@tdwhere/do-it`, `@tdwhere/do-it-opencode`, and `@tdwhere/do-it-pi` artifacts. Only post-workflow registry queries prove publication. Cursor marketplace listing remains pending. |
 | Live host | Only host install/inspection evidence proves an active version. Source, package, tag, and live host may differ. |
 
@@ -34,7 +34,7 @@ CLI setup path:
 - Every release ends with a `vX.Y.Z` git tag on the release commit — the tag is
   what triggers `.github/workflows/release.yml` (verify → pack → optional npm
   publish). A version bump without a tag is not a release.
-- After a release, `main` bumps to the next patch version (e.g. `0.14.1`)
+- After a release, `main` bumps to the next patch version (e.g. `0.14.2`)
   promptly, so a checkout never claims a published version it has already
   moved past.
 - Historical gap: `0.6.1`–`0.14.0` shipped without tags (latest tag was
@@ -92,7 +92,7 @@ npm install -g https://github.com/tdwhere123/do-it/archive/refs/heads/main.tar.g
 do-it setup
 ```
 
-After `npm view @tdwhere/do-it@0.14.1 version` succeeds, the root registry
+After `npm view @tdwhere/do-it@0.14.2 version` succeeds, the root registry
 package provides the optional managed CLI. Before publication, use the GitHub
 or checkout-local path above.
 
@@ -200,7 +200,7 @@ Set `CODEX_HOME=/path/to/codex-home` to test or install into a temporary target.
 Prefer publishing the exact tarballs that already passed release validation:
 
 ```bash
-VERSION=0.14.1
+VERSION=0.14.2
 npm run validate:release -- "v${VERSION}"
 npm run build:opencode-plugin
 npm run build:pi-plugin
@@ -222,7 +222,7 @@ npm publish "$PI_TARBALL" --access public
 ```
 
 Keep the root package scoped and keep `do-it` as its bin. Install from the
-registry only after `npm view @tdwhere/do-it@0.14.1 version` succeeds; before
+registry only after `npm view @tdwhere/do-it@0.14.2 version` succeeds; before
 publication, use the exact local tarball from the verified pack step.
 
 ```bash
@@ -236,7 +236,7 @@ Publishing one must not select another package's tarball by a broad wildcard.
 ### Option 2: Pack And Test Locally
 
 ```bash
-VERSION=0.14.1
+VERSION=0.14.2
 npm pack --ignore-scripts
 npm run smoke:package -- "./tdwhere-do-it-${VERSION}.tgz"
 ```

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.14.2
+
+### Release hygiene
+
+- Post-`0.14.1` source bump with corrected README/release truth planes for the
+  tagged `v0.14.1` publication path, then ship `0.14.2` metadata for the next
+  independent root / OpenCode / Pi npm release.
+- Portable Pi smoke `npm` invocation formatting cleanup on Windows path join.
+
 ## 0.14.1
 
 ### Pi host adapter and npm delivery

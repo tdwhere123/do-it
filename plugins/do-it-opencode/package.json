@@ -1,6 +1,6 @@
 {
   "name": "@tdwhere/do-it-opencode",
-  "version": "0.14.1",
+  "version": "0.14.2",
   "description": "OpenCode adapter for do-it workflow hooks, skills, and agents",
   "type": "module",
   "license": "MIT",

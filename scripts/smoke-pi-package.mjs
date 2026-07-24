@@ -21,13 +21,7 @@ export function resolveNpmInvocation({
 	const candidates = [
 		env.npm_execpath,
 		platform === "win32"
-			? pathApi.join(
-					executableDir,
-					"node_modules",
-					"npm",
-					"bin",
-					"npm-cli.js",
-				)
+			? pathApi.join(executableDir, "node_modules", "npm", "bin", "npm-cli.js")
 			: pathApi.resolve(
 					executableDir,
 					"..",

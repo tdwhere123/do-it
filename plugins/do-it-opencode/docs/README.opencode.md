@@ -13,7 +13,7 @@ Bun at startup. See
 
 ### npm package
 
-Use this path after `npm view @tdwhere/do-it-opencode@0.14.1 version` succeeds:
+Use this path after `npm view @tdwhere/do-it-opencode@0.14.2 version` succeeds:
 
 ```bash
 opencode plugin @tdwhere/do-it-opencode -g

@@ -119,9 +119,9 @@ step. Plugin bundles ship skills, agents, and hooks together.
 
 | Truth plane | What this repository can claim |
 | --- | --- |
-| Source/package metadata | This checkout declares `0.14.1`, 9 user/runnable skills + 1 generated discovery entry, and 10 agents. |
-| Git tag | This checkout has no matching `v0.14.1` tag; version metadata is not a release tag. |
-| Marketplace / npm | Coordinates and future publish paths are documented, but metadata alone does not prove a public listing or registry publication. |
+| Source/package metadata | This checkout declares `0.14.2`, 9 user/runnable skills + 1 generated discovery entry, and 10 agents. |
+| Git tag | The `0.14.2` release commit must carry `v0.14.2`; version metadata alone is not a release tag. |
+| Marketplace / npm | Coordinates and publish paths are documented; only post-workflow `npm view` proves registry publication. Cursor marketplace listing remains pending. |
 | Live host | Only an install/inspection on that host proves what is active there; do not infer it from source or a packed artifact. |
 
 ### Codex
@@ -210,7 +210,7 @@ stance), `postToolUse` / `afterFileEdit` advisory `write-quality-lint`, and
 ### OpenCode
 
 OpenCode loads plugins from the `"plugin"` array in `opencode.json`. After
-`npm view @tdwhere/do-it-opencode@0.14.1 version` succeeds, install the
+`npm view @tdwhere/do-it-opencode@0.14.2 version` succeeds, install the
 independent npm package:
 
 ```bash
@@ -229,7 +229,7 @@ npm run test-opencode
 
 ### Pi
 
-After `npm view @tdwhere/do-it-pi@0.14.1 version` succeeds, install the
+After `npm view @tdwhere/do-it-pi@0.14.2 version` succeeds, install the
 independent Pi package from npm:
 
 ```bash
@@ -400,7 +400,7 @@ For a packed local release artifact:
 
 ```bash
 npm pack
-npm install -g ./tdwhere-do-it-0.14.1.tgz
+npm install -g ./tdwhere-do-it-0.14.2.tgz
 do-it setup   # optional / legacy global copy
 ```
 
