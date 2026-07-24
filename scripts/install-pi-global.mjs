@@ -49,26 +49,26 @@ export function buildPiInvocation(
 	);
 }
 
-export function main() {
+export function main(installRoot = pluginRoot) {
 	if (
-		!fs.existsSync(path.join(pluginRoot, "skills", "do-it-router", "SKILL.md"))
+		!fs.existsSync(path.join(installRoot, "skills", "do-it-router", "SKILL.md"))
 	) {
 		throw new Error(
 			"plugins/do-it-pi is not built — run npm run build:pi-plugin first",
 		);
 	}
-	if (!fs.existsSync(path.join(pluginRoot, "hooks", "router.sh"))) {
+	if (!fs.existsSync(path.join(installRoot, "hooks", "router.sh"))) {
 		throw new Error(
 			"plugins/do-it-pi hooks missing — run npm run build:pi-plugin first",
 		);
 	}
-	if (!fs.existsSync(path.join(pluginRoot, "agents", "code-mapper.md"))) {
+	if (!fs.existsSync(path.join(installRoot, "agents", "code-mapper.md"))) {
 		throw new Error(
 			"plugins/do-it-pi package agents missing — run npm run build:pi-plugin first",
 		);
 	}
 
-	const invocation = buildPiInvocation(pluginRoot);
+	const invocation = buildPiInvocation(installRoot);
 	const pi = spawnSync(invocation.command, invocation.args, {
 		cwd: repoRoot,
 		encoding: "utf8",
@@ -78,7 +78,7 @@ export function main() {
 		throw new Error("pi install failed — is `pi` on PATH?");
 	}
 
-	console.log(`installed do-it-pi from ${pluginRoot}`);
+	console.log(`installed do-it-pi from ${installRoot}`);
 	console.log(
 		"In Pi, run /reload, then use /do-it-status to check Bash and optional pi-subagents.",
 	);
@@ -91,5 +91,5 @@ if (
 	process.argv[1] &&
 	path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
 ) {
-	main();
+	main(process.argv[2] ? path.resolve(process.argv[2]) : pluginRoot);
 }

@@ -59,46 +59,6 @@ test("Pi installer bypasses the Windows cmd shell and preserves arguments", () =
 	});
 });
 
-test("native Windows Pi invocation executes from a metacharacter path", (t) => {
-	if (process.platform !== "win32") return t.skip("native Windows only");
-	const root = fs.mkdtempSync(path.join(os.tmpdir(), "do-it Pi & path "));
-	try {
-		const shimDir = path.join(root, "node_modules", ".bin");
-		const entrypoint = path.join(
-			root,
-			"node_modules",
-			"@earendil-works",
-			"pi-coding-agent",
-			"dist",
-			"cli.js",
-		);
-		const output = path.join(root, "args.json");
-		const installPath = path.join(root, "checkout & package", "do-it pi");
-		fs.mkdirSync(shimDir, { recursive: true });
-		fs.mkdirSync(path.dirname(entrypoint), { recursive: true });
-		fs.mkdirSync(installPath, { recursive: true });
-		fs.writeFileSync(path.join(shimDir, "pi.cmd"), "@echo off\r\n");
-		fs.writeFileSync(
-			entrypoint,
-			`require("node:fs").writeFileSync(process.env.DO_IT_PI_ARGS_OUT, JSON.stringify(process.argv.slice(2)));\n`,
-		);
-		const invocation = buildPiInvocation(installPath, "win32", {
-			Path: shimDir,
-		});
-		const result = spawnSync(invocation.command, invocation.args, {
-			env: { ...process.env, DO_IT_PI_ARGS_OUT: output },
-			encoding: "utf8",
-		});
-		assert.equal(result.status, 0, result.stderr);
-		assert.deepEqual(JSON.parse(fs.readFileSync(output, "utf8")), [
-			"install",
-			installPath,
-		]);
-	} finally {
-		fs.rmSync(root, { recursive: true, force: true });
-	}
-});
-
 test("Pi package README surfaces stay generated from the canonical host sheet", () => {
 	const canonical = fs.readFileSync(
 		path.join(repoRoot, "skills", "do-it", "references", "host-pi.md"),

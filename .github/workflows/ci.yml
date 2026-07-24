@@ -177,9 +177,12 @@ jobs:
           $env:HOME = $homePath
           $env:USERPROFILE = $homePath
           $env:PI_CODING_AGENT_DIR = Join-Path $homePath ".pi\agent"
-          $binPath = Join-Path $env:GITHUB_WORKSPACE "plugins\do-it-pi\node_modules\.bin"
+          $pluginRoot = Join-Path $env:GITHUB_WORKSPACE "plugins\do-it-pi"
+          $binPath = Join-Path $pluginRoot "node_modules\.bin"
           $env:PATH = "$binPath;$env:PATH"
-          node scripts/install-pi-global.mjs
+          $installPath = Join-Path $env:RUNNER_TEMP "Pi install & package"
+          New-Item -ItemType Junction -Path $installPath -Target $pluginRoot | Out-Null
+          node scripts/install-pi-global.mjs "$installPath"
           if (-not (Test-Path (Join-Path $env:PI_CODING_AGENT_DIR "settings.json"))) {
             throw "Pi installer did not write settings.json through pi.cmd"
           }

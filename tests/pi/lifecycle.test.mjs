@@ -94,7 +94,7 @@ test("Pi environment helpers honor host and child contracts", () => {
 			PI_CODING_AGENT_DIR: "/tmp/custom-pi",
 			HOME: "/tmp/home",
 		}),
-		"/tmp/custom-pi",
+		path.resolve("/tmp/custom-pi"),
 	);
 	assert.equal(
 		resolvePiAgentDir({ HOME: "/tmp/home" }),
