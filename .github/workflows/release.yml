@@ -39,7 +39,7 @@ jobs:
           fetch-depth: 0
 
       - name: Setup Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: 22.x
           registry-url: https://registry.npmjs.org
@@ -116,21 +116,21 @@ jobs:
           node scripts/smoke-pi-package.mjs "${{ runner.temp }}/${PI_TARBALL}"
 
       - name: Upload root pack artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: npm-pack-root
           path: "*.tgz"
           if-no-files-found: error
 
       - name: Upload OpenCode pack artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: npm-pack-opencode
           path: "${{ runner.temp }}/*do-it-opencode*.tgz"
           if-no-files-found: error
 
       - name: Upload Pi pack artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: npm-pack-pi
           path: "${{ runner.temp }}/*do-it-pi*.tgz"
@@ -150,7 +150,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Setup Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: 22.x
           registry-url: https://registry.npmjs.org
@@ -166,7 +166,7 @@ jobs:
           npm run validate:release -- "${RELEASE_TAG}"
 
       - name: Download verified package
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: npm-pack-root
 
@@ -196,7 +196,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Setup Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: 22.x
           registry-url: https://registry.npmjs.org
@@ -212,7 +212,7 @@ jobs:
           npm run validate:release -- "${RELEASE_TAG}"
 
       - name: Download verified OpenCode package
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: npm-pack-opencode
 
@@ -242,7 +242,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Setup Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: 22.x
           registry-url: https://registry.npmjs.org
@@ -258,7 +258,7 @@ jobs:
           npm run validate:release -- "${RELEASE_TAG}"
 
       - name: Download verified Pi package
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: npm-pack-pi
 
