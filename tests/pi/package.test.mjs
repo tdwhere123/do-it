@@ -8,6 +8,7 @@ import { createRequire } from "node:module";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { buildPiInvocation } from "../../scripts/install-pi-global.mjs";
+import { resolveNpmInvocation } from "../../scripts/smoke-pi-package.mjs";
 
 const repoRoot = path.resolve(
 	path.dirname(fileURLToPath(import.meta.url)),
@@ -30,6 +31,26 @@ function parseFrontmatter(filePath) {
 	}
 	return { text, values };
 }
+
+test("Pi smoke invokes npm through Node instead of a Windows cmd shim", () => {
+	const execPath = String.raw`C:\hostedtoolcache\node\22\x64\node.exe`;
+	const npmCli = path.win32.join(
+		path.win32.dirname(execPath),
+		"node_modules",
+		"npm",
+		"bin",
+		"npm-cli.js",
+	);
+	assert.deepEqual(
+		resolveNpmInvocation({
+			env: {},
+			execPath,
+			platform: "win32",
+			existsSync: (candidate) => candidate === npmCli,
+		}),
+		{ command: execPath, prefixArgs: [npmCli] },
+	);
+});
 
 test("Pi installer bypasses the Windows cmd shell and preserves arguments", () => {
 	const shimDir = String.raw`C:\Users\First Last & Co\project\node_modules\.bin`;

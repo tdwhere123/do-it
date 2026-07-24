@@ -10,18 +10,55 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const defaultRepoRoot = path.resolve(scriptDir, "..");
 
-function npmCommand() {
-	return process.platform === "win32" ? "npm.cmd" : "npm";
+export function resolveNpmInvocation({
+	env = process.env,
+	execPath = process.execPath,
+	platform = process.platform,
+	existsSync = fs.existsSync,
+} = {}) {
+	const pathApi = platform === "win32" ? path.win32 : path;
+	const executableDir = pathApi.dirname(execPath);
+	const candidates = [
+		env.npm_execpath,
+		platform === "win32"
+			? pathApi.join(
+					executableDir,
+					"node_modules",
+					"npm",
+					"bin",
+					"npm-cli.js",
+				)
+			: pathApi.resolve(
+					executableDir,
+					"..",
+					"lib",
+					"node_modules",
+					"npm",
+					"bin",
+					"npm-cli.js",
+				),
+	].filter(Boolean);
+	const npmCli = candidates.find((candidate) => existsSync(candidate));
+	if (npmCli) return { command: execPath, prefixArgs: [npmCli] };
+	if (platform === "win32") {
+		throw new Error("npm-cli.js was not found beside the active Node runtime");
+	}
+	return { command: "npm", prefixArgs: [] };
 }
 
 function runNpm(args, options = {}) {
-	const result = spawnSync(npmCommand(), args, {
-		encoding: "utf8",
-		...options,
-	});
+	const invocation = resolveNpmInvocation();
+	const result = spawnSync(
+		invocation.command,
+		[...invocation.prefixArgs, ...args],
+		{
+			encoding: "utf8",
+			...options,
+		},
+	);
 	if (result.status !== 0) {
 		throw new Error(
-			`npm ${args.join(" ")} failed (${result.status}):\n${result.stderr || result.stdout}`,
+			`npm ${args.join(" ")} failed (${result.status}):\n${result.error?.message || result.stderr || result.stdout}`,
 		);
 	}
 	return result.stdout;
