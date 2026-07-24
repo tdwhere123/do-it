@@ -179,9 +179,14 @@ test("spawnHook settles after cleanup grace when a descendant escapes the proces
 		assert.equal(result.exitCode, 124);
 		assert.equal(result.timedOut, true);
 		assert.ok(elapsed < 800, `hook settled too slowly: ${elapsed}ms`);
+		// After timeout, either the direct child closes inside the grace window
+		// ("termination was requested") or pipes are force-closed at grace
+		// ("descendant cleanup could not be confirmed"). Both are valid races
+		// once a setsid grandchild keeps inherited stdio open.
+		assert.match(result.diagnostic ?? "", /timed out after 50ms/i);
 		assert.match(
 			result.diagnostic ?? "",
-			/descendant cleanup could not be confirmed/i,
+			/Process-tree termination was requested|descendant cleanup could not be confirmed/i,
 		);
 	} finally {
 		fs.rmSync(dir, { recursive: true, force: true });
