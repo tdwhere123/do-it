@@ -260,11 +260,46 @@ wq_scan_antipattern_families() {
   :
 }
 
-# Args: <file_path> [scope-risk]. Adds integrity / metacognition / size families.
+# Args: <tsv-key> <env-value> <default> <repo-root>. Resolves a numeric limit.
+# Precedence: env var > project file > built-in default. The project override
+# <repo-root>/.do-it/write-quality.local.tsv is data-only (never sourced), one
+# `key<TAB>value` row per line; `#` comments and blank lines are ignored.
+# Each level falls back independently: a non-numeric value discards only its
+# own level, never a valid lower-precedence one.
+_wq_limit() {
+  local key="$1" env_val="$2" default="$3" repo_root="$4"
+  local value="" tsv k v
+  tsv="${repo_root%/}/.do-it/write-quality.local.tsv"
+  if [[ -f "$tsv" ]]; then
+    while IFS=$'\t' read -r k v _ || [[ -n "$k" ]]; do
+      k="${k%$'\r'}"
+      v="${v%$'\r'}"
+      case "$k" in ''|'#'*) continue ;; esac
+      if [[ "$k" == "$key" && -n "$v" ]]; then
+        case "$v" in
+          ''|*[!0-9]*) ;;              # bad row: ignore this level, keep looking
+          *) value="$v"; break ;;
+        esac
+      fi
+    done < "$tsv"
+  fi
+  if [[ -n "$env_val" ]]; then
+    case "$env_val" in
+      ''|*[!0-9]*) ;;                  # bad env: keep the file/default level
+      *) value="$env_val" ;;
+    esac
+  fi
+  [[ -z "$value" ]] && value="$default"
+  value=$((10#$value))                 # normalize leading zeros (octal trap)
+  printf '%s\n' "$value"
+}
+
+# Args: <file_path> [scope-risk] [repo-root]. Adds integrity / metacognition / size families.
 wq_scan_extra_families() {
-  local file_path="$1" scope_risk="${2:-0}"
+  local file_path="$1" scope_risk="${2:-0}" repo_root="${3:-}"
   local bloat_threshold added_count swallow_hits debug_hits test_hits
   local secret_hits type_hits fiction_hits
+  local size_warn size_split total_lines
 
   bloat_threshold="${DO_IT_EDIT_BLOAT_LINES:-120}"
   case "$bloat_threshold" in
@@ -275,6 +310,23 @@ wq_scan_extra_families() {
   if [[ "${added_count:-0}" -gt "$bloat_threshold" ]]; then
     wq_record_family "edit-bloat"
     _wq_append_detail "edit-bloat: ${added_count} lines added in one edit (threshold ${bloat_threshold}) — consider slicing into smaller vertical changes"
+  fi
+
+  # file-size: whole-file length against project shape limits. An edit landing
+  # on an over-limit file is exactly "adding behavior" — nudge to split first.
+  size_warn="$(_wq_limit file-size-warn "${DO_IT_FILE_SIZE_WARN_LINES:-}" 500 "$repo_root")"
+  size_split="$(_wq_limit file-size-split "${DO_IT_FILE_SIZE_SPLIT_LINES:-}" 800 "$repo_root")"
+  total_lines="$(wc -l < "$file_path" 2>/dev/null || echo 0)"
+  total_lines="${total_lines//[[:space:]]/}"   # BSD wc right-pads with spaces
+  case "$total_lines" in
+    ''|*[!0-9]*) total_lines=0 ;;
+  esac
+  if [[ "$total_lines" -ge "$size_split" ]]; then
+    wq_record_family "file-size"
+    _wq_append_detail "file-size: ${total_lines} lines (split threshold ${size_split}) — split by phase before adding more behavior"
+  elif [[ "$total_lines" -gt "$size_warn" ]]; then
+    wq_record_family "file-size"
+    _wq_append_detail "file-size: ${total_lines} lines (warn threshold ${size_warn}) — approaching the size limit; extract phases before extending"
   fi
 
   # Weak metacognition nudge: ask only when router/context sees a non-local

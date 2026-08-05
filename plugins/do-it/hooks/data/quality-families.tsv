@@ -10,6 +10,7 @@ swallow-error	integrity	Empty catch or swallowed errors
 debug-leftover	maintainability	Debug prints left in non-test code
 test-weakened	integrity	Skipped or weakened tests
 edit-bloat	slicing	Single edit adds too many lines (threshold 120)
+file-size	slicing	File over size limit (warn/split thresholds, overridable)
 scope-chain	metacognition	Non-local edit needs a bounded premise/consumer/proof nudge
 live-path	metacognition	Handler-like export with no other-file caller
 secret-leak	integrity	Possible credentials or private keys

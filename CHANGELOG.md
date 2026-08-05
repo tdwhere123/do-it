@@ -1,5 +1,25 @@
 # Changelog
 
+## Unreleased
+
+### Code-quality rules move into skills and hooks
+
+- **New `file-size` advisory family** in `write-quality-lint`: whole-file line
+  count against warn (>500) and split (≥800) thresholds, nudging phase-based
+  splits before behavior is added to oversized files. Project override via the
+  data-only `.do-it/write-quality.local.tsv` (git root of the edited file) or
+  the `DO_IT_FILE_SIZE_WARN_LINES` / `DO_IT_FILE_SIZE_SPLIT_LINES` env vars;
+  each level falls back independently, CRLF/no-EOL files tolerated.
+- **`do-it-code-quality`:** new "Phases, Not Piles" section — compute → apply →
+  audit separation, reuse before repeat, a three-question post-edit re-check,
+  and function-length judgment guidance; scope chain gains a targeted-reads
+  step (no whole-file reads on large files).
+- **`do-it-skill-authoring`:** new "Where a Rule Lives" — judgment rules in
+  skills, deterministic numbers in hooks, drift contracts in validators; the
+  family reference table is the single prose home for hook-owned numbers.
+- Repo root gains `AGENTS.md` with repo-local contributor facts (source of
+  truth vs build artifacts, closed-set contracts, verification bar).
+
 ## 0.14.2
 
 ### Release hygiene

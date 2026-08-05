@@ -72,3 +72,22 @@ heavy-signals	cutover	trailing-ws
 Allowed table names are `intent-verbs`, `uncertainty-words`, `heavy-signals`, `light-signals`, `escape-words`, `long-input-hints`, `question-hints`, and `intent-objects`. Only the flags listed above are accepted. Unknown tables or flags, empty terms, and extra columns are ignored with a warning. Legacy `.do-it/keywords.local.sh` files are inert and produce a migration warning.
 
 Removing terms from the defaults is intentionally not supported through the local override — fork the tsv into your project if that's needed.
+
+## Write-quality limits
+
+`<git-root of the edited file>/.do-it/write-quality.local.tsv` overrides
+numeric limits for `write-quality-lint.sh`. Location differs from
+`keywords.local.tsv` (which resolves from session cwd): file-size is a
+repo-shape limit, so the file lives beside the code it governs. Same
+data-only contract otherwise: hooks read it line by line and never source it.
+One `key<TAB>value` row per line; `#` comments and blank lines ignored; CRLF
+tolerated; a non-numeric value discards only its own level.
+
+```text
+file-size-warn	600
+file-size-split	1000
+```
+
+Known keys: `file-size-warn` (default 500), `file-size-split` (default 800).
+Environment variables `DO_IT_FILE_SIZE_WARN_LINES` /
+`DO_IT_FILE_SIZE_SPLIT_LINES` take precedence over this file.

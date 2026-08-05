@@ -289,7 +289,10 @@ the same `agents/*.toml` source-of-truth. The Claude target adds:
 - **Hook keyword change:** edit `hooks/data/*.tsv` and keep
   `hooks/data/SCHEMA.md` aligned. End users extend known tables through the
   data-only `<cwd>/.do-it/keywords.local.tsv` format documented there. The
-  legacy executable `.do-it/keywords.local.sh` path is ignored.
+  legacy executable `.do-it/keywords.local.sh` path is ignored. Numeric
+  hook limits (e.g. `file-size` thresholds) are overridden through the
+  data-only `<git-root of edited file>/.do-it/write-quality.local.tsv`,
+  also documented in `hooks/data/SCHEMA.md`.
 - **Hook behavior change:** edit the relevant `hooks/*.sh`. Hook scripts must
   remain portable bash with no nonstandard runtime dependency and degrade
   silently (exit 0) on unexpected input.

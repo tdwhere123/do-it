@@ -191,6 +191,118 @@ OUT=$(<"$CLAUDE_PLUGIN_DATA/fallback.out")
 assert_not_contains "unknown state does not trigger Heavy scope nudge" "$OUT" "scope-chain"
 rm -rf "$DIR"
 
+# Grow $FILE to exactly $1 total lines: 1 base + (N-2) filler committed + 1 tail edit.
+_grow_to() {
+  local n="$1"
+  seq 1 $((n - 2)) | while read -r i; do printf 'export const x%s = %s;\n' "$i" "$i"; done >> "$FILE"
+  (cd "$DIR" && git add . && git commit -q -m grow) >/dev/null 2>&1
+  printf 'const tail = 1;\n' >> "$FILE"
+}
+
+echo "Case 11: file-size thresholds and overrides"
+case_file size-warn
+_grow_to 512
+OUT=$(_run_hook "$FILE" size-warn)
+assert_contains "512 lines trips warn threshold" "$OUT" "file-size: 512 lines (warn threshold 500)"
+assert_not_contains "512 lines stays below split" "$OUT" "split threshold"
+rm -rf "$DIR"
+
+case_file size-split
+_grow_to 812
+OUT=$(_run_hook "$FILE" size-split)
+assert_contains "812 lines trips split threshold" "$OUT" "file-size: 812 lines (split threshold 800)"
+rm -rf "$DIR"
+
+case_file size-local
+mkdir -p "$DIR/.do-it"
+printf 'file-size-warn\t600\nfile-size-split\t1000\n' > "$DIR/.do-it/write-quality.local.tsv"
+_grow_to 562
+OUT=$(_run_hook "$FILE" size-local)
+assert_not_contains "project override raises warn above 562" "$OUT" "file-size"
+OUT=$(DO_IT_FILE_SIZE_WARN_LINES=550 _run_hook "$FILE" size-local-env)
+assert_contains "env var beats project file" "$OUT" "file-size: 562 lines (warn threshold 550)"
+rm -rf "$DIR"
+
+case_file size-small
+cat > "$FILE" <<'EOF'
+export function local() { return 1; }
+EOF
+OUT=$(_run_hook "$FILE" size-small)
+assert_not_contains "small file stays quiet" "$OUT" "file-size"
+rm -rf "$DIR"
+
+echo "Case 12: file-size parsing edges and boundaries"
+case_file size-boundary-warn
+_grow_to 500
+OUT=$(_run_hook "$FILE" size-boundary-warn)
+assert_not_contains "exactly 500 lines stays quiet (warn is strict >)" "$OUT" "file-size"
+rm -rf "$DIR"
+
+case_file size-boundary-split
+_grow_to 800
+OUT=$(_run_hook "$FILE" size-boundary-split)
+assert_contains "exactly 800 lines trips split (split is >=)" "$OUT" "file-size: 800 lines (split threshold 800)"
+rm -rf "$DIR"
+
+case_file size-crlf
+mkdir -p "$DIR/.do-it"
+printf 'file-size-warn\t600\r\nfile-size-split\t1000\r\n' > "$DIR/.do-it/write-quality.local.tsv"
+_grow_to 562
+OUT=$(_run_hook "$FILE" size-crlf)
+assert_not_contains "CRLF override file is honored" "$OUT" "file-size"
+rm -rf "$DIR"
+
+case_file size-noeol
+mkdir -p "$DIR/.do-it"
+printf 'file-size-warn\t600' > "$DIR/.do-it/write-quality.local.tsv"
+_grow_to 562
+OUT=$(_run_hook "$FILE" size-noeol)
+assert_not_contains "final row without trailing newline is honored" "$OUT" "file-size"
+rm -rf "$DIR"
+
+case_file size-badrow
+mkdir -p "$DIR/.do-it"
+printf 'file-size-warn\tabc\n' > "$DIR/.do-it/write-quality.local.tsv"
+_grow_to 512
+OUT=$(_run_hook "$FILE" size-badrow)
+assert_contains "non-numeric row falls back to default" "$OUT" "file-size: 512 lines (warn threshold 500)"
+rm -rf "$DIR"
+
+case_file size-badenv
+mkdir -p "$DIR/.do-it"
+printf 'file-size-warn\t600\n' > "$DIR/.do-it/write-quality.local.tsv"
+_grow_to 562
+OUT=$(DO_IT_FILE_SIZE_WARN_LINES=abc _run_hook "$FILE" size-badenv)
+assert_not_contains "non-numeric env does not discard valid file value" "$OUT" "file-size"
+rm -rf "$DIR"
+
+case_file size-splitenv
+_grow_to 812
+OUT=$(DO_IT_FILE_SIZE_SPLIT_LINES=1000 _run_hook "$FILE" size-splitenv)
+assert_contains "split env override drops 812 back to warn" "$OUT" "file-size: 812 lines (warn threshold 500)"
+assert_not_contains "split env override silences split message" "$OUT" "split threshold"
+rm -rf "$DIR"
+
+case_file size-octal
+mkdir -p "$DIR/.do-it"
+printf 'file-size-warn\t0600\n' > "$DIR/.do-it/write-quality.local.tsv"
+_grow_to 562
+OUT=$(_run_hook "$FILE" size-octal)
+assert_not_contains "zero-padded value is decimal, not octal" "$OUT" "file-size"
+rm -rf "$DIR"
+
+echo "Case 13: override resolves from git root of edited file, not session cwd"
+DIR=$(_setup_repo)
+mkdir -p "$DIR/sub" "$DIR/.do-it"
+printf 'file-size-warn\t600\n' > "$DIR/.do-it/write-quality.local.tsv"
+FILE="$DIR/sub/size-cwd.ts"
+printf 'export const base = 1;\n' > "$FILE"
+(cd "$DIR" && git add . && git commit -q -m base) >/dev/null 2>&1
+_grow_to 562
+OUT=$(_run_hook "$FILE" size-cwd)   # _run_hook passes cwd=dirname(file)=$DIR/sub
+assert_not_contains "repo-root override applies despite subdir cwd" "$OUT" "file-size"
+rm -rf "$DIR"
+
 if [[ "$FAIL" -gt 0 ]]; then
   echo "FAILED: $PASS passed, $FAIL failed" >&2
   exit 1
