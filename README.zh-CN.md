@@ -16,7 +16,7 @@
 用；如果你觉得哪里不对，欢迎提 issue、发 PR，或者 fork 后改造成自己的 agent
 工作流。
 
-## 四件事
+## 五件事
 
 ### 按风险路由
 
@@ -34,6 +34,9 @@ agent 动手之前，router 会给任务一个建议性的 `Light`、`Standard` 
 | 决策 | `do-it-decide` | 选项不清、承重前提、需要 durable plan |
 | 审查 | `do-it-review` | 交付 diff 需要审视与修复 |
 | 验证 | `do-it-verify` | done / ready / merge 声明之前 |
+| 沉淀 | `do-it-handbook`, `do-it-context` | 项目真相与术语（扩展宿主） |
+| 元技能 | `do-it-skill-authoring` | 编写 do-it 技能本身 |
+| 复盘 | `do-it-retrospective` | 默认关闭的去敏本地行为报告 |
 
 重点不是增加仪式。小事保持小；Standard 不背强制的 brainstorm → grill → plan → review 链；Heavy 只在风险真实存在时增加审视。独立的子 agent 工作在任何 tier 都可以按任务需要使用。
 
@@ -55,7 +58,8 @@ worker 可以自主检查、返回不确定项；父 agent 负责整合和最终
 `verification-gate` hook 只做提醒，不会按命令白名单判断证据，也不阻断普通本地
 工作。这样收口状态绑定的是仓库实际状态，而不是 agent 的自信。
 
-对于外部副作用，do-it 要求 agent 先确认；真正能强制执行这一边界的是宿主的
+对于外部副作用（git push、PR merge、npm publish、kubectl apply、
+terraform apply …），do-it 要求 agent 先确认；真正能强制执行这一边界的是宿主的
 sandbox、审批策略和命令规则。插件 hook 的提醒始终只是建议，不能替代宿主原生权限。
 Claude 另有默认关闭、仅覆盖具名高风险命令的可选 `ask` profile；它不是通用拦截器。
 详见[严格外部操作](./docs/strict-external-actions.md)。
@@ -80,7 +84,9 @@ Claude 另有默认关闭、仅覆盖具名高风险命令的可选 `ask` profil
 
 - **写之前**，只有承重前提确实需要必要性拷问时才使用 `do-it-decide`。
 - **写之中**，`do-it-code-quality` 加上旁路 `write-quality-lint` hook 标出注释
-  纪律、粗粒度反模式和 integrity 气味（每文件一条提醒；从不阻塞）。
+  纪律、粗粒度反模式、integrity 气味和过大的文件（每文件一条提醒；从不阻塞）。
+  hook 的 family 全部由数据表驱动，详见
+  [write-quality-families.md](./skills/do-it/references/write-quality-families.md)。
 - **写之后**，`do-it-review` 给出「可删 / 可内联 / 可用 stdlib 替代」的发现，
   并修掉 Blocking / Important。
 
@@ -138,11 +144,10 @@ Cursor **有**官方公开市场（[cursor.com/marketplace](https://cursor.com/m
 1. **本地（今日推荐）：**
 
    ```bash
-   npm run build:cursor-plugin
-   node scripts/install-cursor-local.mjs
+   npm run install:cursor-local
    ```
 
-   然后 **Developer: Reload Window**。脚本会把插件**真实拷贝**到
+   然后 **Developer: Reload Window**。脚本会先构建插件包，再把它**真实拷贝**到
    `~/.cursor/plugins/local/do-it-cursor`（Cursor **拒绝**指向 `local/` 外的
    symlink），并**合并** do-it 条目到用户级 `~/.cursor/hooks.json`（当前
    Cursor Hooks UI/服务**不会**注册 plugin 包内 `hooks/hooks.json`）。
@@ -265,21 +270,22 @@ do-it doctor
 | Host | 用户可运行 skill | 发现元数据 | Agent |
 | --- | --- | --- | --- |
 | Codex / Claude / Cursor / OpenCode | 9 个 — 5 核心 + 4 扩展 | 1 个生成式 `_index.md` 入口（不是第十个 skill） | 10 个 |
+| Pi | 9 个 — 5 核心 + 4 扩展 | 宿主原生（extension + skills 目录）+ prompt templates | 装了可选 `pi-subagents` 时为 10 个 `do-it.*` package agents；否则 0 个 |
 | Kimi Code | 9 个 — 5 核心 + 4 扩展 | 宿主原生发现（无生成式索引） | 0 — 无自定义子智能体 |
 
 - 意涵分桶 skill：`do-it-router`、`do-it-code-quality`（写码主防线）、
   `do-it-review`（审查 + 修复）、`do-it-decide`（压测 / 发散 / 计划 / 切片）、
   `do-it-verify`（证据 + 收口），以及扩展的 `do-it-handbook`、`do-it-context`、
-  `do-it-skill-authoring`，以及按需的 `do-it-retrospective`。
+  `do-it-skill-authoring`，还有按需的 `do-it-retrospective`。
 - 十个可移植 agent：决策侧 `product-strategist` /
   `architecture-strategist` / `plan-challenger`；写码侧 `code-mapper` /
   `code-quality-cleaner` / `tdd-red-writer`；审查侧 `reviewer` /
   `red-team-reviewer` / `spec-compliance-reviewer`；以及
   `documentation-engineer`。
-- 五个宿主的插件内 hooks：默认关闭、静默的 `behavior-feedback`；router、仅 Heavy 的 `grill-prompt`、
-  `subagent-stance`、旁路 `write-quality-lint`、`verification-gate`。
-  在 Kimi Code 上 `subagent-stance` 不接线（Kimi 的 Subagent 事件携带空 `session_id`），
-  其余 hooks 由根目录插件清单携带。
+- 共享 hook 集合，按宿主接线：默认关闭、静默的 `behavior-feedback`；
+  `router`；仅 Heavy 的 `grill-prompt`；`subagent-stance`；旁路
+  `write-quality-lint`；建议性 `verification-gate`；`session-start`（Cursor）；
+  以及 Claude 默认关闭的具名命令 `strict-external-actions` profile。
   verification hook 在所有宿主都只做建议性提醒；`do-it-verify` 仍负责声明级的
   证明。任何宿主都不再注册 `grill-pretool` 计划闸。
 - 斜杠命令（`do-it-skip`、`do-it-handbook`、`do-it-retrospective`）：Claude 直接装载，
@@ -323,6 +329,19 @@ flowchart TD
 
 完整策略见 [`docs/routing-matrix.md`](./docs/routing-matrix.md)。
 
+## 项目级覆盖
+
+项目级覆盖放在 `.do-it/` 下，均为**纯数据**——hook 逐行读取，从不 source
+项目文件：
+
+- `keywords.local.tsv`（会话 cwd）扩展 router 关键词表。
+- `write-quality.local.tsv`（被编辑文件的 git 根目录）调整数值型限制，例如
+  `file-size` 的 warn/split 阈值；环境变量 `DO_IT_FILE_SIZE_WARN_LINES` /
+  `DO_IT_FILE_SIZE_SPLIT_LINES` 优先级高于该文件。
+
+family 目录与抑制语法见
+[`skills/do-it/references/write-quality-families.md`](./skills/do-it/references/write-quality-families.md)。
+
 ## 不需要你记住的事
 
 - 自动路径不需要背斜杠命令。插件 hooks 会在合适的 host lifecycle 事件上触发。
@@ -334,6 +353,18 @@ flowchart TD
   `just do it`、`直接做`、`我已经想清楚`、`skip do-it`、`随便聊`、`先聊聊`、
   `just thinking`，或 `/do-it-skip`。部分跳过：`skip grill` / `不用 grill`、
   `skip router`、`skip gate`（或 `/do-it-skip grill|router|gate`）。
+
+## 发布说明与升级
+
+当前主线为 **0.15.x**。逐版本发布说明、tag 策略与发布路径见
+[`docs/release.md`](./docs/release.md)；更早的说明在
+[`CHANGELOG.md`](./CHANGELOG.md)。
+
+从 pre-0.14 升级：
+
+1. 刷新宿主插件（或可选 `do-it setup` 做旧镜像）。
+2. Codex 刷新后在 `/hooks` 信任插件 hooks。
+3. 从个人提示/规则中删掉已退役技能名——见 [`CHANGELOG.md`](./CHANGELOG.md) 迁移表。
 
 ## 其它安装方式
 
@@ -385,101 +416,41 @@ package dry run。
 ## 仓库结构
 
 ```text
-agents/          可移植的 Codex 智能体 TOML 定义
+agents/          可移植的 agent TOML 定义（单一来源）
 .agents/plugins/ Codex marketplace 元数据
+.claude-plugin/  Claude Code marketplace + plugin 清单
+.cursor-plugin/  Cursor marketplace 清单
 bin/             全局 do-it CLI 入口
-commands/        Claude Code command 入口
+commands/        斜杠命令入口（Claude / Kimi）
 dist/claude/     生成后的 Claude Code agent 定义
-docs/            路由、维护、来源映射和发布说明
-hooks/           Host hook 脚本
+docs/            路由、维护、发布说明、来源映射、宿主适配
+hooks/           Host hook 脚本与数据表
 index.json       生成后的 skill/agent 发现清单
 install/         安装器、doctor 和 shell wrapper 入口
 kimi.plugin.json Kimi Code 根插件清单（仓库根即插件，无需构建）
-plugins/do-it/          生成后的 Codex plugin bundle
-plugins/do-it-cursor/   生成后的 Cursor plugin bundle（完整 9 个 skill）
-plugins/do-it-opencode/ OpenCode TS 插件与 hook 桥接
-skills/custom/   默认不安装的本地 skill 示例
-skills/do-it/    会被安装的 do-it 原生 skill 目录
 manifest.json    安装清单和目标路径
 package.json     npm 包元数据和 CLI scripts
+plugins/do-it/           生成后的 Codex plugin bundle
+plugins/do-it-cursor/    生成后的 Cursor plugin bundle
+plugins/do-it-opencode/  OpenCode TS 插件与 hook 桥接
+plugins/do-it-pi/        Pi TS extension + skills + package agents
+scripts/         构建、校验与冒烟脚本
+skills/custom/   默认不安装的本地 skill 示例
+skills/do-it/    会被安装的 do-it 原生 skill 目录
+tests/           hook、安装、发布与适配器测试套件
 ```
 
 私有 `.do-it/` 目录用于本地计划、笔记和临时材料。它被 Git 忽略，也不会被安装。
 
-## 0.14 如何工作（当前）
-
-`0.14` 是以**含义分桶**为主的版本。流程**不是**固定技能流水线。
-
-### 含义分桶（不是仪式链）
-
-| 分桶 | 技能 | 作用 |
-| --- | --- | --- |
-| 路由 | `do-it-router` | 选 Light / Standard / Heavy；点名要加载或跳过的分桶 |
-| 写时 | `do-it-code-quality` | 前提、爆炸半径、深模块、TDD、调试、契约 |
-| 决策 | `do-it-decide` | 压测、发散、最短计划、大任务切片 |
-| 审查 | `do-it-review` | Standards ∥ Spec 双轴；修 Blocking/Important 后复审 |
-| 验证 | `do-it-verify` | done / ready / merge 前要有新鲜证据；分支收尾 |
-| 沉淀 | `do-it-handbook`, `do-it-context` | 项目真相与术语（扩展宿主） |
-| 元技能 | `do-it-skill-authoring` | 编写 do-it 技能本身 |
-| 复盘 | `do-it-retrospective` | 默认关闭的去敏本地行为报告；只有确认后才建议沉淀经验 |
-
-**Standard** 按需自选分桶，没有强制的 brainstorm → grill → plan 链。**Heavy**
-（或用户明确说 grill）时，`grill-prompt` 才会注入前提压测（走 `do-it-decide`）。
-
-### Hooks（质量，不是演戏）
-
-| Hook | 行为 |
-| --- | --- |
-| `behavior-feedback` | 默认关闭；只静默记录去敏后的明确行为反馈，供用户手动出报告 |
-| `router` | 写入建议性 tier + 正交 DIM 信号；用户直接意图优先 |
-| `grill-prompt` | **仅 Heavy 或显式 grill** — Standard 保持安静 |
-| `subagent-stance` | 给子代理的精简立场提醒 |
-| `write-quality-lint` | PostToolUse 劝告（从不阻断） |
-| `verification-gate` | 对编辑后的完成声明给出建议性 Stop 提醒；不按命令名推断证据 |
-
-已移除 `grill-pretool`。声明是否诚实由 `do-it-verify` 的任务相关证据决定，不由
-hook 决定。
-
-项目级覆盖放在 `.do-it/` 下，均为**纯数据**——hook 逐行读取，从不 source
-项目文件：
-
-- `keywords.local.tsv`（会话 cwd）扩展 router 关键词表。
-- `write-quality.local.tsv`（被编辑文件的 git 根目录）调整数值型限制，例如
-  `file-size` 的 warn/split 阈值；环境变量 `DO_IT_FILE_SIZE_WARN_LINES` /
-  `DO_IT_FILE_SIZE_SPLIT_LINES` 优先级高于该文件。
-
-family 目录与抑制语法见
-[`skills/do-it/references/write-quality-families.md`](./skills/do-it/references/write-quality-families.md)。
-
-### 安装真相
-
-Codex 与 Claude marketplace 优先；Cursor 在公开上架前使用本地拷贝 / Team Import。OpenCode 与 Pi 都有独立 npm 包坐标，但只有 registry 查询成功才能证明具体版本已发布；OpenCode 保留配置目录内的 vendored fallback，Pi 保留本地 package-path 安装。Kimi Code 通过 `/plugins install` 安装仓库根插件（per-user）。可选的 `do-it setup` 只用于受管 CLI doctor / 迁移 / 临时 HOME 冒烟——宿主插件安装与旧版/受管拷贝二选一，不要双装。
-
-Cursor CLI setup 只写 `~/.cursor`（不再写 `~/.claude`）。
-
-### 从 pre-0.14 升级
-
-1. 刷新宿主插件（或可选 `do-it setup` 做旧镜像）。
-2. Codex 刷新后在 `/hooks` 信任插件 hooks。
-3. 从个人提示/规则中删掉已退役技能名——见 [`CHANGELOG.md`](./CHANGELOG.md) 迁移表。
-
-更早发行说明（0.13.x 及以前）只保留在 `CHANGELOG.md`。不要把其中的历史技能名当成现行规则。
-
 ## 站在前人的肩膀上
 
-`do-it` 借用了已经被两个高质量项目验证过的 **plan / subworker / TDD / review**
-范式：
-
-- [`obra/superpowers`](https://github.com/obra/superpowers)：skill + subworker
-  协作模式。
-- [`mattpocock/skills`](https://github.com/mattpocock/skills)：skill 的打包
-  与发现机制，以及塑造了 `do-it-decide` 压测与发散模式的提示词收敛术（leading word
-  胜过形容词三连、一次一问、可检验的完成判据）。
-- [`addyosmani/agent-skills`](https://github.com/addyosmani/agent-skills)：
-  production skill 的结构、反合理化和证据优先方法。
-- [`DietrichGebert/ponytail`](https://github.com/DietrichGebert/ponytail)：
-  「最好的代码是你没写的代码」这条决策阶梯，以及《让代码尽量少》背后的 YAGNI
-  复审纪律。
+`do-it` 借用了已经被多个高质量项目验证过的 **plan / subworker / TDD / review**
+范式——最直接的是
+[`mattpocock/skills`](https://github.com/mattpocock/skills)、
+[`addyosmani/agent-skills`](https://github.com/addyosmani/agent-skills) 和
+[`gsd-build/get-shit-done`](https://github.com/gsd-build/get-shit-done) 这条线。
+逐条对照的来源映射（含「趋同不等于同源」原则）见
+[`docs/upstream-map.md`](./docs/upstream-map.md)。
 
 `do-it` 是我自己对同一类问题的解法，来自这些项目给我的启发，也来自我每天在
 真实项目里的使用。这里吸收的是方法并改写成 do-it 原生的 Router / Tier /
@@ -514,7 +485,8 @@ npm run validate:release -- vX.Y.Z
 npm run smoke:package
 ```
 
-优先做 marketplace / 插件冒烟；可选的 `do-it setup` 只用于遗留 CLI 镜像与迁移。
+完整发布清单与发布路径见 [`docs/release.md`](./docs/release.md)。优先做
+marketplace / 插件冒烟；可选的 `do-it setup` 只用于遗留 CLI 镜像与迁移。
 
 ## 贡献
 
