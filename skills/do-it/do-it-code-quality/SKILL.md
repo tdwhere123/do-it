@@ -7,13 +7,14 @@ description: "Use when writing or designing code: name premise and blast radius,
 
 Main defense **while writing**. Prefer depth, locality, and real feedback over ceremony.
 
-Leading words (use them): **deep module**, **seam**, **tracer bullet**, **red before green**, **scope chain**.
+Leading words (use them): **deep module**, **seam**, **tracer bullet**, **red before green**, **scope chain**, **phases, not piles**, **reuse before repeat**.
 
 ## Scope Chain (before edit)
 
 1. **Premise** — one sentence: if this fact is wrong, the change is wrong.
 2. **Blast radius** — who breaks (callers, live paths, tests, persistence).
 3. **Bounded chain** — producer → contract → transport → state → surface → verify. Do not tour the whole repo.
+4. **Targeted reads** — locate the symbol or section first, then read that range. Whole-file reads on files over ~500 lines / 30 KB burn context and blur the chain.
 
 Detail: [`../references/scope-chain.md`](../references/scope-chain.md).
 
@@ -32,6 +33,20 @@ Prefer **deep modules**: small **interface**, rich **implementation**, at a clea
 - **One adapter = hypothetical seam; two adapters = real seam.** No speculative seams.
 - **Interface is the test surface.** Accept dependencies; do not construct them inside.
 - **Inline / delete** thin wrappers and Phase-2 scaffolding.
+
+## Phases, Not Piles
+
+Separate **compute → apply → audit**: computation, persistence/DB access, and event/log side effects each get their own phase. A function that mixes them is a split candidate *before* you extend it. One reason to change per module, class, and function.
+
+**Reuse before repeat:** if the rule, transform, or contract already exists, extend or call it — never fork a second home for the same truth.
+
+**After you change code, re-check three questions:**
+
+1. Can this block move into an existing helper?
+2. Did you introduce parallel logic that should be one shared path?
+3. Should scattered copies become one module instead of another near-duplicate file?
+
+**Shape limits:** source-file size thresholds are owned by the `file-size` advisory family — cite [`../references/write-quality-families.md`](../references/write-quality-families.md), never restate them here; projects override via `.do-it/write-quality.local.tsv`. Function length stays your judgment call: under **50** lines, extract phases at **100+**.
 
 ## Comments — Anchors, Not Narrative
 

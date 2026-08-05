@@ -121,6 +121,27 @@ Shared skills must stay host-neutral in the body:
 - After edits, run `node scripts/check-skill-links.mjs` and hook tests when hooks
   or references change.
 
+## Where a Rule Lives
+
+Before writing a rule, pick its layer — the wrong layer either puts numbers
+where taste is needed or taste where a machine is reliable:
+
+| Layer | Holds | Test |
+|---|---|---|
+| Skill prose | Judgment rules needing context and taste (seams, phases, reuse) | Could two reasonable agents disagree? → skill |
+| Hook (`write-quality-lint.sh` etc.) | Deterministic checks with numbers (line counts, pattern bans) | Can a script decide it every time? → hook |
+| Validator (`scripts/validate-*.mjs`) | Drift contracts across registry/scanner/docs/tests | Is it a closed set that must stay synchronized? → validator |
+
+A skill keeps at most a one-line pointer to the hook family that owns the
+numbers; never restate thresholds in prose where they drift. The one prose
+home for hook numbers is the family reference table
+(`references/write-quality-families.md`) — skills and registry descriptions
+cite it. Numbers a hook cannot check (e.g. cross-language function length)
+stay in the skill that owns the judgment. New hook
+families are a closed set: registry (`hooks/data/quality-families.tsv`),
+scanner emission, `references/write-quality-families.md`, and a direct test
+reference must land together — `validate:quality-families` blocks drift.
+
 ## Common Rationalizations
 
 - *"The upstream skill already says this well."* — The installed package ships

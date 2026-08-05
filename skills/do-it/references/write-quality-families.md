@@ -46,6 +46,7 @@ Suppress one advisory family with `write-quality-lint-allow: <family-id> — <re
 |---|---|
 | `debug-leftover` | console/debugger/print outside tests |
 | `edit-bloat` | Single edit adds >120 lines (`DO_IT_EDIT_BLOAT_LINES`) |
+| `file-size` | File over size limit — warn >500 lines, split ≥800 (wc -l semantics). Precedence: `DO_IT_FILE_SIZE_WARN_LINES` / `DO_IT_FILE_SIZE_SPLIT_LINES` env > `.do-it/write-quality.local.tsv` at the git root of the edited file (`file-size-warn` / `file-size-split` rows) > defaults |
 
 ### Metacognition (local → global without whole-repo reads)
 

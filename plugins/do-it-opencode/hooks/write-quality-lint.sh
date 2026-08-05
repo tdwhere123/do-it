@@ -169,7 +169,7 @@ if [[ "$DIM_BREAKS_INTERFACE" == "1" || "$DIM_CROSSES_PACKAGES" == "1" ]]; then
 elif [[ -z "$DIM_BREAKS_INTERFACE$DIM_CROSSES_PACKAGES" ]]; then
   SCOPE_RISK="unknown"
 fi
-wq_scan_extra_families "$FILE_PATH" "$SCOPE_RISK"
+wq_scan_extra_families "$FILE_PATH" "$SCOPE_RISK" "$REPO_ROOT"
 
 # Suppress individual advisory families with a reason-bearing marker, never the
 # entire scan. Secret-leak is intentionally unsuppressible: a marker must not

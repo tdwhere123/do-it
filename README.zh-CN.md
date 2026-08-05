@@ -440,6 +440,17 @@ package.json     npm 包元数据和 CLI scripts
 已移除 `grill-pretool`。声明是否诚实由 `do-it-verify` 的任务相关证据决定，不由
 hook 决定。
 
+项目级覆盖放在 `.do-it/` 下，均为**纯数据**——hook 逐行读取，从不 source
+项目文件：
+
+- `keywords.local.tsv`（会话 cwd）扩展 router 关键词表。
+- `write-quality.local.tsv`（被编辑文件的 git 根目录）调整数值型限制，例如
+  `file-size` 的 warn/split 阈值；环境变量 `DO_IT_FILE_SIZE_WARN_LINES` /
+  `DO_IT_FILE_SIZE_SPLIT_LINES` 优先级高于该文件。
+
+family 目录与抑制语法见
+[`skills/do-it/references/write-quality-families.md`](./skills/do-it/references/write-quality-families.md)。
+
 ### 安装真相
 
 Codex 与 Claude marketplace 优先；Cursor 在公开上架前使用本地拷贝 / Team Import。OpenCode 与 Pi 都有独立 npm 包坐标，但只有 registry 查询成功才能证明具体版本已发布；OpenCode 保留配置目录内的 vendored fallback，Pi 保留本地 package-path 安装。Kimi Code 通过 `/plugins install` 安装仓库根插件（per-user）。可选的 `do-it setup` 只用于受管 CLI doctor / 迁移 / 临时 HOME 冒烟——宿主插件安装与旧版/受管拷贝二选一，不要双装。

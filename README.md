@@ -503,6 +503,17 @@ pressure via `do-it-decide`.
 `grill-pretool` is gone. `do-it-verify`, not the hook, keeps completion claims
 honest with task-relevant proof.
 
+Project-level overrides live in `.do-it/` and are **data-only** — hooks read
+them line by line and never source project files:
+
+- `keywords.local.tsv` (session cwd) extends router keyword tables.
+- `write-quality.local.tsv` (git root of the edited file) retunes numeric
+  limits such as the `file-size` warn/split thresholds; the env vars
+  `DO_IT_FILE_SIZE_WARN_LINES` / `DO_IT_FILE_SIZE_SPLIT_LINES` win over it.
+
+Family catalog and suppression syntax:
+[`skills/do-it/references/write-quality-families.md`](./skills/do-it/references/write-quality-families.md).
+
 ### Install truth
 
 Codex and Claude are marketplace-first. Cursor uses local copy / Team Import
