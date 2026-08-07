@@ -18,10 +18,16 @@ temporary `code-mapper` dispatch; they are not maintained in a persistent
 
 ## When To Use
 
+- **First time using do-it in a project.** Run `/do-it-handbook init` (or
+  `/do-it-handbook`) after installing the plugin. This is the recommended way
+  to set up `.do-it/` — it creates the full directory tree (handbook,
+  worklog, brainstorm, grill, plans) plus `CONTEXT.md` in one step.
 - The user explicitly asks to bootstrap a handbook (`/do-it-handbook init`, "建 handbook", "set up the handbook").
 - The project is starting to grow beyond a single CLAUDE.md and the team is rediscovering the same terms each turn.
 - A new contributor (human or agent) keeps asking what counts as a `Blocking` finding, or where the architecture invariants live.
 - Stable project truth is repeatedly rediscovered and a small shared home would prevent future drift.
+- `do-it-router` detects that `.do-it/` is missing and suggests running the
+  handbook bootstrap — the user can accept or decline.
 
 Skip when:
 
@@ -39,6 +45,7 @@ Skip when:
   worklog-template.md         # template copied into .do-it/worklog/
 .do-it/worklog/
   .gitkeep
+.do-it/CONTEXT.md             # terse terms/invariants/relationships (owned by do-it-context)
 ```
 
 The handbook holds only **project-specific truth** — the facts a generic skill
@@ -57,10 +64,11 @@ When explicitly invoked (`/do-it-handbook` or a user request):
    - If it does **and** some files are missing, copy only the missing files (additive, never overwrite).
    - If it does not exist, create the full tree.
 2. Templates are copied verbatim from `templates/` under this skill. Each template is a skeleton with placeholder text the project owner replaces; do not hand-edit the project's handbook from inside the bootstrap step.
-3. Add a `.gitkeep` to `.do-it/brainstorm/`, `.do-it/grill/`, `.do-it/plans/`,
+3. Ensure `.do-it/CONTEXT.md` exists: copy `templates/CONTEXT.md` (the three-section skeleton owned by `do-it-context`) only when the file is missing; never overwrite an existing `CONTEXT.md`.
+4. Add a `.gitkeep` to `.do-it/brainstorm/`, `.do-it/grill/`, `.do-it/plans/`,
    and `.do-it/worklog/` if any of those directories are missing, so the project
    tracks them in version control.
-4. Print one line per file written, then a one-paragraph "next steps" pointer telling the user to start by filling in `invariants.md` and `glossary.md`.
+5. Print one line per file written, then a one-paragraph "next steps" pointer telling the user to start by filling in `invariants.md` and `glossary.md`.
 
 The bootstrap must actually write files, not merely suggest that the user create them. The placeholders are intentional — they prompt the human owner to make the call in a later turn.
 
@@ -129,13 +137,14 @@ task points at one.
 The bootstrap command should produce a short, deterministic report:
 
 ```
-[do-it-handbook] writing 4 file(s) to .do-it/handbook/ and 1 template to .do-it/worklog/
+[do-it-handbook] writing 5 template file(s) to .do-it/handbook/, .gitkeep to .do-it/worklog/, and CONTEXT.md skeleton
   + .do-it/handbook/README.md
   + .do-it/handbook/invariants.md
   + .do-it/handbook/architecture.md
   + .do-it/handbook/glossary.md
   + .do-it/handbook/worklog-template.md
   + .do-it/worklog/.gitkeep
+  + .do-it/CONTEXT.md
 
 next: fill in invariants.md and glossary.md, then use .do-it/worklog/YYYY-MM-DD.md for daily progress.
 ```

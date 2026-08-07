@@ -17,7 +17,10 @@ description: 在当前项目里铺一份精简 .do-it/handbook/ 骨架（invaria
 1. 加载 `do-it-handbook` skill。
 2. 检查 `.do-it/handbook/` 是否存在；不存在则创建。
 3. 对比模板列表与项目现状，**只写缺失的文件**——已存在的不覆盖、不合并。
-4. 同时确保 `.do-it/worklog/` 有 `.gitkeep`；只有任务确实需要持久化决策或计划时，才按 `do-it-decide` 创建相应 artifact。
+4. 同时确保 `.do-it/worklog/` 有 `.gitkeep`，且 `.do-it/CONTEXT.md` 存在——缺失时按
+   `do-it-context` 的三段骨架（Terms / Invariants / Relationships）写入，绝不覆盖
+   已有内容；只有任务确实需要持久化决策或计划时，才按 `do-it-decide` 创建相应
+   artifact。
 5. 打印写入的文件清单 + "next steps" 提示，先填 `invariants.md` 与 `glossary.md`。
 
 ## 不做什么

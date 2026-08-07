@@ -70,6 +70,10 @@ See `CONTEXT-FORMAT.md` (in this skill directory) for the exact shape.
 
 ### Initial Setup
 
+`/do-it-handbook init` creates the `.do-it/` tree including a `CONTEXT.md`
+skeleton (three section headers, zero entries) — the recommended first setup.
+If you need CONTEXT alone:
+
 1. From repo root: `mkdir -p .do-it && touch .do-it/CONTEXT.md`.
 2. Copy the structure from `CONTEXT-FORMAT.md` (in this skill) — the three section headers and zero entries to start.
 3. Add one entry the first time `do-it-decide` clarifies a term.

@@ -37,6 +37,13 @@ Refs (load on demand): [`scope-chain.md`](../references/scope-chain.md), [`workf
 
 ## First Move
 
+0. If `.do-it/` does not exist in the project root, suggest running
+   `/do-it-handbook init` (or `/do-it-handbook`). This scaffolds the
+   `.do-it/` directory tree including handbook templates, `CONTEXT.md`,
+   worklog, and task-artifact directories. The agent should not create
+   `.do-it/` silently — tell the user what it will create and why, then
+   proceed when acknowledged. Skip if the project is a one-shot script
+   with no cross-session need.
 1. Read current truth (files, diffs, tests) — do not ask for readable facts.
 2. Decide whether a tier, skill, worker, or parallel slice would materially help.
 3. Use only the useful pieces, then proceed. Do not narrate skipped workflow by default.
