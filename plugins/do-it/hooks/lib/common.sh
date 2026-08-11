@@ -976,7 +976,9 @@ _do_it_release_mkdir_lock() {
   current="$(cat "$lock_dir/owner" 2>/dev/null)"
   [[ -n "$token" && "$current" == "$token" ]] || return 1
   rm -f "$lock_dir/owner" 2>/dev/null || return 1
-  rmdir "$lock_dir" 2>/dev/null
+  # A waiter may reclaim the (stale-looking) dir between our rm and rmdir; the
+  # critical section is already over, so a missing dir is a successful release.
+  rmdir "$lock_dir" 2>/dev/null || [[ ! -d "$lock_dir" ]]
 }
 
 _do_it_with_state_lock() {
@@ -991,7 +993,17 @@ _do_it_with_state_lock() {
 
   local lock_dir="${lock}.d" reaping="${lock}.d.reaping"
   local acquired=0 attempts=0 now=0 modified=0 owner_record="" owner_pid="" token="" stale=0
-  while [[ "$attempts" -lt 500 ]]; do
+  # Portable lock-wait. Budget by wall time (bash builtin SECONDS, available
+  # on bash 3.2) because per-attempt cost varies across hosts. The budget is a
+  # safety net; normal contention is millisecond-scale and dead owners are
+  # reclaimed immediately. A large no-flock waiter set takes over 30s on
+  # hosted macOS, so Darwin gets a wider bound. Scalar vars only for bash 3.2.
+  local _lock_start=$SECONDS _lock_delay="spin" _lock_budget=30
+  [[ "${OSTYPE:-}" == darwin* ]] && _lock_budget=60
+  if sleep 0.01 2>/dev/null; then
+    _lock_delay=0.01
+  fi
+  while [[ $((SECONDS - _lock_start)) -lt "$_lock_budget" ]]; do
     if [[ -d "$reaping" ]]; then
       now=$(date +%s 2>/dev/null || printf '0')
       modified=$(stat -f %m "$reaping" 2>/dev/null || stat -c %Y "$reaping" 2>/dev/null || printf '0')
@@ -1001,69 +1013,112 @@ _do_it_with_state_lock() {
         rmdir "$reaping" 2>/dev/null || true
       fi
       attempts=$((attempts + 1))
-      sleep 0.01 2>/dev/null || sleep 1
+      if [[ "$_lock_delay" == "spin" ]]; then
+      :  # spin-poll: mkdir retry loop is the wait on hosts without fractional sleep
+    else
+      sleep "$_lock_delay"
+    fi
       continue
     fi
 
     if mkdir "$lock_dir" 2>/dev/null; then
-      owner_pid="${BASHPID:-}"
-      [[ -n "$owner_pid" ]] || owner_pid="$(sh -c 'printf "%s\n" "$PPID"' 2>/dev/null)"
+      # Owner identity for stale-reclaim. Prefer BASHPID (the current
+      # subshell's own pid, alive for the whole critical section). Bash 3.2
+      # (macOS default) has no BASHPID: fall back to $$ — the session shell's
+      # pid, alive for the whole process run. NEVER fall back to a transient
+      # pid (e.g. a `sh -c` PPID): command-substitution subshells die
+      # immediately after the owner file is written, so waiters would see a
+      # dead owner and steal a live lock (observed as lost increments under
+      # heavy contention on bash 3.2).
+      owner_pid="${BASHPID:-$$}"
       [[ "$owner_pid" =~ ^[0-9]+$ ]] || owner_pid="$$"
       token="${owner_pid}:${RANDOM}:${RANDOM}"
       if ! printf '%s\n' "$token" > "$lock_dir/owner" 2>/dev/null; then
-        rmdir "$lock_dir" 2>/dev/null || true
-        return 1
-      fi
-      if [[ -d "$reaping" ]]; then
-        _do_it_release_mkdir_lock "$lock_dir" "$token" || true
+        # Owner-write failed. Two cases:
+        #  (a) a concurrent reclaim removed the dir between our mkdir and this
+        #      write — the path is free, retry the acquisition loop;
+        #  (b) the path is unusable for the owner file (observed on Windows/
+        #      Git Bash with mixed paths) — the dir is still ours and empty,
+        #      so release it and fail fast instead of spinning the whole wait
+        #      budget. Never rmdir a dir that has gained another writer's
+        #      owner file.
+        if [[ -d "$lock_dir" && ! -e "$lock_dir/owner" ]]; then
+          rmdir "$lock_dir" 2>/dev/null || true
+          return 1
+        fi
         attempts=$((attempts + 1))
-        sleep 0.01 2>/dev/null || sleep 1
+        if [[ "$_lock_delay" == "spin" ]]; then
+          :  # spin-poll: mkdir retry loop is the wait on hosts without fractional sleep
+        else
+          sleep "$_lock_delay"
+        fi
         continue
       fi
+      # No step-aside: once mkdir succeeds the lock is ours. A concurrent
+      # reaping dir belongs to a reclaim in flight; it clears itself within
+      # the wait budget, and releasing a fresh lock here only churns the
+      # acquisition loop (observed as lost increments under heavy contention).
       acquired=1
       break
     fi
 
     attempts=$((attempts + 1))
-    owner_record="$(cat "$lock_dir/owner" 2>/dev/null)"
-    owner_pid="${owner_record%%:*}"
+    # Full owner check only every 20 attempts: each cat + kill -0 is a
+    # subprocess, and on slow hosts (macOS, containers) per-attempt cost is
+    # what burns the wait budget. Between checks the mkdir retry alone is the
+    # poll; a released lock is re-acquired on the next mkdir regardless.
     stale=0
-    if [[ "$owner_pid" =~ ^[0-9]+$ ]]; then
-      if ! kill -0 "$owner_pid" 2>/dev/null; then
-        stale=1
-      fi
-    elif [[ $((attempts % 100)) -eq 0 ]]; then
-      now=$(date +%s 2>/dev/null || printf '0')
-      modified=$(stat -f %m "$lock_dir" 2>/dev/null || stat -c %Y "$lock_dir" 2>/dev/null || printf '0')
-      if [[ "$now" =~ ^[0-9]+$ && "$modified" =~ ^[0-9]+$ \
-         && "$modified" -gt 0 && $((now - modified)) -gt 30 ]]; then
-        stale=1
-      fi
-    fi
-    if [[ "$stale" -eq 1 ]] && mkdir "$reaping" 2>/dev/null; then
-      local current_record current_pid current_stale=0
-      current_record="$(cat "$lock_dir/owner" 2>/dev/null)"
-      current_pid="${current_record%%:*}"
-      if [[ "$current_record" == "$owner_record" ]]; then
-        if [[ "$current_pid" =~ ^[0-9]+$ ]]; then
-          kill -0 "$current_pid" 2>/dev/null || current_stale=1
-        else
-          now=$(date +%s 2>/dev/null || printf '0')
-          modified=$(stat -f %m "$lock_dir" 2>/dev/null || stat -c %Y "$lock_dir" 2>/dev/null || printf '0')
-          if [[ "$now" =~ ^[0-9]+$ && "$modified" =~ ^[0-9]+$ \
-             && "$modified" -gt 0 && $((now - modified)) -gt 30 ]]; then
-            current_stale=1
-          fi
+    if [[ $((attempts % 20)) -eq 0 ]]; then
+      owner_record="$(cat "$lock_dir/owner" 2>/dev/null)"
+      owner_pid="${owner_record%%:*}"
+      if [[ "$owner_pid" =~ ^[0-9]+$ ]]; then
+        if ! kill -0 "$owner_pid" 2>/dev/null; then
+          stale=1
+        fi
+      elif [[ $((attempts % 100)) -eq 0 ]]; then
+        now=$(date +%s 2>/dev/null || printf '0')
+        modified=$(stat -f %m "$lock_dir" 2>/dev/null || stat -c %Y "$lock_dir" 2>/dev/null || printf '0')
+        if [[ "$now" =~ ^[0-9]+$ && "$modified" =~ ^[0-9]+$ \
+           && "$modified" -gt 0 && $((now - modified)) -gt 30 ]]; then
+          stale=1
         fi
       fi
-      if [[ "$current_stale" -eq 1 ]]; then
-        rm -f "$lock_dir/owner" 2>/dev/null || true
-        rmdir "$lock_dir" 2>/dev/null || true
+      if [[ "$stale" -eq 1 ]] && mkdir "$reaping" 2>/dev/null; then
+        local current_record current_pid current_stale=0
+        current_record="$(cat "$lock_dir/owner" 2>/dev/null)"
+        current_pid="${current_record%%:*}"
+        if [[ "$current_record" == "$owner_record" ]]; then
+          if [[ "$current_pid" =~ ^[0-9]+$ ]]; then
+            kill -0 "$current_pid" 2>/dev/null || current_stale=1
+          else
+            now=$(date +%s 2>/dev/null || printf '0')
+            modified=$(stat -f %m "$lock_dir" 2>/dev/null || stat -c %Y "$lock_dir" 2>/dev/null || printf '0')
+            if [[ "$now" =~ ^[0-9]+$ && "$modified" =~ ^[0-9]+$ \
+               && "$modified" -gt 0 && $((now - modified)) -gt 30 ]]; then
+              current_stale=1
+            fi
+          fi
+        fi
+        if [[ "$current_stale" -eq 1 ]]; then
+          # Final identity check immediately before removal. The owner file
+          # must still carry the stale token: never remove a dir whose owner
+          # is empty (a fresh acquirer may be between mkdir and owner-write,
+          # or a live owner between its rm and rmdir — the Case 3d window).
+          final_record="$(cat "$lock_dir/owner" 2>/dev/null)"
+          if [[ -n "$final_record" && "$final_record" == "$current_record" ]]; then
+            rm -f "$lock_dir/owner" 2>/dev/null || true
+            rmdir "$lock_dir" 2>/dev/null || true
+          fi
+        fi
+        rmdir "$reaping" 2>/dev/null || true
+        continue
       fi
-      rmdir "$reaping" 2>/dev/null || true
-      continue
     fi
-    sleep 0.01 2>/dev/null || sleep 1
+    if [[ "$_lock_delay" == "spin" ]]; then
+      :  # spin-poll: mkdir retry loop is the wait on hosts without fractional sleep
+    else
+      sleep "$_lock_delay"
+    fi
   done
   [[ "$acquired" -eq 1 ]] || return 1
 

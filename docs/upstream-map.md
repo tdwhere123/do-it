@@ -3,7 +3,7 @@
 This file records where do-it deliberately absorbs outside workflow ideas. It is
 not an install manifest; `manifest.json` is the install source of truth.
 
-The source version `0.15.0` defines eleven user/runnable do-it-native skill
+The source version `0.16.0` defines eleven user/runnable do-it-native skill
 names plus one generated discovery entry; this is version metadata, not a
 publication claim. The skills are meaning buckets (see the migration table in
 [`CHANGELOG.md`](../CHANGELOG.md)).
@@ -107,7 +107,7 @@ as do-it-native decision support, not as a replacement state machine:
 
 ## Installed Agents
 
-Ten agents in `0.15.0`:
+Ten agents in `0.16.0`:
 
 | Agent | do-it Role | Notes |
 | --- | --- | --- |

@@ -1,6 +1,6 @@
 {
   "name": "@tdwhere/do-it-pi",
-  "version": "0.15.0",
+  "version": "0.16.0",
   "description": "Pi coding agent adapter for do-it workflow hooks, skills, prompts, and optional package agents",
   "type": "module",
   "license": "MIT",

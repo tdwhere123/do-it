@@ -183,7 +183,7 @@ Family catalog and suppression syntax:
 
 ## Release Notes
 
-The current line is **0.15.x**. Release notes and tag policy:
+The current line is **0.16.x**. Release notes and tag policy:
 [`docs/release.md`](./docs/release.md). Older notes:
 [`CHANGELOG.md`](./CHANGELOG.md).
 

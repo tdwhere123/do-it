@@ -1,6 +1,6 @@
 {
   "name": "do-it",
-  "version": "0.15.0",
+  "version": "0.16.0",
   "description": "Autonomy-first AI coding workflow with task-fit skills, advisory routing tiers, and evidence-backed completion.",
   "keywords": [
     "agentic-workflow",

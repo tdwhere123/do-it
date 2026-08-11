@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.15.0
+## 0.16.0
 
 ### Core protocol and architecture routing
 
@@ -18,14 +18,18 @@
   migration/cutover, and security-boundary changes point to
   `do-it-architecture`; explanation questions remain Light, and ordinary Heavy
   release work stays free of an architecture pointer.
-- **Prompt-state ordering:** Claude, Codex, Cursor, and Kimi now invoke router
-  then Heavy grill through one serialized `prompt-submit` hook, preventing
-  concurrent hook scheduling from reading a stale tier; state writes use a
-  portable `mkdir` lock fallback when `flock` is unavailable.
+- **Prompt-state ordering:** Claude, Codex, Cursor, OpenCode, Pi, and Kimi now
+  invoke router then Heavy grill through one serialized `prompt-submit` hook,
+  preventing concurrent hook scheduling from reading a stale tier; the
+  entrypoint stays fail-open (router guidance is always emitted, grill is
+  gated on state persistence), and state writes use a portable `mkdir` lock
+  fallback with a bounded wait when `flock` is unavailable.
 - **Architecture routing precision:** strong Heavy detection now uses bounded,
   clause-local action/surface pairs for interface, migration, and security
   work, avoiding substring joins such as `token` + `relationship` while still
   recognizing explicit security-boundary creation.
+
+## 0.15.0
 
 ### Code-quality rules move into skills and hooks
 
