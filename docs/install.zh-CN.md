@@ -9,8 +9,8 @@
 
 | 真相平面 | 本仓库可以声明的内容 |
 | --- | --- |
-| 源码 / 包元数据 | 当前 checkout 声明 `0.15.0`、11 个用户可运行 skill + 1 个生成式发现入口、10 个 agent。 |
-| Git tag | `0.15.0` 发布提交必须带有 `v0.15.0`；版本元数据不等于发布 tag。 |
+| 源码 / 包元数据 | 当前 checkout 声明 `0.16.0`、11 个用户可运行 skill + 1 个生成式发现入口、10 个 agent。 |
+| Git tag | `0.16.0` 发布提交必须带有 `v0.16.0`；版本元数据不等于发布 tag。 |
 | Marketplace / npm | 文档记录坐标与发布路径；只有 workflow 之后的 `npm view` 才能证明已发布到 registry。Cursor 公开上架仍待完成。 |
 | Live host | 只有在对应宿主安装并检查，才能证明那里实际启用了什么；不能从源码或 tarball 推断。 |
 
@@ -81,7 +81,7 @@ Cursor 装 **完整 11 个 skill**（`do-it-core`、`do-it-router`、`do-it-code
 ## OpenCode
 
 OpenCode 从 `opencode.json` 的 `"plugin"` 数组加载插件。确认
-`npm view @tdwhere/do-it-opencode@0.15.0 version` 成功后，再安装独立 npm 包：
+`npm view @tdwhere/do-it-opencode@0.16.0 version` 成功后，再安装独立 npm 包：
 
 ```bash
 opencode plugin @tdwhere/do-it-opencode -g
@@ -98,7 +98,7 @@ npm run test-opencode
 
 ## Pi
 
-确认 `npm view @tdwhere/do-it-pi@0.15.0 version` 成功后，再安装独立的 Pi npm 包：
+确认 `npm view @tdwhere/do-it-pi@0.16.0 version` 成功后，再安装独立的 Pi npm 包：
 
 ```bash
 pi install npm:@tdwhere/do-it-pi
@@ -213,6 +213,6 @@ do-it doctor
 
 ```bash
 npm pack
-npm install -g ./tdwhere-do-it-0.15.0.tgz
+npm install -g ./tdwhere-do-it-0.16.0.tgz
 do-it setup   # 可选 / 遗留全局拷贝
 ```

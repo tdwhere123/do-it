@@ -173,7 +173,7 @@ Family 目录与抑制语法见
 
 ## 发布说明
 
-当前主线 **0.15.x**。发布说明与 tag 策略：
+当前主线 **0.16.x**。发布说明与 tag 策略：
 [`docs/release.md`](./docs/release.md)。更早的说明：
 [`CHANGELOG.md`](./CHANGELOG.md)。
 

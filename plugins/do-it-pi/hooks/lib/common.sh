@@ -991,7 +991,16 @@ _do_it_with_state_lock() {
 
   local lock_dir="${lock}.d" reaping="${lock}.d.reaping"
   local acquired=0 attempts=0 now=0 modified=0 owner_record="" owner_pid="" token="" stale=0
-  while [[ "$attempts" -lt 500 ]]; do
+  # Portable lock-wait delay: GNU sleep accepts fractional seconds, BSD/macOS
+  # sleep does not. Probe once, then size the attempt bound so the total wait
+  # is ~5s on every host (matching the flock -w 5 timeout above). Scalar vars
+  # only — this must parse on macOS's default bash 3.2.
+  local _lock_delay=1 _lock_bound=5
+  if sleep 0.01 2>/dev/null; then
+    _lock_delay=0.01
+    _lock_bound=500
+  fi
+  while [[ "$attempts" -lt "$_lock_bound" ]]; do
     if [[ -d "$reaping" ]]; then
       now=$(date +%s 2>/dev/null || printf '0')
       modified=$(stat -f %m "$reaping" 2>/dev/null || stat -c %Y "$reaping" 2>/dev/null || printf '0')
@@ -1001,7 +1010,7 @@ _do_it_with_state_lock() {
         rmdir "$reaping" 2>/dev/null || true
       fi
       attempts=$((attempts + 1))
-      sleep 0.01 2>/dev/null || sleep 1
+      sleep "$_lock_delay"
       continue
     fi
 
@@ -1017,7 +1026,7 @@ _do_it_with_state_lock() {
       if [[ -d "$reaping" ]]; then
         _do_it_release_mkdir_lock "$lock_dir" "$token" || true
         attempts=$((attempts + 1))
-        sleep 0.01 2>/dev/null || sleep 1
+        sleep "$_lock_delay"
         continue
       fi
       acquired=1
@@ -1063,7 +1072,7 @@ _do_it_with_state_lock() {
       rmdir "$reaping" 2>/dev/null || true
       continue
     fi
-    sleep 0.01 2>/dev/null || sleep 1
+    sleep "$_lock_delay"
   done
   [[ "$acquired" -eq 1 ]] || return 1
 

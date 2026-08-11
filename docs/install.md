@@ -10,8 +10,8 @@ agents, and hooks together.
 
 | Truth plane | What this repository can claim |
 | --- | --- |
-| Source/package metadata | This checkout declares `0.15.0`, 11 user/runnable skills + 1 generated discovery entry, and 10 agents. |
-| Git tag | The `0.15.0` release commit must carry `v0.15.0`; version metadata alone is not a release tag. |
+| Source/package metadata | This checkout declares `0.16.0`, 11 user/runnable skills + 1 generated discovery entry, and 10 agents. |
+| Git tag | The `0.16.0` release commit must carry `v0.16.0`; version metadata alone is not a release tag. |
 | Marketplace / npm | Coordinates and publish paths are documented; only post-workflow `npm view` proves registry publication. Cursor marketplace listing remains pending. |
 | Live host | Only an install/inspection on that host proves what is active there; do not infer it from source or a packed artifact. |
 
@@ -101,7 +101,7 @@ grill via `prompt-submit`, plus stance), `postToolUse` / `afterFileEdit` advisor
 ## OpenCode
 
 OpenCode loads plugins from the `"plugin"` array in `opencode.json`. After
-`npm view @tdwhere/do-it-opencode@0.15.0 version` succeeds, install the
+`npm view @tdwhere/do-it-opencode@0.16.0 version` succeeds, install the
 independent npm package:
 
 ```bash
@@ -119,7 +119,7 @@ npm run test-opencode
 
 ## Pi
 
-After `npm view @tdwhere/do-it-pi@0.15.0 version` succeeds, install the
+After `npm view @tdwhere/do-it-pi@0.16.0 version` succeeds, install the
 independent Pi package from npm:
 
 ```bash
@@ -243,6 +243,6 @@ For a packed local release artifact:
 
 ```bash
 npm pack
-npm install -g ./tdwhere-do-it-0.15.0.tgz
+npm install -g ./tdwhere-do-it-0.16.0.tgz
 do-it setup   # optional / legacy global copy
 ```
