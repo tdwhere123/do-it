@@ -996,14 +996,14 @@ _do_it_with_state_lock() {
   # Portable lock-wait. Budget by wall time (bash builtin SECONDS, available
   # on bash 3.2) because per-attempt cost varies across hosts. The budget is a
   # safety net; normal contention is millisecond-scale and dead owners are
-  # reclaimed immediately. Darwin spin-polls: its process-backed fractional
-  # sleep makes a large waiter set exceed the budget. Other hosts back off
-  # when fractional sleep is available. Scalar vars only for macOS bash 3.2.
-  local _lock_start=$SECONDS _lock_delay="spin"
-  if [[ "${OSTYPE:-}" != darwin* ]] && sleep 0.01 2>/dev/null; then
+  # reclaimed immediately. A large no-flock waiter set takes over 30s on
+  # hosted macOS, so Darwin gets a wider bound. Scalar vars only for bash 3.2.
+  local _lock_start=$SECONDS _lock_delay="spin" _lock_budget=30
+  [[ "${OSTYPE:-}" == darwin* ]] && _lock_budget=60
+  if sleep 0.01 2>/dev/null; then
     _lock_delay=0.01
   fi
-  while [[ $((SECONDS - _lock_start)) -lt 30 ]]; do
+  while [[ $((SECONDS - _lock_start)) -lt "$_lock_budget" ]]; do
     if [[ -d "$reaping" ]]; then
       now=$(date +%s 2>/dev/null || printf '0')
       modified=$(stat -f %m "$reaping" 2>/dev/null || stat -c %Y "$reaping" 2>/dev/null || printf '0')
