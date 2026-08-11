@@ -983,7 +983,10 @@ _do_it_release_mkdir_lock() {
 
 _do_it_with_state_lock() {
   local lock="$1"; shift
-  if command -v flock >/dev/null 2>&1; then
+  # Git Bash ships a flock executable that can block on mixed Windows/POSIX
+  # paths; the mkdir lock below preserves the portable fallback contract.
+  if [[ "${OSTYPE:-}" != msys* && "${OSTYPE:-}" != cygwin* ]] \
+    && command -v flock >/dev/null 2>&1; then
     {
       flock -w 5 9 || return 1
       "$@"
