@@ -62,8 +62,19 @@ jobs:
             git diff --check
           fi
 
-      - name: Run hook tests
+      - name: Run canonical full suite
+        if: matrix.os == 'ubuntu-latest' && matrix.node-version == '22.x'
         run: npm test
+
+      - name: Run compatibility checks
+        if: matrix.os != 'ubuntu-latest' || matrix.node-version != '22.x'
+        run: |
+          npm run build:generated
+          node --test tests/agent-bundle.test.mjs tests/core-consistency.test.mjs tests/install/*.test.mjs tests/release/*.test.mjs
+          if [ "${{ runner.os }}" = "macOS" ]; then
+            bash scripts/test-hooks.sh
+            bash tests/hooks/common.test.sh
+          fi
 
       - name: Build Claude agents
         run: npm run build:claude-agents
