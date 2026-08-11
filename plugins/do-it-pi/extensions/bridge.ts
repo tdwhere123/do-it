@@ -5,6 +5,7 @@ import path from "node:path";
 export type HookPayload = {
 	session_id: string;
 	cwd: string;
+	model?: string;
 	prompt?: string;
 	tool_name?: string;
 	tool_input?: Record<string, unknown>;
@@ -84,6 +85,7 @@ function contentText(content?: readonly ContentPart[]): string | undefined {
 export function buildHookPayload(input: {
 	sessionId: string;
 	cwd: string;
+	model?: string;
 	prompt?: string;
 	toolName?: string;
 	input?: Record<string, unknown>;
@@ -94,6 +96,7 @@ export function buildHookPayload(input: {
 	return {
 		session_id: input.sessionId,
 		cwd: input.cwd,
+		model: input.model,
 		prompt: input.prompt,
 		tool_name: input.toolName
 			? (normalizeToolName(input.toolName) ?? input.toolName)

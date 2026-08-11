@@ -10,12 +10,7 @@
           },
           {
             "type": "command",
-            "command": "DO_IT_HOOK_DATA=\"${CODEX_HOME:-$HOME/.codex}/do-it-data\" \"${CODEX_HOME:-$HOME/.codex}/hooks/router.sh\"",
-            "timeout": 25
-          },
-          {
-            "type": "command",
-            "command": "DO_IT_HOOK_DATA=\"${CODEX_HOME:-$HOME/.codex}/do-it-data\" \"${CODEX_HOME:-$HOME/.codex}/hooks/grill-prompt.sh\"",
+            "command": "DO_IT_HOOK_DATA=\"${CODEX_HOME:-$HOME/.codex}/do-it-data\" \"${CODEX_HOME:-$HOME/.codex}/hooks/prompt-submit.sh\"",
             "timeout": 25
           },
           {

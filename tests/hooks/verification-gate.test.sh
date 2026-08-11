@@ -84,8 +84,9 @@ assert_advisory() {
   if printf '%s\n' "$output" | jq -e '
     (.decision? != "block")
     and .hookSpecificOutput.hookEventName == "Stop"
-    and (.hookSpecificOutput.additionalContext | contains("claim-specific proof"))
+    and (.hookSpecificOutput.additionalContext | contains("narrowest fresh check"))
     and (.hookSpecificOutput.additionalContext | contains("NOT_VERIFIED"))
+    and (.hookSpecificOutput.additionalContext | contains("This hook does not infer verification from command names"))
   ' >/dev/null 2>&1; then
     _pass "$label"
   else
@@ -130,6 +131,26 @@ tx="$DO_IT_HOOK_DATA/tx.jsonl"
 _append_edit > "$tx"
 _append_text "task done" >> "$tx"
 assert_advisory "completion claim is advisory, never a block" "$(_run_gate c5 "$tx")"
+
+# -------------------------------------------------------------------------
+echo "Case 2b: the advisory body is exactly r-verify + the hook caveat (single voice)"
+_isolate /tmp/doit-gate-c5b
+_set_state c5b tier Standard last_prompt_kind work
+tx="$DO_IT_HOOK_DATA/tx.jsonl"
+_append_edit > "$tx"
+_append_text "task done" >> "$tx"
+out="$(_run_gate c5b "$tx")"
+want='<system-reminder>
+Before any done, fixed, passing, ready, install, or merge claim: run the narrowest fresh check that exercises the changed path on this worktree and report its exact output; if proof is unavailable, state NOT_VERIFIED with the missing check and next action. This hook does not infer verification from command names.
+</system-reminder>'
+got="$(printf '%s\n' "$out" | jq -r '.hookSpecificOutput.additionalContext // ""')"
+got_norm="$(printf '%s' "$got" | tr -s '[:space:]' ' ' | sed 's/^ //; s/ $//')"
+want_norm="$(printf '%s' "$want" | tr -s '[:space:]' ' ' | sed 's/^ //; s/ $//')"
+if [[ "$got_norm" == "$want_norm" ]]; then
+  _pass "reminder body matches r-verify + hook caveat exactly (whitespace-normalized)"
+else
+  _fail "reminder body drifted from the canonical r-verify quote (got: $got)"
+fi
 
 # -------------------------------------------------------------------------
 echo "Case 3: command form cannot auto-pass the claim"
@@ -302,7 +323,7 @@ EOF
 out="$(_run_gate_kimi k1)"
 # Kimi streams text in chunks; the coalesced closing message must trigger the
 # reminder, emitted as plain text — never the raw JSON envelope.
-if [[ "$out" == *"claim-specific proof"* ]] && ! printf '%s' "$out" | jq -e . >/dev/null 2>&1; then
+if [[ "$out" == *"narrowest fresh check"* ]] && ! printf '%s' "$out" | jq -e . >/dev/null 2>&1; then
   _pass "kimi wire: streamed completion claim reminds in plain text"
 else
   _fail "kimi wire reminder missing or not plain text (got: $out)"
@@ -336,7 +357,7 @@ _kimi_wire k4 <<'EOF'
 EOF
 out="$(_run_gate_kimi k4)"
 # A hook-result injection is not a human turn: the edit before it still counts.
-if [[ "$out" == *"claim-specific proof"* ]]; then
+if [[ "$out" == *"narrowest fresh check"* ]]; then
   _pass "kimi wire: hook injections do not reset the current turn"
 else
   _fail "kimi wire injection wrongly sliced the turn (got: $out)"
@@ -357,7 +378,7 @@ _kimi_wire k6 <<'EOF'
 {"type":"context.append_loop_event","event":{"type":"content.part","part":{"type":"text","text":"ed."}}}
 EOF
 out="$(_run_gate_kimi k6)"
-if [[ "$out" == *"claim-specific proof"* ]]; then
+if [[ "$out" == *"narrowest fresh check"* ]]; then
   _pass "kimi wire: mid-token stream chunks coalesce without inserted newlines"
 else
   _fail "kimi wire mid-token coalesce failed (got: $out)"
@@ -367,6 +388,44 @@ _isolate /tmp/doit-gate-k7
 KIMI_FAKE_HOME="$DO_IT_HOOK_DATA/kimi-home"
 # Path-shaped session id must not escape the sessions sandbox.
 assert_silent "kimi wire: hazardous session_id skips discovery" "$(_run_gate_kimi '../escape')"
+
+# -------------------------------------------------------------------------
+echo "Case 10: invalid core registry emits bounded NOT_VERIFIED guidance"
+_isolate /tmp/doit-gate-registry
+registry_dir="$(mktemp -d)"
+_set_state registry-missing tier Standard last_prompt_kind work
+tx="$DO_IT_HOOK_DATA/tx.jsonl"
+_append_edit > "$tx"
+_append_text "task done" >> "$tx"
+out="$(DO_IT_RULES_DATA="$registry_dir/missing.tsv" _run_gate registry-missing "$tx")"
+if printf '%s\n' "$out" | jq -e '
+  (.decision? != "block")
+  and (.hookSpecificOutput.additionalContext | contains("core registry unavailable or invalid"))
+  and (.hookSpecificOutput.additionalContext | contains("NOT_VERIFIED"))
+  and (.hookSpecificOutput.additionalContext | contains("Next action:"))
+  and (.hookSpecificOutput.additionalContext | contains("skill://do-it-core"))
+  and (.hookSpecificOutput.additionalContext | contains("narrowest fresh check"))
+' >/dev/null 2>&1; then
+  _pass "missing registry emits actionable non-blocking verification fallback"
+else
+  _fail "missing registry fallback omitted diagnostic, NOT_VERIFIED, or next action (got: $out)"
+fi
+
+printf '%s\n' $'r-verify\tpartial caveat must not leak\tmodes\tStop' \
+  $'broken\trow\tonly-three' > "$registry_dir/malformed.tsv"
+_set_state registry-malformed tier Standard last_prompt_kind work
+_append_edit > "$tx"
+_append_text "task done" >> "$tx"
+out="$(DO_IT_RULES_DATA="$registry_dir/malformed.tsv" _run_gate registry-malformed "$tx")"
+if [[ "$out" == *"core registry unavailable or invalid"* && \
+      "$out" == *"NOT_VERIFIED"* && "$out" == *"Next action:"* && \
+      "$out" != *"partial caveat must not leak"* ]]; then
+  _pass "malformed registry emits no partial verification context"
+else
+  _fail "malformed registry leaked partial or caveat-only context (got: $out)"
+fi
+
+rm -rf "$registry_dir"
 
 if [[ "$FAIL" -gt 0 ]]; then
   echo "FAILED: $PASS passed, $FAIL failed" >&2

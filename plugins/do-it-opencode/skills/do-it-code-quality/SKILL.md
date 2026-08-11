@@ -14,7 +14,7 @@ Leading words (use them): **deep module**, **seam**, **tracer bullet**, **red be
 1. **Premise** — one sentence: if this fact is wrong, the change is wrong.
 2. **Blast radius** — who breaks (callers, live paths, tests, persistence).
 3. **Bounded chain** — producer → contract → transport → state → surface → verify. Do not tour the whole repo.
-4. **Targeted reads** — locate the symbol or section first, then read that range. Whole-file reads on files over ~500 lines / 30 KB burn context and blur the chain.
+4. **Targeted reads** — locate the symbol or section first, then read that range. Whole-file reads on files over ~500 lines / 30 KB burn context and blur the chain. Read before claiming how the system works (`core §r-evidence`).
 
 Detail: [`../references/scope-chain.md`](../references/scope-chain.md).
 
@@ -75,7 +75,7 @@ Mechanical/docs edits may skip RED — state why.
 
 ## Debugging
 
-Symptom → reproduce → one hypothesis → falsify with the smallest check → fix the cause → regression proof. Three failed patches → question the design before another try.
+Symptom → reproduce → one hypothesis → falsify with the smallest check → fix the cause → regression proof. Failure recovery follows `core §r-recovery`.
 
 ## Builder Stance
 
@@ -103,4 +103,6 @@ Advisory hook families: [`../references/write-quality-families.md`](../reference
 
 ## Stop
 
-`NEEDS_CONTEXT` / `BLOCKED` when premise cannot be verified locally, the fix crosses unassigned boundaries, or a new surface has no consumer.
+`NEEDS_CONTEXT` / `BLOCKED` when the premise cannot be verified locally or a
+new surface has no consumer; boundary and ambiguity rules: `core §r-boundary`,
+`core §r-uncertainty`. Evidence before claims: `core §r-evidence`.

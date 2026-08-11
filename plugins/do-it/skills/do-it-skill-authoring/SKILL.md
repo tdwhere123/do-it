@@ -104,6 +104,8 @@ heading name.
 - No broad history, changelog, or implementation diary in `SKILL.md`.
 - External workflow material is rewritten into do-it terminology before it is
   installed.
+- Universal execution rules (evidence, scope, verify, report, boundary) are NOT
+  restated in satellite skills — cite `core §<rule_id>` instead.
 
 ## Multi-Host Checklist
 
@@ -128,6 +130,7 @@ where taste is needed or taste where a machine is reliable:
 
 | Layer | Holds | Test |
 |---|---|---|
+| `do-it-core` | Universal execution protocol (evidence, scope, verify, report, boundary) | Single authority; satellites cite it, hooks quote the TSV |
 | Skill prose | Judgment rules needing context and taste (seams, phases, reuse) | Could two reasonable agents disagree? → skill |
 | Hook (`write-quality-lint.sh` etc.) | Deterministic checks with numbers (line counts, pattern bans) | Can a script decide it every time? → hook |
 | Validator (`scripts/validate-*.mjs`) | Drift contracts across registry/scanner/docs/tests | Is it a closed set that must stay synchronized? → validator |

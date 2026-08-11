@@ -56,7 +56,10 @@ One complete batch, severity-ordered. Not clean while Blocking/Important remain.
 
 ## Anti-Rationalization
 
-A named reviewer, a marker, or a claimed review pass is not evidence. Choose depth from concrete failure modes and inspect the changed proof path; accept a finding only with code, diff, contract, or command evidence.
+A named reviewer, a marker, or a claimed review pass is not evidence
+(`core §r-verify`). Choose depth from concrete failure modes and inspect the
+changed proof path; accept a finding only with code, diff, contract, or
+command evidence.
 
 ## Clean Criterion
 

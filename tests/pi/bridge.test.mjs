@@ -14,10 +14,11 @@ const bridgeUrl = pathToFileURL(
 ).href;
 const bridge = await import(bridgeUrl);
 
-test("buildHookPayload keeps transcript and tool-result text", () => {
+test("buildHookPayload keeps canonical model, transcript, and tool-result text", () => {
 	const payload = bridge.buildHookPayload({
 		sessionId: "session-1",
 		cwd: "/tmp/project",
+		model: "openrouter/claude-sonnet-4",
 		transcriptPath: "/tmp/session.jsonl",
 		toolName: "edit",
 		input: { path: "src/a.ts", oldText: "a", newText: "b" },
@@ -29,10 +30,17 @@ test("buildHookPayload keeps transcript and tool-result text", () => {
 
 	assert.equal(payload.session_id, "session-1");
 	assert.equal(payload.cwd, "/tmp/project");
+	assert.equal(payload.model, "openrouter/claude-sonnet-4");
 	assert.equal(payload.transcript_path, "/tmp/session.jsonl");
 	assert.equal(payload.tool_name, "Edit");
 	assert.equal(payload.file_path, "src/a.ts");
 	assert.equal(payload.tool_result, "edited");
+
+	const withoutModel = bridge.buildHookPayload({
+		sessionId: "session-2",
+		cwd: "/tmp/project",
+	});
+	assert.equal(withoutModel.model, undefined);
 });
 
 test("parseHookOutput extracts advisory context", () => {

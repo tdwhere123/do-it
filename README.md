@@ -98,7 +98,9 @@ Skills are loaded by need, not by tier:
 
 | Skill | When |
 | --- | --- |
+| `do-it-core` | Always-on protocol of record — route the tier, then evidence / scope / verify / report |
 | `do-it-code-quality` | Editing code — scope, TDD, debugging, contracts |
+| `do-it-architecture` | Load-bearing architecture — authority, contracts, boundaries, cutover, guards |
 | `do-it-decide` | Options unclear, load-bearing premises |
 | `do-it-review` | Diff needs scrutiny and repair |
 | `do-it-verify` | Before done / ready / merge claims |
@@ -125,13 +127,17 @@ Safety is never what gets cut.
 
 ### Prove it or say so
 
-`do-it` treats "done" as an evidence claim. `do-it-verify` asks for fresh,
-claim-specific proof from the current worktree. If proof is unavailable, the
-honest answer is `NOT_VERIFIED` with the next check named.
+`do-it` treats "done" as an evidence claim. `do-it-core` § Verify (with
+`do-it-verify` as the checklist) asks for fresh, claim-specific proof from the
+current worktree. If proof is unavailable, the honest answer is `NOT_VERIFIED`
+with the next check named.
 
 For external side effects (git push, npm publish …), do-it asks the agent to
 confirm first. Only the host's sandbox can enforce that.
 See [strict external actions](./docs/strict-external-actions.md).
+
+> Tip: describe the goal, success criteria, and relevant constraints, then let
+> the agent plan the steps.
 
 ### Delegate when it helps
 
@@ -144,8 +150,10 @@ Your global agents stay untouched by plugin updates.
 ```mermaid
 flowchart TD
     P[UserPromptSubmit] --> R[do-it-router<br/>classify Light / Standard / Heavy]
-    R --> B{meaning buckets}
+    R --> C[do-it-core<br/>protocol of record]
+    C --> B{meaning buckets}
     B --> CQ[do-it-code-quality<br/>when editing code]
+    B --> A[do-it-architecture<br/>load-bearing architecture]
     B --> D[do-it-decide<br/>when options / plan needed]
     B --> RV[do-it-review<br/>when diff needs review]
     B --> VY[do-it-verify<br/>before done claims]

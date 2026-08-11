@@ -17,6 +17,8 @@ export function terminateActiveProcesses(): void {
 export type HookPayload = {
   session_id: string;
   cwd: string;
+  model?: string;
+  prompt?: string;
   tool_name?: string;
   file_path?: string;
   transcript_path?: string;
@@ -65,6 +67,8 @@ export function isEditTool(tool: string): boolean {
 
 export function buildHookPayload(input: {
   sessionID: string;
+  model?: string;
+  prompt?: string;
   cwd: string;
   tool?: string;
   args?: Record<string, unknown>;
@@ -76,6 +80,8 @@ export function buildHookPayload(input: {
 
   return {
     session_id: input.sessionID,
+    model: input.model,
+    prompt: input.prompt,
     cwd: input.cwd,
     tool_name: toolName,
     file_path: filePath,

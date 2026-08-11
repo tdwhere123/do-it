@@ -7,11 +7,13 @@
 
 /** @type {readonly string[]} */
 export const CORE_SKILLS = [
+  "do-it-core",
   "do-it-router",
   "do-it-code-quality",
   "do-it-review",
   "do-it-decide",
-  "do-it-verify"
+  "do-it-verify",
+  "do-it-architecture"
 ];
 
 /** On-demand extended skills — deliberately outside the meaning-centric default set. */

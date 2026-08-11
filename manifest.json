@@ -2,11 +2,13 @@
   "version": "0.15.0",
   "skillTiers": {
     "core": [
+      "do-it-core",
       "do-it-router",
       "do-it-code-quality",
       "do-it-review",
       "do-it-decide",
-      "do-it-verify"
+      "do-it-verify",
+      "do-it-architecture"
     ],
     "extended": [
       "do-it-retrospective",
@@ -103,6 +105,12 @@
       "kind": "file",
       "source": "hooks/behavior-feedback.sh",
       "target": "hooks/behavior-feedback.sh"
+    },
+    {
+      "name": "hooks-prompt-submit",
+      "kind": "file",
+      "source": "hooks/prompt-submit.sh",
+      "target": "hooks/prompt-submit.sh"
     },
     {
       "name": "hooks-lib",
@@ -611,6 +619,18 @@
       "name": "do-it-router",
       "source": "skills/do-it/do-it-router",
       "target": "skills/do-it-router",
+      "origin": "do-it"
+    },
+    {
+      "name": "do-it-core",
+      "source": "skills/do-it/do-it-core",
+      "target": "skills/do-it-core",
+      "origin": "do-it"
+    },
+    {
+      "name": "do-it-architecture",
+      "source": "skills/do-it/do-it-architecture",
+      "target": "skills/do-it-architecture",
       "origin": "do-it"
     },
     {

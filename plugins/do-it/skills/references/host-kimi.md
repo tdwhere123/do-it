@@ -26,13 +26,13 @@ the hooks; they only fire on their events while the plugin is enabled.
 
 ## What Ships
 
-- **9 skills** via `skills: "./skills/do-it/"` (same SKILL.md format; the
+- **11 skills** via `skills: "./skills/do-it/"` (same SKILL.md format; the
   shared `references/` payload travels inside the plugin root, so relative
   links keep working).
 - **3 commands** via `commands: "./commands/"` — `/do-it:skip`,
   `/do-it:handbook`, `/do-it:retrospective`. Claude-only frontmatter fields
   (e.g. `allowed-tools`) are silently ignored by Kimi.
-- **5 manifest hooks** (below). Hook commands run via `sh -c` with cwd = plugin
+- **4 manifest hooks** (below). Hook commands run via `sh -c` with cwd = plugin
   root and receive exactly two extra env vars: `KIMI_CODE_HOME`,
   `KIMI_PLUGIN_ROOT`.
 - **No agents.** Kimi Code has no custom-subagent mechanism (built-in
@@ -46,8 +46,7 @@ the hooks; they only fire on their events while the plugin is enabled.
 
 | Kimi event | Kernel script | Notes |
 |---|---|---|
-| `UserPromptSubmit` | `router.sh` | advisory tier + DIM signals |
-| `UserPromptSubmit` | `grill-prompt.sh` | Heavy or explicit only |
+| `UserPromptSubmit` | `prompt-submit.sh` (serializes `router.sh` → `grill-prompt.sh`) | advisory tier + DIM signals; Kimi receives plain text |
 | `UserPromptSubmit` | `behavior-feedback.sh` | silent, default off |
 | `PostToolUse` (matcher `Edit\|Write`) | `write-quality-lint.sh` | Kimi's only edit tools are `Edit` and `Write` — no `MultiEdit`/`StrReplace` |
 | `Stop` | `verification-gate.sh` | advisory reminder; transcript via wire file (below) |

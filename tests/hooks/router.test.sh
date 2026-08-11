@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Smoke tests for hooks/router.sh — locks in routing invariants:
-#   - Light and Heavy stay silent; Standard emits one compact reminder
+#   - Light stays silent; Standard emits core guidance
+#   - architecture-risk Heavy work emits one architecture pointer; other Heavy stays silent
 #   - Standard requires intent-verb + code-object combo
 #   - Heavy requires >=2 topical signals or one strong action signal
 #   - subagent context (transcript_path with /agents/) suppresses output
@@ -53,6 +54,14 @@ _isolate_state() {
 _state_for() {
   # echo path to state.json for given session_id
   printf '%s/sessions/%s/state.json' "$DO_IT_HOOK_DATA" "$1"
+}
+
+_has_skip() {
+  local dir="$1" flag="$2" path
+  for path in "$dir/skip-$flag" "$dir/skip-$flag-"*; do
+    [[ -f "$path" ]] && return 0
+  done
+  return 1
 }
 
 # -------------------------------------------------------------------------
@@ -130,25 +139,27 @@ case "$?" in
 esac
 
 # -------------------------------------------------------------------------
-echo "Case 3: intent verb + code object → Standard state and compact context"
+echo "Case 3: intent verb + code object → Standard state and inline core rules"
 (
   _isolate_state "/tmp/doit-test-router-c3"
   out=$(_run_router "实现 src/auth.ts 的登录" "c3-1")
   [[ "$out" == *'"hookEventName":"UserPromptSubmit"'* ]] || { printf 'missing context: %s\n' "$out" >&2; exit 11; }
   [[ "$out" == *'do-it tier: Standard.'* ]] || exit 12
   [[ "$out" != *'do-it-code-quality'* && "$out" != *'do-it-verify'* ]] || exit 13
-  [[ "$out" == *"honor the user's action boundary"* ]] || exit 16
-  [[ "$out" == *'skills or agents only when task-fit helps'* ]] || exit 15
+  # Auto mode with no model env defaults to inline: the r-evidence rule sentence
+  # is emitted, and no skill pointer.
+  [[ "$out" == *'Work from evidence: read the files, diffs, and tests'* ]] || exit 16
+  [[ "$out" != *'Read skill://do-it-core'* ]] || exit 15
   state="$(_state_for c3-1)"
   [[ "$(jq -r '.tier' "$state")" == "Standard" ]] || { cat "$state" >&2; exit 14; }
 )
 case "$?" in
-  0)  _pass "Standard emits compact non-chain reminder" ;;
+  0)  _pass "Standard emits inline core rules (auto → inline)" ;;
   11) _fail "Standard emitted no additionalContext" ;;
   12) _fail "Standard context omitted tier" ;;
   13) _fail "Standard context restored a skill chain" ;;
-  16) _fail "Standard context omitted the user action boundary" ;;
-  15) _fail "Standard context did not expose optional agents" ;;
+  16) _fail "Standard inline context omitted the r-evidence rule" ;;
+  15) _fail "Standard inline context leaked the skill pointer" ;;
   *)  _fail "Standard state missing" ;;
 esac
 
@@ -201,17 +212,17 @@ case "$?" in
 esac
 
 # -------------------------------------------------------------------------
-echo "Case 4: >=2 heavy signals → Heavy state, silent output"
+echo "Case 4: >=2 heavy signals → Heavy state, architecture pointer on interface work"
 (
   _isolate_state "/tmp/doit-test-router-c4"
   out=$(_run_router "重写 schema 涉及 breaking change 跨 frontend/ backend/" "c4-1")
-  [[ -z "$out" ]] || { printf 'unexpected output: %s\n' "$out" >&2; exit 11; }
+  [[ "$out" == *'skill://do-it-architecture'* ]] || { printf 'missing architecture pointer: %s\n' "$out" >&2; exit 11; }
   state="$(_state_for c4-1)"
   [[ "$(jq -r '.tier' "$state")" == "Heavy" ]] || { cat "$state" >&2; exit 12; }
 )
 case "$?" in
-  0)  _pass "Heavy signals resolve Heavy state silently" ;;
-  11) _fail "Heavy emitted output" ;;
+  0)  _pass "Heavy interface signals resolve Heavy and emit architecture pointer" ;;
+  11) _fail "Heavy interface work emitted no architecture pointer" ;;
   *)  _fail "Heavy state missing" ;;
 esac
 
@@ -266,21 +277,21 @@ esac
 
 # -------------------------------------------------------------------------
 
-echo "Case 4c: remove unused api/schema helper stays Standard (not strong Heavy)"
+echo "Case 4c: local api/schema helper stays Standard; breaking API change gets architecture guidance"
 (
   _isolate_state "/tmp/doit-test-router-c4c"
   out=$(_run_router "remove unused api helper from schema.ts" "c4c-remove")
   [[ "$out" == *'do-it tier: Standard.'* ]] || exit 11
   [[ "$(jq -r '.tier' "$(_state_for c4c-remove)")" == "Standard" ]] || exit 12
   out=$(_run_router "remove the deprecated API even though it is breaking" "c4c-depr")
-  [[ -z "$out" ]] || exit 13
+  [[ "$out" == *'skill://do-it-architecture'* ]] || exit 13
   [[ "$(jq -r '.tier' "$(_state_for c4c-depr)")" == "Heavy" ]] || exit 14
 )
 case "$?" in
-  0)  _pass "destructive+bare api/schema is Standard; deprecated+breaking stays Heavy" ;;
+  0)  _pass "local api/schema helper is Standard; breaking API change is Heavy with architecture guidance" ;;
   11) _fail "remove unused api helper missing Standard context" ;;
   12) _fail "remove unused api helper should be Standard" ;;
-  13) _fail "deprecated API remove emitted context" ;;
+  13) _fail "breaking API change omitted architecture guidance" ;;
   14) _fail "deprecated API remove should stay Heavy" ;;
   *)  _fail "Case 4c failed (exit $?)" ;;
 esac
@@ -311,7 +322,7 @@ echo "Case 6: escape word writes skip flags + passes through silent"
   # Verify skip files exist
   skip_dir="$DO_IT_HOOK_DATA/sessions/c6-1"
   for flag in router grill gate; do
-    [[ -f "$skip_dir/skip-$flag" ]] || { echo "missing skip-$flag" >&2; exit 12; }
+    _has_skip "$skip_dir" "$flag" || { echo "missing skip-$flag" >&2; exit 12; }
   done
 )
 case "$?" in
@@ -412,9 +423,9 @@ echo "Case 11: partial skip writes only requested flags"
   out=$(_run_router "skip grill please implement src/foo.ts" "c11-1")
   [[ "$out" == *'do-it tier: Standard.'* ]] || { printf 'missing context: %s\n' "$out" >&2; exit 11; }
   skip_dir="$DO_IT_HOOK_DATA/sessions/c11-1"
-  [[ -f "$skip_dir/skip-grill" ]] || { echo "missing skip-grill" >&2; exit 12; }
-  if [[ -f "$skip_dir/skip-router" ]]; then echo "unexpected skip-router" >&2; exit 13; fi
-  if [[ -f "$skip_dir/skip-gate" ]]; then echo "unexpected skip-gate" >&2; exit 14; fi
+  _has_skip "$skip_dir" grill || { echo "missing skip-grill" >&2; exit 12; }
+  if _has_skip "$skip_dir" router; then echo "unexpected skip-router" >&2; exit 13; fi
+  if _has_skip "$skip_dir" gate; then echo "unexpected skip-gate" >&2; exit 14; fi
   state="$(_state_for c11-1)"
   [[ -f "$state" ]] || { echo "missing state after partial skip" >&2; exit 15; }
   [[ "$(jq -r '.tier' "$state")" == "Standard" ]] || { cat "$state" >&2; exit 16; }
@@ -437,8 +448,8 @@ echo "Case 11b: partial skip gate still routes tier/dims"
   out=$(_run_router "skip gate please implement src/foo.ts" "c11b-1")
   [[ "$out" == *'do-it tier: Standard.'* ]] || { printf 'missing context: %s\n' "$out" >&2; exit 11; }
   skip_dir="$DO_IT_HOOK_DATA/sessions/c11b-1"
-  [[ -f "$skip_dir/skip-gate" ]] || { echo "missing skip-gate" >&2; exit 12; }
-  if [[ -f "$skip_dir/skip-router" ]]; then echo "unexpected skip-router" >&2; exit 13; fi
+  _has_skip "$skip_dir" gate || { echo "missing skip-gate" >&2; exit 12; }
+  if _has_skip "$skip_dir" router; then echo "unexpected skip-router" >&2; exit 13; fi
   state="$(_state_for c11b-1)"
   got=$(jq -r '.tier // ""' "$state")
   [[ "$got" == "Standard" ]] || { echo "tier=$got expected Standard" >&2; cat "$state" >&2; exit 14; }
@@ -474,6 +485,197 @@ case "$?" in
 esac
 
 # -------------------------------------------------------------------------
+echo "Case 13a: Standard + DO_IT_ADVISORY_MODE=inline emits rule sentences, no pointer"
+(
+  _isolate_state "/tmp/doit-test-router-c13a"
+  out=$(DO_IT_ADVISORY_MODE=inline _run_router "实现 src/auth.ts 的 token 刷新" "c13a-1")
+  [[ "$out" == *'do-it tier: Standard.'* ]] || exit 11
+  [[ "$out" == *"Work from evidence: read the files, diffs, and tests before claiming how the system works"* ]] || exit 12
+  [[ "$out" != *'Read skill://do-it-core'* ]] || exit 13
+)
+case "$?" in
+  0)  _pass "inline mode emits Standard prefix + r-evidence sentence, no pointer" ;;
+  11) _fail "inline mode omitted Standard prefix" ;;
+  12) _fail "inline mode omitted the r-evidence sentence" ;;
+  13) _fail "inline mode leaked the skill pointer" ;;
+  *)  _fail "inline mode case failed (exit $?)" ;;
+esac
+
+# -------------------------------------------------------------------------
+echo "Case 13b: Standard + DO_IT_ADVISORY_MODE=pointer emits one pointer, no rule sentences"
+(
+  _isolate_state "/tmp/doit-test-router-c13b"
+  out=$(DO_IT_ADVISORY_MODE=pointer _run_router "实现 src/auth.ts 的 token 刷新" "c13b-1")
+  [[ "$out" == *'do-it tier: Standard. Read skill://do-it-core'* ]] || exit 11
+  [[ "$out" != *"Work from evidence: read the files, diffs, and tests"* ]] || exit 12
+  [[ "$out" != *"Before any done, fixed, passing, ready, install, or merge claim"* ]] || exit 13
+)
+case "$?" in
+  0)  _pass "pointer mode emits only the do-it-core pointer" ;;
+  11) _fail "pointer mode omitted the do-it-core pointer" ;;
+  12) _fail "pointer mode leaked the r-evidence sentence" ;;
+  13) _fail "pointer mode leaked the r-verify sentence" ;;
+  *)  _fail "pointer mode case failed (exit $?)" ;;
+esac
+
+# -------------------------------------------------------------------------
+echo "Case 13c: auto + weak-model env var resolves inline"
+(
+  _isolate_state "/tmp/doit-test-router-c13c"
+  out=$(OPENCODE_MODEL=deepseek-v4-flash _run_router "实现 src/auth.ts 的 token 刷新" "c13c-1")
+  [[ "$out" == *"Work from evidence: read the files, diffs, and tests"* ]] || exit 11
+  [[ "$out" != *'Read skill://do-it-core'* ]] || exit 12
+)
+case "$?" in
+  0)  _pass "auto mode with deepseek model env resolves inline" ;;
+  11) _fail "auto+deepseek did not emit inline rules" ;;
+  12) _fail "auto+deepseek emitted the pointer" ;;
+  *)  _fail "auto+deepseek case failed (exit $?)" ;;
+esac
+
+# -------------------------------------------------------------------------
+echo "Case 13d: auto + strong-model env var resolves pointer"
+(
+  _isolate_state "/tmp/doit-test-router-c13d"
+  out=$(OPENCODE_MODEL=claude-sonnet-4-5 _run_router "实现 src/auth.ts 的 token 刷新" "c13d-1")
+  [[ "$out" == *'Read skill://do-it-core'* ]] || exit 11
+  [[ "$out" != *"Work from evidence: read the files, diffs, and tests"* ]] || exit 12
+)
+case "$?" in
+  0)  _pass "auto mode with claude model env resolves pointer" ;;
+  11) _fail "auto+claude did not emit the pointer" ;;
+  12) _fail "auto+claude leaked inline rule sentences" ;;
+  *)  _fail "auto+claude case failed (exit $?)" ;;
+esac
+
+# -------------------------------------------------------------------------
+echo "Case 13e: auto + no model anywhere resolves inline (conservative default)"
+(
+  _isolate_state "/tmp/doit-test-router-c13e"
+  out=$(OPENCODE_MODEL= ANTHROPIC_MODEL= OPENAI_MODEL= CODEX_MODEL= KIMI_MODEL= PI_MODEL= \
+    _run_router "实现 src/auth.ts 的 token 刷新" "c13e-1")
+  [[ "$out" == *"Work from evidence: read the files, diffs, and tests"* ]] || exit 11
+  [[ "$out" != *'Read skill://do-it-core'* ]] || exit 12
+)
+case "$?" in
+  0)  _pass "auto mode with no model env resolves inline" ;;
+  11) _fail "auto+no-model did not emit inline rules" ;;
+  12) _fail "auto+no-model emitted the pointer" ;;
+  *)  _fail "auto+no-model case failed (exit $?)" ;;
+esac
+
+# -------------------------------------------------------------------------
+echo "Case 13e2: auto detects bounded o-series IDs from payload and env"
+(
+  _isolate_state "/tmp/doit-test-router-c13e2"
+  out=$(OPENCODE_MODEL=claude-sonnet-4-5 _run_router \
+    "实现 src/auth.ts 的 token 刷新" "c13e2-payload-o3" '{model:"openai/o3-mini"}')
+  [[ "$out" == *'Read skill://do-it-core'* ]] || exit 11
+  out=$(OPENCODE_MODEL=claude-sonnet-4-5 _run_router \
+    "实现 src/auth.ts 的 token 刷新" "c13e2-payload-foo2" '{model:"foo2"}')
+  [[ "$out" == *"Work from evidence: read the files, diffs, and tests"* ]] || exit 12
+  [[ "$out" != *'Read skill://do-it-core'* ]] || exit 13
+  out=$(OPENCODE_MODEL=o4-mini _run_router \
+    "实现 src/auth.ts 的 token 刷新" "c13e2-env-o4")
+  [[ "$out" == *'Read skill://do-it-core'* ]] || exit 14
+  out=$(OPENCODE_MODEL=foo2 _run_router \
+    "实现 src/auth.ts 的 token 刷新" "c13e2-env-foo2")
+  [[ "$out" == *"Work from evidence: read the files, diffs, and tests"* ]] || exit 15
+  [[ "$out" != *'Read skill://do-it-core'* ]] || exit 16
+)
+case "$?" in
+  0)  _pass "bounded o3/o4 payload and env IDs use pointer while foo2 stays inline" ;;
+  11) _fail "payload o3 ID did not emit pointer" ;;
+  12|13) _fail "payload foo2 did not remain inline or lost payload precedence" ;;
+  14) _fail "env o4 ID did not emit pointer" ;;
+  15|16) _fail "env foo2 did not remain inline" ;;
+  *)  _fail "o-series boundary case failed (exit $?)" ;;
+esac
+
+# -------------------------------------------------------------------------
+echo "Case 13f: no-write boundary emits the r-boundary sentence in both modes"
+(
+  _isolate_state "/tmp/doit-test-router-c13f"
+  out=$(DO_IT_ADVISORY_MODE=inline _run_router "Review the current API diff; do not edit." "c13f-inline")
+  [[ "$out" == *"honor the user's action boundary"* ]] || exit 11
+  [[ "$out" == *"Respect the action boundary: answer, review, diagnose, or plan authorizes no edits"* ]] || exit 12
+  out=$(DO_IT_ADVISORY_MODE=pointer _run_router "Review the current API diff; do not edit." "c13f-pointer")
+  [[ "$out" == *"honor the user's action boundary"* ]] || exit 13
+  [[ "$out" == *"Respect the action boundary: answer, review, diagnose, or plan authorizes no edits"* ]] || exit 14
+)
+case "$?" in
+  0)  _pass "no-write boundary appends the r-boundary sentence in both modes" ;;
+  11) _fail "no-write inline omitted the boundary text" ;;
+  12) _fail "no-write inline omitted the r-boundary sentence" ;;
+  13) _fail "no-write pointer omitted the boundary text" ;;
+  14) _fail "no-write pointer omitted the r-boundary sentence" ;;
+  *)  _fail "no-write boundary case failed (exit $?)" ;;
+esac
+
+# -------------------------------------------------------------------------
+echo "Case 13g: architecture matching is bounded, clause-local, and order-independent"
+(
+  _isolate_state "/tmp/doit-test-router-c13g"
+  out=$(_run_router "alter schema with breaking change across frontend/ backend/" "c13g-interface")
+  [[ "$out" == *'skill://do-it-architecture'* ]] || exit 11
+  [[ "$(jq -r '.tier' "$(_state_for c13g-interface)")" == "Heavy" ]] || exit 12
+  out=$(_run_router "the schema must replace its public contract with a breaking change across frontend/ backend/" "c13g-interface-reversed")
+  [[ "$out" == *'skill://do-it-architecture'* ]] || exit 25
+  out=$(_run_router "run the database migration now" "c13g-migration")
+  [[ "$out" == *'skill://do-it-architecture'* ]] || exit 13
+  [[ "$(jq -r '.tier' "$(_state_for c13g-migration)")" == "Heavy" ]] || exit 14
+  out=$(_run_router "cut over production traffic to the new database" "c13g-cutover")
+  [[ "$out" == *'skill://do-it-architecture'* ]] || exit 15
+  [[ "$(jq -r '.tier' "$(_state_for c13g-cutover)")" == "Heavy" ]] || exit 16
+  out=$(_run_router "harden the security boundary for credential rotation" "c13g-security")
+  [[ "$out" == *'skill://do-it-architecture'* ]] || exit 17
+  [[ "$(jq -r '.tier' "$(_state_for c13g-security)")" == "Heavy" ]] || exit 18
+  out=$(_run_router "move the tenant authorization boundary" "c13g-security-direct")
+  [[ "$out" == *'skill://do-it-architecture'* ]] || exit 23
+  [[ "$(jq -r '.tier' "$(_state_for c13g-security-direct)")" == "Heavy" ]] || exit 24
+  out=$(_run_router "Can you explain how database migrations work?" "c13g-explanation")
+  [[ -z "$out" ]] || exit 19
+  [[ "$(jq -r '.tier' "$(_state_for c13g-explanation)")" == "Light" ]] || exit 20
+  out=$(_run_router "publish the release to production" "c13g-release")
+  [[ -z "$out" ]] || exit 21
+  [[ "$(jq -r '.tier' "$(_state_for c13g-release)")" == "Heavy" ]] || exit 22
+  out=$(_run_router "publish a rapid parser release to production with breaking telemetry" "c13g-rapid")
+  [[ -z "$out" ]] || exit 26
+  [[ "$(jq -r '.tier' "$(_state_for c13g-rapid)")" == "Heavy" ]] || exit 27
+  out=$(_run_router "ship version 0.15.0 to production; change telemetry sampling. schema docs remain stable" "c13g-cross-clause")
+  [[ -z "$out" ]] || exit 28
+  [[ "$(jq -r '.tier' "$(_state_for c13g-cross-clause)")" == "Heavy" ]] || exit 29
+  out=$(_run_router "ship version 0.15.0 to production; schema docs remain stable. replace telemetry sampling" "c13g-cross-clause-reversed")
+  [[ -z "$out" ]] || exit 30
+  out=$(_run_router "run the token counter in src/metrics.ts" "c13g-counter")
+  [[ "$out" != *'skill://do-it-architecture'* ]] || exit 31
+  out=$(_run_router "run token refresh unit tests; document relationship schema notes" "c13g-relationship")
+  [[ "$out" != *'skill://do-it-architecture'* ]] || exit 32
+  out=$(_run_router "establish a new security boundary across packages" "c13g-security-boundary")
+  [[ "$out" == *'skill://do-it-architecture'* ]] || exit 33
+  out=$(_run_router "run token refresh unit tests, document relationship schema notes" "c13g-comma")
+  [[ "$out" != *'skill://do-it-architecture'* ]] || exit 34
+  out=$(_run_router "run token refresh unit tests (document relationship schema notes)" "c13g-parens")
+  [[ "$out" != *'skill://do-it-architecture'* ]] || exit 35
+  out=$(_run_router "run token refresh unit tests: document relationship schema notes" "c13g-colon")
+  [[ "$out" != *'skill://do-it-architecture'* ]] || exit 36
+)
+case "$?" in
+  0)  _pass "architecture positives emit in either order; substrings and unrelated clauses stay quiet" ;;
+  11|12|25) _fail "interface architecture routing failed" ;;
+  13|14) _fail "migration architecture routing failed" ;;
+  15|16) _fail "cutover architecture routing failed" ;;
+  17|18) _fail "security-boundary architecture routing failed" ;;
+  23|24) _fail "standalone security-boundary architecture routing failed" ;;
+  19|20) _fail "migration explanation emitted or changed tier" ;;
+  21|22) _fail "ordinary Heavy release emitted or changed tier" ;;
+  26|27|31|32) _fail "substring lookalike emitted architecture guidance or changed tier" ;;
+  28|29|30|34|35|36) _fail "unrelated clauses emitted architecture guidance or changed tier" ;;
+  33) _fail "standalone security-boundary architecture routing failed" ;;
+  *)  _fail "architecture-risk routing case failed (exit $?)" ;;
+esac
+
+# -------------------------------------------------------------------------
 echo "Case K: Kimi ContentPart[] prompt routes Standard and emits plain text"
 (
   _isolate_state "/tmp/doit-test-router-kimi"
@@ -492,6 +694,35 @@ case "$?" in
   12) _fail "Kimi advisory leaked the JSON envelope" ;;
   13) _fail "Kimi array prompt did not persist Standard state" ;;
   *)  _fail "Kimi router case failed (exit $?)" ;;
+esac
+
+# -------------------------------------------------------------------------
+echo "Case 14: invalid core registry emits a bounded safe pointer, never partial rules"
+(
+  _isolate_state "/tmp/doit-test-router-registry"
+  registry_dir="$(mktemp -d)"
+
+  out=$(DO_IT_ADVISORY_MODE=inline DO_IT_RULES_DATA="$registry_dir/missing.tsv" \
+    _run_router "实现 src/auth.ts 的 token 刷新" "registry-missing")
+  [[ "$out" == *"core registry unavailable or invalid"* ]] || exit 11
+  [[ "$out" == *"Read skill://do-it-core"* ]] || exit 12
+  [[ "$out" != *"do-it tier: Standard."* ]] || exit 13
+
+  printf '%s\n' $'r-evidence\tpartial rule must not leak\tmodes\tUserPromptSubmit' \
+    $'broken\trow\tonly-three' > "$registry_dir/malformed.tsv"
+  out=$(DO_IT_ADVISORY_MODE=inline DO_IT_RULES_DATA="$registry_dir/malformed.tsv" \
+    _run_router "实现 src/auth.ts 的 token 刷新" "registry-malformed")
+  [[ "$out" == *"core registry unavailable or invalid"* ]] || exit 14
+  [[ "$out" == *"Read skill://do-it-core"* ]] || exit 15
+  [[ "$out" != *"partial rule must not leak"* ]] || exit 16
+
+  rm -rf "$registry_dir"
+)
+case "$?" in
+  0)  _pass "missing or malformed registry emits only bounded pointer fallback" ;;
+  11|12|13) _fail "missing registry fallback is incomplete or leaked partial context" ;;
+  14|15|16) _fail "malformed registry fallback is incomplete or leaked partial context" ;;
+  *)  _fail "registry fallback case failed (exit $?)" ;;
 esac
 
 # -------------------------------------------------------------------------

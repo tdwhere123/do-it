@@ -30,8 +30,8 @@ and model judgment take precedence over router labels.
 | Tier | Router output | write-quality-lint | grill-prompt | Completion reminder |
 | --- | --- | --- | --- | --- |
 | **Light** | state-only, quiet | skipped | skipped | advisory only when relevant |
-| **Standard** | state + compact advisory stance | when `dim_touches_code=1` or ≥5 added lines | skipped (Heavy-only) | advisory only when relevant |
-| **Heavy** | state-only | always (advisory) | full grill body when warranted | advisory only when relevant |
+| **Standard** | state + model-adaptive core guidance: inline rule sentences or one `do-it-core` pointer | when `dim_touches_code=1` or ≥5 added lines | skipped (Heavy-only) | advisory only when relevant |
+| **Heavy** | state-only by default; one `do-it-architecture` pointer for action-shaped interface/schema, migration/cutover, or security-boundary work | always (advisory) | full grill body when warranted | advisory only when relevant |
 
 Subagent contexts skip write-quality-lint (parent owns integration).
 `grill-pretool` is removed on all hosts.
@@ -46,6 +46,16 @@ Subagent contexts skip write-quality-lint (parent owns integration).
 | Subagent stance | `subagent-stance.sh` | `UserPromptSubmit` | `beforeSubmitPrompt` | bootstrap guidance only | child `before_agent_start` when `PI_SUBAGENT_CHILD=1` | not wired — Subagent events carry empty `session_id` |
 | Write-time quality | `write-quality-lint.sh` | `PostToolUse` (Edit\|Write\|MultiEdit\|NotebookEdit) | `postToolUse` / `afterFileEdit` | `tool.execute.after` (bash bridge) | root `tool_result` (`edit`/`write`) | `PostToolUse` (Edit\|Write — the only Kimi edit tools) |
 | Done claim | `verification-gate.sh` | `Stop` | `stop` | `session.idle` soft reminder from serialized host messages | root `agent_end` capture + `agent_settled` reminder on the next turn | `Stop`; transcript read from session `wire.jsonl` (no `transcript_path` on this host) |
+
+`router.sh` emits Standard core guidance inline for weak/unknown models and as a
+single `do-it-core` pointer for strong models (`DO_IT_ADVISORY_MODE` overrides).
+For Heavy turns it emits a `do-it-architecture` pointer only when the prompt
+requests an interface/schema change, migration/cutover execution, or a
+security-boundary change; informational questions and ordinary release/publish
+operations do not receive that pointer.
+`verification-gate.sh` quotes the canonical `r-verify` sentence from
+`hooks/data/execution-failure-modes.tsv` on every host — one voice, never
+per-host copies (`validate:core-consistency` enforces it).
 
 Legacy `comments-lint.sh` and `anti-patterns-lint.sh` exec into
 `write-quality-lint.sh`; new installs register only the merged script.
@@ -89,8 +99,8 @@ add context when cheaper checks cannot prove a claim.
 ```
 L0  write-time hook (advisory)  →  one system-reminder per file per turn; scoped family suppression with a reason (never secrets)
 L1  do-it-review                →  Blocking / Important finding; YAGNI + comments lenses respond to L0 families
-L2  verification-gate           →  edited completion claims receive an advisory reminder for fresh, claim-specific proof; it does not infer proof from command names
-L3  do-it-verify closeout       →  claim-specific evidence rollup; `NOT_VERIFIED` and residual risk stay visible
+L2  verification-gate           →  edited completion claims receive an advisory reminder quoting the r-verify rule; it does not infer proof from command names
+L3  do-it-core (§ Verify) + do-it-verify closeout →  claim-specific evidence rollup; `NOT_VERIFIED` and residual risk stay visible
 ```
 
 | Layer | Owner | Blocks write? | Blocks done claim? |
@@ -98,7 +108,7 @@ L3  do-it-verify closeout       →  claim-specific evidence rollup; `NOT_VERIFI
 | L0 `write-quality-lint` | hook | No | No |
 | L1 `do-it-review` | skill / subagent | No | No — unresolved findings shape the final claim |
 | L2 `verification-gate` | hook | No | No — advisory reminder only |
-| L3 `do-it-verify` | skill | No | Claim wording follows available proof |
+| L3 closeout | `do-it-core` (§ Verify) + `do-it-verify` | No | Claim wording follows available proof |
 
 Family definitions and suppress syntax:
 [`skills/do-it/references/write-quality-families.md`](../skills/do-it/references/write-quality-families.md).
@@ -111,7 +121,7 @@ UserPromptSubmit (plus Cursor `beforeSubmitPrompt` and Pi
 | Component | Standard turn target | When skipped |
 | --- | --- | --- |
 | `behavior-feedback.sh` | 0 tokens; no stdout/context | disabled by default; ordinary prompts and unverified child sessions |
-| `router.sh` | one compact advisory line on Standard | Light and Heavy |
+| `router.sh` | Standard: inline ≈ 6 lines / pointer ≈ 1 line; architecture-risk Heavy: 1 pointer | Light and Heavy without architecture risk |
 | `grill-prompt.sh` | 0 unless Heavy or explicit | Light; Standard without an explicit grill |
 | `subagent-stance.sh` | one compact line once per subagent session | parent context and later child turns |
 | **Combined Standard implementation turn** | **only task-relevant advisory context** | no fixed workflow injection |

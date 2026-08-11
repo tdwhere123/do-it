@@ -14,6 +14,43 @@ This directory holds the data-driven keyword tables consumed by `hooks/lib/keywo
 | `long-input-hints.tsv` | compatibility loader only | Currently inert; input length never triggers a grill reminder |
 | `question-hints.tsv` | `router.sh` | Recognize likely informational prompts; direct task, delegation, and high-consequence action intent still wins |
 | `quality-families.tsv` | `hooks/lib/write-quality-scan.sh` | Closed-set advisory family registry for `write-quality-lint.sh` (L0); not prompt-keyword driven |
+| `execution-failure-modes.tsv` | `hooks/lib/common.sh` (`do_it_core_rule`, `do_it_core_rules_for`), `router.sh`, `verification-gate.sh` | Closed-set core-rule registry: the single voice for evidence/scope/verify/uncertainty/boundary/report/recovery/route rules |
+
+## `execution-failure-modes.tsv` format
+
+```
+<rule_id><TAB><rule_text><TAB><failure_modes><TAB><injection_surface>
+```
+
+- `<rule_id>` is the stable identifier (`r-route`, `r-evidence`, `r-scope`,
+  `r-verify`, `r-uncertainty`, `r-boundary`, `r-report`, `r-recovery`).
+- `<rule_text>` is the **load-bearing literal** — the single voice. Hooks
+  quote it verbatim (`do_it_core_rule` / `do_it_core_rules_for`) and
+  `skills/do-it/do-it-core/SKILL.md` renders it; `validate:core-consistency`
+  blocks any byte-level drift between the three.
+- `<failure_modes>` is a comma-separated list of the failure modes the rule
+  counters (used by satellite skills and review lenses).
+- `<injection_surface>` is `UserPromptSubmit`, `Stop`, or `none`
+  (comma-separated when multiple). It controls which hooks may emit the rule
+  inline: `UserPromptSubmit` rules appear in the router's Standard inline
+  emission, `Stop` rules in `verification-gate.sh`, `none` rules are
+  skill-only. The router's no-write branch appends `r-boundary` explicitly.
+- Lines beginning with `#` are comments. Blank lines are ignored.
+
+`DO_IT_RULES_DATA` may override the registry path for packaged installs and
+deterministic tests. The helpers require exactly the eight documented rule IDs
+and validate the complete registry before emitting anything: missing or
+unreadable data returns status `1`; a malformed row, duplicate, extra ID, or
+missing required ID returns `2`; and an unknown request against a complete valid
+registry returns `3`. All failure cases emit no rule text. Advisory consumers
+still exit `0`,
+but replace canonical inline content with a bounded `skill://do-it-core`
+diagnostic. The Stop-hook fallback also says `NOT_VERIFIED` and names the next
+verification action.
+
+Closed-set contract: the registry, `do-it-core/SKILL.md`, the hook/bridge
+emissions, and the validator must stay synchronized — editing one side
+requires editing all (see `scripts/validate-core-consistency.mjs`).
 
 ## `quality-families.tsv` format
 

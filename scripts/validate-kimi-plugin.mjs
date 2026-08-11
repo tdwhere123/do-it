@@ -62,8 +62,7 @@ const hookEvents = new Set([
 
 /** Required v1 wiring — silent inventory drift must fail validate. */
 const expectedHooks = [
-  { event: "UserPromptSubmit", command: "./hooks/router.sh" },
-  { event: "UserPromptSubmit", command: "./hooks/grill-prompt.sh" },
+  { event: "UserPromptSubmit", command: "./hooks/prompt-submit.sh" },
   { event: "UserPromptSubmit", command: "./hooks/behavior-feedback.sh" },
   { event: "PostToolUse", matcher: "Edit|Write", command: "./hooks/write-quality-lint.sh" },
   { event: "Stop", command: "./hooks/verification-gate.sh" }

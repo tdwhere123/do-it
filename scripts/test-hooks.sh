@@ -57,6 +57,11 @@ run_grill() {
   json_prompt "$session_id" "$prompt" "$cwd" | bash hooks/grill-prompt.sh
 }
 
+run_prompt_submit() {
+  local session_id="$1" prompt="$2" cwd="${3:-$REPO_ROOT}"
+  json_prompt "$session_id" "$prompt" "$cwd" | bash hooks/prompt-submit.sh
+}
+
 run_subagent_stance() {
   local session_id="$1" prompt="$2" cwd="${3:-$REPO_ROOT}" transcript="${4:-$TMP_ROOT/agents/child.jsonl}"
   mkdir -p "$(dirname "$transcript")"
@@ -91,6 +96,100 @@ assert_not_contains() {
   [[ "$haystack" != *"$needle"* ]] || fail "$label: expected no '$needle' in: $haystack"
 }
 
+
+pipeline_session="serialized-prompt-submit"
+pipeline_out="$(run_prompt_submit "$pipeline_session" "Prepare the release schema migration")"
+assert_contains "$pipeline_out" '"additionalContext"' \
+  "serialized prompt entrypoint should emit one host-shaped envelope"
+assert_contains "$pipeline_out" "do-it grill" \
+  "serialized prompt entrypoint must let grill consume the router tier"
+[[ "$(state_value "$pipeline_session" tier)" == "Heavy" ]] \
+  || fail "serialized prompt entrypoint should persist Heavy before grill reads it"
+kimi_pipeline_session="serialized-prompt-submit-kimi"
+kimi_pipeline_out="$(
+  json_prompt "$kimi_pipeline_session" "Prepare the release schema migration" \
+    | KIMI_CODE_HOME="$TMP_ROOT/kimi-home" bash hooks/prompt-submit.sh
+)"
+assert_contains "$kimi_pipeline_out" "do-it grill" \
+  "Kimi serialized prompt entrypoint should preserve Heavy grill context"
+if printf '%s' "$kimi_pipeline_out" | jq -e . >/dev/null 2>&1; then
+  fail "Kimi serialized prompt entrypoint must emit plain text, not a JSON envelope"
+fi
+jq_free_session="serialized-prompt-submit-no-jq"
+jq_free_out="$(
+  DO_IT_FORCE_NO_JQ=1 run_prompt_submit \
+    "$jq_free_session" "Prepare the release schema migration"
+)"
+assert_contains "$jq_free_out" '"additionalContext"' \
+  "jq-free prompt entrypoint should retain the host envelope"
+assert_contains "$jq_free_out" "do-it grill" \
+  "jq-free prompt entrypoint should preserve prompt routing and router-to-grill state"
+[[ -f "$CLAUDE_PLUGIN_DATA/sessions/$jq_free_session/state.kv" ]] \
+  || fail "jq-free prompt entrypoint should preserve the supplied session identity"
+
+if command -v flock >/dev/null 2>&1; then
+  locked_session="prompt-submit-lock"
+  locked_dir="$CLAUDE_PLUGIN_DATA/sessions/$locked_session"
+  mkdir -p "$locked_dir"
+  locked_out="$TMP_ROOT/prompt-submit-lock.out"
+  exec 9>"$locked_dir/.prompt.lock"
+  flock 9
+  run_prompt_submit "$locked_session" "Prepare the release schema migration" > "$locked_out" &
+  locked_pid=$!
+  sleep 0.2
+  kill -0 "$locked_pid" 2>/dev/null \
+    || fail "serialized prompt entrypoint did not wait for the session transaction lock"
+  [[ ! -s "$locked_out" ]] \
+    || fail "serialized prompt entrypoint emitted before acquiring the transaction lock"
+  flock -u 9
+  wait "$locked_pid"
+  locked_pipeline_out="$(cat "$locked_out")"
+  assert_contains "$locked_pipeline_out" "do-it grill" \
+    "prompt entrypoint should resume after the transaction lock is released"
+fi
+
+flock_stub_dir="$TMP_ROOT/flock-stub"
+mkdir -p "$flock_stub_dir"
+cat > "$flock_stub_dir/flock" <<'SH'
+#!/usr/bin/env bash
+count_file="${DO_IT_TEST_FLOCK_COUNT:?}"
+count=0
+[[ ! -f "$count_file" ]] || count="$(cat "$count_file")"
+count=$((count + 1))
+printf '%s\n' "$count" > "$count_file"
+[[ "$count" -eq 1 ]]
+SH
+chmod +x "$flock_stub_dir/flock"
+failed_pipeline_out="$TMP_ROOT/failed-prompt.out"
+failed_pipeline_err="$TMP_ROOT/failed-prompt.err"
+DO_IT_TEST_FLOCK_COUNT="$TMP_ROOT/flock-count" \
+  PATH="$flock_stub_dir:$PATH" \
+  run_prompt_submit "failed-router-state" "Prepare the release schema migration" \
+  > "$failed_pipeline_out" 2> "$failed_pipeline_err"
+assert_not_contains "$(cat "$failed_pipeline_out")" "do-it grill" \
+  "prompt entrypoint must not grill after router state persistence fails"
+assert_contains "$(cat "$failed_pipeline_err")" "router state unavailable" \
+  "prompt entrypoint should diagnose a failed serialized transaction"
+
+skip_scope_session="skip-scope"
+first_skip_out="$(run_prompt_submit "$skip_scope_session" "skip grill please implement src/foo.ts")"
+assert_not_contains "$first_skip_out" "do-it grill" \
+  "skip-grill turn should suppress its own grill"
+second_skip_out="$(run_prompt_submit "$skip_scope_session" "Prepare the release schema migration")"
+assert_contains "$second_skip_out" "do-it grill" \
+  "skip-grill flag from an earlier prompt must not suppress a later Heavy turn"
+
+gate_scope_session="gate-scope"
+run_prompt_submit "$gate_scope_session" "skip gate please implement src/foo.ts" >/dev/null
+gate_scope_transcript="$TMP_ROOT/gate-scope.jsonl"
+cat > "$gate_scope_transcript" <<'JSONL'
+{"type":"user","message":{"content":[{"type":"text","text":"Now implement src/bar.ts"}]}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Edit","input":{"file_path":"src/bar.ts"}}]}}
+{"type":"assistant","message":{"content":[{"type":"text","text":"done"}]}}
+JSONL
+gate_scope_out="$(run_stop "$gate_scope_session" "$gate_scope_transcript")"
+assert_contains "$gate_scope_out" "narrowest fresh check" \
+  "skip-gate flag from an earlier prompt must not suppress a later completion reminder"
 question_session="q-then-work"
 run_router "$question_session" "你觉得这个 hook 怎么样？"
 question_grill="$(run_grill "$question_session" "你觉得这个 hook 怎么样？")"
@@ -111,7 +210,7 @@ cat > "$transcript" <<'JSONL'
 JSONL
 gate_after_work="$(run_stop "$question_session" "$transcript")"
 assert_contains "$gate_after_work" '"additionalContext"' "question skip must not stick to later work verify reminder"
-assert_contains "$gate_after_work" 'do-it verify (advisory)' "later edited completion should receive verify reminder"
+assert_contains "$gate_after_work" 'narrowest fresh check' "later edited completion should receive verify reminder"
 
 risk_question_session="risk-question-work"
 run_router "$risk_question_session" "Can you publish the release to production?"
@@ -122,7 +221,7 @@ run_router "$risk_question_session" "Can you publish the release to production?"
 risk_question_grill="$(run_grill "$risk_question_session" "Can you publish the release to production?")"
 assert_contains "$risk_question_grill" "do-it grill" "question wording must not suppress Heavy grill"
 risk_question_gate="$(run_stop "$risk_question_session" "$transcript")"
-assert_contains "$risk_question_gate" 'do-it verify (advisory)' "question wording must not suppress completion reminder"
+assert_contains "$risk_question_gate" 'narrowest fresh check' "question wording must not suppress completion reminder"
 
 light_session="light-doc"
 run_router "$light_session" "typo in docs"
@@ -141,11 +240,9 @@ assert_empty "$intent_grill" "intent-only Standard should not grill"
 
 brainstorm_session="brainstorm-is-not-escape"
 run_router "$brainstorm_session" "brainstorm the Codex plugin distribution"
-if [[ -f "$CLAUDE_PLUGIN_DATA/sessions/$brainstorm_session/skip-router" ]] \
-  || [[ -f "$CLAUDE_PLUGIN_DATA/sessions/$brainstorm_session/skip-grill" ]] \
-  || [[ -f "$CLAUDE_PLUGIN_DATA/sessions/$brainstorm_session/skip-gate" ]]; then
-  fail "brainstorm should not set escape skip flags"
-fi
+for skip_path in "$CLAUDE_PLUGIN_DATA/sessions/$brainstorm_session"/skip-*; do
+  [[ ! -e "$skip_path" ]] || fail "brainstorm should not set escape skip flags"
+done
 
 single_heavy_signal_session="single-heavy-signal"
 run_router "$single_heavy_signal_session" "across packages refactor"

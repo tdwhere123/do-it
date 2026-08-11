@@ -21,11 +21,7 @@
   "hooks": [
     {
       "event": "UserPromptSubmit",
-      "command": "./hooks/router.sh"
-    },
-    {
-      "event": "UserPromptSubmit",
-      "command": "./hooks/grill-prompt.sh"
+      "command": "./hooks/prompt-submit.sh"
     },
     {
       "event": "UserPromptSubmit",

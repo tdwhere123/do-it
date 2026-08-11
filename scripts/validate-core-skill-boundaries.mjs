@@ -45,7 +45,7 @@ const checks = [
     pattern: /## Authorization Boundary/,
   },
   {
-    file: "skills/do-it/do-it-router/SKILL.md",
+    file: "skills/do-it/do-it-core/SKILL.md",
     label: "external action confirmation",
     pattern: /external writes, destructive or irreversible actions, material cost, or material scope expansion/,
   },
@@ -60,14 +60,14 @@ const checks = [
     pattern: /Not clean while Blocking\/Important remain\./,
   },
   {
-    file: "skills/do-it/do-it-verify/SKILL.md",
+    file: "skills/do-it/do-it-core/SKILL.md",
     label: "fresh evidence or explicit not-verified status",
-    pattern: /Run it fresh \(or `NOT_VERIFIED` with why\)\./,
+    pattern: /state NOT_VERIFIED with the missing check and next action/,
   },
   {
-    file: "skills/do-it/do-it-verify/SKILL.md",
+    file: "skills/do-it/do-it-core/SKILL.md",
     label: "honest blocked verification exit",
-    pattern: /If blocked: `NOT_VERIFIED` \+ missing command/,
+    pattern: /BLOCKED.*never soften it into done\/ready\/fixed/,
   },
 ];
 

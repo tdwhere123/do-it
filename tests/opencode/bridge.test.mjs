@@ -55,12 +55,14 @@ test("buildHookPayload extracts file_path from args", () => {
   const result = buildHookPayload({
     sessionID: "sess-1",
     cwd: "/tmp/project",
+    model: "openrouter/claude-sonnet-4",
     tool: "edit",
     args: { file_path: "src/index.ts", new_string: "x" }
   });
 
   assert.equal(result.session_id, "sess-1");
   assert.equal(result.cwd, "/tmp/project");
+  assert.equal(result.model, "openrouter/claude-sonnet-4");
   assert.equal(result.tool_name, "Edit");
   assert.equal(result.file_path, "src/index.ts");
   assert.deepEqual(result.tool_input, { file_path: "src/index.ts", new_string: "x" });
@@ -249,7 +251,7 @@ test("verification transcript keeps shell details private and does not satisfy a
       env: { ...process.env, DO_IT_HOOK_DATA: path.join(tempParent, "hook-data") }
     });
     assert.equal(gate.status, 0, gate.stderr);
-    assert.match(gate.stdout, /do-it verify \(advisory\)/);
+    assert.match(gate.stdout, /narrowest fresh check/);
     assert.match(gate.stdout, /does not infer verification from command names/);
   } finally {
     transcript?.cleanup();
@@ -340,7 +342,7 @@ test("verification transcript keeps only current-turn fields and remains advisor
       }
     });
     assert.equal(gate.status, 0, gate.stderr);
-    assert.match(gate.stdout, /do-it verify \(advisory\)/);
+    assert.match(gate.stdout, /narrowest fresh check/);
     assert.match(gate.stdout, /does not infer verification from command names/);
 
     assert.match(rows, /"type":"user"/);

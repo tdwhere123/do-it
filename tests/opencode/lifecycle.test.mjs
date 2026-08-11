@@ -41,9 +41,37 @@ test("template does not auto-allow edit, write, or bash", () => {
 	);
 });
 
+// The session-dir resolution order in hooks/lib/common.sh prefers
+// DO_IT_HOOK_DATA / CURSOR_PLUGIN_DATA / CLAUDE_PLUGIN_DATA / PLUGIN_DATA over
+// OPENCODE_DATA. A runner environment carrying any of those would redirect the
+// hooks' session state (and the feedback-recorder dedup state) into a shared
+// bucket that persists across runs, making these tests order-dependent. Clear
+// them around every test that sets OPENCODE_DATA, mirroring router.test.sh's
+// _isolate_state.
+const SESSION_ENV_VARS = [
+	"DO_IT_HOOK_DATA",
+	"CURSOR_PLUGIN_DATA",
+	"CLAUDE_PLUGIN_DATA",
+	"PLUGIN_DATA",
+];
+
+function isolateSessionEnv() {
+	const saved = new Map();
+	for (const name of SESSION_ENV_VARS) {
+		if (name in process.env) {
+			saved.set(name, process.env[name]);
+			delete process.env[name];
+		}
+	}
+	return () => {
+		for (const [name, value] of saved) process.env[name] = value;
+	};
+}
+
 test("fake host exercises config, bootstrap, hooks, idle notification, and cleanup", async () => {
 	const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "doit-opencode-host-"));
 	const data = path.join(cwd, "host-data");
+	const restoreEnv = isolateSessionEnv();
 	const previousData = process.env.OPENCODE_DATA;
 	process.env.OPENCODE_DATA = data;
 	const calls = { messages: [], toasts: [] };
@@ -143,15 +171,23 @@ test("fake host exercises config, bootstrap, hooks, idle notification, and clean
 			parts: [
 				{
 					type: "text",
-					text: "Design a migration across packages with several architecture tradeoffs",
+					text: "Implement src/auth.ts token refresh",
 				},
 			],
 		};
-		await hooks["chat.message"]({ sessionID }, promptOutput);
+		await hooks["chat.message"](
+			{
+				sessionID,
+				model: { providerID: "openrouter", modelID: "claude-sonnet-4" },
+			},
+			promptOutput,
+		);
 		assert.match(
 			promptOutput.parts[0].text,
-			/Design a migration across packages/,
+			/Implement src\/auth\.ts token refresh/,
 		);
+		assert.match(promptOutput.parts[0].text, /skill:\/\/do-it-core/);
+		assert.doesNotMatch(promptOutput.parts[0].text, /Work from evidence:/);
 
 		const editOutput = { title: "Edit", output: "edited", metadata: {} };
 		await hooks["tool.execute.after"](
@@ -198,6 +234,7 @@ test("fake host exercises config, bootstrap, hooks, idle notification, and clean
 	} finally {
 		if (previousData === undefined) delete process.env.OPENCODE_DATA;
 		else process.env.OPENCODE_DATA = previousData;
+		restoreEnv();
 		fs.rmSync(cwd, { recursive: true, force: true });
 	}
 });
@@ -255,6 +292,7 @@ test("feedback capture uses OpenCode parentage and never records a child session
 	);
 	const previousData = process.env.OPENCODE_DATA;
 	process.env.OPENCODE_DATA = path.join(rootCwd, "host-data");
+	const restoreEnv = isolateSessionEnv();
 	try {
 		const rootSession = "session/feedback-root";
 		setRecorderEnabled(rootCwd, rootSession);
@@ -323,6 +361,7 @@ test("feedback capture uses OpenCode parentage and never records a child session
 	} finally {
 		if (previousData === undefined) delete process.env.OPENCODE_DATA;
 		else process.env.OPENCODE_DATA = previousData;
+		restoreEnv();
 		fs.rmSync(rootCwd, { recursive: true, force: true });
 		fs.rmSync(childCwd, { recursive: true, force: true });
 	}

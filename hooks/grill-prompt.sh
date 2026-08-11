@@ -36,6 +36,7 @@ _emit_advisory_exit() {
 # transcript_path (the host delivers it on stdin, not as an env var).
 RAW_INPUT="$(do_it_read_stdin)"
 PROMPT="$(do_it_json_get_prompt "$RAW_INPUT")"
+export DO_IT_SKIP_PROMPT="$PROMPT"
 SESSION_ID="$(do_it_json_get "$RAW_INPUT" session_id)"
 CWD="$(do_it_json_get "$RAW_INPUT" cwd)"
 TRANSCRIPT_PATH="$(do_it_json_get "$RAW_INPUT" transcript_path)"
@@ -48,7 +49,7 @@ if do_it_in_subagent_context "$TRANSCRIPT_PATH"; then
 fi
 
 do_it_source_local_keywords "$CWD"
-do_it_session_state_inc "$SESSION_ID" hook_invocations grill_prompt
+do_it_session_state_inc "$SESSION_ID" hook_invocations grill_prompt || exit 1
 
 # Router owns persistence. Also honor a no-write phrase in this raw prompt so
 # concurrent UserPromptSubmit hooks cannot race into a write-oriented nudge.
@@ -65,7 +66,9 @@ targets="$(do_it_parse_skip_targets "$PROMPT")"
 if [[ -n "$targets" ]]; then
   do_it_debug grill-prompt "decision=escape targets=$targets"
   # shellcheck disable=SC2086
-  do_it_write_skip "$SESSION_ID" $targets
+  if ! do_it_write_skip "$SESSION_ID" $targets; then
+    printf 'do-it: skip marker persistence unavailable; honoring only the current grill turn\n' >&2
+  fi
   if [[ " $targets " == *" grill "* ]]; then
     exit 0
   fi
@@ -103,7 +106,7 @@ if [[ "$(do_it_session_state_get "$SESSION_ID" plan_nudged)" != "1" \
    && "$(do_it_session_state_get "$SESSION_ID" durable_plan_seen)" == "1" \
    && -n "$_grilled_prev" && "$_grilled_prev" != "0" && "$_grilled_prev" != "skip-question" ]] \
    && ! ls "${CWD}/.do-it/plans/"*.md >/dev/null 2>&1; then
-  do_it_session_state_set "$SESSION_ID" plan_nudged 1
+  do_it_session_state_set "$SESSION_ID" plan_nudged 1 || exit 1
   _doit_advisory="${_doit_advisory}<system-reminder>
 do-it decide: this is durable coordination work, but no plan card exists yet. Use do-it-decide to record only the goal, acceptance evidence, failure-mode forecast, and path map that another worker or session needs. Advisory — proceed inline when the modification map already covers the work.
 </system-reminder>"
@@ -115,7 +118,7 @@ if [[ "$(do_it_session_state_get "$SESSION_ID" brownfield_nudged)" != "1" ]]; th
   _brown="$(do_it_session_state_get "$SESSION_ID" dim_brownfield)"
   _touch="$(do_it_session_state_get "$SESSION_ID" dim_touches_code)"
   if [[ "$_port" == "1" ]]; then
-    do_it_session_state_set "$SESSION_ID" brownfield_nudged 1
+    do_it_session_state_set "$SESSION_ID" brownfield_nudged 1 || exit 1
     if [[ "$NO_WRITE_BOUNDARY" == "1" ]]; then
       _doit_advisory="${_doit_advisory}<system-reminder>
 do-it (existing code): this looks like port / restore / reintroduce work. Inspect the current packages/apps/migrations for the target name and report what already exists. A no-write boundary is active; do not edit.
@@ -126,7 +129,7 @@ do-it (existing code): this looks like port / restore / reintroduce work. Before
 </system-reminder>"
     fi
   elif [[ "$_brown" == "1" && "$_touch" == "1" ]] && { [[ "$ADVISORY_TIER" == "Standard" || "$ADVISORY_TIER" == "Heavy" ]]; }; then
-    do_it_session_state_set "$SESSION_ID" brownfield_nudged 1
+    do_it_session_state_set "$SESSION_ID" brownfield_nudged 1 || exit 1
     if [[ "$NO_WRITE_BOUNDARY" == "1" ]]; then
       _doit_advisory="${_doit_advisory}<system-reminder>
 do-it (existing code): this is an established codebase. Read the target area and its existing patterns, names, and invariants (.do-it/CONTEXT.md and handbook if present), then report the evidence. A no-write boundary is active; do not edit.
@@ -147,7 +150,7 @@ if [[ "$RE_GRILL" -eq 0 ]]; then
   # represents a real grill, so clear it rather than letting stale state affect
   # a later direct request.
   if [[ "$GRILLED" == "skip-question" ]]; then
-    do_it_session_state_set "$SESSION_ID" grilled "0"
+    do_it_session_state_set "$SESSION_ID" grilled "0" || exit 1
     GRILLED="0"
   fi
   if [[ -n "$GRILLED" && "$GRILLED" != "0" ]]; then
@@ -179,7 +182,7 @@ MSG="<system-reminder>
 do-it grill (trigger: ${TRIGGER}): pressure-test only the load-bearing premise. Verify it locally when possible, decide inline when facts are sufficient, and ask the user only for a material preference that cannot be recovered from context. Prefer do-it-decide when a real decision remains.
 </system-reminder>"
 
-do_it_session_state_set "$SESSION_ID" grilled 1
+do_it_session_state_set "$SESSION_ID" grilled 1 || exit 1
 do_it_debug grill-prompt "decision=emit tier=$TIER trigger=$TRIGGER mode=$([ "$TIER" = "Heavy" ] && echo full || echo pointer)"
 
 # Debug-only: append trigger reason inside an HTML comment.

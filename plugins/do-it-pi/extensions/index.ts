@@ -23,9 +23,9 @@ const defaultPluginRoot = path.resolve(
 	"..",
 );
 const COMPLETION_PATTERN =
-	/(完成|已修|通过|完工|\bdone\b|\bpassed\b|\bfixed\b|\bimplemented\b|\ball set\b|it works|works now|successfully|\bVERIFIED\b|ready to merge|ship it|ready to (ship|publish))/i;
+	/(完成|已修|通过|完工|\bdone\b|\bpassed\b|\bfixed\b|\ball set\b|it works|works now|successfully|\bVERIFIED\b|ready to merge|ship it|ready to (ship|publish))/i;
 const VERIFY_REMINDER =
-	"<system-reminder>do-it: previous turn used completion language. Before claiming done, cite fresh verification evidence on this worktree (tests/build/diff) or say NOT_VERIFIED.</system-reminder>";
+	"<system-reminder>do-it: previous turn used completion language. Before any done, fixed, passing, ready, install, or merge claim: run the narrowest fresh check that exercises the changed path on this worktree and report its exact output; if proof is unavailable, state NOT_VERIFIED with the missing check and next action.</system-reminder>";
 
 type MessagePart = { type?: unknown; text?: unknown };
 type MessageLike = { role?: unknown; content?: unknown };
@@ -119,6 +119,7 @@ export function createDoItPiExtension(
 	const bootstrappedSessions = new Set<string>();
 	const pendingVerifyReminder = new Set<string>();
 	const completionText = new Map<string, string>();
+	const successfulEdit = new Set<string>();
 	const anonymousSessions = new WeakMap<object, string>();
 	let anonymousSessionSequence = 0;
 	let lastDiagnostic: string | undefined;
@@ -188,12 +189,15 @@ export function createDoItPiExtension(
 		ctx: ExtensionContext,
 		values: Omit<
 			Parameters<typeof buildHookPayload>[0],
-			"sessionId" | "cwd" | "transcriptPath"
+			"sessionId" | "cwd" | "model" | "transcriptPath"
 		>,
 	): HookPayload {
 		return buildHookPayload({
 			sessionId: sessionId(ctx),
 			cwd: ctx.cwd,
+			model: ctx.model
+				? `${ctx.model.provider}/${ctx.model.id}`
+				: undefined,
 			transcriptPath: transcriptPath(ctx),
 			...values,
 		});
@@ -249,7 +253,7 @@ export function createDoItPiExtension(
 
 				if (prompt.trim()) {
 					const payload = basePayload(ctx, { prompt });
-					for (const scriptName of ["router.sh", "grill-prompt.sh"]) {
+          for (const scriptName of ["prompt-submit.sh"]) {
 						if (ctx.signal?.aborted) break;
 						const result = await invokeHook(scriptName, payload, ctx);
 						const context = resultContext(result);
@@ -271,6 +275,7 @@ export function createDoItPiExtension(
 
 		pi.on("tool_result", async (event, ctx) => {
 			if (childProcess || !isEditTool(event.toolName)) return undefined;
+			if (event.isError === false) successfulEdit.add(sessionId(ctx));
 
 			const result = await invokeHook(
 				"write-quality-lint.sh",
@@ -304,7 +309,12 @@ export function createDoItPiExtension(
 			const sid = sessionId(ctx);
 			const text = completionText.get(sid) ?? "";
 			completionText.delete(sid);
-			if (!COMPLETION_PATTERN.test(text) || /\bNOT_VERIFIED\b/i.test(text))
+			const edited = successfulEdit.delete(sid);
+			if (
+				!edited ||
+				!COMPLETION_PATTERN.test(text) ||
+				/\bNOT_VERIFIED\b/i.test(text)
+			)
 				return;
 			pendingVerifyReminder.add(sid);
 		});
@@ -313,6 +323,7 @@ export function createDoItPiExtension(
 			bootstrappedSessions.clear();
 			pendingVerifyReminder.clear();
 			completionText.clear();
+			successfulEdit.clear();
 			terminateActiveProcesses();
 		});
 	};

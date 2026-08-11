@@ -158,6 +158,7 @@ test("root lifecycle injects bootstrap once, preserves ToolResult arrays, and qu
 		runHook,
 	})(pi.api);
 	const ctx = fakeContext(cwd);
+	ctx.model = { provider: "openrouter", id: "claude-sonnet-4" };
 
 	try {
 		await pi.handlers.get("session_start")({}, ctx);
@@ -166,16 +167,20 @@ test("root lifecycle injects bootstrap once, preserves ToolResult arrays, and qu
 			ctx,
 		);
 		assert.match(first.message.content, /<do-it-bootstrap>/);
-		assert.match(first.message.content, /router\.sh-context/);
-		assert.match(first.message.content, /grill-prompt\.sh-context/);
+		assert.match(first.message.content, /prompt-submit\.sh-context/);
+		assert.doesNotMatch(first.message.content, /router\.sh-context/);
+		assert.doesNotMatch(first.message.content, /grill-prompt\.sh-context/);
 		assert.equal(
-			calls.filter((call) => call.scriptName === "router.sh").length,
+			calls.filter((call) => call.scriptName === "prompt-submit.sh").length,
 			1,
 		);
+		assert.equal(calls.filter((call) => call.scriptName === "router.sh").length, 0);
+		assert.equal(calls.filter((call) => call.scriptName === "grill-prompt.sh").length, 0);
 		assert.equal(
 			calls[0].payload.transcript_path,
 			path.join(cwd, "session-1.jsonl"),
 		);
+		assert.equal(calls[0].payload.model, "openrouter/claude-sonnet-4");
 
 		const second = await pi.handlers.get("before_agent_start")(
 			{ prompt: "continue" },
@@ -204,7 +209,7 @@ test("root lifecycle injects bootstrap once, preserves ToolResult arrays, and qu
 				messages: [
 					{
 						role: "assistant",
-						content: [{ type: "text", text: "Implemented the feature." }],
+						content: [{ type: "text", text: "Fixed the feature." }],
 					},
 				],
 			},
@@ -215,7 +220,84 @@ test("root lifecycle injects bootstrap once, preserves ToolResult arrays, and qu
 			{ prompt: "next" },
 			ctx,
 		);
-		assert.match(afterSettled.message.content, /verification evidence/i);
+		assert.match(afterSettled.message.content, /narrowest fresh check/i);
+	} finally {
+		fs.rmSync(cwd, { recursive: true, force: true });
+	}
+});
+
+test("verification reminders require a same-turn successful edit and shared completion vocabulary", async () => {
+	const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-pi-verify-"));
+	const pi = fakePi();
+	createDoItPiExtension({
+		env: { HOME: cwd },
+		runHook: async () => ({ exitCode: 0, stdout: "", stderr: "" }),
+	})(pi.api);
+	const ctx = fakeContext(cwd);
+	const editResult = (toolName, isError) =>
+		pi.handlers.get("tool_result")(
+			{
+				toolName,
+				input: { path: "src/a.ts" },
+				content: [{ type: "text", text: isError ? "failed" : "edited" }],
+				details: undefined,
+				isError,
+			},
+			ctx,
+		);
+	const settle = async (text) => {
+		await pi.handlers.get("agent_end")(
+			{ messages: [{ role: "assistant", content: text }] },
+			ctx,
+		);
+		await pi.handlers.get("agent_settled")({}, ctx);
+		return pi.handlers.get("before_agent_start")({ prompt: "" }, ctx);
+	};
+
+	try {
+		await pi.handlers.get("before_agent_start")({ prompt: "" }, ctx);
+
+		assert.equal(await settle("Fixed."), undefined, "no edit stays quiet");
+
+		await editResult("edit", true);
+		assert.equal(
+			await settle("Fixed."),
+			undefined,
+			"failed edit stays quiet",
+		);
+
+		await editResult("write", false);
+		assert.equal(
+			await settle("Implemented."),
+			undefined,
+			"Pi-only completion vocabulary stays quiet",
+		);
+		assert.equal(
+			await settle("Fixed."),
+			undefined,
+			"successful edit state is consumed at settlement",
+		);
+
+		await editResult("edit", false);
+		const reminder = await settle("Fixed.");
+		assert.match(reminder.message.content, /narrowest fresh check/i);
+		assert.equal(
+			await pi.handlers.get("before_agent_start")({ prompt: "" }, ctx),
+			undefined,
+			"queued reminder is consumed once",
+		);
+
+		await editResult("multiedit", false);
+		assert.equal(
+			await settle("Done. NOT_VERIFIED: check unavailable."),
+			undefined,
+			"NOT_VERIFIED stays quiet",
+		);
+		assert.equal(
+			await settle("Done."),
+			undefined,
+			"NOT_VERIFIED settlement consumes edit state",
+		);
 	} finally {
 		fs.rmSync(cwd, { recursive: true, force: true });
 	}

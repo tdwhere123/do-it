@@ -221,7 +221,7 @@ function main() {
     repository: normalizeRepoUrl(pkg),
     domain: "agentic-workflow",
     // Runnable skills only — generated `_index.md` discovery stays in
-    // total_discovery_entries, not total_skills (docs/README: 9 + 1).
+    // total_discovery_entries rather than total_skills.
     total_skills: capabilityEntries.length,
     total_capabilities: capabilityEntries.length,
     total_discovery_entries: discoveryEntries.length,

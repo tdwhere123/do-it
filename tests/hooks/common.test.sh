@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Smoke tests for hooks/lib/common.sh — locks in the red-team fixes:
-#   - flock-missing race no longer evaporates state.json
+#   - flock-missing fallback serializes concurrent read-modify-write state
 #   - SESSION_ID path-injection is sanitized
 #   - empty SESSION_ID + non-git cwd no longer share a global `nosession` bucket
 #   - do_it_in_subagent_context honors Pi, Claude, and portable transcript paths
@@ -110,7 +110,7 @@ case "$?" in
 esac
 
 # -------------------------------------------------------------------------
-echo "Case 3: flock-missing race — state.json survives 50 concurrent writers"
+echo "Case 3: flock-missing fallback serializes 50 concurrent writers"
 (
   _isolate_env "/tmp/doit-test-race"
   # Stub: pretend `flock` is missing.
@@ -130,16 +130,122 @@ echo "Case 3: flock-missing race — state.json survives 50 concurrent writers"
   wait
   if [[ ! -f "$SDIR/state.json" ]]; then exit 32; fi
   if [[ ! -s "$SDIR/state.json" ]]; then exit 33; fi
-  if command -v jq >/dev/null 2>&1; then
-    if ! jq -e . "$SDIR/state.json" >/dev/null 2>&1; then exit 34; fi
-  fi
-) 2>/dev/null
+  jq -e . "$SDIR/state.json" >/dev/null 2>&1 || exit 34
+  [[ "$(jq -r '.hook_invocations.router' "$SDIR/state.json")" == "50" ]] || exit 35
+  [[ ! -d "$SDIR/.state.lock.d" ]] || exit 36
+)
 case "$?" in
-  0)  _pass "state.json survived race and contains valid JSON" ;;
+  0)  _pass "mkdir fallback serialized all 50 state increments" ;;
   31) _fail "flock stub did not take effect" ;;
-  32) _fail "state.json missing after race (file disappeared)" ;;
+  32) _fail "state.json missing after race" ;;
   33) _fail "state.json present but empty" ;;
   34) _fail "state.json contains malformed JSON" ;;
+  35) _fail "concurrent increments were lost" ;;
+  36) _fail "fallback lock directory leaked" ;;
+  *)  _fail "subshell crashed (exit=$?)" ;;
+esac
+
+# -------------------------------------------------------------------------
+echo "Case 3b: jq-free mkdir fallback serializes counters and user turns"
+(
+  _isolate_env "/tmp/doit-test-race-kv"
+  command() {
+    if [[ "${1:-}" == "-v" && ( "${2:-}" == "flock" || "${2:-}" == "jq" ) ]]; then return 1; fi
+    builtin command "$@"
+  }
+  export -f command 2>/dev/null
+  source "$COMMON"
+  DO_IT_HAVE_JQ=0
+  for _ in $(seq 1 50); do
+    ( do_it_session_state_inc race_kv hook_invocations router ) &
+    ( do_it_user_turn_bump race_kv ) &
+  done
+  for n in $(seq 1 30); do
+    ( do_it_session_state_set_many race_kv pair_a "$n" pair_b "$n" ) &
+  done
+  wait
+  wait
+  SDIR="$(do_it_session_dir race_kv)"
+  [[ "$(do_it_session_state_get race_kv hook_invocations.router)" == "50" ]] || exit 37
+  [[ "$(do_it_user_turn_get race_kv)" == "50" ]] || exit 38
+  [[ "$(do_it_session_state_get race_kv pair_a)" == "$(do_it_session_state_get race_kv pair_b)" ]] || exit 40
+  [[ ! -d "$SDIR/.state.lock.d" ]] || exit 39
+)
+case "$?" in
+  0)  _pass "jq-free fallback serialized counters and user turns" ;;
+  37) _fail "jq-free counter increments were lost" ;;
+  38) _fail "jq-free user-turn increments were lost" ;;
+  39) _fail "jq-free fallback lock directory leaked" ;;
+  40) _fail "jq-free batched state write was partially visible" ;;
+  *)  _fail "subshell crashed (exit=$?)" ;;
+esac
+
+# -------------------------------------------------------------------------
+echo "Case 3c: mkdir fallback reclaims a dead-owner lock directory"
+(
+  _isolate_env "/tmp/doit-test-stale-lock"
+  command() {
+    if [[ "${1:-}" == "-v" && "${2:-}" == "flock" ]]; then return 1; fi
+    builtin command "$@"
+  }
+  export -f command 2>/dev/null
+  source "$COMMON"
+  lock="$DO_IT_HOOK_DATA/stale.lock"
+  mkdir -p "${lock}.d"
+  printf '%s\n' 999999 > "${lock}.d/owner"
+  _mark_reclaimed() { : > "$DO_IT_HOOK_DATA/reclaimed"; }
+  _do_it_with_state_lock "$lock" _mark_reclaimed || exit 40
+  [[ -f "$DO_IT_HOOK_DATA/reclaimed" ]] || exit 41
+  [[ ! -d "${lock}.d" ]] || exit 42
+)
+case "$?" in
+  0)  _pass "dead-owner fallback lock reclaimed" ;;
+  40) _fail "dead-owner fallback lock was not acquired" ;;
+  41) _fail "callback did not run after stale-lock reclaim" ;;
+  42) _fail "reclaimed fallback lock directory leaked" ;;
+  *)  _fail "subshell crashed (exit=$?)" ;;
+esac
+
+# -------------------------------------------------------------------------
+echo "Case 3d: mkdir fallback never steals an old lock from a live owner"
+(
+  _isolate_env "/tmp/doit-test-live-lock"
+  command() {
+    if [[ "${1:-}" == "-v" && "${2:-}" == "flock" ]]; then return 1; fi
+    builtin command "$@"
+  }
+  export -f command 2>/dev/null
+  source "$COMMON"
+  mkdir -p "$DO_IT_HOOK_DATA"
+  lock="$DO_IT_HOOK_DATA/live.lock"
+  _hold_live_lock() {
+    : > "$DO_IT_HOOK_DATA/in-critical"
+    sleep 2
+    rm -f "$DO_IT_HOOK_DATA/in-critical"
+  }
+  _probe_live_lock() {
+    [[ ! -f "$DO_IT_HOOK_DATA/in-critical" ]] || : > "$DO_IT_HOOK_DATA/overlap"
+  }
+  _do_it_with_state_lock "$lock" _hold_live_lock &
+  first=$!
+  for _ in $(seq 1 100); do
+    [[ -f "${lock}.d/owner" ]] && break
+    sleep 0.01
+  done
+  [[ -f "${lock}.d/owner" ]] || exit 43
+  touch -t 200001010000 "${lock}.d"
+  _do_it_with_state_lock "$lock" _probe_live_lock || exit 44
+  wait "$first" || exit 45
+  [[ ! -f "$DO_IT_HOOK_DATA/overlap" ]] || exit 46
+  [[ ! -d "${lock}.d" && ! -d "${lock}.d.reaping" ]] || exit 47
+)
+case "$?" in
+  0)  _pass "old live-owner fallback lock was not stolen" ;;
+  43) _fail "live-owner fallback never acquired its lock" ;;
+  44) _fail "waiting fallback callback did not run" ;;
+  45) _fail "live-owner fallback callback failed" ;;
+  46) _fail "old live-owner fallback lock was stolen" ;;
+  47) _fail "live-owner fallback lock metadata leaked" ;;
   *)  _fail "subshell crashed (exit=$?)" ;;
 esac
 
@@ -373,6 +479,69 @@ case "$?" in
   112) _fail "clear_skip left a flag behind" ;;
   *)  _fail "subshell crashed (exit=$?)" ;;
 esac
+# -------------------------------------------------------------------------
+echo "Case 11b: prompt-scoped skip markers survive concurrent turns and malformed Stop cleanup"
+(
+  _isolate_env "/tmp/doit-test-skip-scope"
+  source "$COMMON"
+  export DO_IT_SKIP_PROMPT="skip gate alpha"
+  export DO_IT_PROMPT_TURN_TOKEN="turn-a"
+  do_it_write_skip scoped gate || exit 113
+  export DO_IT_SKIP_PROMPT="skip gate beta"
+  export DO_IT_PROMPT_TURN_TOKEN="turn-b"
+  do_it_write_skip scoped gate || exit 114
+  do_it_check_skip scoped gate || exit 115
+  export DO_IT_SKIP_PROMPT="skip gate alpha"
+  do_it_clear_skip scoped || exit 116
+  export DO_IT_SKIP_PROMPT="skip gate beta"
+  do_it_check_skip scoped gate || exit 117
+  DO_IT_SKIP_PROMPT="" do_it_clear_skip scoped || exit 118
+  do_it_check_skip scoped gate || exit 119
+
+  export DO_IT_SKIP_PROMPT="identical skip gate"
+  export DO_IT_PROMPT_TURN_TOKEN="same-a"
+  do_it_write_skip identical gate || exit 120
+  export DO_IT_PROMPT_TURN_TOKEN="same-b"
+  do_it_write_skip identical gate || exit 121
+  do_it_clear_skip identical || exit 122
+  do_it_check_skip identical gate || exit 123
+  do_it_clear_skip identical || exit 124
+  if do_it_check_skip identical gate; then exit 125; fi
+
+  # Host-normalized transcript copies (trailing space / newline) must still
+  # correlate with the prompt-scoped marker written from the raw payload.
+  export DO_IT_SKIP_PROMPT="skip gate alpha"
+  export DO_IT_PROMPT_TURN_TOKEN="norm-a"
+  do_it_write_skip normalized gate || exit 126
+  export DO_IT_SKIP_PROMPT="skip gate alpha "
+  do_it_check_skip normalized gate || exit 127
+  export DO_IT_SKIP_PROMPT=$'skip gate alpha\n'
+  do_it_check_skip normalized gate || exit 128
+  export DO_IT_SKIP_PROMPT="skip gate beta"
+  if do_it_check_skip normalized gate; then exit 129; fi
+  export DO_IT_SKIP_PROMPT="skip gate alpha"
+  do_it_clear_skip normalized || exit 130
+  if do_it_check_skip normalized gate; then exit 131; fi
+
+  mv() { return 1; }
+  export DO_IT_SKIP_PROMPT="write failure"
+  export DO_IT_PROMPT_TURN_TOKEN="write-failure"
+  if do_it_write_skip write-failure gate; then exit 132; fi
+)
+case "$?" in
+  0)   _pass "prompt and turn scoped skip markers consume independently" ;;
+  113|114|120|121) _fail "prompt-scoped skip marker write failed" ;;
+  115|117|119|123) _fail "prompt-scoped skip marker was lost across turns" ;;
+  116|118|122|124) _fail "prompt-scoped skip cleanup failed" ;;
+  125) _fail "identical prompt cleanup consumed fewer than two markers" ;;
+  126|130) _fail "normalized skip marker write/cleanup failed" ;;
+  127|128) _fail "trailing-whitespace prompt copy did not match its marker" ;;
+  129) _fail "different prompt matched the normalized marker" ;;
+  131) _fail "normalized cleanup left the marker behind" ;;
+  132) _fail "skip marker write failure was swallowed" ;;
+  *)   _fail "prompt-scoped skip case crashed (exit=$?)" ;;
+esac
+
 
 # -------------------------------------------------------------------------
 echo "Case 12: do_it_prompt_has_word matches ASCII words (incl. MSYS path)"
@@ -519,6 +688,83 @@ case "$?" in
   164) _fail "kimi emit not plain text" ;;
   165) _fail "non-kimi emit lost JSON envelope" ;;
   *)   _fail "kimi proto case crashed (exit=$?)" ;;
+esac
+
+# -------------------------------------------------------------------------
+echo "Case 16b: jq-free JSON fallback preserves session and prompt payloads"
+(
+  _isolate_env "/tmp/doit-test-json-fallback"
+  DO_IT_FORCE_NO_JQ=1
+  export DO_IT_FORCE_NO_JQ
+  source "$COMMON"
+  raw='{"session_id":"session-fallback","cwd":"/tmp/work tree","nested":{"value":"ok"},"prompt":[{"type":"text","text":"line one"},{"type":"text","text":"line two"}]}'
+  [[ "$(do_it_json_get "$raw" session_id)" == "session-fallback" ]] || exit 166
+  [[ "$(do_it_json_get "$raw" cwd)" == "/tmp/work tree" ]] || exit 167
+  [[ "$(do_it_json_get_nested "$raw" nested.value)" == "ok" ]] || exit 168
+  [[ "$(do_it_json_get_prompt "$raw")" == $'line one\nline two' ]] || exit 169
+)
+case "$?" in
+  0)   _pass "jq-free fallback decodes scalar, nested, and prompt-array fields" ;;
+  166) _fail "jq-free session_id decode failed" ;;
+  167) _fail "jq-free cwd decode failed" ;;
+  168) _fail "jq-free nested decode failed" ;;
+  169) _fail "jq-free prompt-array decode failed" ;;
+  *)   _fail "jq-free JSON fallback crashed (exit=$?)" ;;
+esac
+
+# -------------------------------------------------------------------------
+echo "Case 17: core-rule registry failures are distinct and never partial"
+(
+  _isolate_env "/tmp/doit-test-core-registry"
+  source "$COMMON"
+  registry_dir="$(mktemp -d)"
+
+  _DO_IT_RULES_DATA="$registry_dir/missing.tsv"
+  out="$(do_it_core_rule r-verify)"; status=$?
+  [[ "$status" -eq "$DO_IT_CORE_RULES_UNAVAILABLE" && -z "$out" ]] || exit 171
+
+  printf '%s\n' $'r-evidence\tvalid prefix\tmodes\tUserPromptSubmit' \
+    $'broken\trow\tonly-three' > "$registry_dir/malformed.tsv"
+  _DO_IT_RULES_DATA="$registry_dir/malformed.tsv"
+  out="$(do_it_core_rules_for UserPromptSubmit)"; status=$?
+  [[ "$status" -eq "$DO_IT_CORE_RULES_MALFORMED" && -z "$out" ]] || exit 172
+
+  printf '%s\n' \
+    $'r-route\troute text\tmodes\tnone' \
+    $'r-evidence\tvalid text\tmodes\tUserPromptSubmit' \
+    $'r-scope\tscope text\tmodes\tUserPromptSubmit' \
+    $'r-verify\tverify text\tmodes\tUserPromptSubmit,Stop' \
+    $'r-uncertainty\tuncertainty text\tmodes\tUserPromptSubmit' \
+    $'r-boundary\tboundary text\tmodes\tUserPromptSubmit' \
+    $'r-report\treport text\tmodes\tnone' \
+    $'r-recovery\trecovery text\tmodes\tnone' > "$registry_dir/valid.tsv"
+  _DO_IT_RULES_DATA="$registry_dir/valid.tsv"
+  out="$(do_it_core_rule r-unknown)"; status=$?
+  [[ "$status" -eq "$DO_IT_CORE_RULES_UNKNOWN" && -z "$out" ]] || exit 173
+  [[ "$(do_it_core_rule r-evidence)" == "valid text" ]] || exit 174
+
+  printf '%s\n' \
+    $'r-route\troute text\tmodes\tnone' \
+    $'r-evidence\tpartial rule must not leak\tmodes\tUserPromptSubmit' \
+    $'r-scope\tscope text\tmodes\tUserPromptSubmit' \
+    $'r-verify\tverify text\tmodes\tUserPromptSubmit,Stop' \
+    $'r-uncertainty\tuncertainty text\tmodes\tUserPromptSubmit' \
+    $'r-boundary\tboundary text\tmodes\tUserPromptSubmit' \
+    $'r-report\treport text\tmodes\tnone' > "$registry_dir/incomplete.tsv"
+  _DO_IT_RULES_DATA="$registry_dir/incomplete.tsv"
+  out="$(do_it_core_rules_for UserPromptSubmit)"; status=$?
+  [[ "$status" -eq "$DO_IT_CORE_RULES_MALFORMED" && -z "$out" ]] || exit 175
+
+  rm -rf "$registry_dir"
+)
+case "$?" in
+  0)   _pass "registry reports unavailable, malformed, and unknown without partial output" ;;
+  171) _fail "missing registry status/output contract failed" ;;
+  172) _fail "malformed registry leaked partial output or wrong status" ;;
+  173) _fail "unknown rule status/output contract failed" ;;
+  174) _fail "valid rule text changed" ;;
+  175) _fail "registry missing one required rule leaked partial output or wrong status" ;;
+  *)   _fail "core registry case crashed (exit=$?)" ;;
 esac
 
 # -------------------------------------------------------------------------

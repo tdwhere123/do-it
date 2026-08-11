@@ -11,6 +11,7 @@
 /** Runtime hook scripts wired on every host (bash). */
 export const HOOK_SCRIPTS = [
   "behavior-feedback.sh",
+  "prompt-submit.sh",
   "router.sh",
   "grill-prompt.sh",
   "subagent-stance.sh",
@@ -68,12 +69,7 @@ export function codexHooksJson() {
             },
             {
               type: "command",
-              command: codexHookCommand("router.sh"),
-              timeout: 25
-            },
-            {
-              type: "command",
-              command: codexHookCommand("grill-prompt.sh"),
+              command: codexHookCommand("prompt-submit.sh"),
               timeout: 25
             },
             {
