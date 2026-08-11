@@ -1038,10 +1038,18 @@ _do_it_with_state_lock() {
       [[ "$owner_pid" =~ ^[0-9]+$ ]] || owner_pid="$$"
       token="${owner_pid}:${RANDOM}:${RANDOM}"
       if ! printf '%s\n' "$token" > "$lock_dir/owner" 2>/dev/null; then
-        # A concurrent reclaim removed the dir between our mkdir and this
-        # write (delete-by-path race: rmdir does not check inode identity).
-        # Do NOT rmdir here — the path may already hold another writer's
-        # fresh lock. Treat it as contention and retry the acquisition loop.
+        # Owner-write failed. Two cases:
+        #  (a) a concurrent reclaim removed the dir between our mkdir and this
+        #      write — the path is free, retry the acquisition loop;
+        #  (b) the path is unusable for the owner file (observed on Windows/
+        #      Git Bash with mixed paths) — the dir is still ours and empty,
+        #      so release it and fail fast instead of spinning the whole wait
+        #      budget. Never rmdir a dir that has gained another writer's
+        #      owner file.
+        if [[ -d "$lock_dir" && ! -e "$lock_dir/owner" ]]; then
+          rmdir "$lock_dir" 2>/dev/null || true
+          return 1
+        fi
         attempts=$((attempts + 1))
         if [[ "$_lock_delay" == "spin" ]]; then
           :  # spin-poll: mkdir retry loop is the wait on hosts without fractional sleep
