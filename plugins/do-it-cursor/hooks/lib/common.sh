@@ -996,17 +996,18 @@ _do_it_with_state_lock() {
   # Portable lock-wait. Budget by WALL TIME (bash builtin SECONDS — no
   # subprocess, works on bash 3.2) instead of attempt count: per-attempt cost
   # varies wildly across hosts (BSD sleep rejects fractional seconds, and
-  # subprocess spawns are slower on macOS/containers), so a fixed attempt
-  # bound can expire before dozens of concurrent writers serialize. The mkdir
-  # fallback gets ~10s (the flock path keeps its kernel-side -w 5; contention
-  # here means a concurrent hook turn, and an uncontended acquire is instant).
-  # Hosts without fractional sleep spin-poll the mkdir retry loop. Scalar vars
-  # only — must parse on macOS's bash 3.2.
+  # subprocess spawns are slower on macOS/loaded runners), so a fixed attempt
+  # bound can expire before dozens of concurrent writers serialize. 15s gives
+  # the stress suite (130 concurrent jq-free writers) margin on a loaded CI
+  # runner while staying inside the 25s hook timeout; the flock path keeps its
+  # kernel-side -w 5, and an uncontended acquire is instant. Hosts without
+  # fractional sleep spin-poll the mkdir retry loop. Scalar vars only — must
+  # parse on macOS's bash 3.2.
   local _lock_start=$SECONDS _lock_delay="spin"
   if sleep 0.01 2>/dev/null; then
     _lock_delay=0.01
   fi
-  while [[ $((SECONDS - _lock_start)) -lt 10 ]]; do
+  while [[ $((SECONDS - _lock_start)) -lt 15 ]]; do
     if [[ -d "$reaping" ]]; then
       now=$(date +%s 2>/dev/null || printf '0')
       modified=$(stat -f %m "$reaping" 2>/dev/null || stat -c %Y "$reaping" 2>/dev/null || printf '0')
