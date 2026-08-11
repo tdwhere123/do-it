@@ -7,18 +7,21 @@
 
 ## Product Contract
 
-`do-it` exposes nine user/runnable skills: five core capabilities plus three
+`do-it` exposes eleven user/runnable skills: seven core capabilities (including
+the protocol of record and the architecture-governance skill) plus three
 persistence or maintenance skills and one on-demand retrospective capability,
 along with ten portable agents. The generated `_index.md` is one discovery
-entry, not a tenth capability.
+entry, not a twelfth capability.
 
 | Capability | Canonical skill | Use when |
 | --- | --- | --- |
-| Route | `do-it-router` | A non-trivial repository task begins |
+| Protocol of record | `do-it-core` | Any non-trivial repo task starts or a done/fixed/ready/merge claim is made — route the tier, then evidence/scope/verify/report; hooks quote its rules |
+| Route | `do-it-router` | A non-trivial repository task begins (cites `do-it-core`) |
+| Architecture governance | `do-it-architecture` | Work establishes, changes, or evaluates load-bearing architecture — authority, contracts, boundaries, cutover, guards, deletion |
 | Write defense | `do-it-code-quality` | Designing or editing code |
 | Decide | `do-it-decide` | A premise, option, dependency choice, or durable handoff changes the route |
 | Review / repair | `do-it-review` | A delivered diff needs correctness/spec review or targeted repair |
-| Verify / close | `do-it-verify` | A done, fixed, ready, install, merge, or closeout claim is about to be made |
+| Verify / close | `do-it-verify` | A done, fixed, ready, install, merge, or closeout claim is about to be made (cites `do-it-core`) |
 | Active context | `do-it-context` | Terms, invariants, or relationships are drifting |
 | Stable handbook | `do-it-handbook` | Stable project truth is repeatedly rediscovered or the user asks to scaffold it |
 | Maintain skills | `do-it-skill-authoring` | A do-it skill or its host packaging changes |
@@ -98,11 +101,11 @@ are not part of its managed inventory.
 
 | Host | Distribution | Skills | Verification behavior |
 | --- | --- | --- | --- |
-| Codex | Marketplace-first plugin; optional CLI migration/doctor | All nine + generated discovery entry | Advisory completion reminder; `do-it-verify` supplies claim-specific proof |
-| Claude Code | Marketplace-first plugin | All nine + generated discovery entry | Advisory completion reminder; `do-it-verify` supplies claim-specific proof |
-| Cursor | Local copy / Team Import today; public listing pending | All nine + generated discovery/reference files | Advisory completion reminder; `do-it-verify` supplies claim-specific proof |
-| OpenCode | Independent npm package; vendored config-home fallback | All nine + generated discovery entry | Advisory completion reminder; `do-it-verify` supplies claim-specific proof |
-| Pi | Independent npm package or local-path install; optional `pi-subagents` | All nine; ten namespaced package agents when discovered by `pi-subagents` | Advisory root lifecycle and child stance; `/do-it-status` diagnoses the adapter but does not prove agent discovery |
+| Codex | Marketplace-first plugin; optional CLI migration/doctor | All eleven + generated discovery entry | Advisory completion reminder; `do-it-verify` supplies claim-specific proof |
+| Claude Code | Marketplace-first plugin | All eleven + generated discovery entry | Advisory completion reminder; `do-it-verify` supplies claim-specific proof |
+| Cursor | Local copy / Team Import today; public listing pending | All eleven + generated discovery/reference files | Advisory completion reminder; `do-it-verify` supplies claim-specific proof |
+| OpenCode | Independent npm package; vendored config-home fallback | All eleven + generated discovery entry | Advisory completion reminder; `do-it-verify` supplies claim-specific proof |
+| Pi | Independent npm package or local-path install; optional `pi-subagents` | All eleven; ten namespaced package agents when discovered by `pi-subagents` | Advisory root lifecycle and child stance; `/do-it-status` diagnoses the adapter but does not prove agent discovery |
 
 No host registers `grill-pretool` or a pre-edit plan gate. `write-quality-lint`
 and `verification-gate` are advisory everywhere; `do-it-verify` remains the

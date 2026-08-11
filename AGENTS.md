@@ -53,6 +53,12 @@ These drift checks run in `npm test`; touch one side and you must touch all:
 - **Hook JSON contract** — hooks read host JSON on stdin and emit host-shaped
   JSON; a misconfigured environment must never crash a hook (advisory hooks
   exit 0).
+- **Core single voice** — `hooks/data/execution-failure-modes.tsv` (rule
+  sentences) ↔ `skills/do-it/do-it-core/SKILL.md` (renders them) ↔ hook
+  emission (`router.sh`, `verification-gate.sh` quote the TSV, never embed
+  rule text) ↔ bridge constants (`plugins/do-it-pi/extensions/index.ts`,
+  OpenCode bundle data) ↔ satellite skills cite `core §<rule_id>` instead of
+  restating (`validate:core-consistency`).
 
 ## Commands
 
@@ -61,6 +67,7 @@ npm run lint:hooks                 # shellcheck the hook scripts
 npm run test-hooks                 # hook regression suites (bash)
 npm run check:skill-links          # skill cross-reference integrity
 npm run validate:quality-families  # family registry/scanner/docs/tests sync
+npm run validate:core-consistency  # core-rule registry ↔ skill ↔ hooks ↔ bridges sync
 npm test                           # full gate: builds + validators + all tests
 ```
 

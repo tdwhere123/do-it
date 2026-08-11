@@ -2,6 +2,31 @@
 
 ## 0.15.0
 
+### Core protocol and architecture routing
+
+- **`do-it-core`:** added a single protocol voice for eight execution rules,
+  backed by the closed-set `execution-failure-modes.tsv` registry and a
+  consistency validator that rejects missing, mutated, duplicated, or restated
+  rule bullets across the core skill, hooks, bridges, and satellite skills.
+- **`do-it-architecture`:** added load-bearing architecture guidance for
+  authority and ownership, public or persisted contracts, dependency
+  boundaries, migration and cutover, guards, deletion, recovery, and drift.
+- **Model-adaptive Standard advisory:** strong-model hosts receive one compact
+  `do-it-core` pointer; weak, unknown, or undetected models receive the
+  canonical rule text inline.
+- **Architecture routing:** action-shaped Heavy interface/schema,
+  migration/cutover, and security-boundary changes point to
+  `do-it-architecture`; explanation questions remain Light, and ordinary Heavy
+  release work stays free of an architecture pointer.
+- **Prompt-state ordering:** Claude, Codex, Cursor, and Kimi now invoke router
+  then Heavy grill through one serialized `prompt-submit` hook, preventing
+  concurrent hook scheduling from reading a stale tier; state writes use a
+  portable `mkdir` lock fallback when `flock` is unavailable.
+- **Architecture routing precision:** strong Heavy detection now uses bounded,
+  clause-local action/surface pairs for interface, migration, and security
+  work, avoiding substring joins such as `token` + `relationship` while still
+  recognizing explicit security-boundary creation.
+
 ### Code-quality rules move into skills and hooks
 
 - **New `file-size` advisory family** in `write-quality-lint`: whole-file line

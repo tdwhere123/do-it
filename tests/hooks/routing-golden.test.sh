@@ -47,18 +47,27 @@ _check_skip_flags() {
   local sid="$1" want="$2"
   local skip_dir="$DO_IT_HOOK_DATA/sessions/$sid"
   IFS=',' read -r -a flags <<< "$want"
+  local flag existing base found matched
   for flag in "${flags[@]}"; do
     [[ -n "$flag" ]] || continue
-    [[ -f "$skip_dir/skip-$flag" ]] || return 1
+    matched=0
+    for existing in "$skip_dir/skip-$flag" "$skip_dir/skip-$flag-"*; do
+      [[ -f "$existing" ]] || continue
+      matched=1
+      break
+    done
+    [[ "$matched" -eq 1 ]] || return 1
   done
-  # Ensure no extra skip flags beyond expected set
+  # Ensure no extra skip targets beyond the expected set. Hash/token suffixes
+  # identify prompt transactions and do not change the target name.
   for existing in "$skip_dir"/skip-*; do
     [[ -e "$existing" ]] || continue
-    local base="${existing##*/}"
-    local name="${base#skip-}"
-    local found=0
+    base="${existing##*/}"
+    found=0
     for flag in "${flags[@]}"; do
-      [[ "$flag" == "$name" ]] && found=1
+      case "$base" in
+        "skip-$flag"|"skip-$flag-"*) found=1 ;;
+      esac
     done
     [[ "$found" -eq 1 ]] || return 2
   done
@@ -83,12 +92,14 @@ while IFS= read -r line || [[ -n "$line" ]]; do
     tier_want=""
     kind_want=""
     skip_want=""
+    emit_want=""
     IFS=';' read -r -a parts <<< "$expected"
     for part in "${parts[@]}"; do
       case "$part" in
         tier:*) tier_want="${part#tier:}" ;;
         kind:*) kind_want="${part#kind:}" ;;
         skip:*) skip_want="${part#skip:}" ;;
+        emit:*) emit_want="${part#emit:}" ;;
         *) echo "unknown expectation token: $part" >&2; exit 12 ;;
       esac
     done
@@ -99,6 +110,9 @@ while IFS= read -r line || [[ -n "$line" ]]; do
 
     if [[ "$tier_want" == "Standard" ]]; then
       [[ "$out" == *'do-it tier: Standard.'* ]] || { printf 'missing Standard context: %s\n' "$out" >&2; exit 11; }
+      [[ "$out" != *'skill://do-it-architecture'* ]] || { printf 'unexpected architecture pointer: %s\n' "$out" >&2; exit 11; }
+    elif [[ "$emit_want" == "architecture" ]]; then
+      [[ "$out" == *'skill://do-it-architecture'* ]] || { printf 'missing architecture pointer: %s\n' "$out" >&2; exit 11; }
     else
       [[ -z "$out" ]] || { printf 'unexpected output: %s\n' "$out" >&2; exit 11; }
     fi
@@ -124,7 +138,7 @@ while IFS= read -r line || [[ -n "$line" ]]; do
     0)  _pass "$expected (${notes:-case $CASE})" ;;
     11) _fail "case $CASE emitted output" ;;
     12) _fail "case $CASE bad expectation token" ;;
-    13) _fail "case $CASE skip flags mismatch (want $skip_want)" ;;
+    13) _fail "case $CASE skip flags mismatch (want ${skip_want:-<unset>})" ;;
     14|15) _fail "case $CASE tier mismatch (want ${tier_want:-<unset>})" ;;
     16|17) _fail "case $CASE kind mismatch (want $kind_want)" ;;
     *)  _fail "case $CASE unexpected exit $rc" ;;

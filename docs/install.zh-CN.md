@@ -9,7 +9,7 @@
 
 | 真相平面 | 本仓库可以声明的内容 |
 | --- | --- |
-| 源码 / 包元数据 | 当前 checkout 声明 `0.15.0`、9 个用户可运行 skill + 1 个生成式发现入口、10 个 agent。 |
+| 源码 / 包元数据 | 当前 checkout 声明 `0.15.0`、11 个用户可运行 skill + 1 个生成式发现入口、10 个 agent。 |
 | Git tag | `0.15.0` 发布提交必须带有 `v0.15.0`；版本元数据不等于发布 tag。 |
 | Marketplace / npm | 文档记录坐标与发布路径；只有 workflow 之后的 `npm view` 才能证明已发布到 registry。Cursor 公开上架仍待完成。 |
 | Live host | 只有在对应宿主安装并检查，才能证明那里实际启用了什么；不能从源码或 tarball 推断。 |
@@ -31,7 +31,7 @@ CODEX_HOME=/tmp/do-it-plugin-test codex plugin add do-it@tdwhere-do-it
 ```
 
 Codex plugin bundle 位于 `plugins/do-it/`（由 `manifest.json` 生成）：
-9 个用户可运行 skill、1 个生成式 `_index.md` 发现入口、10 个 agent，以及插件内 hooks。
+11 个用户可运行 skill、1 个生成式 `_index.md` 发现入口、10 个 agent，以及插件内 hooks。
 现代 Codex 插件拥有这些 do-it agent；`manifest.targets.codex.installAgents=false`
 会保留 `~/.codex/agents` 给用户自己定义的 agent。旧版迁移只会移除已确认的 do-it
 重复项。
@@ -74,9 +74,9 @@ Cursor **有**官方公开市场（[cursor.com/marketplace](https://cursor.com/m
 3. **团队 Import（不必公开上架）：** Dashboard → Plugins → Import from Repo → `https://github.com/tdwhere123/do-it`（读取 `.cursor-plugin/marketplace.json`）。
 4. **日后公开上架：** 提交到 [cursor.com/marketplace/publish](https://cursor.com/marketplace/publish)。
 
-Cursor 装 **完整 9 个 skill**（`do-it-router`、`do-it-code-quality`、`do-it-review`、`do-it-decide`、`do-it-verify`，以及 `do-it-handbook`、`do-it-context`、`do-it-skill-authoring`、`do-it-retrospective`），外加 skills index 与 `references/`——与 Codex、Claude、OpenCode 相同。
+Cursor 装 **完整 11 个 skill**（`do-it-core`、`do-it-router`、`do-it-code-quality`、`do-it-architecture`、`do-it-review`、`do-it-decide`、`do-it-verify`，以及 `do-it-handbook`、`do-it-context`、`do-it-skill-authoring`、`do-it-retrospective`），外加 skills index 与 `references/`——与 Codex、Claude、OpenCode 相同。
 
-中等 hook 深度：`sessionStart`、`beforeSubmitPrompt`（router / Heavy grill / stance）、`postToolUse` / `afterFileEdit` 旁路 `write-quality-lint`、`stop` 建议性验证提醒。详见 [`harness-adapter-matrix.md`](./harness-adapter-matrix.md)。
+中等 hook 深度：`sessionStart`、`beforeSubmitPrompt`（由 `prompt-submit` 串行执行 router / Heavy grill，再执行 stance）、`postToolUse` / `afterFileEdit` 旁路 `write-quality-lint`、`stop` 建议性验证提醒。详见 [`harness-adapter-matrix.md`](./harness-adapter-matrix.md)。
 
 ## OpenCode
 
@@ -138,17 +138,17 @@ export KIMI_CODE_HOME=/tmp/do-it-kimi-test
 # 在指向本 checkout 的 Kimi Code 会话中：
 #   /plugins install /path/to/do-it
 #   /reload
-# 确认 9 个 skill 可见、`/do-it:skip` 可用，并用一轮 prompt + Edit + stop
+# 确认 11 个 skill 可见、`/do-it:skip` 可用，并用一轮 prompt + Edit + stop
 # 触发 router / write-quality-lint / verification-gate。
 # 无实机会话时至少跑：
 npm run validate:kimi-plugin
 ```
 
-Kimi Code 装 **完整 9 个 skill**，三个命令以 `/do-it:skip`、
-`/do-it:handbook`、`/do-it:retrospective` 提供，以及 5 条清单 hooks
-（`UserPromptSubmit` 的 router / grill / behavior-feedback、`PostToolUse`
-（matcher `Edit|Write`）的 write-quality-lint、`Stop` 的 verification-gate）。
-Kimi Code 没有自定义子智能体机制（仅内置 `coder` / `explore` / `plan`），
+Kimi Code 装 **完整 11 个 skill**，三个命令以 `/do-it:skip`、
+`/do-it:handbook`、`/do-it:retrospective` 提供，以及 4 条清单 hooks
+（`UserPromptSubmit` 通过 `prompt-submit` 串行执行 router / grill，并执行
+behavior-feedback；`PostToolUse`（matcher `Edit|Write`）执行 write-quality-lint；
+`Stop` 执行 verification-gate）。Kimi Code 没有自定义子智能体机制（仅内置 `coder` / `explore` / `plan`），
 因此 10 个可移植 agent **不会**装到该宿主，`subagent-stance` 也不接线
 （Kimi 的 Subagent 事件 payload 携带空 `session_id`）。协议与限制详见
 [`skills/do-it/references/host-kimi.md`](../skills/do-it/references/host-kimi.md)。
@@ -177,21 +177,24 @@ do-it doctor
 
 | Host | 用户可运行 skill | 发现元数据 | Agent |
 | --- | --- | --- | --- |
-| Codex / Claude / Cursor / OpenCode | 9 个 — 5 核心 + 4 扩展 | 1 个生成式 `_index.md` 入口（不是第十个 skill） | 10 个 |
-| Pi | 9 个 — 5 核心 + 4 扩展 | 宿主原生（extension + skills 目录）+ prompt templates | 装了可选 `pi-subagents` 时为 10 个 `do-it.*` package agents；否则 0 个 |
-| Kimi Code | 9 个 — 5 核心 + 4 扩展 | 宿主原生发现（无生成式索引） | 0 — 无自定义子智能体 |
+| Codex / Claude / Cursor / OpenCode | 11 个 — 7 核心 + 4 扩展 | 1 个生成式 `_index.md` 入口（不是第十二个 skill） | 10 个 |
+| Pi | 11 个 — 7 核心 + 4 扩展 | 宿主原生（extension + skills 目录）+ prompt templates | 装了可选 `pi-subagents` 时为 10 个 `do-it.*` package agents；否则 0 个 |
+| Kimi Code | 11 个 — 7 核心 + 4 扩展 | 宿主原生发现（无生成式索引） | 0 — 无自定义子智能体 |
 
-- 意涵分桶 skill：`do-it-router`、`do-it-code-quality`（写码主防线）、
-  `do-it-review`（审查 + 修复）、`do-it-decide`（压测 / 发散 / 计划 / 切片）、
-  `do-it-verify`（证据 + 收口），以及扩展的 `do-it-handbook`、`do-it-context`、
-  `do-it-skill-authoring`，还有按需的 `do-it-retrospective`。
+- 意涵分桶 skill：`do-it-core`（协议蓝本——先定分级，再证据 / 范围 / 验证 /
+  汇报）、`do-it-router`、`do-it-code-quality`（写码主防线）、
+  `do-it-architecture`（承重架构治理）、`do-it-review`（审查 + 修复）、
+  `do-it-decide`（压测 / 发散 / 计划 / 切片）、`do-it-verify`（证据 + 收口），
+  以及扩展的 `do-it-handbook`、`do-it-context`、`do-it-skill-authoring`，
+  还有按需的 `do-it-retrospective`。
 - 十个可移植 agent：决策侧 `product-strategist` /
   `architecture-strategist` / `plan-challenger`；写码侧 `code-mapper` /
   `code-quality-cleaner` / `tdd-red-writer`；审查侧 `reviewer` /
   `red-team-reviewer` / `spec-compliance-reviewer`；以及
   `documentation-engineer`。
 - 共享 hook 集合，按宿主接线：默认关闭、静默的 `behavior-feedback`；
-  `router`；仅 Heavy 的 `grill-prompt`；`subagent-stance`；旁路
+  `prompt-submit`（在清单宿主串行执行 `router` 与仅 Heavy 的 `grill-prompt`，
+  适配器宿主保持相同顺序）；`subagent-stance`；旁路
   `write-quality-lint`；建议性 `verification-gate`；`session-start`（Cursor）；
   以及 Claude 默认关闭的具名命令 `strict-external-actions` profile。
   verification hook 在所有宿主都只做建议性提醒；`do-it-verify` 仍负责声明级的

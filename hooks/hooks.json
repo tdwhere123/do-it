@@ -10,12 +10,7 @@
           },
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/router.sh",
-            "timeout": 25
-          },
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/grill-prompt.sh",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/prompt-submit.sh",
             "timeout": 25
           },
           {

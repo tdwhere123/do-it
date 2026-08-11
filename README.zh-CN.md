@@ -93,7 +93,9 @@ Skill 按需加载，不按分级：
 
 | Skill | 时机 |
 | --- | --- |
+| `do-it-core` | 常驻协议蓝本——先定分级，再证据 / 范围 / 验证 / 汇报 |
 | `do-it-code-quality` | 改代码——范围、TDD、调试、契约 |
+| `do-it-architecture` | 承重架构——权威、契约、边界、切换、防护 |
 | `do-it-decide` | 选项不清、承重前提 |
 | `do-it-review` | diff 需要审视和修复 |
 | `do-it-verify` | done / ready / merge 声明之前 |
@@ -118,12 +120,15 @@ Skill 按需加载，不按分级：
 
 ### 用证据说话
 
-`do-it` 把"完成"当成证据声明。`do-it-verify` 要求从当前工作区取得新鲜、
-与声明相关的证明。拿不出证据，诚实的回答就是 `NOT_VERIFIED` 加下一项检查。
+`do-it` 把"完成"当成证据声明。`do-it-core` § Verify（`do-it-verify` 作为清单）
+要求从当前工作区取得新鲜、与声明相关的证明。拿不出证据，诚实的回答就是
+`NOT_VERIFIED` 加下一项检查。
 
 对于外部副作用（git push、npm publish …），do-it 要求 agent 先确认。
 真正的强制只有宿主的 sandbox 能做。
 详见[严格外部操作](./docs/strict-external-actions.md)。
+
+> 提示：描述目标、成功标准和相关约束，然后让 agent 自己规划步骤。
 
 ### 需要时委派
 
@@ -135,8 +140,10 @@ Skill 按需加载，不按分级：
 ```mermaid
 flowchart TD
     P[UserPromptSubmit] --> R[do-it-router<br/>分类 Light / Standard / Heavy]
-    R --> B{意涵分桶}
+    R --> C[do-it-core<br/>协议蓝本]
+    C --> B{意涵分桶}
     B --> CQ[do-it-code-quality<br/>写码时]
+    B --> A[do-it-architecture<br/>承重架构]
     B --> D[do-it-decide<br/>需要决策/计划时]
     B --> RV[do-it-review<br/>需要审查时]
     B --> VY[do-it-verify<br/>宣布完成前]

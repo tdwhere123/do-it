@@ -36,6 +36,8 @@ export function buildHookPayload(input) {
     const filePath = extractFilePath(input.args);
     return {
         session_id: input.sessionID,
+        model: input.model,
+        prompt: input.prompt,
         cwd: input.cwd,
         tool_name: toolName,
         file_path: filePath,

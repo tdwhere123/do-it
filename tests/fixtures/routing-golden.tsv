@@ -10,8 +10,8 @@ typo in README.md	tier:Light	short prompt + light signal typo
 修改 README 里的拼写错误	tier:Light	short + 拼写 light signal
 实现 src/auth.ts 的登录	tier:Standard	intent verb + code object
 fix bug in hooks/router.sh	tier:Standard	English intent + path
-重写 schema 涉及 breaking change 跨 frontend/ backend/	tier:Heavy	≥2 heavy signals
-迁移 database schema 并 rewrite API	tier:Heavy	two heavy signals EN
+重写 schema 涉及 breaking change 跨 frontend/ backend/	tier:Heavy;emit:architecture	≥2 heavy signals
+迁移 database schema 并 rewrite API	tier:Heavy;emit:architecture	two heavy signals EN
 帮我改一下好吗	tier:Light;kind:work	imperative+好吗 without ? — not question kind
 你好吗？	tier:Light;kind:question	question with 吗
 yolo 直接做	skip:router,grill,gate	full escape — no tier write
@@ -19,9 +19,12 @@ skip gate please implement src/foo.ts	skip:gate;tier:Standard	partial skip gate 
 这是什么？	tier:Light;kind:question	short question
 publish the release to production	tier:Heavy	single strong release action → Heavy
 Can you publish the release to production?	tier:Heavy;kind:work	question wording does not suppress a strong release action
-run the database migration now	tier:Heavy	single strong migration action → Heavy
-harden security for credential rotation	tier:Heavy	single strong security action → Heavy
-remove the deprecated API even though it is breaking	tier:Heavy	single strong breaking action → Heavy
+run the database migration now	tier:Heavy;emit:architecture	action-shaped migration emits architecture pointer
+cut over production traffic to the new database	tier:Heavy;emit:architecture	action-shaped cutover emits architecture pointer
+harden the security boundary for credential rotation	tier:Heavy;emit:architecture	action-shaped security-boundary change emits architecture pointer
+move the tenant authorization boundary	tier:Heavy;emit:architecture	action-shaped security boundary is Heavy without unrelated topical signals
+harden security for credential rotation	tier:Heavy	security work without a boundary change emits no architecture pointer
+remove the deprecated API even though it is breaking	tier:Heavy;emit:architecture	action-shaped interface change emits architecture pointer
 remove unused api helper from schema.ts	tier:Standard	destructive+bare api/schema is not strong Heavy
 what is the release process?	tier:Light;kind:question	release explanation remains Light
 how do database migrations work?	tier:Light;kind:question	migration explanation remains Light
@@ -29,3 +32,21 @@ Can you explain how database migrations work?	tier:Light;kind:question	direct-ad
 可以解释一下数据库迁移吗？	tier:Light;kind:question	Chinese explanation remains informational
 请告诉我如何迁移数据库？	tier:Light;kind:question	Chinese how-to request remains informational
 能否说明数据库迁移如何进行？	tier:Light;kind:question	Chinese explanation request remains informational
+how should we explain the security boundary?	tier:Light;kind:question	security-boundary explanation remains informational
+ship version 0.15.0 to the package registry	tier:Heavy	ordinary Heavy publish operation emits no architecture pointer
+the schema must replace its public contract with a breaking change across frontend/ backend/	tier:Heavy;emit:architecture	reversed interface/action order remains positive
+publish a rapid parser release to production with breaking telemetry	tier:Heavy	api substring in rapid does not emit architecture guidance
+ship version 0.15.0 to production; change telemetry sampling. schema docs remain stable	tier:Heavy	unrelated action and surface clauses do not join
+ship version 0.15.0 to production; schema docs remain stable. replace telemetry sampling	tier:Heavy	reversed unrelated clauses do not join
+run the token counter in src/metrics.ts	tier:Light	token substring does not form a boundary action
+run token refresh unit tests; document relationship schema notes	tier:Standard	cross-clause token and relationship substrings do not form security-boundary work
+establish a new security boundary across packages	tier:Heavy;emit:architecture	explicit security-boundary creation emits architecture guidance
+run token refresh unit tests, document relationship schema notes	tier:Standard	comma-separated unrelated substrings do not form a pair
+run token refresh unit tests (document relationship schema notes)	tier:Standard	parenthesized unrelated substrings do not form a pair
+run token refresh unit tests: document relationship schema notes	tier:Standard	colon-separated unrelated substrings do not form a pair
+研究部署署名包袱的解析脚本	tier:Light	CJK release substrings inside unrelated words stay Light
+部署到生产环境	tier:Heavy	explicit CJK production deployment is Heavy
+建立新的租户边界	tier:Heavy;emit:architecture	explicit CJK tenant-boundary creation emits architecture guidance
+运行迁移工具的单元测试	tier:Standard	migration-tool unit tests are not an executed migration
+运行数据库迁移	tier:Heavy;emit:architecture	explicit database migration remains Heavy architecture work
+运行数据库迁移测试	tier:Standard	database migration test context is not an executed migration

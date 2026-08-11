@@ -3,9 +3,9 @@
 This file records where do-it deliberately absorbs outside workflow ideas. It is
 not an install manifest; `manifest.json` is the install source of truth.
 
-The source version `0.15.0` defines nine user/runnable do-it-native skill names
-plus one generated discovery entry; this is version metadata, not a publication
-claim. The skills are meaning buckets (see the migration table in
+The source version `0.15.0` defines eleven user/runnable do-it-native skill
+names plus one generated discovery entry; this is version metadata, not a
+publication claim. The skills are meaning buckets (see the migration table in
 [`CHANGELOG.md`](../CHANGELOG.md)).
 
 **Lineage principle: convergence is not lineage.** Entries below record genuine
@@ -18,7 +18,9 @@ were not absorbed from get no rows.
 
 | Installed Skill | Role | Rewrite Notes |
 | --- | --- | --- |
-| `do-it-router` | front door and three-tier route selection | Absorbs strict skill-selection discipline, task sizing, and parent coordination. Meaning buckets are self-selected — no mandatory chain. |
+| `do-it-core` | protocol of record; route tier, then evidence / scope / verify / report | Absorbs compact background-protocol discipline: one rule set quoted verbatim by hooks, cited by satellites. Failure-mode → rule anchoring; hooks never restate rules. |
+| `do-it-router` | front door and three-tier route selection | Absorbs strict skill-selection discipline, task sizing, and parent coordination. Meaning buckets are self-selected — no mandatory chain. Cites `do-it-core`. |
+| `do-it-architecture` | load-bearing architecture governance | Absorbs the eight architecture lenses and four task routes; maps guards to `write-quality-lint` / `do-it-review`, the governed path to router tiers + skip, surfaces to `do-it-code-quality` § Contracts, negative path to `do-it-decide` failure-mode forecast. |
 | `do-it-code-quality` | write defense (main line) | Absorbs TDD, debugging, comments discipline, deep-module / seam vocabulary, interface/architecture contract checks, and worktree isolation into one write-time skill. |
 | `do-it-decide` | pressure-test, diverge, plan, slice | Absorbs grill, brainstorm, planning, and slicing. Standard stays lean; Heavy raises scrutiny when it helps. |
 | `do-it-review` | review + atomic fix / re-review | Absorbs review-loop and fix-loop: findings-first batch, then repair until Blocking/Important clear. |
@@ -37,6 +39,14 @@ agent count, or role matrix.
 ## External Idea Map
 
 The do-it skills are rewrites, not vendored copies. Useful ideas from
+`lencx/skills` are mapped this way:
+
+| Source Idea | do-it Destination | Absorbed Shape |
+| --- | --- | --- |
+| `coding-protocol` | `do-it-core` + hooks | Compact background protocol with failure-mode→rule anchoring: one canonical rule per failure mode, hooks quoting the rules verbatim, satellites citing instead of restating, report-only-what-matters closeout. |
+| `keel` | `do-it-architecture` | Eight architecture lenses (spine, surfaces, authority/writers/projections, ownership, negative path + time axis, guards, governed-path cost, net-growth review) and the four task routes (greenfield design / architecture review / boundary change / structural refactor). |
+
+Useful ideas from
 `mattpocock/skills` are mapped this way:
 
 | Source Idea | do-it Destination | Absorbed Shape |

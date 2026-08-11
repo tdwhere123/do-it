@@ -160,7 +160,7 @@ plugins/do-it-cursor/.cursor-plugin/plugin.json
 ~/.cursor/plugins/local/do-it-cursor/   # real copy (not an external symlink)
 ├── .cursor-plugin/plugin.json
 ├── assets/logo.svg
-├── skills/          # full 9 skills + references/
+├── skills/          # full 11 skills + references/
 ├── agents/
 └── hooks/
     ├── hooks.json          # also mirrored into ~/.cursor/hooks.json
@@ -180,7 +180,7 @@ search order).
 |---|---|---|---|
 | `sessionStart` | `session-start.sh` | — | Light bootstrap; skills index hint |
 | `beforeSubmitPrompt` (default off) | `behavior-feedback.sh` | — | Silent local feedback capture; no additional context |
-| `beforeSubmitPrompt` | `router.sh` → `grill-prompt.sh` → `subagent-stance.sh` | — | Grill injects Heavy-only |
+| `beforeSubmitPrompt` | `prompt-submit` (serializes `router.sh` → `grill-prompt.sh`) → `subagent-stance.sh` | — | Grill injects Heavy-only |
 | `postToolUse` / `afterFileEdit` | `write-quality-lint.sh` | `StrReplace\|Write\|EditNotebook` | Single advisory reminder |
 | `stop` | `verification-gate.sh` | — | Advisory evidence reminder after an edited completion claim |
 

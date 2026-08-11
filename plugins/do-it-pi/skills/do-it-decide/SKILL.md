@@ -25,7 +25,7 @@ Skip for Light mechanical work and pure questions.
 Interview relentlessly on **decisions**; never on readable **facts**.
 
 1. Necessity first — does this need to exist?
-2. One load-bearing premise at a time; falsify with local files (`path:line`) before asking.
+2. One load-bearing premise at a time; falsify with local files (`path:line`) before asking (`core §r-evidence`).
 3. Ask **one** question at a time; wait for the answer. Multiple simultaneous questions confuse.
 4. For each question: 2–3 options, tradeoffs, **recommended default**.
 5. Do not enact the plan until shared understanding is confirmed (or the user explicitly skips).
@@ -38,7 +38,7 @@ Surface real alternatives (skip → stdlib/native → existing → minimal custo
 
 ## Research-First Surfaces
 
-For a new dependency, datastore, framework/runtime, protocol, or other permanent external surface: inspect repository constraints, compare at least two viable candidates, and record compatibility, maintenance/activity, license, operational fit, and a recommendation. Ask the user only when a preference changes the selected route; never memory-pick a permanent dependency. Cite primary sources (official docs, the source repo) over summaries; when findings are durable, capture them in the worklog or handbook instead of re-researching next session.
+For a new dependency, datastore, framework/runtime, protocol, or other permanent external surface: inspect repository constraints, compare at least two viable candidates, and record compatibility, maintenance/activity, license, operational fit, and a recommendation. A user question is warranted only when a preference changes the selected route; never memory-pick a permanent dependency. Cite primary sources (official docs, the source repo) over summaries; when findings are durable, capture them in the worklog or handbook instead of re-researching next session.
 
 ## Shortest Plan Card
 
@@ -59,4 +59,5 @@ Thin vertical tracer bullets. Each slice: ownership, deps, acceptance, AFK/HITL.
 
 ## Stop
 
-Pause when preference gates the route. Do not expand scope silently.
+Pause when preference gates the route (`core §r-uncertainty`). Do not expand
+scope silently (`core §r-scope`).

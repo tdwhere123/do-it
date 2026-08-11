@@ -490,9 +490,16 @@ function createHooks(ctx: PluginInput): Hooks {
         .join("\n");
       if (!prompt) return;
 
-      const payload = { session_id: input.sessionID, cwd, prompt };
+      const payload = buildHookPayload({
+        sessionID: input.sessionID,
+        cwd,
+        model: input.model
+          ? `${input.model.providerID}/${input.model.modelID}`
+          : undefined,
+        prompt
+      });
       const contexts = new Set<string>();
-      const scriptNames = ["router.sh", "grill-prompt.sh"];
+      const scriptNames = ["prompt-submit.sh"];
       if (await canRunBehaviorFeedback(input.sessionID, prompt)) {
         scriptNames.unshift("behavior-feedback.sh");
       }

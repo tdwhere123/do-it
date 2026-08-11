@@ -13,11 +13,7 @@
         "timeout": 10
       },
       {
-        "command": "${CURSOR_PLUGIN_ROOT}/hooks/run-hook.cmd router",
-        "timeout": 25
-      },
-      {
-        "command": "${CURSOR_PLUGIN_ROOT}/hooks/run-hook.cmd grill-prompt",
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/run-hook.cmd prompt-submit",
         "timeout": 25
       },
       {

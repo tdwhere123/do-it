@@ -3,14 +3,13 @@
 #   source "${SCRIPT_DIR}/lib/common.sh"
 #   source "${SCRIPT_DIR}/lib/keywords.sh"
 #
-# Helpers degrade gracefully when jq is unavailable: most return ""/exit 0,
-# while do_it_emit_* fall back to hand-built JSON so Stop-hook decisions and
-# context reminders still reach the host. A misconfigured environment never
-# crashes a hook.
+# Helpers use jq when available and fall back to Node.js/Python JSON decoding;
+# context emission retains a pure-shell final fallback. A misconfigured
+# environment never crashes an advisory hook.
 
 set -uo pipefail
 
-if command -v jq >/dev/null 2>&1; then
+if [[ "${DO_IT_FORCE_NO_JQ:-0}" != "1" ]] && command -v jq >/dev/null 2>&1; then
   DO_IT_HAVE_JQ=1
 else
   DO_IT_HAVE_JQ=0
@@ -50,24 +49,72 @@ do_it_read_stdin() {
   cat
 }
 
-# Get a top-level string field from a JSON blob.
-# Args: <json> <field>. Echoes "" if missing or jq is unavailable.
+# Portable JSON fallback for hosts without jq. do-it requires Node.js for its
+# installer and plugins; Python 3 is a secondary path for direct hook installs.
+# Args: <json> <dot-path> <scalar|prompt>.
+_do_it_json_fallback() {
+  local json="$1" pathspec="$2" mode="$3"
+  if command -v node >/dev/null 2>&1; then
+    printf '%s' "$json" | node -e '
+      let source = "";
+      process.stdin.setEncoding("utf8");
+      process.stdin.on("data", (chunk) => { source += chunk; });
+      process.stdin.on("end", () => {
+        try {
+          let value = JSON.parse(source);
+          for (const key of process.argv[1].split(".")) value = value?.[key];
+          if (process.argv[2] === "prompt" && Array.isArray(value)) {
+            value = value.filter((part) => part && typeof part.text === "string")
+              .map((part) => part.text).join("\n");
+          }
+          if (value == null) value = "";
+          if (typeof value === "object") value = "";
+          process.stdout.write(String(value));
+        } catch {}
+      });
+    ' "$pathspec" "$mode" 2>/dev/null
+    return 0
+  fi
+  if command -v python3 >/dev/null 2>&1; then
+    printf '%s' "$json" | python3 -c '
+import json, sys
+try:
+    value = json.load(sys.stdin)
+    for key in sys.argv[1].split("."):
+        value = value.get(key) if isinstance(value, dict) else None
+    if sys.argv[2] == "prompt" and isinstance(value, list):
+        value = "\n".join(part.get("text", "") for part in value if isinstance(part, dict))
+    if value is None or isinstance(value, (dict, list)):
+        value = ""
+    if isinstance(value, bool):
+        value = str(value).lower()
+    sys.stdout.write(str(value))
+except Exception:
+    pass
+    ' "$pathspec" "$mode" 2>/dev/null
+  fi
+}
+
+# Get a top-level scalar field from a JSON blob. Args: <json> <field>.
 do_it_json_get() {
   local json="$1" field="$2"
   if [[ "$DO_IT_HAVE_JQ" == "1" ]]; then
     printf '%s' "$json" | jq -r --arg f "$field" '. as $o | $o[$f] // ""' 2>/dev/null
+  else
+    _do_it_json_fallback "$json" "$field" scalar
   fi
 }
 
 # Get the submitted prompt text. Hosts disagree on shape: Claude/Codex/Cursor/
-# OpenCode send a plain string; Kimi Code sends a ContentPart array
-# ([{"type":"text","text":"…"}]). Args: <json>. Echoes "" if unavailable.
+# OpenCode send a plain string; Kimi Code sends a ContentPart array.
 do_it_json_get_prompt() {
   local json="$1"
   if [[ "$DO_IT_HAVE_JQ" == "1" ]]; then
     printf '%s' "$json" | jq -r \
       '.prompt // "" | if type == "array" then [ .[]?.text // empty ] | join("\n") else . end' \
       2>/dev/null
+  else
+    _do_it_json_fallback "$json" prompt prompt
   fi
 }
 
@@ -76,6 +123,8 @@ do_it_json_get_nested() {
   local json="$1" pathspec="$2"
   if [[ "$DO_IT_HAVE_JQ" == "1" ]]; then
     printf '%s' "$json" | jq -r ".${pathspec} // \"\"" 2>/dev/null
+  else
+    _do_it_json_fallback "$json" "$pathspec" scalar
   fi
 }
 
@@ -276,87 +325,279 @@ do_it_skip_flag_path() {
 # Stop did not run (legacy empty files use file mtime; timestamped files use body).
 DO_IT_SKIP_TTL_SECONDS="${DO_IT_SKIP_TTL_SECONDS:-300}"
 
+# Model-adaptive advisory mode: `pointer` (one do-it-core pointer) vs `inline`
+# (full core-rule sentences). Explicit env value wins; `auto` inspects the hook
+# payload `model` field, then host model env vars. Strong-model patterns get the
+# pointer; weak, unknown, or undetected models default to inline (content used
+# over token economy — conservative for the models that need the rules).
+DO_IT_ADVISORY_MODE="${DO_IT_ADVISORY_MODE:-auto}"
+
+# Closed-set core-rule registry (single voice for rule emission). The path may
+# be overridden for packaged installs and deterministic failure-path tests.
+_DO_IT_RULES_DATA="${DO_IT_RULES_DATA:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../data" && pwd)/execution-failure-modes.tsv}"
+
+# Registry helper status codes: 0=success, 1=missing/unreadable, 2=malformed,
+# 3=requested rule or surface absent. Helpers emit no text on failure so a
+# malformed registry can never produce partial canonical context.
+DO_IT_CORE_RULES_UNAVAILABLE=1
+DO_IT_CORE_RULES_MALFORMED=2
+DO_IT_CORE_RULES_UNKNOWN=3
+
+# Internal: validate the complete registry before printing any rule text.
+# Args: <rule|surface> <value>.
+_do_it_core_rules_read() {
+  local mode="$1" requested="$2" status
+  [[ -f "$_DO_IT_RULES_DATA" && -r "$_DO_IT_RULES_DATA" ]] || return "$DO_IT_CORE_RULES_UNAVAILABLE"
+  [[ "$mode" == "rule" || "$mode" == "surface" ]] || return "$DO_IT_CORE_RULES_UNKNOWN"
+  awk -v mode="$mode" -v requested="$requested" '
+    function has_surface(value, wanted,    parts, count, i) {
+      count = split(value, parts, ",")
+      for (i = 1; i <= count; i++) if (parts[i] == wanted) return 1
+      return 0
+    }
+    BEGIN {
+      expected["r-route"] = 1
+      expected["r-evidence"] = 1
+      expected["r-scope"] = 1
+      expected["r-verify"] = 1
+      expected["r-uncertainty"] = 1
+      expected["r-boundary"] = 1
+      expected["r-report"] = 1
+      expected["r-recovery"] = 1
+    }
+    {
+      line = $0
+      sub(/\r$/, "", line)
+      if (line ~ /^[[:space:]]*$/ || line ~ /^#/) next
+      count = split(line, fields, "\t")
+      if (count != 4 || fields[1] == "" || fields[2] == "" ||
+          fields[3] == "" || fields[4] == "" ||
+          !(fields[1] in expected) || seen[fields[1]]++) {
+        malformed = 1
+        next
+      }
+      surface_count = split(fields[4], surfaces, ",")
+      for (i = 1; i <= surface_count; i++) {
+        if (surfaces[i] != "UserPromptSubmit" && surfaces[i] != "Stop" && surfaces[i] != "none") {
+          malformed = 1
+        }
+      }
+      rows++
+      ids[rows] = fields[1]
+      texts[rows] = fields[2]
+      row_surfaces[rows] = fields[4]
+    }
+    END {
+      if (rows != 8) malformed = 1
+      for (id in expected) if (!seen[id]) malformed = 1
+      if (malformed) exit 20
+      for (i = 1; i <= rows; i++) {
+        if ((mode == "rule" && ids[i] == requested) ||
+            (mode == "surface" && has_surface(row_surfaces[i], requested))) {
+          print texts[i]
+          found = 1
+        }
+      }
+      if (!found) exit 21
+    }
+  ' "$_DO_IT_RULES_DATA" 2>/dev/null
+  status=$?
+  case "$status" in
+    0) return 0 ;;
+    20) return "$DO_IT_CORE_RULES_MALFORMED" ;;
+    21) return "$DO_IT_CORE_RULES_UNKNOWN" ;;
+    *) return "$DO_IT_CORE_RULES_UNAVAILABLE" ;;
+  esac
+}
+
+# Print the rule_text of a rule_id row from execution-failure-modes.tsv.
+# Args: <rule_id>. See status codes above.
+do_it_core_rule() {
+  _do_it_core_rules_read rule "$1"
+}
+
+# Print every rule_text whose injection_surface contains <surface>, one per
+# line in file order. Args: <surface>. See status codes above.
+do_it_core_rules_for() {
+  _do_it_core_rules_read surface "$1"
+}
+
+# Resolve the effective advisory mode. Args: <raw-json-payload>.
+# Echoes `pointer` or `inline`. Never echoes `auto`.
+do_it_advisory_mode() {
+  local raw_input="${1:-}" mode="${DO_IT_ADVISORY_MODE:-auto}"
+  case "$mode" in
+    pointer|inline) printf '%s' "$mode"; return 0 ;;
+  esac
+  local model v
+  model="$(do_it_json_get "$raw_input" model)"
+  if [[ -z "$model" ]]; then
+    for v in OPENCODE_MODEL ANTHROPIC_MODEL OPENAI_MODEL CODEX_MODEL KIMI_MODEL PI_MODEL; do
+      if [[ -n "${!v:-}" ]]; then
+        model="${!v}"
+        break
+      fi
+    done
+  fi
+  model="$(printf '%s' "$model" | tr '[:upper:]' '[:lower:]')"
+  case "$model" in
+    *deepseek*|*qwen*|*glm*|*kimi*|*moonshot*|*llama*|*yi*|*minimax*|*abab*|*ernie*|*doubao*)
+      printf '%s' "inline"; return 0 ;;
+    *claude*|*gpt*|*gemini*)
+      printf '%s' "pointer"; return 0 ;;
+  esac
+  if printf '%s' "$model" | LC_ALL=C grep -E '(^|[^[:alnum:]_])o(1|3|4)([^[:alnum:]_]|$)' >/dev/null 2>&1; then
+    printf '%s' "pointer"
+  else
+    printf '%s' "inline"
+  fi
+}
+
 # Age (in days) past which an inactive session directory is pruned by
 # do_it_prune_stale_sessions. Session dirs accumulate one bucket per repo /
 # session id and are never otherwise cleaned up.
 DO_IT_SESSION_TTL_DAYS="${DO_IT_SESSION_TTL_DAYS:-7}"
 
-# Test if skip flag is set. 0 = present (and not expired), 1 = absent.
-# Empty legacy flag files expire by file mtime after DO_IT_SKIP_TTL_SECONDS.
-# Timestamped flag files expire when body age exceeds DO_IT_SKIP_TTL_SECONDS.
-do_it_check_skip() {
-  local session_id="$1" flag="$2"
-  local p
-  p="$(do_it_skip_flag_path "$session_id" "$flag")"
+# Validate one skip marker for an optional prompt hash. Empty legacy markers use
+# mtime; timestamped markers use their first field. This helper never removes a
+# file, so check and consume can be composed safely under the skip lock.
+_do_it_skip_file_valid() {
+  local p="$1" expected_hash="$2" ts="" stored_hash="" now age mtime
   [[ -f "$p" ]] || return 1
-  local ts now age mtime
   now=$(date +%s 2>/dev/null)
   if [[ ! -s "$p" ]]; then
-    mtime=$(stat -c %Y "$p" 2>/dev/null || stat -f %m "$p" 2>/dev/null || echo "")
-    if [[ -z "$mtime" || -z "$now" ]]; then
-      rm -f "$p" 2>/dev/null || true
-      return 1
-    fi
+    mtime=$(stat -c %Y "$p" 2>/dev/null || stat -f %m "$p" 2>/dev/null || printf '')
+    [[ -n "$mtime" && -n "$now" ]] || return 1
     age=$((now - mtime))
-    if (( age < 0 )); then
-      return 0
+    (( age < 0 || age <= DO_IT_SKIP_TTL_SECONDS ))
+    return $?
+  fi
+  IFS=$'\t' read -r ts stored_hash < "$p" || true
+  case "$ts" in
+    ''|*[!0-9]*) return 1 ;;
+  esac
+  if [[ -n "$stored_hash" && -n "$expected_hash" && "$stored_hash" != "$expected_hash" ]]; then
+    return 1
+  fi
+  [[ -z "$now" ]] && return 0
+  age=$((now - ts))
+  (( age < 0 || age <= DO_IT_SKIP_TTL_SECONDS ))
+}
+
+# Test whether the active prompt has a live skip marker. Prompt-scoped markers
+# use one file per serialized prompt transaction, so identical concurrent
+# prompts do not overwrite each other. Legacy unkeyed markers remain readable.
+do_it_check_skip() {
+  local session_id="$1" flag="$2" dir prompt_hash="" p
+  dir="$(do_it_session_dir "$session_id")"
+  if [[ -n "${DO_IT_SKIP_PROMPT:-}" ]]; then
+    prompt_hash="$(_do_it_skip_prompt_hash "$DO_IT_SKIP_PROMPT")"
+    for p in "$dir/skip-${flag}-${prompt_hash}-"*; do
+      [[ -f "$p" ]] || continue
+      _do_it_skip_file_valid "$p" "$prompt_hash" && return 0
+    done
+  fi
+  p="$(do_it_skip_flag_path "$session_id" "$flag")"
+  if _do_it_skip_file_valid "$p" "$prompt_hash"; then
+    return 0
+  fi
+  [[ ! -f "$p" ]] || rm -f "$p" 2>/dev/null || return 1
+  return 1
+}
+
+# Internal atomic writer. Caller holds .skip.lock. Args:
+# <dir> <prompt-hash> <turn-hash> <flag...>.
+_do_it_write_skip_locked() {
+  local dir="$1" prompt_hash="$2" turn_hash="$3"; shift 3
+  local now flag p tmp
+  now=$(date +%s 2>/dev/null)
+  for flag in "$@"; do
+    if [[ -n "$prompt_hash" ]]; then
+      p="$dir/skip-${flag}-${prompt_hash}-${turn_hash}"
+    else
+      p="$dir/skip-${flag}"
     fi
-    if (( age > DO_IT_SKIP_TTL_SECONDS )); then
-      rm -f "$p" 2>/dev/null || true
+    tmp="${p}.${BASHPID:-$$}.$RANDOM.tmp"
+    if [[ -n "$now" && -n "$prompt_hash" ]]; then
+      printf '%s\t%s\n' "$now" "$prompt_hash" > "$tmp" 2>/dev/null || return 1
+    elif [[ -n "$now" ]]; then
+      printf '%s\n' "$now" > "$tmp" 2>/dev/null || return 1
+    else
+      : > "$tmp" 2>/dev/null || return 1
+    fi
+    if ! mv -f "$tmp" "$p" 2>/dev/null; then
+      rm -f "$tmp" 2>/dev/null || true
       return 1
     fi
-    return 0
-  fi
-  ts="$(head -n1 "$p" 2>/dev/null | tr -dc '0-9')"
-  if [[ -z "$ts" ]]; then
-    rm -f "$p" 2>/dev/null || true
-    return 1
-  fi
-  if [[ -z "$now" ]]; then
-    return 0
-  fi
-  age=$((now - ts))
-  if (( age < 0 )); then
-    return 0
-  fi
-  if (( age > DO_IT_SKIP_TTL_SECONDS )); then
-    rm -f "$p" 2>/dev/null || true
-    return 1
-  fi
-  return 0
+  done
+}
+
+# Hash the prompt for skip-marker scoping. The transcript copy of a prompt
+# seen by the Stop hook may carry host normalization (trailing newline or
+# whitespace), so the write and read sides trim trailing whitespace before
+# hashing — otherwise "skip gate" markers silently miss at the gate.
+_do_it_skip_prompt_hash() {
+  local prompt="${1:-}"
+  prompt="$(printf '%s' "$prompt" | sed -e 's/[[:space:]]*$//')"
+  printf '%s' "$prompt" | _do_it_hash_key
 }
 
 # Write skip flag(s). Args: <session_id> [flag1 flag2 ...]. Default: all three.
-# Each flag file contains the current unix timestamp so do_it_check_skip can
-# expire it after DO_IT_SKIP_TTL_SECONDS.
+# Returns nonzero if the prompt-scoped marker cannot be committed.
 do_it_write_skip() {
   local session_id="$1"; shift
-  local dir
+  local dir prompt_hash="" turn_hash=""
   dir="$(do_it_session_dir "$session_id")"
-  mkdir -p "$dir" 2>/dev/null || return 0
+  mkdir -p "$dir" 2>/dev/null || return 1
   if [[ $# -eq 0 ]]; then
     set -- router grill gate
   fi
-  local now
-  now=$(date +%s 2>/dev/null)
-  for flag in "$@"; do
-    if [[ -n "$now" ]]; then
-      printf '%s\n' "$now" > "$dir/skip-${flag}" 2>/dev/null || true
-    else
-      : > "$dir/skip-${flag}" 2>/dev/null || true
-    fi
-  done
+  if [[ -n "${DO_IT_SKIP_PROMPT:-}" ]]; then
+    prompt_hash="$(_do_it_skip_prompt_hash "$DO_IT_SKIP_PROMPT")"
+    turn_hash="$(printf '%s' "${DO_IT_PROMPT_TURN_TOKEN:-$prompt_hash}" | _do_it_hash_key)"
+  fi
+  _do_it_with_state_lock "$dir/.skip.lock" \
+    _do_it_write_skip_locked "$dir" "$prompt_hash" "$turn_hash" "$@"
 }
 
-# Remove all skip flags for a session (router / grill / gate). Called after the
-# Stop verification-gate consumes or finishes a turn so skip scope stays one turn.
-do_it_clear_skip() {
-  local session_id="$1"
-  local dir flag
+# Internal consumer. Caller holds .skip.lock. Removes at most one marker for
+# each flag, preserving another identical prompt transaction's marker.
+_do_it_clear_skip_locked() {
+  local session_id="$1" prompt_hash="$2" dir flag p removed status=0
   dir="$(do_it_session_dir "$session_id")"
   for flag in router grill gate; do
-    rm -f "$dir/skip-${flag}" 2>/dev/null || true
+    removed=0
+    if [[ -n "$prompt_hash" ]]; then
+      for p in "$dir/skip-${flag}-${prompt_hash}-"*; do
+        [[ -f "$p" ]] || continue
+        if _do_it_skip_file_valid "$p" "$prompt_hash"; then
+          rm -f "$p" 2>/dev/null || status=1
+          removed=1
+          break
+        fi
+      done
+    fi
+    [[ "$removed" -eq 1 ]] && continue
+    p="$(do_it_skip_flag_path "$session_id" "$flag")"
+    if _do_it_skip_file_valid "$p" "$prompt_hash"; then
+      rm -f "$p" 2>/dev/null || status=1
+    fi
   done
+  return "$status"
+}
+
+# Consume skip markers belonging to the active prompt under one lock. With no
+# recoverable prompt, only legacy unkeyed markers are touched; keyed markers are
+# left for their own Stop event or session TTL pruning.
+do_it_clear_skip() {
+  local session_id="$1" dir prompt_hash=""
+  dir="$(do_it_session_dir "$session_id")"
+  [[ -d "$dir" ]] || return 0
+  if [[ -n "${DO_IT_SKIP_PROMPT:-}" ]]; then
+    prompt_hash="$(_do_it_skip_prompt_hash "$DO_IT_SKIP_PROMPT")"
+  fi
+  _do_it_with_state_lock "$dir/.skip.lock" \
+    _do_it_clear_skip_locked "$session_id" "$prompt_hash"
 }
 
 # Parse skip targets from a prompt. Prints a space-separated deduped list on stdout
@@ -645,13 +886,7 @@ do_it_in_subagent_context() {
 
 # Bump per-session user-turn counter (router calls on work prompts).
 do_it_user_turn_bump() {
-  local session_id="$1"
-  local prev
-  prev="$(do_it_session_state_get "$session_id" user_turn)"
-  case "$prev" in
-    ''|*[!0-9]*) prev=0 ;;
-  esac
-  do_it_session_state_set "$session_id" user_turn "$((prev + 1))"
+  do_it_session_state_bump "$1" user_turn
 }
 
 do_it_user_turn_get() {
@@ -729,31 +964,116 @@ do_it_prompt_is_question() {
 }
 
 # Internal: run a block under a per-session advisory lock so that concurrent
-# UserPromptSubmit hooks (router + grill-prompt) do not clobber each other's
-# state.json writes.
+# hook processes do not lose read-modify-write state updates.
 #
-# Locking strategy:
-#   - flock available (the common case): hold an exclusive fd-9 lock around
-#     the callee, so writers serialize on `state.json` and tmp-file naming
-#     does not need to be unique.
-#   - flock unavailable (legacy/minimal hosts, or when the test harness stubs
-#     `command -v`): fall back to running the callee directly. The callee
-#     functions (`_do_it_session_state_set_locked` /
-#     `_do_it_session_state_inc_locked`) write through a PID-scoped tmp file
-#     and `mv -f`, which is atomic on POSIX, so concurrent writers no longer
-#     stomp each other's tmp file. Last-writer-wins on the final mv, but no
-#     more `state.json` evaporation.
-#
+# `flock` is preferred. Minimal/macOS hosts fall back to POSIX `mkdir`, whose
+# create is atomic across processes. The owner removes the lock directory on
+# return. A bounded stale-lock recovery handles a hook killed before cleanup;
+# timeout remains fail-open because advisory hooks must never block the user.
 # Args: <lock-path> <command...>
+_do_it_release_mkdir_lock() {
+  local lock_dir="$1" token="$2" current=""
+  current="$(cat "$lock_dir/owner" 2>/dev/null)"
+  [[ -n "$token" && "$current" == "$token" ]] || return 1
+  rm -f "$lock_dir/owner" 2>/dev/null || return 1
+  rmdir "$lock_dir" 2>/dev/null
+}
+
 _do_it_with_state_lock() {
   local lock="$1"; shift
   if command -v flock >/dev/null 2>&1; then
-    ( flock 9; "$@" ) 9>"$lock"
-  else
-    "$@"
+    {
+      flock -w 5 9 || return 1
+      "$@"
+    } 9>"$lock"
+    return $?
   fi
-}
 
+  local lock_dir="${lock}.d" reaping="${lock}.d.reaping"
+  local acquired=0 attempts=0 now=0 modified=0 owner_record="" owner_pid="" token="" stale=0
+  while [[ "$attempts" -lt 500 ]]; do
+    if [[ -d "$reaping" ]]; then
+      now=$(date +%s 2>/dev/null || printf '0')
+      modified=$(stat -f %m "$reaping" 2>/dev/null || stat -c %Y "$reaping" 2>/dev/null || printf '0')
+      if [[ "$now" =~ ^[0-9]+$ && "$modified" =~ ^[0-9]+$ \
+         && "$modified" -gt 0 && $((now - modified)) -gt 30 ]]; then
+        rm -f "$reaping/owner" 2>/dev/null || true
+        rmdir "$reaping" 2>/dev/null || true
+      fi
+      attempts=$((attempts + 1))
+      sleep 0.01 2>/dev/null || sleep 1
+      continue
+    fi
+
+    if mkdir "$lock_dir" 2>/dev/null; then
+      owner_pid="${BASHPID:-}"
+      [[ -n "$owner_pid" ]] || owner_pid="$(sh -c 'printf "%s\n" "$PPID"' 2>/dev/null)"
+      [[ "$owner_pid" =~ ^[0-9]+$ ]] || owner_pid="$$"
+      token="${owner_pid}:${RANDOM}:${RANDOM}"
+      if ! printf '%s\n' "$token" > "$lock_dir/owner" 2>/dev/null; then
+        rmdir "$lock_dir" 2>/dev/null || true
+        return 1
+      fi
+      if [[ -d "$reaping" ]]; then
+        _do_it_release_mkdir_lock "$lock_dir" "$token" || true
+        attempts=$((attempts + 1))
+        sleep 0.01 2>/dev/null || sleep 1
+        continue
+      fi
+      acquired=1
+      break
+    fi
+
+    attempts=$((attempts + 1))
+    owner_record="$(cat "$lock_dir/owner" 2>/dev/null)"
+    owner_pid="${owner_record%%:*}"
+    stale=0
+    if [[ "$owner_pid" =~ ^[0-9]+$ ]]; then
+      if ! kill -0 "$owner_pid" 2>/dev/null; then
+        stale=1
+      fi
+    elif [[ $((attempts % 100)) -eq 0 ]]; then
+      now=$(date +%s 2>/dev/null || printf '0')
+      modified=$(stat -f %m "$lock_dir" 2>/dev/null || stat -c %Y "$lock_dir" 2>/dev/null || printf '0')
+      if [[ "$now" =~ ^[0-9]+$ && "$modified" =~ ^[0-9]+$ \
+         && "$modified" -gt 0 && $((now - modified)) -gt 30 ]]; then
+        stale=1
+      fi
+    fi
+    if [[ "$stale" -eq 1 ]] && mkdir "$reaping" 2>/dev/null; then
+      local current_record current_pid current_stale=0
+      current_record="$(cat "$lock_dir/owner" 2>/dev/null)"
+      current_pid="${current_record%%:*}"
+      if [[ "$current_record" == "$owner_record" ]]; then
+        if [[ "$current_pid" =~ ^[0-9]+$ ]]; then
+          kill -0 "$current_pid" 2>/dev/null || current_stale=1
+        else
+          now=$(date +%s 2>/dev/null || printf '0')
+          modified=$(stat -f %m "$lock_dir" 2>/dev/null || stat -c %Y "$lock_dir" 2>/dev/null || printf '0')
+          if [[ "$now" =~ ^[0-9]+$ && "$modified" =~ ^[0-9]+$ \
+             && "$modified" -gt 0 && $((now - modified)) -gt 30 ]]; then
+            current_stale=1
+          fi
+        fi
+      fi
+      if [[ "$current_stale" -eq 1 ]]; then
+        rm -f "$lock_dir/owner" 2>/dev/null || true
+        rmdir "$lock_dir" 2>/dev/null || true
+      fi
+      rmdir "$reaping" 2>/dev/null || true
+      continue
+    fi
+    sleep 0.01 2>/dev/null || sleep 1
+  done
+  [[ "$acquired" -eq 1 ]] || return 1
+
+  "$@"
+  local status=$?
+  if ! _do_it_release_mkdir_lock "$lock_dir" "$token" && [[ "$status" -eq 0 ]]; then
+    status=1
+  fi
+  return "$status"
+}
 # Internal: emit a one-shot stderr warning when an atomic state-file rename
 # fails. A marker file inside the session dir suppresses repeats so we never
 # spam the user's terminal. Args: <state-path> <message>.
@@ -785,9 +1105,7 @@ do_it_session_state_get() {
   fi
 }
 
-# Internal: jq-backed set. Uses a PID-scoped tmp file so concurrent writers
-# without flock do not clobber each other's tmp file. Caller already holds the
-# lock when flock is available. Args: <state-path> <key> <value>.
+# Internal: jq-backed set. Caller holds the session lock.
 _do_it_session_state_set_locked() {
   local state="$1" key="$2" value="$3"
   local tmp="${state}.${BASHPID:-$$}.$RANDOM.tmp"
@@ -797,43 +1115,67 @@ _do_it_session_state_set_locked() {
       _do_it_warn_state_corruption "$state" "session state set: jq update failed"
       return 1
     fi
-    if ! mv -f "$tmp" "$state" 2>/dev/null; then
-      rm -f "$tmp" 2>/dev/null || true
-      _do_it_warn_state_corruption "$state" "session state set: atomic rename failed"
-      return 1
-    fi
   else
     if ! jq -nc --arg k "$key" --arg v "$value" '{($k): $v}' > "$tmp" 2>/dev/null; then
       rm -f "$tmp" 2>/dev/null || true
       _do_it_warn_state_corruption "$state" "session state set: jq init failed"
       return 1
     fi
-    if ! mv -f "$tmp" "$state" 2>/dev/null; then
-      rm -f "$tmp" 2>/dev/null || true
-      _do_it_warn_state_corruption "$state" "session state set: atomic rename failed (init)"
-      return 1
-    fi
+  fi
+  if ! mv -f "$tmp" "$state" 2>/dev/null; then
+    rm -f "$tmp" 2>/dev/null || true
+    _do_it_warn_state_corruption "$state" "session state set: atomic rename failed"
+    return 1
   fi
 }
 
-# Write a value to session state. Last-write wins. Args: <session_id> <key> <value>.
+# Internal: append one or more key/value pairs to the jq-free state log, then
+# atomically publish the complete snapshot. Caller holds the session lock.
+_do_it_session_state_append_kv_locked() {
+  local kv="$1"; shift
+  local tmp="${kv}.${BASHPID:-$$}.$RANDOM.tmp"
+  if [[ -f "$kv" ]]; then
+    if ! cat "$kv" > "$tmp" 2>/dev/null; then
+      rm -f "$tmp" 2>/dev/null || true
+      _do_it_warn_state_corruption "$kv" "session state kv: snapshot copy failed"
+      return 1
+    fi
+  elif ! : > "$tmp" 2>/dev/null; then
+    _do_it_warn_state_corruption "$kv" "session state kv: snapshot init failed"
+    return 1
+  fi
+  while (( $# >= 2 )); do
+    if ! printf '%s=%s\n' "$1" "$2" >> "$tmp"; then
+      rm -f "$tmp" 2>/dev/null || true
+      _do_it_warn_state_corruption "$kv" "session state kv: snapshot update failed"
+      return 1
+    fi
+    shift 2
+  done
+  if ! mv -f "$tmp" "$kv" 2>/dev/null; then
+    rm -f "$tmp" 2>/dev/null || true
+    _do_it_warn_state_corruption "$kv" "session state kv: atomic rename failed"
+    return 1
+  fi
+}
+
+# Write a value to session state. Last-write wins. Args: <session_id> <key>
+# <value>. Return nonzero when the state update cannot be committed.
 do_it_session_state_set() {
-  local session_id="$1" key="$2" value="$3"
-  local dir state
+  local session_id="$1" key="$2" value="$3" dir state
   dir="$(do_it_session_dir "$session_id")"
-  mkdir -p "$dir" 2>/dev/null || return 0
+  mkdir -p "$dir" 2>/dev/null || return 1
   state="$dir/state.json"
   if [[ "$DO_IT_HAVE_JQ" == "1" ]]; then
     _do_it_with_state_lock "$dir/.state.lock" \
       _do_it_session_state_set_locked "$state" "$key" "$value"
-    return 0
+    return $?
   fi
-  printf '%s=%s\n' "$key" "$value" >> "$dir/state.kv"
+  _do_it_with_state_lock "$dir/.state.lock" \
+    _do_it_session_state_append_kv_locked "$dir/state.kv" "$key" "$value"
 }
 
-# Internal: jq-backed batched set. Args: <state-path> <k1> <v1> [<k2> <v2> ...].
-# Single jq invocation + single atomic rename for N key/value pairs. Caller
-# already holds the lock when flock is available.
+# Internal: jq-backed batched set. Caller holds the session lock.
 _do_it_session_state_set_many_locked() {
   local state="$1"; shift
   local tmp="${state}.${BASHPID:-$$}.$RANDOM.tmp"
@@ -868,7 +1210,7 @@ _do_it_session_state_set_many_locked() {
   fi
 }
 
-# Batched write: one flock + one jq + one atomic rename for many keys.
+# Batched write: one lock + one jq + one atomic rename for many keys.
 # Args: <session_id> <k1> <v1> [<k2> <v2> ...].
 do_it_session_state_set_many() {
   local session_id="$1"; shift
@@ -877,22 +1219,18 @@ do_it_session_state_set_many() {
   fi
   local dir state
   dir="$(do_it_session_dir "$session_id")"
-  mkdir -p "$dir" 2>/dev/null || return 0
+  mkdir -p "$dir" 2>/dev/null || return 1
   state="$dir/state.json"
   if [[ "$DO_IT_HAVE_JQ" == "1" ]]; then
     _do_it_with_state_lock "$dir/.state.lock" \
       _do_it_session_state_set_many_locked "$state" "$@"
-    return 0
+    return $?
   fi
-  while (( $# >= 2 )); do
-    printf '%s=%s\n' "$1" "$2" >> "$dir/state.kv"
-    shift 2
-  done
+  _do_it_with_state_lock "$dir/.state.lock" \
+    _do_it_session_state_append_kv_locked "$dir/state.kv" "$@"
 }
 
-# Internal: jq-backed inc. PID-scoped tmp file + atomic mv (see set-locked).
-# Caller already holds the lock when flock is available.
-# Args: <state-path> <bucket> <counter-name>.
+# Internal: jq-backed nested counter increment. Caller holds the session lock.
 _do_it_session_state_inc_locked() {
   local state="$1" bucket="$2" name="$3"
   local tmp="${state}.${BASHPID:-$$}.$RANDOM.tmp"
@@ -904,46 +1242,87 @@ _do_it_session_state_inc_locked() {
       _do_it_warn_state_corruption "$state" "session state inc: jq update failed"
       return 1
     fi
-    if ! mv -f "$tmp" "$state" 2>/dev/null; then
-      rm -f "$tmp" 2>/dev/null || true
-      _do_it_warn_state_corruption "$state" "session state inc: atomic rename failed"
-      return 1
-    fi
   else
     if ! jq -nc --arg b "$bucket" --arg n "$name" '{($b): {($n): 1}}' > "$tmp" 2>/dev/null; then
       rm -f "$tmp" 2>/dev/null || true
       _do_it_warn_state_corruption "$state" "session state inc: jq init failed"
       return 1
     fi
-    if ! mv -f "$tmp" "$state" 2>/dev/null; then
-      rm -f "$tmp" 2>/dev/null || true
-      _do_it_warn_state_corruption "$state" "session state inc: atomic rename failed (init)"
-      return 1
-    fi
+  fi
+  if ! mv -f "$tmp" "$state" 2>/dev/null; then
+    rm -f "$tmp" 2>/dev/null || true
+    _do_it_warn_state_corruption "$state" "session state inc: atomic rename failed"
+    return 1
   fi
 }
 
-# Increment a numeric counter sub-key in session state. Args: <session_id>
-# <bucket-key> <counter-name>. Counters are stored as a single JSON object keyed
-# by bucket-key (e.g. hook_invocations.{router,grill,gate}). With jq the bucket
-# is a real nested object; without jq it degrades to flat <bucket>.<counter>=N
-# lines in state.kv.
-do_it_session_state_inc() {
-  local session_id="$1" bucket="$2" name="$3"
-  local dir state
+# Internal: increment one top-level numeric key in state.json while the caller
+# holds the session lock. Args: <state-path> <key>.
+_do_it_session_state_bump_locked() {
+  local state="$1" key="$2"
+  local tmp="${state}.${BASHPID:-$$}.$RANDOM.tmp"
+  if [[ -f "$state" ]]; then
+    if ! jq -c --arg k "$key" '.[$k] = ((.[$k] // 0) | tonumber + 1)' \
+         "$state" > "$tmp" 2>/dev/null; then
+      rm -f "$tmp" 2>/dev/null || true
+      _do_it_warn_state_corruption "$state" "session state bump: jq update failed"
+      return 1
+    fi
+  else
+    if ! jq -nc --arg k "$key" '{($k): 1}' > "$tmp" 2>/dev/null; then
+      rm -f "$tmp" 2>/dev/null || true
+      _do_it_warn_state_corruption "$state" "session state bump: jq init failed"
+      return 1
+    fi
+  fi
+  if ! mv -f "$tmp" "$state" 2>/dev/null; then
+    rm -f "$tmp" 2>/dev/null || true
+    _do_it_warn_state_corruption "$state" "session state bump: atomic rename failed"
+    return 1
+  fi
+}
+
+# Internal: increment one flat state.kv key while the caller holds the session
+# lock. Args: <kv-path> <key>.
+_do_it_session_state_bump_kv_locked() {
+  local kv="$1" key="$2" prev
+  prev="$(grep -E "^${key}=" "$kv" 2>/dev/null | tail -n1 | cut -d= -f2-)"
+  case "$prev" in
+    ''|*[!0-9]*) prev=0 ;;
+  esac
+  _do_it_session_state_append_kv_locked "$kv" "$key" "$((prev + 1))"
+}
+
+# Atomically increment one top-level numeric session key. Args: <session_id>
+# <key>. Both jq-backed and jq-free paths share the same session lock.
+do_it_session_state_bump() {
+  local session_id="$1" key="$2" dir state
   dir="$(do_it_session_dir "$session_id")"
-  mkdir -p "$dir" 2>/dev/null || return 0
+  mkdir -p "$dir" 2>/dev/null || return 1
+  state="$dir/state.json"
+  if [[ "$DO_IT_HAVE_JQ" == "1" ]]; then
+    _do_it_with_state_lock "$dir/.state.lock" \
+      _do_it_session_state_bump_locked "$state" "$key"
+    return $?
+  fi
+  _do_it_with_state_lock "$dir/.state.lock" \
+    _do_it_session_state_bump_kv_locked "$dir/state.kv" "$key"
+}
+
+# Increment a numeric counter sub-key in session state. Args: <session_id>
+# <bucket-key> <counter-name>. Without jq it degrades to a flat key.
+do_it_session_state_inc() {
+  local session_id="$1" bucket="$2" name="$3" dir state
+  dir="$(do_it_session_dir "$session_id")"
+  mkdir -p "$dir" 2>/dev/null || return 1
   state="$dir/state.json"
   if [[ "$DO_IT_HAVE_JQ" == "1" ]]; then
     _do_it_with_state_lock "$dir/.state.lock" \
       _do_it_session_state_inc_locked "$state" "$bucket" "$name"
-    return 0
+    return $?
   fi
-  local key="${bucket}.${name}"
-  local prev
-  prev="$(grep -E "^${key}=" "$dir/state.kv" 2>/dev/null | tail -n1 | cut -d= -f2-)"
-  prev="${prev:-0}"
-  printf '%s=%d\n' "$key" $((prev + 1)) >> "$dir/state.kv"
+  _do_it_with_state_lock "$dir/.state.lock" \
+    _do_it_session_state_bump_kv_locked "$dir/state.kv" "${bucket}.${name}"
 }
 
 # Pretty-print the session state as JSON. Args: <session_id>. Echoes "{}" when
@@ -988,7 +1367,8 @@ _do_it_json_escape() {
 # that host; the JSON envelope is for Claude-shaped hosts.
 do_it_emit_context() {
   local event="$1" text="$2"
-  if [[ -n "${KIMI_CODE_HOME:-}" || -n "${KIMI_PLUGIN_ROOT:-}" ]]; then
+  if [[ "${DO_IT_CONTEXT_OUTPUT:-}" == "plain" \
+     || -n "${KIMI_CODE_HOME:-}" || -n "${KIMI_PLUGIN_ROOT:-}" ]]; then
     printf '%s\n' "$text"
     return 0
   fi

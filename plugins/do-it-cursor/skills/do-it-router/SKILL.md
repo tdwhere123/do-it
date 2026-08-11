@@ -28,6 +28,7 @@ Do not use an optimistic tier label to downplay a known risk.
 | Bucket | Skill | Load when |
 | --- | --- | --- |
 | Write defense | `do-it-code-quality` | Editing or designing code |
+| Architecture | `do-it-architecture` | Authority, ownership, public/persisted contracts, boundaries, migration/cutover, recovery, guards, or structural deletion are load-bearing |
 | Review / repair | `do-it-review` | Diff needs correctness; findings need fix + re-review |
 | Decide | `do-it-decide` | Premises load-bearing, options unclear, or a plan/handoff is needed |
 | Verify / close | `do-it-verify` | Before done/fixed/ready/merge; branch closeout |
@@ -51,18 +52,13 @@ Refs (load on demand): [`scope-chain.md`](../references/scope-chain.md), [`workf
 
 ## Authorization Boundary
 
-- Answer, explain, review, diagnose, or plan: inspect and report; do not implement unless asked.
-- Change, build, or fix: make in-scope local changes and run relevant non-destructive checks.
-- Confirm first: external writes, destructive or irreversible actions, material cost, or material scope expansion. A skill or hook reminder is not a hard lock; use the host's sandbox, approval policy, or command rules when enforcement matters.
+The action boundary and confirmation-first rule live in the protocol of
+record: `core §r-boundary`.
 
 ## Delegation
 
-The parent owns integration. Delegate only when an independent slice materially
-improves exploration or review coverage, especially after a direct user request.
-Give a worker the goal, its boundary/ownership, and the result or evidence that would
-be useful; add more context only when the task needs it. For shared writes, name
-one owner. Do not require a fixed contract, agent count, or role matrix. Shared delegation guidance:
-[`workflow-kernel.md`](../references/workflow-kernel.md).
+Parent owns integration. For shared writes, name one owner. Delegation
+guidance: [`../references/workflow-kernel.md`](../references/workflow-kernel.md) § Delegation Boundary.
 
 ## Output
 

@@ -11,13 +11,10 @@ Leading words: **fresh evidence**, **this worktree**, **claim**.
 
 ## Before Any Done Claim
 
-1. Name the claim (`tests pass`, `bug fixed`, `review clean`, `ready to merge`, …).
-2. Choose the command or inspection that proves it on **this** branch/worktree.
-3. Run it fresh (or `NOT_VERIFIED` with why).
-4. Compare output to the claim.
-5. Report the exact result — not optimism.
-
-Old CI, worker summaries, and memory are context, not closeout proof. Prefer checks that hit the changed surface.
+The proof-before-claim rule is `core §r-verify`; the claim→evidence shortcut
+table below carries the claim-specific value. Old CI, worker summaries, and
+memory are context, not closeout proof. Prefer checks that hit the changed
+surface.
 
 ## Claim Shortcuts
 
@@ -46,7 +43,9 @@ Subagents do not commit, merge, push, or delete branches by default.
 
 ## Failure
 
-If verification fails: do not soften wording → capture → debug/fix → re-verify. If blocked: `NOT_VERIFIED` + missing command — never claim `done` / `ready` / `fixed` for that surface.
+`core §r-verify` + `core §r-recovery`: capture → debug/fix → re-verify, never
+softening wording; a blocked claim is `NOT_VERIFIED` plus the missing command.
+Unresolved ambiguity follows `core §r-uncertainty`.
 
 ## Output
 

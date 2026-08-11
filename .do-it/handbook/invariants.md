@@ -18,13 +18,15 @@ Rules that do not bend for speed. Violations are Blocking in review.
 
 ## Skill tiers (0.14+)
 
-- **Core** (`scripts/skill-tiers.mjs` `CORE_SKILLS`): `do-it-router`, `do-it-code-quality`, `do-it-review`, `do-it-decide`, `do-it-verify`.
+- **Core** (`scripts/skill-tiers.mjs` `CORE_SKILLS`): `do-it-core`, `do-it-router`, `do-it-code-quality`, `do-it-review`, `do-it-decide`, `do-it-verify`, `do-it-architecture`.
 - **Extended maintenance**: `do-it-handbook`, `do-it-context`, `do-it-skill-authoring`.
 - All four host plugins ship **`ALL_SKILLS`** (core + extended). Pre-0.14 process skills (`grill`, `planning`, `review-loop`, `fix-loop`, `verification-gate` skill, `subagent-orchestration`, …) are **retired** — see `CHANGELOG.md`.
 
 ## Workflow gates
 
-- Non-trivial work loads `do-it-router` before plan/edit/review/verify/closeout.
+- Non-trivial work loads `do-it-core` (protocol of record — route the tier,
+  then evidence/scope/verify/report) before plan/edit/review/verify/closeout;
+  `do-it-router` picks the Light/Standard/Heavy label.
 - **Light** skips orthogonal DIM evaluation; **Standard** self-selects meaning buckets (no mandatory decide chain); **Heavy** is parent-owned unless explicitly assigned.
 - `grill-prompt` injects only on **Heavy** or explicit grill language.
 - `verification-gate` is **evidence-only** on Stop: after edits, completion language needs a fresh relevant shell command (`Bash` or `Shell`) in the current turn — not review markers.

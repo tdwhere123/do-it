@@ -22,17 +22,14 @@ STOP_HOOK_ACTIVE="$(do_it_json_get "$RAW_INPUT" stop_hook_active)"
 do_it_session_state_inc "$SESSION_ID" hook_invocations verification_gate
 
 _gate_finish() {
-  do_it_clear_skip "$SESSION_ID"
+  if ! do_it_clear_skip "$SESSION_ID"; then
+    printf 'do-it: skip marker cleanup unavailable; stale markers will expire by TTL\n' >&2
+  fi
   exit "${1:-0}"
 }
 
 if [[ "$STOP_HOOK_ACTIVE" == "true" ]]; then
   do_it_debug verification-gate "decision=skip-recursion"
-  _gate_finish 0
-fi
-
-if do_it_check_skip "$SESSION_ID" gate; then
-  do_it_debug verification-gate "decision=skip-flag"
   _gate_finish 0
 fi
 
@@ -154,6 +151,28 @@ if [[ "$PARSE_OK" -eq 1 ]]; then
   ' 2>/dev/null || true)"
 fi
 
+LAST_USER_PROMPT=""
+if [[ "$PARSE_OK" -eq 1 ]]; then
+  LAST_USER_PROMPT="$(printf '%s\n' "$TAIL_BUF" | jq -rs "${JQ_GATE_PRELUDE}"'
+    [.[]
+      | select(human_user)
+      | if (.message.content? | type) == "string" then .message.content
+        elif (.content? | type) == "string" then .content
+        else [blocks[]?
+              | select(.type? == "text")
+              | (.text? // .content? // "")]
+             | join("\n")
+        end]
+    | last // ""
+  ' 2>/dev/null || true)"
+fi
+export DO_IT_SKIP_PROMPT="$LAST_USER_PROMPT"
+
+if do_it_check_skip "$SESSION_ID" gate; then
+  do_it_debug verification-gate "decision=skip-flag"
+  _gate_finish 0
+fi
+
 COMPLETION_PATTERN='(完成|已修|通过|完工|\bdone\b|\bpassed\b|\bfixed\b|\ball set\b|it works|works now|successfully|\bVERIFIED\b|ready to merge|ship it|ready to (ship|publish))'
 # Unparsed fallback: only the last UNPARSED_RECENT_LINES of TAIL_BUF count for
 # completion / NOT_VERIFIED greps so older turns cannot satisfy (or excuse) the
@@ -207,9 +226,15 @@ elif printf '%s' "$UNPARSED_SLICE" | grep -qiE '\bNOT_VERIFIED\b'; then
   _gate_finish 0
 fi
 
-REMINDER="<system-reminder>
-do-it verify (advisory): an edited completion claim needs fresh, claim-specific proof from this worktree. Before finalizing, compare that proof with the claim and report its actual result; if proof is unavailable, state NOT_VERIFIED with the missing proof and next action. This hook does not infer verification from command names.
+if CORE_RULE_TEXT="$(do_it_core_rule r-verify)"; then
+  REMINDER="<system-reminder>
+${CORE_RULE_TEXT} This hook does not infer verification from command names.
 </system-reminder>"
+else
+  REMINDER="<system-reminder>
+do-it core registry unavailable or invalid; canonical verification guidance was not loaded. NOT_VERIFIED: the required fresh proof is missing. Next action: read skill://do-it-core, then run the narrowest fresh check for the changed path and report its exact output.
+</system-reminder>"
+fi
 do_it_debug verification-gate "decision=advisory reason=edited-completion-claim"
 do_it_emit_context Stop "$REMINDER"
 _gate_finish 0

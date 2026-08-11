@@ -25,7 +25,7 @@ manifest.json  →  build-index-json.mjs  →  index.json
 
 ## Hook chain (enforcement)
 
-User prompt → **router.sh** (tier + 5 DIM flags) → **grill-prompt.sh** (Heavy-only premise pressure, or explicit grill) → tool hooks (`write-quality-lint`) → **verification-gate.sh** on Stop (**evidence-only**: fresh Bash/Shell proof after edits; `apply_patch` counts as an edit).
+User prompt → **prompt-submit.sh** (serializes **router.sh** tier + 5 DIM flags → **grill-prompt.sh** Heavy-only premise pressure) → tool hooks (`write-quality-lint`) → **verification-gate.sh** on Stop (**evidence-only**: fresh Bash/Shell proof after edits; `apply_patch` counts as an edit).
 
 Hooks read session state via `hooks/lib/common.sh`; agents infer DIM from prompt prose (see `references/dimensions.md`).
 

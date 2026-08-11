@@ -3,14 +3,14 @@
   "package": "@tdwhere/do-it",
   "repository": "https://github.com/tdwhere123/do-it",
   "domain": "agentic-workflow",
-  "total_skills": 9,
-  "total_capabilities": 9,
+  "total_skills": 11,
+  "total_capabilities": 11,
   "total_discovery_entries": 1,
   "total_agents": 10,
   "coverage": {
     "skill_groups": {
       "index": 1,
-      "mainline": 5,
+      "mainline": 7,
       "maintenance": 3,
       "on-demand": 1
     },
@@ -36,6 +36,26 @@
       "group": "mainline",
       "source": "skills/do-it/do-it-router",
       "target": "skills/do-it-router"
+    },
+    {
+      "kind": "skill",
+      "name": "do-it-core",
+      "description": "Use when starting non-trivial repo work or making a done/fixed/ready/merge claim: apply the universal evidence, scope, boundary, recovery, verification, and reporting rules.",
+      "origin": "do-it",
+      "optional": false,
+      "group": "mainline",
+      "source": "skills/do-it/do-it-core",
+      "target": "skills/do-it-core"
+    },
+    {
+      "kind": "skill",
+      "name": "do-it-architecture",
+      "description": "Use when work changes or evaluates load-bearing authority, ownership, public or persisted contracts, dependency boundaries, migration/cutover, recovery, guards, or structural deletion.",
+      "origin": "do-it",
+      "optional": false,
+      "group": "mainline",
+      "source": "skills/do-it/do-it-architecture",
+      "target": "skills/do-it-architecture"
     },
     {
       "kind": "skill",
