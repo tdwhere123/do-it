@@ -993,20 +993,14 @@ _do_it_with_state_lock() {
 
   local lock_dir="${lock}.d" reaping="${lock}.d.reaping"
   local acquired=0 attempts=0 now=0 modified=0 owner_record="" owner_pid="" token="" stale=0
-  # Portable lock-wait. Budget by WALL TIME (bash builtin SECONDS — no
-  # subprocess, works on bash 3.2) instead of attempt count: per-attempt cost
-  # varies wildly across hosts (BSD sleep rejects fractional seconds, and
-  # subprocess spawns are slower on macOS/loaded runners), so a fixed attempt
-  # bound can expire before dozens of concurrent writers serialize. The budget
-  # is a pure safety net (real contention is millisecond-scale — waiters
-  # reclaim dead owners via kill -0), so 30s gives the stress suite (130
-  # concurrent jq-free writers) margin even on a loaded CI runner without
-  # affecting normal hooks; the flock path keeps its kernel-side -w 5, and an
-  # uncontended acquire is instant. Hosts without
-  # fractional sleep spin-poll the mkdir retry loop. Scalar vars only — must
-  # parse on macOS's bash 3.2.
+  # Portable lock-wait. Budget by wall time (bash builtin SECONDS, available
+  # on bash 3.2) because per-attempt cost varies across hosts. The budget is a
+  # safety net; normal contention is millisecond-scale and dead owners are
+  # reclaimed immediately. Darwin spin-polls: its process-backed fractional
+  # sleep makes a large waiter set exceed the budget. Other hosts back off
+  # when fractional sleep is available. Scalar vars only for macOS bash 3.2.
   local _lock_start=$SECONDS _lock_delay="spin"
-  if sleep 0.01 2>/dev/null; then
+  if [[ "${OSTYPE:-}" != darwin* ]] && sleep 0.01 2>/dev/null; then
     _lock_delay=0.01
   fi
   while [[ $((SECONDS - _lock_start)) -lt 30 ]]; do
