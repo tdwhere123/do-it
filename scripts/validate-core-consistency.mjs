@@ -41,7 +41,7 @@ function normalize(text) {
 }
 
 function decodeAnsiCStrings(text) {
-  return String(text).replace(/\$'((?:\\.|[^'])*)'/gs, (_match, body) =>
+  return String(text).replace(/\$'((?:\\.|[^'\\])*)'/gs, (_match, body) =>
     body.replace(/\\(x[0-9a-fA-F]{1,2}|u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8}|[0-7]{1,3}|c.|[abefnrtv\\'\"])/g, (escape, code) => {
       const simple = {
         a: "\u0007",
