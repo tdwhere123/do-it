@@ -36,7 +36,7 @@ REM Source of truth: RUN_HOOK_CMD_ALLOWLIST in scripts/lib/hook-manifest.mjs —
 REM validate-harness-matrix.mjs asserts this list (and the bash half) matches.
 set "ALLOWED=0"
 for %%A in (
-    session-start.sh behavior-feedback.sh learning-recorder.sh prompt-submit.sh router.sh grill-prompt.sh subagent-stance.sh
+    session-start.sh behavior-feedback.sh learning-recorder.sh prompt-submit.sh kernel-context.sh adaptive-context.sh router.sh grill-prompt.sh subagent-stance.sh
     write-quality-lint.sh evidence-observer.sh verification-gate.sh
     anti-patterns-lint.sh comments-lint.sh
 ) do if /i "%SCRIPT_NAME%"=="%%A" set "ALLOWED=1"
@@ -58,6 +58,14 @@ set "SCRIPT_PATH=%HOOK_DIR%%SCRIPT_NAME%"
 if not exist "%SCRIPT_PATH%" (
     if /i "%SCRIPT_NAME%"=="evidence-observer.sh" (
         echo run-hook.cmd: missing evidence-observer.sh; skipping >&2
+        exit /b 0
+    )
+    if /i "%SCRIPT_NAME%"=="kernel-context.sh" (
+        echo run-hook.cmd: missing kernel-context.sh; skipping >&2
+        exit /b 0
+    )
+    if /i "%SCRIPT_NAME%"=="adaptive-context.sh" (
+        echo run-hook.cmd: missing adaptive-context.sh; skipping >&2
         exit /b 0
     )
     echo run-hook.cmd: missing hook script "%SCRIPT_PATH%" >&2
@@ -121,7 +129,7 @@ esac
 # Source of truth: RUN_HOOK_CMD_ALLOWLIST in scripts/lib/hook-manifest.mjs —
 # validate-harness-matrix.mjs asserts this list (and the cmd half) matches.
 case "$SCRIPT_NAME" in
-  session-start.sh|behavior-feedback.sh|learning-recorder.sh|prompt-submit.sh|router.sh|grill-prompt.sh|subagent-stance.sh|write-quality-lint.sh|evidence-observer.sh|verification-gate.sh|anti-patterns-lint.sh|comments-lint.sh)
+  session-start.sh|behavior-feedback.sh|learning-recorder.sh|prompt-submit.sh|kernel-context.sh|adaptive-context.sh|router.sh|grill-prompt.sh|subagent-stance.sh|write-quality-lint.sh|evidence-observer.sh|verification-gate.sh|anti-patterns-lint.sh|comments-lint.sh)
     ;;
   *)
     echo "run-hook.cmd: unknown hook script ${SCRIPT_NAME}" >&2
@@ -140,10 +148,12 @@ fi
 
 SCRIPT_PATH="${SCRIPT_DIR}/${SCRIPT_NAME}"
 if [ ! -f "$SCRIPT_PATH" ]; then
-  if [ "$SCRIPT_NAME" = "evidence-observer.sh" ]; then
-    echo "run-hook.cmd: missing evidence-observer.sh; skipping" >&2
-    exit 0
-  fi
+  case "$SCRIPT_NAME" in
+    evidence-observer.sh|kernel-context.sh|adaptive-context.sh)
+      echo "run-hook.cmd: missing ${SCRIPT_NAME}; skipping" >&2
+      exit 0
+      ;;
+  esac
   echo "run-hook.cmd: missing hook script ${SCRIPT_PATH}" >&2
   exit 1
 fi

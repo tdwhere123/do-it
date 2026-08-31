@@ -1,108 +1,88 @@
 ---
 name: do-it-code-quality
-description: "Use when writing or designing code: name premise and blast radius, deepen modules at seams, TDD at agreed seams, diagnose before patching, and keep producer→consumer contracts honest."
+description: "Use when designing, changing, or debugging code: trace live behavior, locate rightful authority, make the smallest causal closure, stress applicable stateful surfaces, and prove the changed contract."
 ---
 
-# Do-It Code Quality
+# Do-It Code Quality — Build Kernel
 
-Main defense **while writing**. Prefer depth, locality, and real feedback over ceremony.
-
-Leading words (use them): **deep module**, **seam**, **tracer bullet**, **red before green**, **scope chain**, **phases, not piles**, **reuse before repeat**.
+Understand broadly enough to locate causality; edit narrowly enough to close it.
+Default **0** subagents; parent owns the contract (`core §r-route`).
+<!-- do-it-contract:build.causal-closure -->
 
 ## Scope Chain (before edit)
+<!-- do-it-contract:build.scope-chain -->
 
 1. **Premise** — one sentence: if this fact is wrong, the change is wrong.
 2. **Blast radius** — who breaks (callers, live paths, tests, persistence).
-3. **Bounded chain** — producer → contract → transport → state → surface → verify. Do not tour the whole repo.
-4. **Targeted reads** — locate the symbol or section first, then read that range. Whole-file reads on files over ~500 lines / 30 KB burn context and blur the chain. Read before claiming how the system works (`core §r-evidence`).
+3. **Bounded chain** — producer → contract → transport → state → surface → verify.
+4. **Targeted reads** — locate the symbol first, then that range (`core §r-evidence`).
 
-Detail: [`../references/scope-chain.md`](../references/scope-chain.md).
+Follow the **causal cone**, not adjacency. Detail:
+[`../references/scope-chain.md`](../references/scope-chain.md),
+[`../references/causal-change.md`](../references/causal-change.md).
+Public/API/schema or cross-package work needs both-side mapping.
+Schema/API changes need both sides.
+<!-- do-it-contract:build.both-sides -->
 
-## Deep Modules
+## Trace
 
-Prefer **deep modules**: small **interface**, rich **implementation**, at a clean **seam** (Feathers).
+Name the intended behavior, the live producer→contract→state→surface path, and
+the cheapest reliable feedback signal. Make uncertain outcomes falsifiable
+before changing them.
 
-| Term | Meaning |
-| --- | --- |
-| Depth | Behavior callable per unit of interface the caller must learn |
-| Leverage | Callers get more capability per learned interface |
-| Locality | Change/bugs/verification concentrate in one place |
-| Adapter | Concrete thing that satisfies an interface at a seam |
+## Locate
 
-- **Deletion test:** remove the module — if complexity vanishes, it was a pass-through; if it reappears across N callers, it earned its keep.
-- **One adapter = hypothetical seam; two adapters = real seam.** No speculative seams.
-- **Interface is the test surface.** Accept dependencies; do not construct them inside.
-- **Inline / delete** thin wrappers and Phase-2 scaffolding.
+Find the earliest divergence of intended vs actual behavior, and the semantic
+authority of the fact.
 
-## Phases, Not Piles
+- Replace test: would the rule remain true if this layer were replaced?
+- Bypass test: can a legitimate mutation path change the fact without passing here?
 
-Separate **compute → apply → audit**: computation, persistence/DB access, and event/log side effects each get their own phase. A function that mixes them is a split candidate *before* you extend it. One reason to change per module, class, and function.
+If authority is duplicated, ambiguous, public/persisted, or recovery-sensitive,
+use `do-it-architecture`.
 
-**Reuse before repeat:** if the rule, transform, or contract already exists, extend or call it — never fork a second home for the same truth.
+## Change
 
-**After you change code, re-check three questions:**
+<!-- do-it-contract:build.patch-or-prepare -->
+Make the smallest structurally correct change: authority/root cause + required
+contract fallout + the proof path. Follow causality, not nearby cleanup.
 
-1. Can this block move into an existing helper?
-2. Did you introduce parallel logic that should be one shared path?
-3. Should scattered copies become one module instead of another near-duplicate file?
+**Patch-or-Prepare Gate:** prepare only when the current shape blocks a local
+durable provable change. Prepare keeps behavior; Change alters acceptance.
+Prefer existing depth; one adapter is not a seam.
 
-**Shape limits:** source-file size thresholds are owned by the `file-size` advisory family — cite [`../references/write-quality-families.md`](../references/write-quality-families.md), never restate them here; projects override via `.do-it/write-quality.local.tsv`. Function length stays your judgment call: under **50** lines, extract phases at **100+**.
+The active contract owns intent, boundaries, and acceptance. HOW may adapt when
+repository evidence proves a better route; surface settled-decision changes
+(`core §r-scope`).
 
-## Comments — Anchors, Not Narrative
+When behavior changes and a durable public seam is practical, establish RED
+before GREEN. Otherwise use the best probe and name the proof gap. Tests
+observe public behavior; expected truth is independent of the implementation.
 
-Comments answer what the next reader must know that code cannot say.
+## Stress
 
-**Allowed:** tool docstrings; `// @anchor:<id>`; `// see also: <path>`; `// invariant: ...`; real tool directives with a reason.
+<!-- do-it-contract:build.stateful-scan -->
+When the work is stateful, asynchronous, retried, cached, queued, externally
+effectful, or cross-boundary, inspect only applicable surfaces — Identity,
+Interleaving, Commit, Amplification, Copies — in
+[`../references/stateful-change-scan.md`](../references/stateful-change-scan.md).
+Cite `core §r-recovery`. Do not add a skill per face.
 
-**Forbidden:** what-comments, history/fix narrative, ticket refs, tombstones, orphan TODOs (need `TODO(@owner): <closing condition>`).
+## Prove
 
-## TDD (behavior changes)
+Re-run the original observation and the affected contract/acceptance on this
+worktree (`core §r-verify`). Advisory families:
+[`../references/write-quality-families.md`](../references/write-quality-families.md).
 
-When changing behavior and a RED test is practical:
+## Settle
 
-1. Agree the **seams** under test (public boundaries) — do not test internals.
-2. **Red before green** — smallest failing test, right failure reason, then smallest green.
-3. One **tracer bullet** per cycle (vertical slice). No horizontal “all tests then all code”.
-
-**Anti-patterns (reject):**
-
-- Implementation-coupled tests (private methods, mock soup of collaborators)
-- Tautological asserts (`expect(f(a,b)).toBe(a+b)`)
-- **Test fiction** — mocks that prove a double, not the live contract
-- Speculative generality for needs the task does not have
-
-Mechanical/docs edits may skip RED — state why.
-
-## Debugging
-
-Symptom → reproduce → one hypothesis → falsify with the smallest check → fix the cause → regression proof. Failure recovery follows `core §r-recovery`.
-
-## Builder Stance
-
-Optimize from evidence, not assumed limits. **Unknown is not impossible**: establish a measured baseline, preserve a correct fallback, then test a plausible breakthrough path. Before investing deeply, run the **cheapest falsifier** that could disprove the key premise; promote the idea only when observed results beat the baseline on the metric that matters.
-
-A feature bound for production is not done until its **evidence surface** is named — the log line, metric, or trace that will show it alive or failing there.
-
-## Boundaries & Worktrees
-
-Use a separate worktree only for genuinely parallel, risky, or conflicting work — not a bounded one-thread change. The parent owns shared files and integration.
-
-Merge conflicts resolve **hunk by hunk, by intent**: trace each side to its source (commit, PR, issue) and preserve both intents where possible; where they truly collide, follow the merge's stated goal and note the trade-off. Never escape via `--abort` or wholesale `--ours`/`--theirs`. Finish the operation, then run the project's checks.
-
-Public/API/schema or cross-package work needs both-side mapping: ownership and dependency direction, compatibility/rollback effect, producer → consumer proof path, and the smallest boundary check. Stop when a proposed new surface has no consumer.
-
-## Contracts
-
-Map the proof path. Do not invent APIs/exports/events without an in-task consumer. Schema/API changes need both sides.
-
-## Metacognition Stops
-
-Rewrite when you notice: `as any` / `@ts-ignore`, over-mock, swallowed errors, unused exports, cover-up edits.
-
-Advisory hook families: [`../references/write-quality-families.md`](../references/write-quality-families.md).
+Consolidate accidental complexity only at a natural boundary inside the changed
+cone, and only when behavior preservation is cheap to prove. Once causal
+closure is proven, stop.
 
 ## Stop
 
+<!-- do-it-contract:build.uncertainty-stop -->
 `NEEDS_CONTEXT` / `BLOCKED` when the premise cannot be verified locally or a
 new surface has no consumer; boundary and ambiguity rules: `core §r-boundary`,
 `core §r-uncertainty`. Evidence before claims: `core §r-evidence`.

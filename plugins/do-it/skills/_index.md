@@ -22,6 +22,7 @@ Load on demand with the Skill tool + skill name. Do not read every skill up fron
 ## On demand
 
 - **do-it-retrospective** — Use only when the user explicitly asks to enable, disable, inspect, report, or…
+- **do-it-adaptive** — inspecting, proposing, testing, activating, reverting, or explaining personali…
 
 ## Handbook & maintenance
 

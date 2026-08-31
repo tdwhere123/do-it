@@ -14,6 +14,7 @@ Do not store live progress in the contract. Progress comes from git, runtime
 events, and evidence. Cite `core §r-scope` rather than restating it.
 
 ## Delegation Budget
+<!-- do-it-contract:delegation.zero-default -->
 
 Default **0** subagents. At most **one** fresh-context second look, and only
 when at least one holds:
@@ -28,6 +29,7 @@ scopes or an explicit user request.
 The parent owns integration, shared files, and the completion claim. A worker
 must not commit, merge, push, tag, publish, revert peer work, or expand its
 write scope.
+<!-- do-it-contract:delegation.child-write-boundary -->
 
 Give a worker only: the question or goal, the slice and write/side-effect
 boundary, and the evidence that would help the parent decide. The worker

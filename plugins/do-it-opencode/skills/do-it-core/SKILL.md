@@ -59,13 +59,16 @@ Tied to **r-boundary**:
 - Answer, explain, review, diagnose, or plan: inspect and report; do not implement unless asked.
 - Change, build, or fix: make in-scope local changes and run relevant non-destructive checks.
 - Confirm first: external writes, destructive or irreversible actions, material cost, or material scope expansion. A skill or hook reminder is not a hard lock; use the host's sandbox, approval policy, or command rules when enforcement matters.
+  <!-- do-it-contract:core.confirm-first -->
 
 ## Stop
 
 - `NEEDS_CONTEXT` — a route-changing decision cannot be resolved from evidence
   (`r-uncertainty`).
 - `BLOCKED` — an authorized or evidentiary path is unavailable; never soften it into done/ready/fixed (`r-boundary`, `r-verify`).
+  <!-- do-it-contract:core.blocked-honest -->
 - `NOT_VERIFIED` — implementation may exist, but claim-specific proof is missing; state NOT_VERIFIED with the missing check and next action (`r-verify`).
+  <!-- do-it-contract:core.not-verified -->
 
 ## Anti-Rationalization
 

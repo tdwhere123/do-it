@@ -3,8 +3,8 @@
   "package": "@tdwhere/do-it",
   "repository": "https://github.com/tdwhere123/do-it",
   "domain": "agentic-workflow",
-  "total_skills": 11,
-  "total_capabilities": 11,
+  "total_skills": 12,
+  "total_capabilities": 12,
   "total_discovery_entries": 1,
   "total_agents": 10,
   "coverage": {
@@ -12,7 +12,7 @@
       "index": 1,
       "mainline": 7,
       "maintenance": 3,
-      "on-demand": 1
+      "on-demand": 2
     },
     "optional_skills": []
   },
@@ -100,12 +100,22 @@
     {
       "kind": "skill",
       "name": "do-it-retrospective",
-      "description": "Use only when the user explicitly asks to enable, disable, inspect, report, or persist opt-in local do-it behavioral feedback.",
+      "description": "Use only when the user explicitly asks to enable, disable, inspect, report, or persist opt-in local do-it learning events.",
       "origin": "do-it",
       "optional": false,
       "group": "on-demand",
       "source": "skills/do-it/do-it-retrospective",
       "target": "skills/do-it-retrospective"
+    },
+    {
+      "kind": "skill",
+      "name": "do-it-adaptive",
+      "description": "Use when inspecting, proposing, testing, activating, reverting, or explaining personalized do-it behavior deltas; the fixed skill interprets bounded profiles and never self-modifies the core.",
+      "origin": "do-it",
+      "optional": false,
+      "group": "on-demand",
+      "source": "skills/do-it/do-it-adaptive",
+      "target": "skills/do-it-adaptive"
     },
     {
       "kind": "skill",
