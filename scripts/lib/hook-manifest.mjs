@@ -11,6 +11,7 @@
 /** Runtime hook scripts wired on every host (bash). */
 export const HOOK_SCRIPTS = [
   "behavior-feedback.sh",
+  "learning-recorder.sh",
   "prompt-submit.sh",
   "router.sh",
   "grill-prompt.sh",

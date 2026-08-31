@@ -107,6 +107,12 @@
       "target": "hooks/behavior-feedback.sh"
     },
     {
+      "name": "hooks-learning-recorder",
+      "kind": "file",
+      "source": "hooks/learning-recorder.sh",
+      "target": "hooks/learning-recorder.sh"
+    },
+    {
       "name": "hooks-prompt-submit",
       "kind": "file",
       "source": "hooks/prompt-submit.sh",

@@ -36,7 +36,7 @@ REM Source of truth: RUN_HOOK_CMD_ALLOWLIST in scripts/lib/hook-manifest.mjs —
 REM validate-harness-matrix.mjs asserts this list (and the bash half) matches.
 set "ALLOWED=0"
 for %%A in (
-    session-start.sh behavior-feedback.sh prompt-submit.sh router.sh grill-prompt.sh subagent-stance.sh
+    session-start.sh behavior-feedback.sh learning-recorder.sh prompt-submit.sh router.sh grill-prompt.sh subagent-stance.sh
     write-quality-lint.sh evidence-observer.sh verification-gate.sh
     anti-patterns-lint.sh comments-lint.sh
 ) do if /i "%SCRIPT_NAME%"=="%%A" set "ALLOWED=1"
@@ -121,7 +121,7 @@ esac
 # Source of truth: RUN_HOOK_CMD_ALLOWLIST in scripts/lib/hook-manifest.mjs —
 # validate-harness-matrix.mjs asserts this list (and the cmd half) matches.
 case "$SCRIPT_NAME" in
-  session-start.sh|behavior-feedback.sh|prompt-submit.sh|router.sh|grill-prompt.sh|subagent-stance.sh|write-quality-lint.sh|evidence-observer.sh|verification-gate.sh|anti-patterns-lint.sh|comments-lint.sh)
+  session-start.sh|behavior-feedback.sh|learning-recorder.sh|prompt-submit.sh|router.sh|grill-prompt.sh|subagent-stance.sh|write-quality-lint.sh|evidence-observer.sh|verification-gate.sh|anti-patterns-lint.sh|comments-lint.sh)
     ;;
   *)
     echo "run-hook.cmd: unknown hook script ${SCRIPT_NAME}" >&2
