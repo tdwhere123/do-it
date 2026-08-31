@@ -14,10 +14,14 @@ Lean stable truth for the **do-it** repository itself — not a second README.
 ## What lives elsewhere
 
 - **Process** (route → meaning buckets → verify): `skills/do-it/` — skills are operational law.
-- **Per-task artifacts** (optional): `.do-it/plans/` and similar — not a mandatory pipeline.
-- **Ephemeral runtime**: `.do-it/runtime/` (gitignored) — session pointer and hook state.
+- **Execution contracts**: `.do-it/plans/` — Goal, Decisions, Boundary, Acceptance. Not a progress log. Persist only when earned; see `skills/do-it/references/task-contract.md`.
+- **Active sediment**: `.do-it/CONTEXT.md` — terse terms. Project truth, not task state, not adaptive profile.
+- **Ephemeral runtime / adaptive / events**: `.do-it/runtime/`, `.do-it/adaptive/`, `.do-it/events/` — local, gitignored.
 - **Daily notes**: `.do-it/worklog/` — not handbook.
 
 ## Bootstrap rule
 
-If this handbook exists, Standard/Heavy turns read relevant files before durable decide/plan work. Missing handbook triggers `do-it-handbook` lean bootstrap (additive only).
+If this handbook exists, Standard/Heavy turns read relevant files before durable
+decide/plan work. Missing handbook triggers `do-it-handbook` lean bootstrap
+(additive only; never overwrite CONTEXT, handbook, or existing contracts). New
+init creates CONTEXT / handbook / worklog / plans only — not brainstorm/grill.
