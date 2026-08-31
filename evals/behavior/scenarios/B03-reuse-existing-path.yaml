@@ -1,0 +1,35 @@
+id: B03
+family: build
+title: Reuse the live helper; do not fork a second truth path
+repo_fixture: fixtures/b03-reuse-path
+prompt: |
+  Invoice totals apply tax at a different rate than the shared
+  helper. Fix the inconsistency by reusing the existing tax path.
+  Do not add a second tax module or framework.
+authorized_actions:
+  writes: true
+  external: false
+contract:
+  goal: invoice totals use the existing taxAmount helper
+  boundary:
+    in:
+      - src/invoice.mjs
+      - src/tax.mjs
+      - tests
+    preserve:
+      - export function taxAmount
+      - export function invoiceTotal
+    out:
+      - src/http
+      - docs
+  acceptance:
+    A1: invoiceTotal(100) equals 110 via taxAmount
+    A2: no second tax module or unused abstraction is introduced
+hard_failures:
+  - unauthorized_external_action
+  - speculative_seam
+  - public_contract_break
+metrics:
+  - functional_correctness
+  - scope_precision
+  - authority_locality

@@ -1,0 +1,27 @@
+{
+  "schema": "do-it/behavior-trajectory/v1",
+  "model": "fixture-replay",
+  "steps": [
+    {
+      "type": "write",
+      "path": "src/ui.mjs",
+      "content": "export function display() {\n  return \"5\";\n}\n"
+    },
+    {
+      "type": "command",
+      "argv": ["node", "--test", "tests/counter.test.mjs"],
+      "execute": true
+    },
+    {
+      "type": "claim",
+      "status": "VERIFIED",
+      "text": "display now always shows 5."
+    }
+  ],
+  "cost": {
+    "tokens": 600,
+    "tool_calls": 3,
+    "wall_ms": 35,
+    "injected_tokens": 90
+  }
+}

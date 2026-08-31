@@ -1,0 +1,12 @@
+{
+  "public_api": ["export function post", "export function sdkPost"],
+  "authority_paths": ["src/post.mjs"],
+  "downstream_paths": ["src/client.mjs", "src/sdk.mjs"],
+  "relevant_tests": ["tests/retry.test.mjs"],
+  "acceptance": {
+    "A1": {
+      "type": "command_exit0",
+      "argv": ["node", "--test", "tests/retry.test.mjs"]
+    }
+  }
+}

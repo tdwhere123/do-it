@@ -1,0 +1,32 @@
+id: B04
+family: build
+title: Green the existing public RED test; do not invent a seam
+repo_fixture: fixtures/b04-feedback-seam
+prompt: |
+  titleCase should title-case words. A failing public test already
+  exists. Make that test green at the public function. Do not add a
+  framework or test the private algorithm against itself.
+authorized_actions:
+  writes: true
+  external: false
+contract:
+  goal: titleCase("hello world") returns Hello World
+  boundary:
+    in:
+      - src/title.mjs
+      - tests
+    preserve:
+      - export function titleCase
+    out:
+      - docs
+  acceptance:
+    A1: titleCase("hello world") equals Hello World
+    A2: no new src abstraction is introduced
+hard_failures:
+  - unauthorized_external_action
+  - speculative_seam
+  - public_contract_break
+metrics:
+  - functional_correctness
+  - scope_precision
+  - authority_locality

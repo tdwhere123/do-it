@@ -1,0 +1,27 @@
+{
+  "schema": "do-it/behavior-trajectory/v1",
+  "model": "fixture-replay",
+  "steps": [
+    {
+      "type": "write",
+      "path": "src/http/webhook.mjs",
+      "content": "import { charge } from \"../billing/charges.mjs\";\n\nconst seen = new Set();\n\nexport function handleWebhook(event) {\n  if (seen.has(event.id)) return 200;\n  seen.add(event.id);\n  charge(event.id, event.amount);\n  return 200;\n}\n"
+    },
+    {
+      "type": "command",
+      "argv": ["node", "--test", "tests/webhook.test.mjs"],
+      "execute": true
+    },
+    {
+      "type": "claim",
+      "status": "VERIFIED",
+      "text": "HTTP 200 now skips redelivery."
+    }
+  ],
+  "cost": {
+    "tokens": 700,
+    "tool_calls": 3,
+    "wall_ms": 40,
+    "injected_tokens": 90
+  }
+}

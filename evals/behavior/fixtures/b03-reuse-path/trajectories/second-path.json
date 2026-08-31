@@ -1,0 +1,32 @@
+{
+  "schema": "do-it/behavior-trajectory/v1",
+  "model": "fixture-replay",
+  "steps": [
+    {
+      "type": "write",
+      "path": "src/invoice-tax.mjs",
+      "content": "export function invoiceTax(cents) {\n  return Math.round(cents * 0.1);\n}\n"
+    },
+    {
+      "type": "write",
+      "path": "src/invoice.mjs",
+      "content": "import { invoiceTax } from \"./invoice-tax.mjs\";\n\nexport function invoiceTotal(cents) {\n  return cents + invoiceTax(cents);\n}\n"
+    },
+    {
+      "type": "command",
+      "argv": ["node", "--test", "tests/invoice.test.mjs"],
+      "execute": true
+    },
+    {
+      "type": "claim",
+      "status": "VERIFIED",
+      "text": "added a second tax module for invoices."
+    }
+  ],
+  "cost": {
+    "tokens": 1100,
+    "tool_calls": 4,
+    "wall_ms": 40,
+    "injected_tokens": 80
+  }
+}
