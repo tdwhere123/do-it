@@ -45,8 +45,19 @@ _event_count() {
   wc -l < "$file" | tr -d ' '
 }
 
+_setup_git_project() {
+  local dir="$1"
+  mkdir -p "$dir"
+  git -C "$dir" init -q
+  git -C "$dir" config user.email t@e.com
+  git -C "$dir" config user.name t
+  printf 'base\n' > "$dir/README"
+  git -C "$dir" add README
+  git -C "$dir" commit -q -m base
+}
+
 project="$TMP_ROOT/project"
-mkdir -p "$project"
+_setup_git_project "$project"
 runtime="$project/.do-it/runtime"
 config="$runtime/retrospective/config.json"
 learning="$runtime/events/learning.jsonl"
@@ -160,6 +171,34 @@ hashes="$(jq -r 'select(.kind=="user_feedback") | .session_hash' "$learning" | s
 hash_n="$(printf '%s\n' "$hashes" | grep -c . | tr -d ' ')"
 _assert "cross-session hashes are distinct" "[[ \"$hash_n\" -ge 2 ]]"
 _assert "raw session ids are absent" "! grep -Fq sess-alpha \"$learning\" && ! grep -Fq sess-beta \"$learning\""
+
+echo "Case 11: .do-it symlink escape is refused and still exits 0"
+escape_proj="$TMP_ROOT/escape-project"
+_setup_git_project "$escape_proj"
+outside_doit="$TMP_ROOT/outside-doit"
+mkdir -p "$outside_doit"
+ln -s "$outside_doit" "$escape_proj/.do-it"
+st=0
+out="$(_run s-esc '/do-it-retrospective on' "$escape_proj" '{"hook_event_name":"UserPromptExpansion","command_name":"do-it-retrospective"}')" || st=$?
+_assert_empty "escaped enable is silent" "$out"
+_assert "escaped enable exits 0" "[[ \"$st\" -eq 0 ]]"
+_assert "escaped enable does not write outside config" "[[ ! -e \"$outside_doit/runtime/retrospective/config.json\" ]]"
+_assert "escaped enable does not create in-repo runtime" "[[ ! -e \"$escape_proj/.do-it/runtime\" ]] || [[ -L \"$escape_proj/.do-it\" ]]"
+
+echo "Case 12: learning.jsonl file symlink is refused"
+safe_proj="$TMP_ROOT/safe-project"
+_setup_git_project "$safe_proj"
+out="$(_run s-safe '/do-it-retrospective on' "$safe_proj" '{"hook_event_name":"UserPromptExpansion","command_name":"do-it-retrospective"}')"
+_assert_empty "safe enable is silent" "$out"
+mkdir -p "$safe_proj/.do-it/runtime/events"
+outside_log="$TMP_ROOT/escaped-learning.jsonl"
+: > "$outside_log"
+ln -s "$outside_log" "$safe_proj/.do-it/runtime/events/learning.jsonl"
+st=0
+out="$(_run s-safe 'do-it 的行为不对，为什么没有调用子智能体？' "$safe_proj")" || st=$?
+_assert_empty "symlink learning append is silent" "$out"
+_assert "symlink learning append exits 0" "[[ \"$st\" -eq 0 ]]"
+_assert "learning file symlink did not write outside" "[[ ! -s \"$outside_log\" ]]"
 
 if [[ "$FAIL" -ne 0 ]]; then
   echo "FAIL: $FAIL test(s) failed" >&2

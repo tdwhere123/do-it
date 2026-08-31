@@ -32,6 +32,7 @@ test("review keeps Standards and Spec as independent axes", () => {
   assert.match(review, /A change can pass one and fail the other/);
   assert.match(review, /Do not average them\s+into one score/);
   assert.match(lenses, /Rank \*\*Spec\*\* and \*\*Standards\*\* independently/);
+  assert.match(lenses, /Goal, Decisions, Boundary, and Acceptance item/);
 });
 
 test("review defaults to inline and has no multi-reviewer pipeline", () => {

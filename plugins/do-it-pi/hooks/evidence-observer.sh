@@ -171,25 +171,6 @@ _do_it_observer_clear_event_env() {
   unset DO_IT_EVENT_FORCE_COVERAGE
 }
 
-# When a command/test/build payload has no reliable exit, do not keep a
-# complete fingerprint coverage. Gaps stay partial/unavailable, never complete.
-_do_it_event_worktree_json() {
-  local cwd="${1:-.}" wt current
-  wt="$(do_it_worktree_fingerprint "$cwd" 2>/dev/null | head -n1 || true)"
-  case "$wt" in
-    \{*) ;;
-    *) wt='{"head":null,"fingerprint":null,"coverage":"unavailable","observed_epoch":null}' ;;
-  esac
-  if [[ -n "${DO_IT_EVENT_FORCE_COVERAGE:-}" && "${DO_IT_HAVE_JQ:-0}" == "1" ]]; then
-    current="$(printf '%s' "$wt" | jq -r '.coverage // "unavailable"' 2>/dev/null || true)"
-    if [[ "$current" == "complete" ]]; then
-      wt="$(printf '%s' "$wt" | jq -c --arg c "$DO_IT_EVENT_FORCE_COVERAGE" '.coverage=$c' 2>/dev/null || true)"
-      [[ -n "$wt" ]] || wt='{"head":null,"fingerprint":null,"coverage":"unavailable","observed_epoch":null}'
-    fi
-  fi
-  printf '%s' "$wt"
-}
-
 _do_it_observer_session_id() {
   _do_it_observer_first "$1" session_id conversation_id generation_id
 }
@@ -378,6 +359,7 @@ do_it_evidence_observe_payload() {
     export DO_IT_EVENT_EXIT_CODE="$exit_code"
   else
     # No reliable shell result: record the fact as partial, never complete.
+    # Coverage rewrite is jq-free in hooks/lib/runtime-events.sh.
     export DO_IT_EVENT_FORCE_COVERAGE=partial
   fi
   do_it_runtime_event_append "$kind" observed "$summary" "$cwd"

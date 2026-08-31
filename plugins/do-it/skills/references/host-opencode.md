@@ -1,7 +1,10 @@
 # Host Adapter: OpenCode
 
-Medium hook depth via a TypeScript plugin: per-message shell routing/grill
-advisories, plus bash bridges for quality lint and verification soft reminders.
+Medium hook depth via a TypeScript plugin: serialized `prompt-submit.sh`
+entry, per-message routing/grill in legacy, kernel/adaptive prefix in
+shadow/thin, plus bash bridges for quality lint and verification soft
+reminders. The plugin registers the full **12 skills**, including
+`do-it-adaptive`.
 
 ## Install (plugin-first)
 
@@ -60,9 +63,9 @@ npm run test-opencode
 
 | OpenCode event | Kernel script | Notes |
 | --- | --- | --- |
-| `experimental.chat.messages.transform` | cached bootstrap | stable host guidance and skills index |
+| `experimental.chat.messages.transform` | cached bootstrap | **legacy only**; skipped in shadow/thin |
 | `chat.message` (default off) | `behavior-feedback.sh` | silent local feedback capture for a confirmed root session only; parentage uncertainty skips capture |
-| `chat.message` | `router.sh`, `grill-prompt.sh` | classifier every message; grill only Heavy or explicit and always advisory |
+| `chat.message` | `prompt-submit.sh` | serialized entry: legacy runs router/grill; shadow/thin injects kernel + adaptive and skips bootstrap |
 | `config` | — | registers `skills/do-it/` paths |
 | `tool.execute.after` | `evidence-observer.sh` | edit and shell facts only; command names are not treated as proof. Missing exit is `partial` |
 | `tool.execute.after` | `write-quality-lint.sh` | advisory bash bridge |

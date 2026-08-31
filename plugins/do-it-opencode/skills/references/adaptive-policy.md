@@ -28,15 +28,16 @@ host/system safety
 > current explicit user intent and action boundary
 > current repository truth and durable instructions
 > active task contract
-> fixed Core
 > project-local personal delta
 > global personal delta
 > specialist default
 ```
 
-Adaptive may change a default tradeoff. It must not rewrite facts, store a
-task or repo as policy, or weaken a higher source. Project-local cannot
-override host, user intent, repo instructions, the active contract, or Core.
+Core (honesty, boundary, evidence, no-write) constrains every rung: a
+contract, repo instruction, or adaptive delta cannot waive it. Adaptive may
+change a default tradeoff. It must not rewrite facts, store a task or repo
+as policy, or weaken a higher source. Project-local cannot override host,
+user intent, repo instructions, the active contract, or Core.
 
 ## Template
 

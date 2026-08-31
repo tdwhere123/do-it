@@ -6,12 +6,13 @@ when listed.
 
 ## Skill Bundle
 
-The Cursor plugin registers the **full skill set** (same as Codex / Claude /
+The Cursor plugin registers the **full 12-skill set** (same as Codex / Claude /
 OpenCode):
 
-`do-it-router`, `do-it-code-quality`, `do-it-review`, `do-it-decide`,
-`do-it-verify`, plus extended `do-it-handbook`, `do-it-context`,
-`do-it-skill-authoring`, and the on-demand `do-it-retrospective`.
+`do-it-core`, `do-it-router`, `do-it-code-quality`, `do-it-architecture`,
+`do-it-review`, `do-it-decide`, `do-it-verify`, plus extended
+`do-it-handbook`, `do-it-context`, `do-it-skill-authoring`,
+`do-it-adaptive`, and the on-demand `do-it-retrospective`.
 
 `skills/do-it/references/` is always copied alongside (shared kernel — not a
 registered skill).
@@ -160,7 +161,7 @@ plugins/do-it-cursor/.cursor-plugin/plugin.json
 ~/.cursor/plugins/local/do-it-cursor/   # real copy (not an external symlink)
 ├── .cursor-plugin/plugin.json
 ├── assets/logo.svg
-├── skills/          # full 11 skills + references/
+├── skills/          # full 12 skills + references/
 ├── agents/
 └── hooks/
     ├── hooks.json          # also mirrored into ~/.cursor/hooks.json

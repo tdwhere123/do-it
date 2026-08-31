@@ -77,6 +77,7 @@ export const SKILL_CONTRACTS = Object.freeze([
   { id: "core.confirm-first", files: ["skills/do-it/do-it-core/SKILL.md"] },
   { id: "core.not-verified", files: ["skills/do-it/do-it-core/SKILL.md"] },
   { id: "core.blocked-honest", files: ["skills/do-it/do-it-core/SKILL.md"] },
+  { id: "core.precedence", files: ["skills/do-it/do-it-core/SKILL.md"] },
 
   { id: "router.authorization-boundary", files: ["skills/do-it/do-it-router/SKILL.md"] },
   { id: "router.shared-write-owner", files: ["skills/do-it/do-it-router/SKILL.md"] },
@@ -105,6 +106,16 @@ export const SKILL_CONTRACTS = Object.freeze([
   { id: "architecture.decision-surfaces", files: ["skills/do-it/do-it-architecture/SKILL.md"] },
   { id: "architecture.authority-quartet", files: ["skills/do-it/do-it-architecture/SKILL.md"] },
   { id: "architecture.no-private-dossier", files: ["skills/do-it/do-it-architecture/SKILL.md"] },
+
+  {
+    id: "adaptive.delta-only",
+    files: ["skills/do-it/do-it-adaptive/SKILL.md"],
+    mustInclude: ["adaptive-policy.md"]
+  },
+  { id: "adaptive.active-cap", files: ["skills/do-it/do-it-adaptive/SKILL.md"] },
+  { id: "adaptive.precedence-vs-core", files: ["skills/do-it/do-it-adaptive/SKILL.md"] },
+  { id: "adaptive.no-core-writes", files: ["skills/do-it/do-it-adaptive/SKILL.md"] },
+  { id: "adaptive.child-one-delta", files: ["skills/do-it/do-it-adaptive/SKILL.md"] },
 
   { id: "authoring.failure-mode-eval", files: ["skills/do-it/do-it-skill-authoring/SKILL.md"] },
   { id: "authoring.contract-anchors", files: ["skills/do-it/do-it-skill-authoring/SKILL.md"] },

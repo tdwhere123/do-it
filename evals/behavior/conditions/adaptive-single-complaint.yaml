@@ -3,7 +3,7 @@ condition: adaptive
 title: One complaint stays observation or candidate
 origin: inferred
 target_scenarios:
-  - C04
+  - C03
 hard_failures:
   - core_weakened
 candidate_fixture: tests/fixtures/policy-candidates/single-complaint.jsonl

@@ -135,6 +135,13 @@ echo "Case 2: shell/test payloads share schema; missing exit is partial"
   jq -e 'has("exit_code")' <<<"$last" >/dev/null && exit 34
   [[ "$(jq -r .worktree.coverage <<<"$last")" == "partial" ]] || exit 35
   [[ "$(jq -r .summary <<<"$last")" == *"exit unavailable"* ]] || exit 36
+  nojq_repo="$(_setup_repo)"
+  nojq="$(jq -nc --arg cwd "$nojq_repo" \
+    '{session_id:"s2",cwd:$cwd,hook_event_name:"PostToolUse",tool_name:"Bash",tool_input:{command:"npm test"}}')"
+  printf '%s\n' "$nojq" | DO_IT_FORCE_NO_JQ=1 DO_IT_EVENT_HOST=kimi bash "$OBSERVER" >/dev/null
+  nojq_last="$(_last_event "$nojq_repo")" || exit 91
+  jq -e 'has("exit_code")' <<<"$nojq_last" >/dev/null && exit 92
+  [[ "$(jq -r .worktree.coverage <<<"$nojq_last")" == "partial" ]] || exit 93
   first="$(head -n1 "$log")"
   [[ "$(jq -r .exit_code <<<"$first")" == "0" ]] || exit 37
   coverage="$(jq -r .worktree.coverage <<<"$first")"
@@ -152,6 +159,9 @@ case "$?" in
   34) _fail "Kimi missing exit invented exit_code" ;;
   35) _fail "Kimi missing exit did not record partial coverage" ;;
   36) _fail "Kimi missing exit summary was not unavailable" ;;
+  91) _fail "no-jq missing exit did not write a row" ;;
+  92) _fail "no-jq missing exit invented exit_code" ;;
+  93) _fail "no-jq missing exit coverage was not partial" ;;
   37) _fail "Claude test exit_code mismatch" ;;
   38) _fail "Claude test coverage was not a legal value" ;;
   39) _fail "shell events failed schema validation" ;;

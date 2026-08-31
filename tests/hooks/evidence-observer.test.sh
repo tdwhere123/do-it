@@ -154,6 +154,7 @@ echo "Case 4: missing exit/output does not infer success"
   [[ "$(jq -r .kind <<<"$line")" == "test" ]] || exit 42
   jq -e 'has("exit_code")' <<<"$line" >/dev/null && exit 43
   [[ "$(jq -r .summary <<<"$line")" == *"exit unavailable"* ]] || exit 44
+  [[ "$(jq -r .worktree.coverage <<<"$line")" == "partial" ]] || exit 45
 )
 case "$?" in
   0)  _pass "missing exit is recorded as unavailable, not 0" ;;
@@ -161,7 +162,24 @@ case "$?" in
   42) _fail "no-exit kind mismatch" ;;
   43) _fail "no-exit invented exit_code" ;;
   44) _fail "no-exit summary did not mark exit unavailable" ;;
+  45) _fail "no-exit coverage was not partial" ;;
   *)  _fail "no-exit case crashed (exit=$?)" ;;
+esac
+
+echo "Case 4b: missing exit coverage is partial without jq"
+(
+  repo="$(_setup_repo)"
+  DO_IT_FORCE_NO_JQ=1 _run_observer "$(_payload "$FIXTURES/posttool-no-exit.json" "$repo")" >/dev/null
+  line="$(_last_event "$repo")" || exit 46
+  jq -e 'has("exit_code")' <<<"$line" >/dev/null && exit 47
+  [[ "$(jq -r .worktree.coverage <<<"$line")" == "partial" ]] || exit 48
+)
+case "$?" in
+  0)  _pass "missing exit is partial with DO_IT_FORCE_NO_JQ=1" ;;
+  46) _fail "no-jq no-exit did not write a row" ;;
+  47) _fail "no-jq no-exit invented exit_code" ;;
+  48) _fail "no-jq no-exit coverage was not partial" ;;
+  *)  _fail "no-jq no-exit case crashed (exit=$?)" ;;
 esac
 
 echo "Case 5: malformed payload and mode=off fail open"

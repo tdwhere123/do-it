@@ -21,17 +21,18 @@ DO_IT_LEARNING_SCHEMA="${DO_IT_LEARNING_SCHEMA:-1}"
 _DO_IT_LEARNING_MAX_LINE="${DO_IT_LEARNING_MAX_LINE_BYTES:-8192}"
 
 lr_project_root() {
-  local cwd="${1:-}" resolved root
+  local cwd="${1:-}" root
   [[ -n "$cwd" && -d "$cwd" ]] || return 1
-  resolved="$(cd "$cwd" 2>/dev/null && pwd)" || return 1
-  root="$(git -C "$resolved" rev-parse --show-toplevel 2>/dev/null || true)"
-  printf '%s' "${root:-$resolved}"
+  root="$(do_it_git_root "$cwd")"
+  [[ -n "$root" ]] || return 1
+  printf '%s' "$root"
 }
 
 lr_runtime_dir() {
-  local root
-  root="$(lr_project_root "$1")" || return 1
-  printf '%s/.do-it/runtime' "$root"
+  local runtime
+  runtime="$(do_it_runtime_root "$1")"
+  [[ -n "$runtime" ]] || return 1
+  printf '%s' "$runtime"
 }
 
 do_it_learning_log_path() {
@@ -59,17 +60,17 @@ lr_harvest_path() {
 }
 
 lr_prepare_runtime() {
-  local cwd="$1" runtime old_umask
-  runtime="$(lr_runtime_dir "$cwd")" || return 1
-  old_umask="$(umask)"
-  umask 077
-  if ! mkdir -p "${runtime}/events" "${runtime}/retrospective" 2>/dev/null; then
-    umask "$old_umask"
-    return 1
+  local cwd="$1" runtime real_rt real_rev
+  _do_it_runtime_prepare "$cwd" || return 1
+  runtime="$(do_it_runtime_root "$cwd")"
+  [[ -n "$runtime" ]] || return 1
+  if [[ -L "${runtime}/retrospective" || -e "${runtime}/retrospective" ]]; then
+    real_rt="$(_do_it_realpath "$runtime")" || return 1
+    real_rev="$(_do_it_realpath "${runtime}/retrospective")" || return 1
+    _do_it_path_is_under "$real_rev" "$real_rt" || return 1
   fi
-  umask "$old_umask"
-  _do_it_ensure_runtime_gitignore "$runtime"
-  chmod 700 "$runtime" "${runtime}/events" "${runtime}/retrospective" 2>/dev/null || true
+  mkdir -p "${runtime}/retrospective" 2>/dev/null || return 1
+  chmod 700 "${runtime}/retrospective" 2>/dev/null || true
 }
 
 lr_command() {

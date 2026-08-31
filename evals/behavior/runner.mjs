@@ -20,12 +20,15 @@ import {
 } from "./report.mjs";
 import {
   CONDITIONS,
+  FAMILIES,
   SEED_SCENARIO_IDS,
   behaviorRootFrom,
   isMain,
   loadScenarios,
   resolveFixtureDir
 } from "./validate.mjs";
+
+const CONDITION_ALIASES = Object.freeze({ candidate: "kernel" });
 
 export const BACKENDS = Object.freeze({
   fixture: {
@@ -59,6 +62,8 @@ export function parseArgs(argv) {
     dryRun: false,
     scenarios: [],
     conditions: [],
+    families: [],
+    suite: null,
     samples: 1,
     backend: null,
     blind: false,
@@ -87,6 +92,13 @@ export function parseArgs(argv) {
         .split(",")
         .map((id) => id.trim().toLowerCase())
         .filter(Boolean);
+    } else if (arg === "--family" || arg === "--families") {
+      out.families = String(next() ?? "")
+        .split(",")
+        .map((id) => id.trim())
+        .filter(Boolean);
+    } else if (arg === "--suite") {
+      out.suite = String(next() ?? "").trim();
     } else if (arg === "--samples") out.samples = Number(next());
     else if (arg === "--backend") out.backend = String(next() ?? "");
     else if (arg === "--out") out.outDir = next();
@@ -99,10 +111,22 @@ export function parseArgs(argv) {
   if (out.backend && !Object.hasOwn(BACKENDS, out.backend)) {
     throw new Error(`unknown backend: ${out.backend}`);
   }
+  out.conditions = out.conditions.map((condition) => CONDITION_ALIASES[condition] ?? condition);
   for (const condition of out.conditions) {
     if (!CONDITIONS.includes(condition)) {
       throw new Error(`unknown condition: ${condition}`);
     }
+  }
+  for (const family of out.families) {
+    if (!FAMILIES.includes(family)) {
+      throw new Error(`unknown family: ${family}`);
+    }
+  }
+  if (out.suite != null && out.suite !== "" && out.suite !== "release") {
+    throw new Error(`unknown suite: ${out.suite}`);
+  }
+  if (out.suite === "") {
+    throw new Error("unknown suite: ");
   }
   if (out.dryRun) out.backend = out.backend ?? "fixture";
   if (!out.backend) out.backend = "fixture";
@@ -119,7 +143,9 @@ function helpText() {
 Options:
   --dry-run            Fixture backend only; never call a network model
   --scenario ID[,ID]   Subset of scenarios (default: nine seed ids)
-  --condition NAME     vanilla | legacy | kernel | adaptive (repeatable via comma)
+  --family NAME[,NAME] Filter by family (decision|build|review-verify|recovery|cost|adaptive)
+  --suite release      Seed plus extra corpus (all loaded scenarios)
+  --condition NAME     vanilla | legacy | kernel | adaptive (candidate aliases kernel)
   --samples N          Fresh workspace per sample (default 1)
   --backend NAME       fixture (runnable) | live (unimplemented)
   --blind              Hide condition from the judge input
@@ -341,8 +367,22 @@ export async function runSuite(options) {
     throw error;
   }
 
-  const wanted = options.scenarios?.length ? options.scenarios : [...SEED_SCENARIO_IDS];
   const byId = new Map(loaded.scenarios.map((scenario) => [scenario.id, scenario]));
+  let wanted;
+  if (options.suite === "release") {
+    wanted = loaded.scenarios.map((scenario) => scenario.id);
+  } else if (options.scenarios?.length) {
+    wanted = [...options.scenarios];
+  } else if (options.families?.length) {
+    wanted = loaded.scenarios
+      .filter((scenario) => options.families.includes(scenario.family))
+      .map((scenario) => scenario.id);
+  } else {
+    wanted = [...SEED_SCENARIO_IDS];
+  }
+  if (options.families?.length && (options.suite === "release" || options.scenarios?.length)) {
+    wanted = wanted.filter((id) => options.families.includes(byId.get(id)?.family));
+  }
   const selected = wanted.map((id) => byId.get(id)).filter(Boolean);
   const missing = wanted.filter((id) => !byId.has(id));
   if (missing.length) {
@@ -541,6 +581,8 @@ export async function main(argv = process.argv.slice(2), options = {}) {
       behaviorRoot,
       repoRoot,
       scenarios: args.scenarios,
+      families: args.families,
+      suite: args.suite,
       conditions: args.conditions,
       samples: args.samples,
       backend: args.backend,

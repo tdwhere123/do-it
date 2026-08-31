@@ -68,12 +68,23 @@ _do_it_truncate_chars() {
 }
 
 _do_it_event_worktree_json() {
-  local cwd="${1:-.}" wt
+  local cwd="${1:-.}" wt forced="${DO_IT_EVENT_FORCE_COVERAGE:-}"
   wt="$(do_it_worktree_fingerprint "$cwd" 2>/dev/null | head -n1 || true)"
   case "$wt" in
-    \{*) printf '%s' "$wt" ;;
-    *) printf '%s' '{"head":null,"fingerprint":null,"coverage":"unavailable","observed_epoch":null}' ;;
+    \{*) ;;
+    *) wt='{"head":null,"fingerprint":null,"coverage":"unavailable","observed_epoch":null}' ;;
   esac
+  # jq-free: a missing exit must not keep coverage=complete.
+  case "$forced" in
+    partial|unavailable)
+      case "$wt" in
+        *'"coverage":"complete"'*)
+          wt="${wt//\"coverage\":\"complete\"/\"coverage\":\"${forced}\"}"
+          ;;
+      esac
+      ;;
+  esac
+  printf '%s' "$wt"
 }
 
 _do_it_event_build_json() {
@@ -128,10 +139,38 @@ _do_it_jsonl_rotate_locked() {
 }
 
 _do_it_jsonl_append_locked() {
-  local file="$1" line="$2"
+  local file="$1" line="$2" dir tmp
+  dir="$(dirname "$file")"
+  mkdir -p "$dir" 2>/dev/null || return 1
+  # File symlink would follow out of the runtime dir on append/chmod.
+  if [[ -L "$file" ]]; then
+    return 1
+  fi
+  if [[ -e "$file" && ! -f "$file" ]]; then
+    return 1
+  fi
   _do_it_jsonl_rotate_locked "$file"
-  mkdir -p "$(dirname "$file")" 2>/dev/null || return 1
-  printf '%s\n' "$line" >> "$file" 2>/dev/null || return 1
+  if [[ -L "$file" ]]; then
+    return 1
+  fi
+  if [[ -e "$file" ]]; then
+    [[ -f "$file" ]] || return 1
+    printf '%s\n' "$line" >> "$file" 2>/dev/null || return 1
+    return 0
+  fi
+  tmp="${file}.${BASHPID:-$$}.${RANDOM}.tmp"
+  if ! printf '%s\n' "$line" > "$tmp" 2>/dev/null; then
+    rm -f "$tmp" 2>/dev/null || true
+    return 1
+  fi
+  if [[ -L "$file" ]]; then
+    rm -f "$tmp" 2>/dev/null || true
+    return 1
+  fi
+  if ! mv -f "$tmp" "$file" 2>/dev/null; then
+    rm -f "$tmp" 2>/dev/null || true
+    return 1
+  fi
   chmod 600 "$file" 2>/dev/null || true
 }
 

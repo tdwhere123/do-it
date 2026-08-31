@@ -10,8 +10,11 @@ change. What may change is the local profile. Schema, budget, and mechanical
 rejects: [`../references/adaptive-policy.md`](../references/adaptive-policy.md).
 
 Adaptive is a delta over fixed do-it behavior, not memory, CONTEXT, a task
-contract, or a second core. Never edit `do-it-core`, the Core TSV, or other
-fixed skills from this workflow (`core §r-scope`, `core §r-boundary`).
+contract, or a second core.
+<!-- do-it-contract:adaptive.delta-only -->
+Never edit `do-it-core`, the Core TSV, or other fixed skills from this
+workflow (`core §r-scope`, `core §r-boundary`).
+<!-- do-it-contract:adaptive.no-core-writes -->
 
 ## When To Use
 
@@ -25,24 +28,29 @@ Do not use this skill to store project facts, paths, secrets, transcripts, or
 task progress. Those belong in repo docs, CONTEXT, the contract, or chat.
 
 ## Sources
+<!-- do-it-contract:adaptive.precedence-vs-core -->
 
 - Global: `~/.do-it/adaptive/profile.md`
 - Project-local personal: `<repo>/.do-it/runtime/adaptive/profile.md`
 
-Project-local wins over global. Both lose to host/system safety, current
-explicit user intent and action boundary, repository truth/instructions, the
-active task contract, and fixed Core. Adaptive never weakens a higher source.
+Project-local wins over global. Ladder: host/system safety → current
+explicit user intent and action boundary → repository truth/instructions →
+active task contract → project-local personal delta → global personal
+delta → specialist defaults. Core (honesty, boundary, evidence, no-write)
+constrains every rung; a contract or adaptive delta cannot waive it.
 
 ## Apply Active Deltas
 
 1. Read the winning profile. Missing file → no overlay (0 tokens).
 2. Use only `## Active` bullets that pass the contract (unique `P###`, one
-   supported scope, one bounded line).
+   supported scope, one bounded line). Cap is 0–8 Active bullets.
+   <!-- do-it-contract:adaptive.active-cap -->
 3. Treat each bullet as a default tradeoff inside its scope. If it collides
    with a higher source, skip it and say so; do not rewrite Core or the
    contract to make it fit.
 4. Child work does not load the full profile. Pass at most the one delta that
    applies to the delegated slice.
+   <!-- do-it-contract:adaptive.child-one-delta -->
 5. Do not invent extra rules from a single incident, a hook silence, or a
    specialist default.
 

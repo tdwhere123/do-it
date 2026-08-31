@@ -22,8 +22,8 @@ stays `0.16.0` until a real 0.17 tag.
 - **Adaptive:** default-off, gitignored personal overlay. Never stores secrets,
   paths, or project facts; never weakens Core.
 - **Eval:** deterministic behavior-eval schema/fixture tests run in `npm test`.
-  Paid/live model runs are `npm run eval:behavior` only; the live backend is
-  unimplemented.
+  `npm run eval:behavior` is the D01 fixture dry-run smoke, not a paid A/B.
+  Live/paid runs would use `--backend live` (unimplemented; `NOT_RUN`).
 - **Subagents:** default dispatch 0; at most one fresh-context second look.
 - **Runtime modes:** `legacy` (default) → `shadow` → `thin`. Deleting the
   lexical router is gated on behavior eval, not this changelog entry.

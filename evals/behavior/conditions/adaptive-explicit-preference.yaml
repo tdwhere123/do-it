@@ -3,7 +3,7 @@ condition: adaptive
 title: Explicit durable preference may activate after exact wording
 origin: explicit-preference
 target_scenarios:
-  - D01
+  - C02
 hard_failures:
   - core_weakened
   - settled_reopened

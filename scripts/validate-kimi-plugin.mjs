@@ -161,6 +161,21 @@ function main() {
   }
   if (commandCount === 0) fail("commands: no .md command files found");
 
+  if (manifest.sessionStart !== "./hooks/kernel-context.sh") {
+    fail(
+      `sessionStart must be "./hooks/kernel-context.sh", got ${JSON.stringify(manifest.sessionStart)}`
+    );
+  } else {
+    const sessionStart = resolvePluginPath(manifest.sessionStart, "sessionStart");
+    if (sessionStart && process.platform !== "win32") {
+      try {
+        fs.accessSync(sessionStart, fs.constants.X_OK);
+      } catch {
+        fail(`sessionStart: not executable: ${manifest.sessionStart}`);
+      }
+    }
+  }
+
   // hooks: strict entry shape, known events, script paths exist (+ executable on POSIX).
   if (!Array.isArray(manifest.hooks) || manifest.hooks.length === 0) {
     fail("hooks: expected a non-empty array");

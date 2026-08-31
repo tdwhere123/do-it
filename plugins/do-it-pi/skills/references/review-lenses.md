@@ -28,7 +28,7 @@ Optional deep checks (not a second ranking axis):
 
 Before line-by-line review, prove the delivered surface connects to the goal:
 
-- **Source coverage:** every request, acceptance item, grill decision, brainstorm `Must Resolve` item is implemented, satisfied with evidence, or explicitly deferred.
+- **Source coverage:** every Goal, Decisions, Boundary, and Acceptance item, plus named deferrals, is implemented, satisfied with evidence, or explicitly deferred. Grill notes and brainstorm `Must Resolve` items are legacy artifacts — use them only when a repo still has them; they are not required Spec sources.
 - **Live path:** changed producer logic reachable from intended command, route, export, UI action, or runtime entrypoint.
 - **Consumer path:** schemas, events, generated outputs, docs, clients agree with new behavior.
 - **Verification path:** tests/checks exercise the real collaborator chain for the readiness target.
@@ -44,7 +44,7 @@ Finding classes:
 
 These are correctness findings when they make work wrong, unused, or unverifiable.
 
-Path chain definition: [`workflow-kernel.md`](workflow-kernel.md) § Path Map Chain.
+Path chain definition: [`workflow-kernel.md`](workflow-kernel.md) § Change Cone.
 
 ## Change Sizing
 
@@ -68,7 +68,7 @@ Inspect evidence itself:
 user-facing instruction. Use it when that risk is present; do not create a
 comment review ritual for unrelated code changes.
 
-Loads comment rules from `do-it-code-quality` § Comments. Finding shape: severity / location / cause class / required fix. Cause classes: `what` / `history` / `task-ref` / `tombstone` / `orphan-todo` / `fix-narrative` / `stale-invariant` / `broken-reference`.
+Loads comment rules from [`causal-change.md`](causal-change.md) § Comments. Finding shape: severity / location / cause class / required fix. Cause classes: `what` / `history` / `task-ref` / `tombstone` / `orphan-todo` / `fix-narrative` / `stale-invariant` / `broken-reference`.
 
 `comments-lint.sh` is advisory pre-filter; lens is source of truth even when hook is clean.
 
@@ -76,7 +76,7 @@ Loads comment rules from `do-it-code-quality` § Comments. Finding shape: severi
 
 **When:** Heavy tier and plan/diff introduces new dependency, datastore, framework, runtime, or protocol.
 
-Loads `architecture-strategist` / plan research trail when present. **Audit duty only:** verify the plan's Research trail exists — search action, ≥2 candidates with recency signals, user confirmation or `PENDING USER CONFIRMATION`. Rule body lives in `do-it-decide` plan-card guidance; do not re-derive candidate rules here.
+Loads `architecture-strategist` / plan research trail when present. **Audit duty only:** verify the plan's Research trail exists — search action, ≥2 candidates with recency signals, user confirmation or `PENDING USER CONFIRMATION`. Rule body lives in [`decision-resolvers.md`](decision-resolvers.md) § Research-first surfaces; do not re-derive candidate rules here.
 
 Findings use standard shape. Memory-pick without fresh search is `Blocking`.
 
@@ -120,7 +120,7 @@ Create external issues only when user asks or repo workflow owns creation.
 ## Review Rules (Lens-Level)
 
 - Missing/stale forecast, path map, readiness target, or final evidence is a finding when it can hide live-path, state, contract, operator, or evidence-drift bugs.
-- Missing decision coverage: user decision, requirement, or brainstorm item absent without deferral or evidence.
+- Missing decision coverage: user decision, requirement, or named contract item absent without deferral or evidence. Grill / brainstorm leftovers are not required Spec sources.
 - Unreachable new code is a finding even if unit tests pass.
 - Partially wired producer → contract → transport → consumer → surface is a finding.
 - Evidence Ledger overclaims or hides `NOT_VERIFIED` work.

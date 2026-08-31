@@ -195,6 +195,46 @@ case "$?" in
   *)  _fail "subshell crashed (exit=$?)" ;;
 esac
 
+echo "Case 7: FORCE_COVERAGE=partial rewrites complete without jq"
+(
+  export DO_IT_FORCE_NO_JQ=1
+  source "$EVENTS"
+  repo="$(_setup_repo)"
+  do_it_observed_epoch_bump "$repo" >/dev/null
+  DO_IT_EVENT_FORCE_COVERAGE=partial DO_IT_EVENT_HOST=kimi \
+    do_it_runtime_event_append test observed "exit unavailable" "$repo"
+  line="$(head -n1 "$(do_it_evidence_log_path "$repo")")"
+  [[ "$(jq -r .worktree.coverage <<<"$line")" == "partial" ]] || exit 71
+  [[ "$(jq -r .kind <<<"$line")" == "test" ]] || exit 72
+)
+case "$?" in
+  0)  _pass "jq-free FORCE_COVERAGE=partial rewrites complete coverage" ;;
+  71) _fail "jq-free forced coverage was not partial" ;;
+  72) _fail "jq-free forced coverage kind mismatch" ;;
+  *)  _fail "jq-free coverage case crashed (exit=$?)" ;;
+esac
+
+echo "Case 8: evidence.jsonl file symlink is refused"
+(
+  source "$EVENTS"
+  repo="$(_setup_repo)"
+  _do_it_runtime_prepare "$repo" || exit 81
+  outside="$TMP_ROOT/escaped-evidence.jsonl"
+  : > "$outside"
+  ln -s "$outside" "$repo/.do-it/runtime/events/evidence.jsonl"
+  st=0
+  do_it_runtime_event_append edit observed "should not escape" "$repo" || st=$?
+  [[ "$st" -eq 0 ]] || exit 82
+  [[ ! -s "$outside" ]] || exit 83
+)
+case "$?" in
+  0)  _pass "evidence.jsonl file symlink does not escape" ;;
+  81) _fail "runtime prepare failed for symlink case" ;;
+  82) _fail "symlink append returned nonzero" ;;
+  83) _fail "evidence append followed a file symlink outside the repo" ;;
+  *)  _fail "evidence symlink case crashed (exit=$?)" ;;
+esac
+
 echo
 echo "Summary: $PASS passed, $FAIL failed"
 if [[ "$FAIL" -gt 0 ]]; then

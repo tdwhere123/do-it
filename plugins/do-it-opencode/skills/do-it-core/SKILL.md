@@ -36,10 +36,15 @@ Shared delegation, findings, and change-cone vocabulary:
   Counters: thrashing, cover-up-edit
 
 ## Precedence
+<!-- do-it-contract:core.precedence -->
 
-Host/system safety → current explicit user intent and action boundary → current
-repository truth and instructions → active task contract → adaptive deltas →
-specialist defaults. Adaptive policy never weakens the core or a higher source.
+Host/system safety → current explicit user intent and action boundary →
+current repository truth and instructions → active task contract →
+adaptive deltas → specialist defaults.
+
+Core (honesty, boundary, evidence, no-write) constrains every rung: a
+contract, repo instruction, or adaptive delta cannot waive it. Adaptive
+policy never weakens the core or a higher source.
 
 ## Applying The Rules
 

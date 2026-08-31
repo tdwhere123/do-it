@@ -56,6 +56,21 @@ test("architecture skill exists and is shorter than the 109-line baseline", () =
   assert.ok(lines < 109, `SKILL.md is ${lines} lines; must be shorter than 109`);
 });
 
+test("Change & Cutover owns net-growth; Governance is guards and honest path", () => {
+  const text = readSkill();
+  const change = text.match(/\*\*Change & Cutover\*\*[^\n]+/);
+  const governance = text.match(/\*\*Governance\*\*[^\n]+/);
+  assert.ok(change, "missing Change & Cutover row");
+  assert.ok(governance, "missing Governance row");
+  assert.match(change[0], /new noun/);
+  assert.match(change[0], /net-growth/);
+  assert.match(governance[0], /honest path/);
+  assert.doesNotMatch(governance[0], /new noun/);
+  const rationale = readRationale();
+  assert.match(rationale, /\*\*Change & Cutover\*\*.*new noun/);
+  assert.match(rationale, /\*\*Governance\*\*.*L6 Guards, L7 Governed path/);
+});
+
 test("hot path names the five decision surfaces in order", () => {
   const text = readSkill();
   const indexes = SURFACES.map((name) => text.indexOf(name));

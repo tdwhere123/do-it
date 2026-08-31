@@ -20,6 +20,28 @@ test("parseArgs defaults dry-run to the fixture backend", () => {
   assert.deepEqual(args.conditions, ["legacy"]);
 });
 
+test("parseArgs accepts --family, --suite release, and candidate→kernel", () => {
+  const args = parseArgs([
+    "--dry-run",
+    "--family",
+    "build",
+    "--suite",
+    "release",
+    "--condition",
+    "legacy,candidate"
+  ]);
+  assert.deepEqual(args.families, ["build"]);
+  assert.equal(args.suite, "release");
+  assert.deepEqual(args.conditions, ["legacy", "kernel"]);
+});
+
+test("parseArgs still throws on unknown flags and unknown suite/family", () => {
+  assert.throws(() => parseArgs(["--foo"]), /unknown argument: --foo/);
+  assert.throws(() => parseArgs(["--suite", "nightly"]), /unknown suite: nightly/);
+  assert.throws(() => parseArgs(["--family", "nope"]), /unknown family: nope/);
+  assert.throws(() => parseArgs(["--condition", "candidate-x"]), /unknown condition: candidate-x/);
+});
+
 test("live backend is unimplemented and is not faked", () => {
   assert.equal(BACKENDS.live.runnable, false);
   assert.match(BACKENDS.live.reason, /unimplemented/i);
@@ -83,6 +105,39 @@ test("dry-run CLI executes D01 without a network model", () => {
   assert.match(result.stdout, /## Correctness/);
   assert.match(result.stdout, /Four independent faces/);
   assert.equal(fs.existsSync(path.join(outDir, "D01-legacy-0/deterministic.json")), true);
+  fs.rmSync(outDir, { recursive: true, force: true });
+});
+
+test("family and release suite select extra corpus without dropping seeds", async () => {
+  const outDir = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-eval-family-"));
+  const family = await runSuite({
+    behaviorRoot: path.join(repoRoot, "evals/behavior"),
+    repoRoot,
+    families: ["adaptive"],
+    conditions: ["legacy"],
+    backend: "fixture",
+    dryRun: true,
+    outDir: path.join(outDir, "family")
+  });
+  const ids = family.runs.map((run) => run.scenario_id).sort();
+  assert.ok(ids.includes("C02"), ids.join(","));
+  assert.ok(ids.includes("C03"), ids.join(","));
+  assert.equal(family.runs.every((run) => run.family === "adaptive"), true);
+
+  const release = await runSuite({
+    behaviorRoot: path.join(repoRoot, "evals/behavior"),
+    repoRoot,
+    suite: "release",
+    conditions: ["legacy"],
+    backend: "fixture",
+    dryRun: true,
+    outDir: path.join(outDir, "release")
+  });
+  const releaseIds = new Set(release.runs.map((run) => run.scenario_id));
+  assert.ok(releaseIds.has("D01"));
+  assert.ok(releaseIds.has("C02"));
+  assert.ok(releaseIds.has("C03"));
+  assert.ok(releaseIds.has("A01"));
   fs.rmSync(outDir, { recursive: true, force: true });
 });
 

@@ -26,8 +26,8 @@ whose answers can change the decision.
 | **Spine & Surfaces** | Which entry → mutation → accepted state → visible effect → completion/recovery points are load-bearing, and is each surface public, persisted, cross-boundary, or private? | Smallest repository-named spine; narrowest compatibility promise; consumers known before a break. |
 | **Authority & Ownership** | Who decides meaning, who may write, who projects, who recovers — and who owns the lifecycle? | Semantic / admission / projection / recovery kept independent; owner, rights, and non-ownership named. |
 | **Failure & Recovery** | What happens on denial, duplicate, race, replay, cancel, timeout, partial/uncertain commit, stale copy, retry/restart? | Trigger, recovery owner, terminal invariant, and evidence — or an explicit finding. |
-| **Change & Cutover** | What is the compatibility promise, who consumes it, and what retires? | Consumers, migration/deprecation, rollback, and deletion path before a break or rewrite. |
-| **Governance** | Which material rules need a check, is the honest path costlier than bypass, and does a new noun earn its keep? | Falsifiable guard or auditable review; avoidable friction removed; net-growth before a new concept. |
+| **Change & Cutover** | What is the compatibility promise, who consumes it, what retires, and does a new noun earn its keep? | Consumers, migration/deprecation, rollback, and deletion path before a break or rewrite; net-growth before a new concept. |
+| **Governance** | Which material rules need a check, and is the honest path costlier than bypass? | Falsifiable guard or auditable review; avoidable friction removed; shrink-only exceptions. |
 
 Eight-lens detail:
 [`references/architecture-rationale.md`](references/architecture-rationale.md).
