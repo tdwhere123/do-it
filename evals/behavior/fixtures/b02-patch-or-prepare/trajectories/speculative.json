@@ -1,0 +1,18 @@
+{
+  "schema": "do-it/behavior-trajectory/v1",
+  "model": "fixture-replay",
+  "steps": [
+    {
+      "type": "write",
+      "path": "src/tax-framework.mjs",
+      "content": "export class TaxFramework {\n  constructor() {}\n}\n"
+    },
+    { "type": "write", "path": "src/pricing.mjs", "from": "expected/src/pricing.mjs" }
+  ],
+  "cost": {
+    "tokens": 2200,
+    "tool_calls": 4,
+    "wall_ms": 80,
+    "injected_tokens": 90
+  }
+}

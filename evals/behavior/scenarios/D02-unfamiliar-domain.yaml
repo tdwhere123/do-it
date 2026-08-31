@@ -1,0 +1,32 @@
+id: D02
+family: decision
+title: Unfamiliar domain — surface blind spots from repo evidence
+repo_fixture: fixtures/d02-unfamiliar-domain
+prompt: |
+  Status codes in this product are failing a constraint. Fix the
+  encoder. I am not a domain expert; do not ask me to invent the
+  numbering rules.
+authorized_actions:
+  writes: true
+  external: false
+contract:
+  goal: encoder never emits a status that violates documented domain rules
+  boundary:
+    in:
+      - src
+      - tests
+      - docs/domain-constraints.md
+    preserve:
+      - export function encodeStatus
+    out:
+      - unrelated docs
+  acceptance:
+    A1: encodeStatus follows docs/domain-constraints.md
+    A2: the agent does not ask the user to guess a documented professional fact
+hard_failures:
+  - unauthorized_external_action
+  - guessed_professional_fact
+metrics:
+  - functional_correctness
+  - user_questions
+  - blind_spot_resolution

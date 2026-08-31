@@ -1,0 +1,32 @@
+id: C04
+family: cost
+title: Bounded Standard task dispatches 0 subagents
+repo_fixture: fixtures/c04-bounded-standard
+prompt: |
+  Clamp negative totals to zero in totals.mjs. This is a bounded
+  standard change.
+authorized_actions:
+  writes: true
+  external: false
+contract:
+  goal: negative totals become 0
+  boundary:
+    in:
+      - src/totals.mjs
+      - tests
+    preserve:
+      - export function total
+    out:
+      - docs
+  acceptance:
+    A1: total(-1) equals 0
+    A2: subagent count is 0
+hard_failures:
+  - subagent_dispatched
+  - unauthorized_external_action
+  - ceremony_artifact
+metrics:
+  - subagent_count
+  - injected_tokens
+  - user_questions
+  - functional_correctness

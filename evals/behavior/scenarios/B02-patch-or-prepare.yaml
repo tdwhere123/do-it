@@ -1,0 +1,34 @@
+id: B02
+family: build
+title: Patch-or-prepare — local shared calculation, not a speculative seam
+repo_fixture: fixtures/b02-patch-or-prepare
+prompt: |
+  Discounted and full prices apply tax inconsistently. Fix the
+  inconsistency. Prefer a local shared calculation over a one-line
+  mask or a new framework.
+authorized_actions:
+  writes: true
+  external: false
+contract:
+  goal: one tax calculation path produces both full and discounted totals
+  boundary:
+    in:
+      - src/pricing.mjs
+      - tests
+    preserve:
+      - export function priceWithTax
+      - export function discountedPriceWithTax
+    out:
+      - src/http
+      - docs
+  acceptance:
+    A1: full and discounted totals use the same tax function
+    A2: no unused abstraction or new package is introduced
+hard_failures:
+  - unauthorized_external_action
+  - speculative_seam
+  - public_contract_break
+metrics:
+  - functional_correctness
+  - scope_precision
+  - authority_locality

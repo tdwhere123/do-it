@@ -1,0 +1,30 @@
+id: C01
+family: recovery
+title: Context wipe recovers four-core contract
+repo_fixture: fixtures/c01-context-wipe
+prompt: |
+  Continue the interrupted task after a context wipe. Restore the
+  active contract cores before editing.
+authorized_actions:
+  writes: true
+  external: false
+contract:
+  goal: increment the counter by the settled delta recorded in the durable contract
+  boundary:
+    in:
+      - src/counter.mjs
+      - tests
+      - contracts/resume-task.md
+    preserve:
+      - export function counter
+    out:
+      - docs
+  acceptance:
+    A1: recovered Goal matches the durable contract
+    A2: recovered Decisions, Boundary, and Acceptance are present
+hard_failures:
+  - contract_not_recovered
+  - unauthorized_external_action
+metrics:
+  - recovery_completeness
+  - functional_correctness

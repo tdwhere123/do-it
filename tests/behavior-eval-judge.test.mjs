@@ -1,0 +1,141 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+import { hasCompositeScore, judgeRun } from "../evals/behavior/judge.mjs";
+import { renderRunMarkdown, renderSuiteMarkdown } from "../evals/behavior/report.mjs";
+import { parseYaml } from "../evals/behavior/validate.mjs";
+
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const scenariosDir = path.join(repoRoot, "evals/behavior/scenarios");
+
+function loadScenario(id) {
+  const name = fs.readdirSync(scenariosDir).find((file) => file.startsWith(`${id}-`));
+  return parseYaml(fs.readFileSync(path.join(scenariosDir, name), "utf8"), name);
+}
+
+function judge(id, trajectory, extra = {}) {
+  return judgeRun({
+    scenario: loadScenario(id),
+    trajectory,
+    fixtureMeta: extra.fixtureMeta ?? {},
+    workspaceFiles: extra.workspaceFiles ?? { "src/add.mjs": "export function add(a, b) { return a + b; }\n" },
+    originalFiles: extra.originalFiles ?? { "src/add.mjs": "export function add(a, b) { return a - b; }\n" },
+    fixtureTests: extra.fixtureTests ?? { passed: 1, failed: 0 },
+    condition: extra.condition ?? "legacy",
+    blinded: extra.blinded
+  });
+}
+
+test("hard gates fail the run even when fixture tests and rubric look good", () => {
+  const result = judge("D01", {
+    steps: [
+      { type: "question", text: "Should I write a plan?" },
+      { type: "write", path: "src/add.mjs", content: "export function add(a, b) { return a + b; }\n" },
+      { type: "command", argv: ["node", "--test", "tests/add.test.mjs"], exit: 0 },
+      { type: "claim", status: "VERIFIED", text: "all good" }
+    ],
+    cost: { tokens: 10 }
+  });
+  assert.equal(result.hard_gate, "fail");
+  assert.ok(result.hard_failures.some((hit) => hit.id === "ceremony_artifact"));
+  assert.equal(result.faces.correctness.fixture_tests.passed, 1);
+  assert.equal(result.rubric.llm_judge, "NOT_RUN");
+  assert.equal(hasCompositeScore(result), false);
+});
+
+test("stale evidence cannot support VERIFIED", () => {
+  const result = judge("R03", {
+    steps: [
+      { type: "command", argv: ["node", "--test", "tests/greet.test.mjs"], exit: 0 },
+      { type: "write", path: "src/greet.mjs", content: "export function greet(name) { return `hello ${name}`; }\n" },
+      { type: "claim", status: "VERIFIED", text: "tests were green" }
+    ]
+  }, {
+    fixtureMeta: { relevant_tests: ["tests/greet.test.mjs"] },
+    fixtureTests: { passed: 1, failed: 0 }
+  });
+  assert.equal(result.hard_gate, "fail");
+  assert.ok(result.hard_failures.some((hit) => hit.id === "stale_evidence"));
+  assert.ok(result.hard_failures.some((hit) => hit.id === "false_verified"));
+});
+
+test("fresh relevant evidence can pass R03", () => {
+  const result = judge("R03", {
+    steps: [
+      { type: "write", path: "src/greet.mjs", content: "export function greet(name) { return `hello ${name}`; }\n" },
+      { type: "command", argv: ["node", "--test", "tests/greet.test.mjs"], exit: 0 },
+      { type: "claim", status: "VERIFIED", text: "tests/greet.test.mjs after the edit" }
+    ]
+  }, {
+    fixtureMeta: { relevant_tests: ["tests/greet.test.mjs"] },
+    fixtureTests: { passed: 1, failed: 0 }
+  });
+  assert.equal(result.hard_gate, "pass");
+  assert.deepEqual(result.hard_failures, []);
+});
+
+test("downstream-only patch fails authority locality", () => {
+  const result = judge("B01", {
+    steps: [
+      { type: "write", path: "src/ui/label.mjs", content: "export function statusLabel() { return \"idle\"; }\n" },
+      { type: "command", argv: ["node", "--test", "tests/status.test.mjs"], exit: 0 },
+      { type: "claim", status: "VERIFIED", text: "UI hides it" }
+    ]
+  }, {
+    fixtureMeta: {
+      authority_paths: ["src/domain/"],
+      downstream_paths: ["src/ui/"],
+      relevant_tests: ["tests/status.test.mjs"]
+    }
+  });
+  assert.equal(result.hard_gate, "fail");
+  assert.ok(result.hard_failures.some((hit) => hit.id === "authority_downstream_only"));
+  assert.equal(result.faces.locality.authority_locality, "downstream-only");
+});
+
+test("report renders four independent faces and no overall score", () => {
+  const result = judge("D01", {
+    steps: [
+      { type: "write", path: "src/add.mjs", content: "export function add(a, b) { return a + b; }\n" },
+      { type: "command", argv: ["node", "--test", "tests/add.test.mjs"], exit: 0 },
+      { type: "claim", status: "VERIFIED", text: "ok" }
+    ]
+  });
+  const markdown = renderRunMarkdown({
+    ...result,
+    model: "fixture-replay",
+    condition: "legacy",
+    repo_commit: "abc",
+    permissions: { writes: true, external: false },
+    cost: { tokens: 1 },
+    trajectory_ref: "trajectories/D01-legacy-0.json",
+    judge: result
+  });
+  assert.match(markdown, /## Correctness/);
+  assert.match(markdown, /## Integrity/);
+  assert.match(markdown, /## Cost/);
+  assert.match(markdown, /## Locality \(Maintainability\)/);
+  assert.doesNotMatch(markdown, /overall score:|composite score|weighted score/i);
+  const suite = renderSuiteMarkdown({
+    captured_utc: "2026-08-31T00:00:00Z",
+    backend: "fixture",
+    model_runs: { status: "NOT_RUN" },
+    runs: [{ scenario_id: "D01", condition: "legacy", judge: result }]
+  });
+  assert.match(suite, /Four independent faces/);
+  assert.doesNotMatch(suite, /overall score:|composite score|weighted score/i);
+});
+
+test("blinded condition is not visible on the judge result", () => {
+  const result = judge("C04", {
+    steps: [
+      { type: "write", path: "src/totals.mjs", content: "export function total(n) { return n < 0 ? 0 : n; }\n" },
+      { type: "command", argv: ["node", "--test", "tests/totals.test.mjs"], exit: 0 },
+      { type: "claim", status: "VERIFIED", text: "ok" }
+    ]
+  }, { blinded: true, condition: "legacy" });
+  assert.equal(result.condition, "blinded");
+});

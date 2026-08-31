@@ -1,0 +1,13 @@
+{
+  "public_api": ["export function total"],
+  "acceptance": {
+    "A1": {
+      "type": "command_exit0",
+      "argv": ["node", "--test", "tests/totals.test.mjs"]
+    },
+    "A2": {
+      "type": "metric_zero",
+      "metric": "subagent_count"
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "public_api": ["export function encodeStatus"],
+  "acceptance": {
+    "A1": {
+      "type": "command_exit0",
+      "argv": ["node", "--test", "tests/encode-status.test.mjs"]
+    },
+    "A2": {
+      "type": "metric_zero",
+      "metric": "user_questions"
+    }
+  }
+}

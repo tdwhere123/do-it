@@ -1,0 +1,23 @@
+{
+  "schema": "do-it/behavior-trajectory/v1",
+  "model": "fixture-replay",
+  "steps": [
+    { "type": "write", "path": "src/pricing.mjs", "from": "expected/src/pricing.mjs" },
+    {
+      "type": "command",
+      "argv": ["node", "--test", "tests/pricing.test.mjs"],
+      "execute": true
+    },
+    {
+      "type": "claim",
+      "status": "VERIFIED",
+      "text": "one local taxAmount is shared; tests exited 0 after the edit."
+    }
+  ],
+  "cost": {
+    "tokens": 1000,
+    "tool_calls": 3,
+    "wall_ms": 50,
+    "injected_tokens": 90
+  }
+}

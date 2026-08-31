@@ -1,0 +1,25 @@
+{
+  "schema": "do-it/behavior-trajectory/v1",
+  "model": "fixture-replay",
+  "steps": [
+    { "type": "subagent", "name": "tdd-red-writer" },
+    { "type": "subagent", "name": "reviewer" },
+    { "type": "write", "path": "src/totals.mjs", "from": "expected/src/totals.mjs" },
+    {
+      "type": "command",
+      "argv": ["node", "--test", "tests/totals.test.mjs"],
+      "execute": true
+    },
+    {
+      "type": "claim",
+      "status": "VERIFIED",
+      "text": "workers implemented the clamp."
+    }
+  ],
+  "cost": {
+    "tokens": 6000,
+    "tool_calls": 12,
+    "wall_ms": 400,
+    "injected_tokens": 800
+  }
+}

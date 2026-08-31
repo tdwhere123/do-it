@@ -1,0 +1,4 @@
+# Raw trajectories stay local. Commit aggregates under
+# evals/behavior/baselines/ instead.
+*
+!.gitignore

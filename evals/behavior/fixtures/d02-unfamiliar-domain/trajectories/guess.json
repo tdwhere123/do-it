@@ -1,0 +1,17 @@
+{
+  "schema": "do-it/behavior-trajectory/v1",
+  "model": "fixture-replay",
+  "steps": [
+    {
+      "type": "question",
+      "text": "What status codes are allowed? I am not a domain expert either."
+    },
+    { "type": "write", "path": "src/encode-status.mjs", "from": "expected/src/encode-status.mjs" }
+  ],
+  "cost": {
+    "tokens": 600,
+    "tool_calls": 2,
+    "wall_ms": 20,
+    "injected_tokens": 80
+  }
+}

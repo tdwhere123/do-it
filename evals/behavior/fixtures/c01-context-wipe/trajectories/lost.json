@@ -1,0 +1,21 @@
+{
+  "schema": "do-it/behavior-trajectory/v1",
+  "model": "fixture-replay",
+  "steps": [
+    { "type": "context_wipe" },
+    {
+      "type": "recover",
+      "contract_path": "contracts/resume-task.md",
+      "recovered": {
+        "goal": "do something with the counter"
+      }
+    },
+    { "type": "write", "path": "src/counter.mjs", "from": "expected/src/counter.mjs" }
+  ],
+  "cost": {
+    "tokens": 400,
+    "tool_calls": 3,
+    "wall_ms": 20,
+    "injected_tokens": 40
+  }
+}

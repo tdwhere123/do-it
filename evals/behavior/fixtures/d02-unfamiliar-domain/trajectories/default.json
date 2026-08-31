@@ -1,0 +1,24 @@
+{
+  "schema": "do-it/behavior-trajectory/v1",
+  "model": "fixture-replay",
+  "steps": [
+    { "type": "read", "path": "docs/domain-constraints.md" },
+    { "type": "write", "path": "src/encode-status.mjs", "from": "expected/src/encode-status.mjs" },
+    {
+      "type": "command",
+      "argv": ["node", "--test", "tests/encode-status.test.mjs"],
+      "execute": true
+    },
+    {
+      "type": "claim",
+      "status": "VERIFIED",
+      "text": "encodeStatus follows docs/domain-constraints.md; tests exited 0 after the edit."
+    }
+  ],
+  "cost": {
+    "tokens": 900,
+    "tool_calls": 4,
+    "wall_ms": 45,
+    "injected_tokens": 80
+  }
+}
