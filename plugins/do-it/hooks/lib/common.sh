@@ -337,7 +337,8 @@ DO_IT_ADVISORY_MODE="${DO_IT_ADVISORY_MODE:-auto}"
 # without putting them in model context. `thin` skips the classifier.
 # Invalid or empty values fail-open to legacy so routing goldens stay green.
 # Session keys owned by the kernel path:
-#   kernel_hash, active_task_hash (adaptive_profile_hash lives in adaptive-context).
+#   kernel_hash (digest of do_it_kernel_body), active_task_hash
+#   (adaptive_profile_hash lives in adaptive-context).
 do_it_router_mode() {
   case "${DO_IT_ROUTER_MODE:-legacy}" in
     shadow|thin) printf '%s' "$DO_IT_ROUTER_MODE" ;;
@@ -364,7 +365,7 @@ do_it_kernel_task_body() {
 # Args: <session_id> <cwd> <prompt> [transcript_path].
 do_it_kernel_context_collect() {
   local session_id="${1:-}" cwd="${2:-.}" prompt="${3:-}" transcript="${4:-}"
-  local mode no_write last_kernel kernel_body current_task last_task task_line text=""
+  local mode no_write last_kernel kernel_body kernel_digest current_task last_task task_line text=""
   mode="$(do_it_router_mode)"
   case "$mode" in
     shadow|thin) ;;
@@ -388,14 +389,23 @@ do_it_kernel_context_collect() {
   fi
 
   kernel_body="$(do_it_kernel_body)"
+  kernel_digest=""
+  if declare -F _do_it_sha256_hex >/dev/null 2>&1; then
+    kernel_digest="$(printf '%s' "$kernel_body" | _do_it_sha256_hex 2>/dev/null || true)"
+  elif command -v sha256sum >/dev/null 2>&1; then
+    kernel_digest="$(printf '%s' "$kernel_body" | sha256sum 2>/dev/null | awk '{print $1}')"
+  elif command -v shasum >/dev/null 2>&1; then
+    kernel_digest="$(printf '%s' "$kernel_body" | shasum -a 256 2>/dev/null | awk '{print $1}')"
+  fi
+  [[ -n "$kernel_digest" ]] || kernel_digest="v1"
   last_kernel="$(do_it_session_state_get "$session_id" kernel_hash)"
-  if [[ "$last_kernel" != "v1" ]]; then
+  if [[ "$last_kernel" != "$kernel_digest" ]]; then
     if [[ -n "$text" ]]; then
       text="${text}"$'\n'"${kernel_body}"
     else
       text="$kernel_body"
     fi
-    do_it_session_state_set "$session_id" kernel_hash "v1" 2>/dev/null || true
+    do_it_session_state_set "$session_id" kernel_hash "$kernel_digest" 2>/dev/null || true
   fi
 
   current_task=""

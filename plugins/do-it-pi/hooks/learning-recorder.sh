@@ -380,9 +380,17 @@ lr_map_evidence_kind() {
   esac
 }
 
+lr_jsonl_contains_id() {
+  local file="$1" id="$2"
+  [[ -f "$file" && -n "$id" ]] || return 1
+  jq -r '.event_id // empty' "$file" 2>/dev/null | grep -Fxq -- "$id"
+}
+
 lr_harvest_evidence() {
   local cwd="$1" session_id="$2"
   local runtime evidence harvest watermark="" saw=0 line ekind esource summary mapped signals e_id
+  local harvest_file
+  local -a scan_files=()
   [[ "${DO_IT_HAVE_JQ:-0}" == "1" ]] || return 0
   runtime="$(lr_runtime_dir "$cwd")" || return 0
   evidence="${runtime}/events/evidence.jsonl"
@@ -390,35 +398,57 @@ lr_harvest_evidence() {
   [[ -f "$evidence" ]] || return 0
   [[ -f "$harvest" ]] && watermark="$(tr -d '\n' < "$harvest" 2>/dev/null || true)"
 
-  while IFS= read -r line || [[ -n "$line" ]]; do
-    [[ -n "$line" ]] || continue
-    if ! printf '%s' "$line" | jq -e . >/dev/null 2>&1; then
-      continue
+  # Resume after the watermark when it is still in the live JSONL or the
+  # newest rotated file. If rotation dropped the id, harvest from the start
+  # of current (and `.1` when present) instead of skipping then fast-forwarding.
+  if [[ -z "$watermark" ]]; then
+    saw=1
+    scan_files=("$evidence")
+  elif lr_jsonl_contains_id "$evidence" "$watermark"; then
+    scan_files=("$evidence")
+  elif [[ -f "${evidence}.1" ]] && lr_jsonl_contains_id "${evidence}.1" "$watermark"; then
+    scan_files=("${evidence}.1" "$evidence")
+  else
+    saw=1
+    if [[ -f "${evidence}.1" ]]; then
+      scan_files=("${evidence}.1" "$evidence")
+    else
+      scan_files=("$evidence")
     fi
-    e_id="$(printf '%s' "$line" | jq -r '.event_id // empty' 2>/dev/null || true)"
-    if [[ -n "$watermark" && "$saw" -eq 0 ]]; then
-      if [[ "$e_id" == "$watermark" ]]; then
-        saw=1
+  fi
+
+  for harvest_file in "${scan_files[@]}"; do
+    [[ -f "$harvest_file" ]] || continue
+    while IFS= read -r line || [[ -n "$line" ]]; do
+      [[ -n "$line" ]] || continue
+      if ! printf '%s' "$line" | jq -e . >/dev/null 2>&1; then
+        continue
       fi
-      continue
-    fi
-    ekind="$(printf '%s' "$line" | jq -r '.kind // empty' 2>/dev/null || true)"
-    esource="$(printf '%s' "$line" | jq -r '.source // empty' 2>/dev/null || true)"
-    summary="$(printf '%s' "$line" | jq -r '.summary // empty' 2>/dev/null || true)"
-    mapped="$(lr_map_evidence_kind "$ekind")"
-    [[ -n "$mapped" ]] || continue
-    lr_source_ok "$esource" || esource="observed"
-    signals=""
-    if [[ "$mapped" == "completion" ]]; then
-      signals="completion-after-edit"
-    elif [[ "$mapped" == "review" ]]; then
-      if printf '%s' "$summary" | grep -qiE 'block'; then
-        signals="review-blocking"
+      e_id="$(printf '%s' "$line" | jq -r '.event_id // empty' 2>/dev/null || true)"
+      if [[ -n "$watermark" && "$saw" -eq 0 ]]; then
+        if [[ "$e_id" == "$watermark" ]]; then
+          saw=1
+        fi
+        continue
       fi
-    fi
-    summary="$(lr_redact_excerpt "$summary" 2>/dev/null || printf '%s' "$summary")"
-    do_it_learning_record "$cwd" "$session_id" "$mapped" "$esource" "$signals" "$summary" ""
-  done < "$evidence"
+      ekind="$(printf '%s' "$line" | jq -r '.kind // empty' 2>/dev/null || true)"
+      esource="$(printf '%s' "$line" | jq -r '.source // empty' 2>/dev/null || true)"
+      summary="$(printf '%s' "$line" | jq -r '.summary // empty' 2>/dev/null || true)"
+      mapped="$(lr_map_evidence_kind "$ekind")"
+      [[ -n "$mapped" ]] || continue
+      lr_source_ok "$esource" || esource="observed"
+      signals=""
+      if [[ "$mapped" == "completion" ]]; then
+        signals="completion-after-edit"
+      elif [[ "$mapped" == "review" ]]; then
+        if printf '%s' "$summary" | grep -qiE 'block'; then
+          signals="review-blocking"
+        fi
+      fi
+      summary="$(lr_redact_excerpt "$summary" 2>/dev/null || printf '%s' "$summary")"
+      do_it_learning_record "$cwd" "$session_id" "$mapped" "$esource" "$signals" "$summary" ""
+    done < "$harvest_file"
+  done
 
   e_id="$(lr_last_evidence_id "$evidence")"
   if [[ -n "$e_id" ]]; then

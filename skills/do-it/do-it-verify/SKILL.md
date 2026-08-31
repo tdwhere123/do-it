@@ -54,6 +54,11 @@ Deferred / reinterpreted items
 VERIFIED | FAILED | NOT_VERIFIED
 ```
 
+Overall `VERIFIED` is illegal unless every material acceptance item maps to
+fresh, relevant, this-worktree, non-mock-only, non-partial evidence. `FAILED`
+means evidence disproves the claim. Missing or incomplete proof is
+`NOT_VERIFIED`, not `FAILED`.
+
 For each mapped item, say why that evidence is relevant, that it ran after
 the last change, that it is from this worktree, and that it is not mock-only.
 Production claims need production-side evidence.

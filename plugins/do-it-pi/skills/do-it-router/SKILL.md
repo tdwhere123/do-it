@@ -19,7 +19,7 @@ pressure. Prefer Light when blast radius is local.
 | --- | --- |
 | **Light** | Small, mechanical, docs-only, or genuinely informational. Inspect → act → targeted check. |
 | **Standard** | Real behavior or design change. Self-select buckets — never brainstorm→grill→plan by default. |
-| **Heavy** | Cross-boundary, interface/release/security/migration, or irreversible closeout. Delegation can be useful at any tier when the task benefits. |
+| **Heavy** | Cross-boundary, interface/release/security/migration, or irreversible closeout. Default 0 workers; at most one targeted second look. |
 
 Do not use an optimistic tier label to downplay a known risk.
 
@@ -39,14 +39,14 @@ Refs (load on demand): [`scope-chain.md`](../references/scope-chain.md), [`workf
 ## First Move
 
 0. If `.do-it/` does not exist in the project root, suggest running
-   `/do-it-handbook init` (or `/do-it-handbook`). This scaffolds the
-   `.do-it/` directory tree including handbook templates, `CONTEXT.md`,
-   worklog, and task-artifact directories. The agent should not create
-   `.do-it/` silently — tell the user what it will create and why, then
-   proceed when acknowledged. Skip if the project is a one-shot script
-   with no cross-session need.
+   `/do-it-handbook init` (or `/do-it-handbook`). This scaffolds CONTEXT,
+   handbook, worklog, and plans. The agent should not create `.do-it/`
+   silently — tell the user what it will create and why, then proceed when
+   acknowledged. Skip if the project is a one-shot script with no
+   cross-session need.
 1. Read current truth (files, diffs, tests) — do not ask for readable facts.
-2. Decide whether a tier, skill, worker, or parallel slice would materially help.
+2. Default 0 workers; at most one targeted second look. Decide whether a
+   tier, skill, or that one look would materially help.
 3. Use only the useful pieces, then proceed. Do not narrate skipped workflow by default.
 4. Ask a user question only when a material choice cannot be recovered locally.
 
@@ -60,8 +60,9 @@ record: `core §r-boundary`.
 <!-- do-it-contract:router.delegation -->
 <!-- do-it-contract:router.shared-write-owner -->
 
-Parent owns integration. For shared writes, name one owner. Delegation
-guidance: [`../references/workflow-kernel.md`](../references/workflow-kernel.md) § Delegation Boundary.
+Parent owns integration. For shared writes, name one owner. Default 0
+workers; at most one targeted second look. Delegation guidance:
+[`../references/workflow-kernel.md`](../references/workflow-kernel.md) § Delegation Budget.
 
 ## Output
 

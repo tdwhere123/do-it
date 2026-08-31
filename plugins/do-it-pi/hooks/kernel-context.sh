@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Compact kernel injection for DO_IT_ROUTER_MODE=shadow|thin.
-# Once per session (kernel_hash). Active-task re-injects on pointer change.
+# Once per session (digest of kernel body). Active-task re-injects on pointer change.
 # No-write reminder is every turn and is never dropped by once-dedup.
 # Missing profile/active-task adds no extra lines. Fail-open: never crash.
 

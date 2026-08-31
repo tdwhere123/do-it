@@ -9,6 +9,7 @@ const repoRoot = path.resolve(
 	path.dirname(fileURLToPath(import.meta.url)),
 	"../..",
 );
+const KERNEL_NEEDLE = /Do-it kernel: read current repository truth/;
 const indexUrl = pathToFileURL(
 	path.join(repoRoot, "plugins/do-it-pi/.test-dist/extensions/index.js"),
 ).href;
@@ -235,6 +236,36 @@ test("root lifecycle injects bootstrap once, preserves ToolResult arrays, and qu
 		);
 	} finally {
 		fs.rmSync(cwd, { recursive: true, force: true });
+	}
+});
+
+test("shadow and thin skip bootstrap, spawn prompt-submit, and inject the kernel", async () => {
+	for (const mode of ["shadow", "thin"]) {
+		const cwd = fs.mkdtempSync(path.join(os.tmpdir(), `do-it-pi-${mode}-`));
+		const pi = fakePi();
+		createDoItPiExtension({
+			env: { HOME: cwd, DO_IT_ROUTER_MODE: mode },
+			pluginRoot: repoRoot,
+		})(pi.api);
+		const ctx = fakeContext(cwd, `${mode}-session`);
+		ctx.model = { provider: "openrouter", id: "claude-sonnet-4" };
+		try {
+			await pi.handlers.get("session_start")({}, ctx);
+			const first = await pi.handlers.get("before_agent_start")(
+				{ prompt: "Implement src/auth.ts token refresh" },
+				ctx,
+			);
+			assert.ok(first?.message?.content, `${mode} must inject prompt context`);
+			assert.doesNotMatch(first.message.content, /<do-it-bootstrap>/);
+			assert.match(first.message.content, KERNEL_NEEDLE);
+			assert.doesNotMatch(first.message.content, /skill:\/\/do-it-core/);
+			assert.doesNotMatch(first.message.content, /do-it tier:/);
+			if (mode === "thin") {
+				assert.doesNotMatch(first.message.content, /do-it grill/);
+			}
+		} finally {
+			fs.rmSync(cwd, { recursive: true, force: true });
+		}
 	}
 });
 

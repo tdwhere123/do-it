@@ -7,7 +7,7 @@ independently publishable Pi package.
 
 ## Install
 
-After `npm view @tdwhere/do-it-pi@0.14.2 version` succeeds, install from npm:
+After `npm view @tdwhere/do-it-pi version` succeeds, install from npm:
 
 ```bash
 pi install npm:@tdwhere/do-it-pi

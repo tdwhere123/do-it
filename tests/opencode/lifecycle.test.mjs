@@ -53,6 +53,7 @@ const SESSION_ENV_VARS = [
 	"CURSOR_PLUGIN_DATA",
 	"CLAUDE_PLUGIN_DATA",
 	"PLUGIN_DATA",
+	"DO_IT_ROUTER_MODE",
 ];
 
 function isolateSessionEnv() {
@@ -239,7 +240,95 @@ test("fake host exercises config, bootstrap, hooks, idle notification, and clean
 	}
 });
 
+test("shadow and thin skip bootstrap, inject kernel, and omit classifier text", async () => {
+	const KERNEL_NEEDLE = /Do-it kernel: read current repository truth/;
+	for (const mode of ["shadow", "thin"]) {
+		const cwd = fs.mkdtempSync(path.join(os.tmpdir(), `doit-opencode-${mode}-`));
+		const data = path.join(cwd, "host-data");
+		const restoreEnv = isolateSessionEnv();
+		const previousData = process.env.OPENCODE_DATA;
+		const previousMode = process.env.DO_IT_ROUTER_MODE;
+		process.env.OPENCODE_DATA = data;
+		process.env.DO_IT_ROUTER_MODE = mode;
+		const sessionID = `session/${mode}-kernel`;
+		const host = {
+			directory: cwd,
+			worktree: cwd,
+			client: {
+				session: {
+					get: async () => ({ data: { id: sessionID } }),
+					messages: async () => ({ data: [] }),
+				},
+				tui: { showToast: async () => {} },
+			},
+		};
+		try {
+			const hooks = await DoItOpencodePlugin(host);
+			const messages = [
+				message({ role: "user", sessionID }, [
+					{ type: "text", text: "Implement src/auth.ts token refresh" },
+				]),
+			];
+			await hooks["experimental.chat.messages.transform"]({}, { messages });
+			assert.doesNotMatch(messages[0].parts[0].text, /<do-it-bootstrap>/);
+			const promptOutput = {
+				parts: [
+					{
+						type: "text",
+						text: "Implement src/auth.ts token refresh",
+					},
+				],
+			};
+			await hooks["chat.message"](
+				{
+					sessionID,
+					model: { providerID: "openrouter", modelID: "claude-sonnet-4" },
+				},
+				promptOutput,
+			);
+			assert.match(promptOutput.parts[0].text, KERNEL_NEEDLE);
+			assert.doesNotMatch(promptOutput.parts[0].text, /skill:\/\/do-it-core/);
+			assert.doesNotMatch(promptOutput.parts[0].text, /do-it tier:/);
+			assert.doesNotMatch(promptOutput.parts[0].text, /<do-it-bootstrap>/);
+			if (mode === "thin") {
+				assert.doesNotMatch(promptOutput.parts[0].text, /do-it grill/);
+			}
+			await hooks.dispose();
+		} finally {
+			if (previousData === undefined) delete process.env.OPENCODE_DATA;
+			else process.env.OPENCODE_DATA = previousData;
+			if (previousMode === undefined) delete process.env.DO_IT_ROUTER_MODE;
+			else process.env.DO_IT_ROUTER_MODE = previousMode;
+			restoreEnv();
+			fs.rmSync(cwd, { recursive: true, force: true });
+		}
+	}
+});
+
+function initGit(cwd) {
+	const env = { ...process.env, GIT_CONFIG_GLOBAL: "/dev/null", GIT_CONFIG_SYSTEM: "/dev/null" };
+	for (const args of [
+		["init", "-q"],
+		["config", "user.email", "t@e.com"],
+		["config", "user.name", "t"],
+	]) {
+		const result = spawnSync("git", args, { cwd, env, encoding: "utf8" });
+		assert.equal(result.status, 0, result.stderr);
+	}
+	fs.writeFileSync(path.join(cwd, "README"), "base\n");
+	assert.equal(
+		spawnSync("git", ["add", "README"], { cwd, env, encoding: "utf8" }).status,
+		0,
+	);
+	assert.equal(
+		spawnSync("git", ["commit", "-q", "-m", "base"], { cwd, env, encoding: "utf8" })
+			.status,
+		0,
+	);
+}
+
 function setRecorderEnabled(cwd, sessionID = "feedback-control") {
+	initGit(cwd);
 	const hook = path.join(repoRoot, "hooks", "behavior-feedback.sh");
 	const result = spawnSync("bash", [hook], {
 		cwd,

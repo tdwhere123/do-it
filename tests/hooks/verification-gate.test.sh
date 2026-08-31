@@ -23,7 +23,7 @@ _isolate() {
   rm -rf "$DO_IT_HOOK_DATA"
   unset CLAUDE_PLUGIN_DATA CODEX_HOME CLAUDE_AGENT_CONTEXT CLAUDE_SUBAGENT
   unset KIMI_CODE_HOME KIMI_PLUGIN_ROOT
-  unset DO_IT_DEBUG
+  unset DO_IT_DEBUG DO_IT_EVIDENCE_MODE
 }
 
 _set_state() {
@@ -608,6 +608,28 @@ tx="$DO_IT_HOOK_DATA/tx.jsonl"
 _append_edit > "$tx"
 _append_text "NOT_VERIFIED: live ping unavailable; next action is set LIVE_PING_URL." >> "$tx"
 assert_silent "NOT_VERIFIED stays silent with fresh evidence present" "$(_run_gate v2nv "$tx" false "$repo")"
+rm -rf "$repo"
+
+echo "Case 19: DO_IT_EVIDENCE_MODE=off skips freshness and keeps r-verify"
+_isolate /tmp/doit-gate-v2-modeoff
+_set_state v2modeoff tier Standard last_prompt_kind work
+repo="$(_setup_repo)"
+_observe "$(_observer_payload "$EVIDENCE_FIXTURES/posttool-edit.json" "$repo" "$repo/README")"
+_observe "$(_observer_payload "$EVIDENCE_FIXTURES/posttool-test.json" "$repo")"
+tx="$DO_IT_HOOK_DATA/tx.jsonl"
+_append_edit > "$tx"
+_append_text "task done" >> "$tx"
+export DO_IT_EVIDENCE_MODE=off
+out="$(_run_gate v2modeoff "$tx" false "$repo")"
+unset DO_IT_EVIDENCE_MODE
+assert_advisory "mode=off keeps the r-verify body despite a fresh ledger" "$out"
+if printf '%s\n' "$out" | jq -e '
+  .hookSpecificOutput.additionalContext | contains("candidate, not proof")
+' >/dev/null 2>&1; then
+  _fail "mode=off used mapping reminder instead of r-verify"
+else
+  _pass "mode=off does not switch to mapping"
+fi
 rm -rf "$repo"
 
 if [[ "$FAIL" -gt 0 ]]; then

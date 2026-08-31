@@ -62,6 +62,16 @@ test("verify maps acceptance to fresh worktree evidence", () => {
   assert.match(verify, /\*\*partial\*\*/);
   assert.match(verify, /cannot support `VERIFIED`/);
   assert.match(verify, /Honest `NOT_VERIFIED` names the missing proof/);
+  assert.match(
+    verify,
+    /Overall `VERIFIED` is illegal unless every material acceptance item maps to/,
+  );
+  assert.match(
+    verify,
+    /fresh, relevant, this-worktree, non-mock-only, non-partial evidence/,
+  );
+  assert.match(verify, /`FAILED`\s+means evidence disproves the claim/);
+  assert.match(verify, /Missing or incomplete proof is\s+`NOT_VERIFIED`, not `FAILED`/);
 });
 
 test("R01 locks two-axis independence and rejects a false VERIFIED", () => {

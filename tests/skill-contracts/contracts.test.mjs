@@ -89,6 +89,15 @@ test("child write-boundary and zero-default contracts are anchored", () => {
   assert.ok(anchors.has("do-it-contract:delegation.child-write-boundary"));
 });
 
+test("router restates default 0 / one second look and names bootstrap trees", () => {
+  const router = read("skills/do-it/do-it-router/SKILL.md");
+  assert.match(router, /Default 0 workers; at most one targeted second look/);
+  assert.match(router, /§ Delegation Budget/);
+  assert.doesNotMatch(router, /Delegation Boundary/);
+  assert.match(router, /scaffolds CONTEXT,\s+handbook, worklog, and plans/);
+  assert.doesNotMatch(router, /task-artifact directories/);
+});
+
 test("every bundled agent carries the child contract; expensive ones are not default", () => {
   const files = fs
     .readdirSync(path.join(repoRoot, "agents"))

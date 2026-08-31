@@ -232,7 +232,7 @@ CWD="$(do_it_json_get "$RAW_INPUT" cwd)"
 EVIDENCE_STATUS="none"
 EVIDENCE_DIAG=""
 EVIDENCE_REASON=""
-if [[ -n "$CWD" ]]; then
+if [[ -n "$CWD" ]] && ! do_it_evidence_mode_off; then
   EVIDENCE_LINE="$(do_it_evidence_freshness "$CWD" 2>/dev/null || true)"
   if [[ -n "$EVIDENCE_LINE" ]]; then
     EVIDENCE_STATUS="$(do_it_json_get "$EVIDENCE_LINE" status)"
@@ -240,12 +240,10 @@ if [[ -n "$CWD" ]]; then
     EVIDENCE_REASON="$(do_it_json_get "$EVIDENCE_LINE" reason)"
   fi
   [[ -n "$EVIDENCE_STATUS" ]] || EVIDENCE_STATUS="none"
-  if ! do_it_evidence_mode_off; then
-    DO_IT_EVENT_TASK_ID="$(do_it_active_task_read "$CWD" 2>/dev/null || true)" \
-      do_it_runtime_event_append completion-claim reported \
-      "completion language observed" "$CWD" || true
-    unset DO_IT_EVENT_TASK_ID
-  fi
+  DO_IT_EVENT_TASK_ID="$(do_it_active_task_read "$CWD" 2>/dev/null || true)" \
+    do_it_runtime_event_append completion-claim reported \
+    "completion language observed" "$CWD" || true
+  unset DO_IT_EVENT_TASK_ID
 fi
 
 CAVEAT="This hook does not infer verification from command names."

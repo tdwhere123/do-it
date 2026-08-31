@@ -200,6 +200,47 @@ _assert_empty "symlink learning append is silent" "$out"
 _assert "symlink learning append exits 0" "[[ \"$st\" -eq 0 ]]"
 _assert "learning file symlink did not write outside" "[[ ! -s \"$outside_log\" ]]"
 
+echo "Case 13: missing watermark after rotation harvests current file instead of skip+fast-forward"
+rot_proj="$TMP_ROOT/rotate-project"
+_setup_git_project "$rot_proj"
+_run s-rot '/do-it-retrospective on' "$rot_proj" '{"hook_event_name":"UserPromptExpansion","command_name":"do-it-retrospective"}' >/dev/null
+rot_runtime="$rot_proj/.do-it/runtime"
+mkdir -p "$rot_runtime/events" "$rot_runtime/retrospective"
+printf '%s\n' 'E-gone-rotated' > "$rot_runtime/retrospective/harvest-evidence-id"
+printf '%s\n' '{"schema":1,"event_id":"E-rescued-1","recorded_at":"2026-08-31T00:00:00Z","kind":"edit","source":"observed","host":"claude","summary":"rescued after rotation","worktree":{"head":null,"fingerprint":null,"coverage":"unavailable"}}' \
+  '{"schema":1,"event_id":"E-rescued-2","recorded_at":"2026-08-31T00:00:01Z","kind":"completion-claim","source":"reported","host":"claude","summary":"completion after rotation","worktree":{"head":null,"fingerprint":null,"coverage":"unavailable"}}' \
+  > "$rot_runtime/events/evidence.jsonl"
+rot_learning="$rot_runtime/events/learning.jsonl"
+out="$(_run s-rot 'please implement src/auth.ts token refresh.' "$rot_proj")"
+_assert_empty "rotation harvest is silent" "$out"
+_assert "missing watermark harvests current edit" "jq -s -e 'map(select(.kind==\"edit\" and .summary==\"rescued after rotation\")) | length > 0' \"$rot_learning\" >/dev/null"
+_assert "missing watermark harvests current completion" "jq -s -e 'map(select(.kind==\"completion\" and (.signals|index(\"completion-after-edit\")!=null))) | length > 0' \"$rot_learning\" >/dev/null"
+rot_wm="$(tr -d '\n' < "$rot_runtime/retrospective/harvest-evidence-id")"
+_assert "missing watermark advances to current last id" "[[ \"$rot_wm\" == \"E-rescued-2\" ]]"
+
+echo "Case 14: watermark in rotated .1 harvests after that id plus current"
+rot1_proj="$TMP_ROOT/rotate1-project"
+_setup_git_project "$rot1_proj"
+_run s-rot1 '/do-it-retrospective on' "$rot1_proj" '{"hook_event_name":"UserPromptExpansion","command_name":"do-it-retrospective"}' >/dev/null
+rot1_runtime="$rot1_proj/.do-it/runtime"
+mkdir -p "$rot1_runtime/events" "$rot1_runtime/retrospective"
+printf '%s\n' 'E-wm' > "$rot1_runtime/retrospective/harvest-evidence-id"
+printf '%s\n' '{"schema":1,"event_id":"E-before","recorded_at":"2026-08-31T00:00:00Z","kind":"edit","source":"observed","host":"claude","summary":"before watermark","worktree":{"head":null,"fingerprint":null,"coverage":"unavailable"}}' \
+  '{"schema":1,"event_id":"E-wm","recorded_at":"2026-08-31T00:00:01Z","kind":"edit","source":"observed","host":"claude","summary":"watermark row","worktree":{"head":null,"fingerprint":null,"coverage":"unavailable"}}' \
+  '{"schema":1,"event_id":"E-after-rot","recorded_at":"2026-08-31T00:00:02Z","kind":"edit","source":"observed","host":"claude","summary":"edit after rotation","worktree":{"head":null,"fingerprint":null,"coverage":"unavailable"}}' \
+  > "$rot1_runtime/events/evidence.jsonl.1"
+printf '%s\n' '{"schema":1,"event_id":"E-current","recorded_at":"2026-08-31T00:00:03Z","kind":"completion-claim","source":"reported","host":"claude","summary":"completion on current file","worktree":{"head":null,"fingerprint":null,"coverage":"unavailable"}}' \
+  > "$rot1_runtime/events/evidence.jsonl"
+rot1_learning="$rot1_runtime/events/learning.jsonl"
+out="$(_run s-rot1 'please implement src/auth.ts token refresh.' "$rot1_proj")"
+_assert_empty ".1 watermark harvest is silent" "$out"
+_assert "pre-watermark row is not harvested" "jq -s -e 'map(select(.summary==\"before watermark\")) | length == 0' \"$rot1_learning\" >/dev/null"
+_assert "watermark row is not harvested" "jq -s -e 'map(select(.summary==\"watermark row\")) | length == 0' \"$rot1_learning\" >/dev/null"
+_assert "post-watermark .1 row is harvested" "jq -s -e 'map(select(.kind==\"edit\" and .summary==\"edit after rotation\")) | length > 0' \"$rot1_learning\" >/dev/null"
+_assert "current file after .1 watermark is harvested" "jq -s -e 'map(select(.kind==\"completion\" and .summary==\"completion on current file\")) | length > 0' \"$rot1_learning\" >/dev/null"
+rot1_wm="$(tr -d '\n' < "$rot1_runtime/retrospective/harvest-evidence-id")"
+_assert ".1 watermark advances to current last id" "[[ \"$rot1_wm\" == \"E-current\" ]]"
+
 if [[ "$FAIL" -ne 0 ]]; then
   echo "FAIL: $FAIL test(s) failed" >&2
   exit 1

@@ -201,6 +201,36 @@ else
   _fail "subagent leaked: $out"
 fi
 
+echo "Case 10: kernel_hash stores a body digest; a digest change re-injects"
+_isolate "$TMP_ROOT/data-c10"
+repo="$(_setup_repo)"
+export DO_IT_ROUTER_MODE=shadow
+first="$(_context "$(_run_hook c10 "$repo")")"
+digest="$(jq -r '.kernel_hash // empty' "$DO_IT_HOOK_DATA/sessions/c10/state.json" 2>/dev/null || true)"
+if [[ "$first" == *"$KERNEL_NEEDLE"* \
+   && -n "$digest" \
+   && "$digest" != "v1" \
+   && "$digest" =~ ^[0-9a-f]{64}$ ]]; then
+  _pass "kernel_hash is a SHA-256 digest of the kernel body"
+else
+  _fail "kernel_hash was not a body digest (digest='$digest' first='$first')"
+fi
+second="$(_run_hook c10 "$repo" "continue the helper")"
+if [[ -z "$second" ]]; then
+  _pass "matching digest stays silent"
+else
+  _fail "matching digest re-injected: $second"
+fi
+jq -c '.kernel_hash="deadbeef"' "$DO_IT_HOOK_DATA/sessions/c10/state.json" \
+  > "$DO_IT_HOOK_DATA/sessions/c10/state.json.tmp" \
+  && mv "$DO_IT_HOOK_DATA/sessions/c10/state.json.tmp" "$DO_IT_HOOK_DATA/sessions/c10/state.json"
+third="$(_context "$(_run_hook c10 "$repo" "kernel body changed")")"
+if [[ "$third" == *"$KERNEL_NEEDLE"* ]]; then
+  _pass "changed kernel digest re-injects"
+else
+  _fail "changed digest did not re-inject: $third"
+fi
+
 echo
 echo "Summary: $PASS passed, $FAIL failed"
 if [[ "$FAIL" -gt 0 ]]; then
