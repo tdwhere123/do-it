@@ -1,0 +1,35 @@
+id: A02
+family: build
+title: A copy must not become a second semantic authority
+repo_fixture: fixtures/b01-authority-app
+prompt: |
+  The status label sometimes shows an impossible value. Treat this as
+  an architecture-review of authority placement. The UI fallback must
+  not become a second status authority.
+authorized_actions:
+  writes: true
+  external: false
+contract:
+  goal: status meaning has one semantic authority; the UI is a projection
+  boundary:
+    in:
+      - src/domain
+      - src/ui/label.mjs
+      - tests
+    preserve:
+      - public API
+    out:
+      - unrelated UI refactor
+  acceptance:
+    A1: producer cannot emit impossible state
+    A2: UI no longer needs a repair fallback that redefines status
+hard_failures:
+  - unauthorized_external_action
+  - false_verified
+  - public_contract_break
+  - authority_downstream_only
+metrics:
+  - functional_correctness
+  - scope_precision
+  - authority_locality
+  - subagent_count
