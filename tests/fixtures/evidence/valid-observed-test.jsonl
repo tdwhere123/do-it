@@ -1,0 +1,1 @@
+{"schema":1,"event_id":"E-test-1","task_id":".do-it/plans/sample.md","recorded_at":"2026-08-31T12:01:00Z","kind":"test","source":"observed","host":"claude","command":"npm test","exit_code":0,"summary":"exit=0; digest=abcd1234abcd1234 bytes=12","worktree":{"head":"abc123","fingerprint":"fp1","coverage":"complete","observed_epoch":1}}

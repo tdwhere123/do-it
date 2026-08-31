@@ -1,0 +1,1 @@
+{"schema":1,"event_id":"E-edit-1","recorded_at":"2026-08-31T12:00:00Z","kind":"edit","source":"observed","host":"claude","summary":"edit README","worktree":{"head":"abc123","fingerprint":"fp1","coverage":"complete","observed_epoch":1}}

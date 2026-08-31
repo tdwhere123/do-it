@@ -1,0 +1,9 @@
+{
+  "session_id": "obs-edit",
+  "cwd": "",
+  "hook_event_name": "PostToolUse",
+  "tool_name": "Edit",
+  "tool_input": {
+    "file_path": "README"
+  }
+}

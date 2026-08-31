@@ -1,0 +1,2 @@
+not-json{{{{
+{"schema":1,"event_id":"E-1","recorded_at":"2026-08-31T12:00:00Z","kind":"test","source":"observed","host":"test","worktree":{"head":"abc","fingerprint":"def","coverage":"complete"}}

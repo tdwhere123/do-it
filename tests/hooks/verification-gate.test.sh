@@ -7,7 +7,10 @@ set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 GATE="$REPO_ROOT/hooks/verification-gate.sh"
+OBSERVER="$REPO_ROOT/hooks/evidence-observer.sh"
+EVIDENCE_FIXTURES="$REPO_ROOT/tests/fixtures/evidence"
 [[ -x "$GATE" || -f "$GATE" ]] || { echo "FAIL: missing $GATE" >&2; exit 1; }
+[[ -f "$OBSERVER" ]] || { echo "FAIL: missing $OBSERVER" >&2; exit 1; }
 
 PASS=0
 FAIL=0
@@ -68,10 +71,40 @@ _append_user() {
 }
 
 _run_gate() {
-  local sid="$1" transcript="$2" stop_active="${3:-false}"
-  jq -nc --arg sid "$sid" --arg transcript "$transcript" --arg active "$stop_active" \
-    '{session_id:$sid, transcript_path:$transcript, stop_hook_active:($active == "true")}' \
-    | bash "$GATE"
+  local sid="$1" transcript="$2" stop_active="${3:-false}" cwd="${4:-}"
+  if [[ -n "$cwd" ]]; then
+    jq -nc --arg sid "$sid" --arg transcript "$transcript" --arg active "$stop_active" --arg cwd "$cwd" \
+      '{session_id:$sid, transcript_path:$transcript, cwd:$cwd, stop_hook_active:($active == "true")}' \
+      | bash "$GATE"
+  else
+    jq -nc --arg sid "$sid" --arg transcript "$transcript" --arg active "$stop_active" \
+      '{session_id:$sid, transcript_path:$transcript, stop_hook_active:($active == "true")}' \
+      | bash "$GATE"
+  fi
+}
+
+_setup_repo() {
+  local dir
+  dir="$(mktemp -d "${TMPDIR:-/tmp}/doit-gate-repo.XXXXXX")"
+  git -C "$dir" init -q
+  git -C "$dir" config user.email t@e.com
+  git -C "$dir" config user.name t
+  printf 'base\n' > "$dir/README"
+  git -C "$dir" add README
+  git -C "$dir" commit -q -m base
+  printf '%s' "$dir"
+}
+
+_observer_payload() {
+  local fixture="$1" cwd="$2" file="${3:-}"
+  jq -c --arg cwd "$cwd" --arg file "$file" '
+    .cwd = $cwd
+    | if $file != "" then .tool_input.file_path = $file else . end
+  ' "$fixture"
+}
+
+_observe() {
+  printf '%s\n' "$1" | bash "$OBSERVER" >/dev/null
 }
 
 assert_silent() {
@@ -87,6 +120,22 @@ assert_advisory() {
     and (.hookSpecificOutput.additionalContext | contains("fresh relevant evidence"))
     and (.hookSpecificOutput.additionalContext | contains("NOT_VERIFIED"))
     and (.hookSpecificOutput.additionalContext | contains("This hook does not infer verification from command names"))
+  ' >/dev/null 2>&1; then
+    _pass "$label"
+  else
+    _fail "$label (got: $output)"
+  fi
+}
+
+assert_mapping() {
+  local label="$1" output="$2"
+  if printf '%s\n' "$output" | jq -e '
+    (.decision? != "block")
+    and .hookSpecificOutput.hookEventName == "Stop"
+    and (.hookSpecificOutput.additionalContext | contains("candidate, not proof"))
+    and (.hookSpecificOutput.additionalContext | contains("acceptance"))
+    and (.hookSpecificOutput.additionalContext | contains("This hook does not infer verification from command names"))
+    and (.hookSpecificOutput.additionalContext | contains("VERIFIED") | not)
   ' >/dev/null 2>&1; then
     _pass "$label"
   else
@@ -426,6 +475,140 @@ else
 fi
 
 rm -rf "$registry_dir"
+
+# -------------------------------------------------------------------------
+echo "Case 11: v2 freshness — no cwd keeps the exact r-verify body"
+_isolate /tmp/doit-gate-v2-nocwd
+_set_state v2nocwd tier Standard last_prompt_kind work
+tx="$DO_IT_HOOK_DATA/tx.jsonl"
+_append_edit > "$tx"
+_append_text "task done" >> "$tx"
+out="$(_run_gate v2nocwd "$tx")"
+want='<system-reminder>
+Before a done/fixed/passing/ready/install/merge claim, map each material acceptance item to fresh relevant evidence from this worktree; otherwise say NOT_VERIFIED and name the missing proof. This hook does not infer verification from command names.
+</system-reminder>'
+got="$(printf '%s\n' "$out" | jq -r '.hookSpecificOutput.additionalContext // ""')"
+got_norm="$(printf '%s' "$got" | tr -s '[:space:]' ' ' | sed 's/^ //; s/ $//')"
+want_norm="$(printf '%s' "$want" | tr -s '[:space:]' ' ' | sed 's/^ //; s/ $//')"
+if [[ "$got_norm" == "$want_norm" ]]; then
+  _pass "missing cwd does not change the r-verify reminder"
+else
+  _fail "missing cwd drifted the r-verify reminder (got: $got)"
+fi
+
+echo "Case 12: v2 freshness — completion+change without ledger still reminds r-verify"
+_isolate /tmp/doit-gate-v2-noleger
+_set_state v2noleger tier Standard last_prompt_kind work
+repo="$(_setup_repo)"
+tx="$DO_IT_HOOK_DATA/tx.jsonl"
+_append_edit > "$tx"
+_append_text "task done" >> "$tx"
+assert_advisory "cwd with no evidence ledger still uses r-verify" "$(_run_gate v2noleger "$tx" false "$repo")"
+rm -rf "$repo"
+
+echo "Case 13: v2 freshness — evidence after last edit is a mapping reminder, never VERIFIED"
+_isolate /tmp/doit-gate-v2-fresh
+_set_state v2fresh tier Standard last_prompt_kind work
+repo="$(_setup_repo)"
+_observe "$(_observer_payload "$EVIDENCE_FIXTURES/posttool-edit.json" "$repo" "$repo/README")"
+_observe "$(_observer_payload "$EVIDENCE_FIXTURES/posttool-test.json" "$repo")"
+tx="$DO_IT_HOOK_DATA/tx.jsonl"
+_append_edit > "$tx"
+_append_text "task done" >> "$tx"
+out="$(_run_gate v2fresh "$tx" false "$repo")"
+assert_mapping "fresh evidence reminds acceptance mapping" "$out"
+if [[ "$out" == *"VERIFIED"* ]]; then
+  _fail "fresh evidence path emitted VERIFIED"
+else
+  _pass "fresh evidence path never emits VERIFIED"
+fi
+rm -rf "$repo"
+
+echo "Case 14: v2 freshness — later edit makes prior evidence stale"
+_isolate /tmp/doit-gate-v2-stale
+_set_state v2stale tier Standard last_prompt_kind work
+repo="$(_setup_repo)"
+_observe "$(_observer_payload "$EVIDENCE_FIXTURES/posttool-edit.json" "$repo" "$repo/README")"
+_observe "$(_observer_payload "$EVIDENCE_FIXTURES/posttool-test.json" "$repo")"
+_observe "$(_observer_payload "$EVIDENCE_FIXTURES/posttool-edit.json" "$repo" "$repo/README")"
+tx="$DO_IT_HOOK_DATA/tx.jsonl"
+_append_edit > "$tx"
+_append_text "task done" >> "$tx"
+assert_advisory "edit after evidence is stale, not proof" "$(_run_gate v2stale "$tx" false "$repo")"
+rm -rf "$repo"
+
+echo "Case 15: v2 freshness — different fingerprint is not fresh"
+_isolate /tmp/doit-gate-v2-fp
+_set_state v2fp tier Standard last_prompt_kind work
+repo="$(_setup_repo)"
+_observe "$(_observer_payload "$EVIDENCE_FIXTURES/posttool-edit.json" "$repo" "$repo/README")"
+_observe "$(_observer_payload "$EVIDENCE_FIXTURES/posttool-test.json" "$repo")"
+printf 'dirty-after-evidence\n' >> "$repo/README"
+tx="$DO_IT_HOOK_DATA/tx.jsonl"
+_append_edit > "$tx"
+_append_text "task done" >> "$tx"
+assert_advisory "fingerprint mismatch is not fresh evidence" "$(_run_gate v2fp "$tx" false "$repo")"
+rm -rf "$repo"
+
+echo "Case 16: v2 freshness — unrelated green command is not auto-proof"
+_isolate /tmp/doit-gate-v2-unrelated
+_set_state v2unrel tier Standard last_prompt_kind work
+repo="$(_setup_repo)"
+_observe "$(_observer_payload "$EVIDENCE_FIXTURES/posttool-edit.json" "$repo" "$repo/README")"
+_observe "$(_observer_payload "$EVIDENCE_FIXTURES/posttool-command.json" "$repo")"
+tx="$DO_IT_HOOK_DATA/tx.jsonl"
+_append_edit > "$tx"
+_append_bash "pwd && git status" arbitrary-command >> "$tx"
+_append_result arbitrary-command true >> "$tx"
+_append_text "task done" >> "$tx"
+out="$(_run_gate v2unrel "$tx" false "$repo")"
+assert_mapping "unrelated green command still needs acceptance mapping" "$out"
+if [[ "$out" == *"VERIFIED"* ]]; then
+  _fail "unrelated green command auto-proved VERIFIED"
+else
+  _pass "unrelated green command is not auto-proof"
+fi
+rm -rf "$repo"
+
+echo "Case 17: v2 freshness — malformed ledger fail-open with bounded diagnostic"
+_isolate /tmp/doit-gate-v2-malformed
+_set_state v2malformed tier Standard last_prompt_kind work
+repo="$(_setup_repo)"
+mkdir -p "$repo/.do-it/runtime/events"
+cat "$EVIDENCE_FIXTURES/invalid-malformed-ledger.jsonl" \
+  > "$repo/.do-it/runtime/events/evidence.jsonl"
+tx="$DO_IT_HOOK_DATA/tx.jsonl"
+_append_edit > "$tx"
+_append_text "task done" >> "$tx"
+out="$(_run_gate v2malformed "$tx" false "$repo")"
+if printf '%s\n' "$out" | jq -e '
+  (.decision? != "block")
+  and (.hookSpecificOutput.additionalContext | contains("fresh relevant evidence"))
+  and (.hookSpecificOutput.additionalContext | contains("NOT_VERIFIED"))
+  and (.hookSpecificOutput.additionalContext | contains("Evidence ledger was unreadable"))
+' >/dev/null 2>&1; then
+  _pass "malformed ledger is advisory with bounded diagnostic"
+else
+  _fail "malformed ledger missing fail-open diagnostic (got: $out)"
+fi
+if [[ "$out" == *"not-json{{{{"* ]]; then
+  _fail "malformed ledger contents leaked into reminder"
+else
+  _pass "malformed ledger contents are not reflected"
+fi
+rm -rf "$repo"
+
+echo "Case 18: v2 — explicit NOT_VERIFIED stays silent even with a fresh ledger"
+_isolate /tmp/doit-gate-v2-nv
+_set_state v2nv tier Standard last_prompt_kind work
+repo="$(_setup_repo)"
+_observe "$(_observer_payload "$EVIDENCE_FIXTURES/posttool-edit.json" "$repo" "$repo/README")"
+_observe "$(_observer_payload "$EVIDENCE_FIXTURES/posttool-test.json" "$repo")"
+tx="$DO_IT_HOOK_DATA/tx.jsonl"
+_append_edit > "$tx"
+_append_text "NOT_VERIFIED: live ping unavailable; next action is set LIVE_PING_URL." >> "$tx"
+assert_silent "NOT_VERIFIED stays silent with fresh evidence present" "$(_run_gate v2nv "$tx" false "$repo")"
+rm -rf "$repo"
 
 if [[ "$FAIL" -gt 0 ]]; then
   echo "FAILED: $PASS passed, $FAIL failed" >&2

@@ -1,0 +1,14 @@
+{
+  "session_id": "obs-test",
+  "cwd": "",
+  "hook_event_name": "PostToolUse",
+  "tool_name": "Bash",
+  "tool_input": {
+    "command": "npm test --filter auth"
+  },
+  "tool_response": {
+    "stdout": "secret-output-do-not-store\nPASS auth",
+    "stderr": "",
+    "exit_code": 0
+  }
+}

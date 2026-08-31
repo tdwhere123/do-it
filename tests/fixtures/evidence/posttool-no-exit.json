@@ -1,0 +1,11 @@
+{
+  "session_id": "obs-no-exit",
+  "cwd": "",
+  "tool_name": "Shell",
+  "tool_input": {
+    "command": "npm test"
+  },
+  "tool_response": {
+    "stdout": "host omitted the exit code"
+  }
+}
