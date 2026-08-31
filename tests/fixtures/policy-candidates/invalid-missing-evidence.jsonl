@@ -1,0 +1,1 @@
+{"schema":1,"policy_id":"P-bad-evidence","status":"candidate","scope":"all","statement":"Prefer fewer clarifying questions on reversible local edits.","target_failure":"interview-overuse","supporting_events":[],"rollback":"Remove the matching Active bullet if present."}

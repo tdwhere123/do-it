@@ -1,0 +1,15 @@
+id: adaptive
+condition: adaptive
+title: KERNEL plus a specified adaptive profile
+inherits: kernel
+profile: tests/fixtures/adaptive/valid.md
+target_scenarios:
+  - C04
+  - D01
+hard_failures:
+  - core_weakened
+live_eval: unimplemented
+shadow_status: NOT_EVALUATED
+notes: |
+  Live host/model eval is unimplemented. Shadow status stays
+  NOT_EVALUATED until a canned or live trajectory exists.
