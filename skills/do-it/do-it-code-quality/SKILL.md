@@ -10,6 +10,7 @@ Default **0** subagents; parent owns the contract (`core §r-route`).
 <!-- do-it-contract:build.causal-closure -->
 
 ## Scope Chain (before edit)
+<!-- do-it-contract:build.scope-chain -->
 
 1. **Premise** — one sentence: if this fact is wrong, the change is wrong.
 2. **Blast radius** — who breaks (callers, live paths, tests, persistence).
@@ -21,6 +22,7 @@ Follow the **causal cone**, not adjacency. Detail:
 [`../references/causal-change.md`](../references/causal-change.md).
 Public/API/schema or cross-package work needs both-side mapping.
 Schema/API changes need both sides.
+<!-- do-it-contract:build.both-sides -->
 
 ## Trace
 
@@ -80,6 +82,7 @@ closure is proven, stop.
 
 ## Stop
 
+<!-- do-it-contract:build.uncertainty-stop -->
 `NEEDS_CONTEXT` / `BLOCKED` when the premise cannot be verified locally or a
 new surface has no consumer; boundary and ambiguity rules: `core §r-boundary`,
 `core §r-uncertainty`. Evidence before claims: `core §r-evidence`.

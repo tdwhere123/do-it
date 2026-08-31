@@ -63,9 +63,9 @@ test("D01-style no ceremony for bounded reversible work", () => {
   assert.match(skill, /inspect, act, check/);
 });
 
-test("S17 boundary regex phrases remain until that card replaces them", () => {
-  assert.match(skill, /Ask \*\*one\*\* question at a time; wait for the answer\./);
-  assert.match(skill, /Do not enact the plan until shared understanding is confirmed/);
+test("one-question and confirmed-plan live on cheap-resolver and readiness anchors", () => {
+  assert.ok(skill.includes("<!-- do-it-contract:decide.cheap-resolver -->"));
+  assert.ok(skill.includes("<!-- do-it-contract:decide.readiness -->"));
 });
 
 test("readiness and contract shape live in task-contract; resolvers are linked", () => {

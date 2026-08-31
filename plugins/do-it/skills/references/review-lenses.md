@@ -1,17 +1,28 @@
 # Review Lenses
 
-Detail for `do-it-review`. Load when running comments, research-first, YAGNI, or deep axis checks.
+Detail for `do-it-review`. Rank **Spec** and **Standards** independently. Load
+an extra lens only when a concrete failure mode in the diff could change the
+call; do not turn a local review into a five-axis ceremony.
 
 ## Review Axes
 
-Choose the axes that expose a credible risk in the diff; do not turn a local
-review into a five-axis ceremony:
+**Spec** — against the active contract, or a minimal extracted acceptance if
+there is no file:
 
-- **Requirements:** task, non-goals, acceptance evidence.
-- **Correctness:** wrong behavior on real inputs, state, timing, failure paths.
-- **Contracts:** APIs, schemas, CLIs, generated outputs, docs, consumers agree.
-- **Maintainability:** avoidable coupling, dead code, duplicate logic, unclear ownership, single-use abstractions the decision ladder would inline (`do-it-code-quality` for module depth; YAGNI lens for over-engineering).
-- **Verification:** tests and commands prove the claim, or mock away the risky collaborator chain.
+- Goal, Decisions, Boundary, Acceptance, named deferrals
+- **Requirements:** task, non-goals, acceptance evidence, explicit deferrals
+
+**Standards** — on the changed cone:
+
+- **Causal authority:** the semantic owner of the fact moved, not a downstream copy
+- **Contract fallout:** APIs, schemas, CLIs, generated outputs, docs, consumers still agree
+- **Stateful failures:** Identity / Interleaving / Commit / Amplification / Copies when those faces trigger ([`stateful-change-scan.md`](stateful-change-scan.md))
+- **Proof quality:** tests and commands prove the claim, or they mock away the risky collaborator chain
+
+Optional deep checks (not a second ranking axis):
+
+- **Correctness:** wrong behavior on real inputs, state, timing, failure paths
+- **Maintainability:** avoidable coupling, dead code, duplicate logic, unclear ownership, single-use abstractions the decision ladder would inline (`do-it-code-quality` for module depth; YAGNI lens for over-engineering)
 
 ## Proof Path Coverage
 
@@ -43,12 +54,13 @@ Large diffs mixing policy, behavior, generated output, docs, and cleanup: identi
 
 Inspect evidence itself:
 
-- command ran on current branch/worktree;
+- command ran on current branch/worktree after the last edit;
 - command covers changed surface, not only a nearby unit;
 - generated files from scripts, not hand-edited;
 - install/package claims use temp-home or package checks when relevant;
 - evidence proves stated truth plane;
-- passing tests alone insufficient when contract or docs-truth changed.
+- passing tests alone insufficient when contract or docs-truth changed;
+- mock-only / synthetic collaborator chains cannot close a live-path claim.
 
 ## Comments Lens
 
@@ -81,16 +93,17 @@ definitions: [`write-quality-families.md`](write-quality-families.md).
 
 Loads `code-quality-cleaner` (maintainability + decision ladder from [`workflow-kernel.md`](workflow-kernel.md)). Tags: `delete:` / `stdlib:` / `native:` / `yagni:` / `shrink:` plus `net: -<N> lines possible` or `Lean already. Ship.`
 
-## Heavy Multi-Lens Starting Point
+## Depth (no multi-reviewer pipeline)
 
-For Heavy release/workflow/policy work, start with the changed behavior and
-install/release readiness lenses when they fit. Add another lens only for a
-concrete migration, security, public-interface, state, or architecture risk.
-Correctness/contract review often fits `reviewer`; security/auth/concurrency/
-replay often fits `red-team-reviewer`.
+Default parent inline review. At most one independent reviewer when
+independence could change the call. No fixed multi-reviewer pipeline and no
+required lens count.
 
-Judge a delegated review by its evidence and coverage, not a worker's tier
-label or a required lens count. The parent integrates the result.
+For release/workflow/policy work, start with the changed behavior and
+install/release readiness when they fit. Add another lens only for a concrete
+migration, security, public-interface, state, or architecture risk. Judge a
+delegated review by its evidence and coverage, not a worker label. The parent
+integrates the result.
 
 ## QA Intake Mode
 
@@ -117,6 +130,7 @@ Create external issues only when user asks or repo workflow owns creation.
 
 ## Common Rationalizations And Red Flags
 
-- *"Tests pass, review can be shallow."* — Still check scope, contracts, maintainability, proof quality.
+- *"Tests pass, review can be shallow."* — Still check Spec and Standards independently: scope, contracts, stateful failures, proof quality.
 - *"Obviously dead cleanup."* — Need reference or runtime evidence across install/plugin surfaces.
-- Review quotes commits not diff; style-only while contract risk unexamined; never checks reachability from user goal; broad diff reviewed as one blob; dependency without source evidence; accepts stale worker evidence as final proof.
+- *"Standards look clean, so Spec can be assumed."* — Axes do not substitute for each other.
+- Review quotes commits not diff; style-only while contract risk unexamined; never checks reachability from user goal; broad diff reviewed as one blob; dependency without source evidence; accepts stale, other-worktree, irrelevant, or mock-only evidence as final proof.

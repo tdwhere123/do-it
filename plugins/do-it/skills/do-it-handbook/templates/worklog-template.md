@@ -4,6 +4,9 @@ Copy this shape into `.do-it/worklog/YYYY-MM-DD.md` for daily logs or
 `.do-it/worklog/<goal-slug>.md` for a goal-focused log. Worklogs are append-only
 working memory; promote only stable terms or invariants into the handbook.
 
+Progress belongs here, not in `.do-it/plans/`. Plans are execution contracts
+(Goal / Decisions / Boundary / Acceptance), not construction logs.
+
 ## Goal
 
 _<what this log is tracking>_

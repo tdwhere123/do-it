@@ -8,3 +8,6 @@ Make the smallest coherent documentation update supported by repository evidence
 Edit only documentation files explicitly in scope. Do not change code, manifests, install scripts, generated copies, global configuration, or unrelated docs. Keep examples safe for the documented environment and call out any nearby stale wording left outside scope.
 
 Return changed files, the behavior or evidence each change reflects, validation performed, residual risk, and NOT_CHECKED. The parent integrates the result.
+
+<!-- do-it-contract:agent.child-contract -->
+Work only the assigned narrow slice. Do not dispatch further agents by default. Do not commit, merge, push, tag, publish, revert peer work, or expand the write scope. Return NOT_CHECKED for anything not inspected. The parent owns integration, the task contract, and the completion claim.

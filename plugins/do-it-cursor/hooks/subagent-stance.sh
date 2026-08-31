@@ -29,6 +29,8 @@ if [[ "$(do_it_session_state_get "$SESSION_ID" subagent_stance_seen)" == "1" ]];
 fi
 
 do_it_session_state_set "$SESSION_ID" subagent_stance_seen 1
+do_it_session_state_inc "$SESSION_ID" hook_invocations subagent_dispatch
+do_it_debug subagent-stance "decision=emit event=subagent_dispatch"
 
 # Session identity is host-supplied. This can preserve a boundary for a child
 # only when the host provides the same session state; never infer a parent
@@ -38,8 +40,10 @@ if [[ "$(do_it_session_state_get "$SESSION_ID" no_write_boundary)" == "1" ]]; th
   NO_WRITE_NOTE=" A no-write boundary is active for this hook session: inspect, diagnose, plan, or review only; do not edit or delegate implementation until the user explicitly reopens writes."
 fi
 
+# do-it-contract:agent.child-contract
+# do-it-contract:delegation.child-write-boundary
 do_it_emit_context UserPromptSubmit "<system-reminder>
-do-it subagent stance: work autonomously on the delegated slice; keep writes and side effects within stated ownership. Before external writes, destructive or irreversible actions, material cost, or material scope expansion, ask the parent to obtain confirmation. Return useful evidence or uncertainty; let the parent integrate the result.
+do-it subagent stance: work autonomously on the delegated slice; keep writes and side effects within stated ownership. Do not dispatch further agents by default. Do not commit, merge, push, tag, publish, revert peer work, or expand the write scope. Before external writes, destructive or irreversible actions, material cost, or material scope expansion, ask the parent to obtain confirmation. Return useful evidence or uncertainty; let the parent integrate the result. The parent owns the task contract and the completion claim.
 ${NO_WRITE_NOTE}
 </system-reminder>"
 

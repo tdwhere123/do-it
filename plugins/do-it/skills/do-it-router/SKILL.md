@@ -51,11 +51,14 @@ Refs (load on demand): [`scope-chain.md`](../references/scope-chain.md), [`workf
 4. Ask a user question only when a material choice cannot be recovered locally.
 
 ## Authorization Boundary
+<!-- do-it-contract:router.authorization-boundary -->
 
 The action boundary and confirmation-first rule live in the protocol of
 record: `core §r-boundary`.
 
 ## Delegation
+<!-- do-it-contract:router.delegation -->
+<!-- do-it-contract:router.shared-write-owner -->
 
 Parent owns integration. For shared writes, name one owner. Delegation
 guidance: [`../references/workflow-kernel.md`](../references/workflow-kernel.md) § Delegation Boundary.

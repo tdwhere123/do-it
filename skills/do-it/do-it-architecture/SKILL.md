@@ -19,6 +19,7 @@ parent-owned unless a child is assigned that slice. Apply only surfaces
 whose answers can change the decision.
 
 ## Decision Surfaces
+<!-- do-it-contract:architecture.decision-surfaces -->
 
 | Surface | Question | Closure |
 | --- | --- | --- |
@@ -35,6 +36,7 @@ On-demand negative-path scan:
 Do not copy those faces here.
 
 ### Authority quartet
+<!-- do-it-contract:architecture.authority-quartet -->
 
 One semantic authority ≠ one physical writer.
 
@@ -63,6 +65,7 @@ decision) or **open** (alternatives or findings with named unknowns).
 - **`structural_refactor`** — split, merge, relocate, or rewrite a load-bearing slice. Smallest safe slice, preserved contracts, dependents, retirement, checks.
 
 Do not manufacture an architecture dossier for a private reversible choice.
+<!-- do-it-contract:architecture.no-private-dossier -->
 
 Use `do-it-code-quality` for producer→consumer contracts, `do-it-decide` for
 alternatives, and `do-it-review` for severity-ranked findings.

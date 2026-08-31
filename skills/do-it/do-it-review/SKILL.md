@@ -11,6 +11,7 @@ independent so neither masks the other.
 Leading words: **Standards**, **Spec**, **smell**, **clean**.
 
 ## Two Axes (do not merge rankings)
+<!-- do-it-contract:review.two-axes -->
 
 | Axis | Question |
 | --- | --- |
@@ -42,6 +43,7 @@ Middle Man. Skip what tooling already enforces. Lens detail:
 
 ## Depth
 
+<!-- do-it-contract:review.inline-default -->
 Default inline review. At most one independent reviewer when independence
 could change the call (expensive wrong merge, current context too anchored,
 or a narrow verifiable second look). No fixed multi-reviewer pipeline.
@@ -63,6 +65,7 @@ severity / location / issue / cause_class / required_fix / NOT_CHECKED
 ```
 
 One complete batch, severity-ordered. Not clean while Blocking/Important remain.
+<!-- do-it-contract:review.not-clean-open-findings -->
 
 ## Fix Then Re-Review
 

@@ -13,6 +13,7 @@ Leading words: **fresh evidence**, **this worktree**, **acceptance map**, **clai
 
 ## Before Any Done Claim
 
+<!-- do-it-contract:verify.acceptance-map -->
 Closeout is an acceptance→evidence map (`core §r-verify`). Observed event ≠
 proof. Ledger rows, old CI, worker summaries, and memory are candidates, not
 closeout.
@@ -25,6 +26,7 @@ Prefer checks that hit the changed surface after the last edit on this
 worktree.
 
 ## Cannot Be VERIFIED
+<!-- do-it-contract:verify.unverifiable-classes -->
 
 These cannot support `VERIFIED`, even when a command exited 0:
 
@@ -35,6 +37,7 @@ These cannot support `VERIFIED`, even when a command exited 0:
 - **partial** — some acceptance items unmapped, or the check is incomplete
 
 Honest `NOT_VERIFIED` names the missing proof and the next check.
+<!-- do-it-contract:verify.honest-not-verified -->
 
 ## Closeout
 
