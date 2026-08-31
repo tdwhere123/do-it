@@ -103,15 +103,68 @@ Runtime (`hooks/adaptive-context.sh`):
 observation → candidate → shadow → active → stable → retired / reverted
 ```
 
-- Explicit durable user preference: show the exact Active line, then activate
-  after confirmation.
-- Inferred lesson: at least two independent tasks plus a targeted eval before
-  Active. One incident is not a rule.
-- Counterexample on an Active trial: demote or mark review-needed.
-- Explicit user preference is not auto-deleted for disuse.
-- Prefer deleting an ineffective rule over adding exceptions.
-- Never write Core, the TSV, or other fixed skills from this overlay.
-  Core promotion needs maintainer review and cross-scenario evidence.
+Learning events are observations, not Active policy. Candidates live in
+`.do-it/runtime/adaptive/candidates.jsonl` (local, gitignored). This file
+still holds only Active deltas.
 
-Candidates and the learning ledger are a later surface. This file holds only
-Active deltas.
+Validate: `node scripts/validate-policy-candidates.mjs <file>`.
+Report: `node scripts/build-adaptive-report.mjs <file>`.
+
+## Promotion ladder
+
+A candidate must name a target failure, supporting evidence, and a rollback
+sentence. Missing any of those is invalid. Support and counterexample ids
+are recorded; an empty support list is rejected.
+
+Nothing auto-writes this profile, Core, the TSV, or other fixed skills.
+
+### Explicit user preference
+
+1. Show the exact proposed Active line (`- P### [scope] statement`), the
+   target failure, and the rollback sentence.
+2. Activate only after that exact wording is confirmed.
+3. Shadow eval is not required on this path.
+4. Do not auto-delete for disuse. Revert or retire on user request or a
+   hard conflict.
+
+### Inferred lesson
+
+1. One incident or one supporting event stays observation / candidate.
+   It must not become Active.
+2. Need at least two independent tasks of support.
+3. Run a shadow eval on the named target scenarios under the `adaptive`
+   condition. Live eval missing → status stays `shadow` / `NOT_EVALUATED`.
+   Do not skip eval.
+4. A hard-gate failure cannot activate.
+5. After a pass, show the exact Active line, target, and rollback, then
+   confirm before writing the profile.
+
+### Shadow eval
+
+Target the scenarios named on the candidate (or an `adaptive*.yaml`
+condition overlay). Any hard-gate hit cannot activate. `NOT_RUN` and
+`NOT_EVALUATED` are not a pass.
+
+### Activate
+
+Activation is atomic: validate the projected `## Active` list, then replace
+the profile file. The result must stay within the 8-bullet budget, unique
+`P###` ids, and the mechanical rejects above. On failure the previous file
+bytes remain.
+
+### Counterexample
+
+A counterexample on an Active or stable trial marks `review-needed`.
+Prefer revert or deletion over adding exception bullets.
+
+### Revert / retire
+
+Revert removes that `P###` from `## Active` and sets status `reverted`.
+Retire is the same removal with status `retired`. Rollback is the recorded
+sentence (remove that id; leave the rest).
+
+### Core promotion
+
+A Core promotion is a proposal only. It needs maintainer review and
+cross-scenario evidence. Never auto-write `do-it-core`, the failure-mode
+TSV, or other shipped skills.
