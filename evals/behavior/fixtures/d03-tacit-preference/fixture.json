@@ -1,0 +1,13 @@
+{
+  "public_api": ["export function sortItems"],
+  "acceptance": {
+    "A1": {
+      "type": "command_exit0",
+      "argv": ["node", "--test", "tests/list.test.mjs"]
+    },
+    "A2": {
+      "type": "metric_zero",
+      "metric": "user_questions"
+    }
+  }
+}
