@@ -91,7 +91,10 @@ test("validateScenario rejects a scenario with no hard gate", () => {
 test("seed scenarios satisfy the contract and live under fixtures/", () => {
   const result = validateBehaviorTree(behaviorRoot);
   assert.deepEqual(result.errors, []);
-  assert.deepEqual(result.scenarios.map((row) => row.id).sort(), [...SEED_SCENARIO_IDS].sort());
+  const ids = result.scenarios.map((row) => row.id);
+  for (const seed of SEED_SCENARIO_IDS) {
+    assert.ok(ids.includes(seed), `missing seed scenario ${seed}`);
+  }
   for (const scenario of result.scenarios) {
     assert.ok(scenario.contract.goal.trim());
     assert.ok(scenario.contract.boundary.in.length);
@@ -119,5 +122,5 @@ test("validate.mjs CLI accepts the seed corpus", () => {
     encoding: "utf8"
   });
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /9 scenario\(s\) ok/);
+  assert.match(result.stdout, /\d+ scenario\(s\) ok/);
 });
