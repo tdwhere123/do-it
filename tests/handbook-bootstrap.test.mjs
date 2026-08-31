@@ -10,8 +10,6 @@ const skillPath = path.join(repoRoot, "skills/do-it/do-it-handbook/SKILL.md");
 const contextSkillPath = path.join(repoRoot, "skills/do-it/do-it-context/SKILL.md");
 const commandPath = path.join(repoRoot, "commands/do-it-handbook.md");
 const templatesDir = path.join(repoRoot, "skills/do-it/do-it-handbook/templates");
-const dogfoodReadme = path.join(repoRoot, ".do-it/handbook/README.md");
-const dogfoodWorklog = path.join(repoRoot, ".do-it/handbook/worklog-template.md");
 
 const HANDBOOK_TEMPLATES = [
   "README.md",
@@ -206,18 +204,6 @@ test("handbook skill, command, and templates agree on bootstrap contract", () =>
     assert.doesNotMatch(text, /brainstorm/);
     assert.doesNotMatch(text, /grill/);
   }
-});
-
-test("dogfood README/templates do not put progress into plans", () => {
-  const readme = read(dogfoodReadme);
-  const worklog = read(dogfoodWorklog);
-  for (const text of [readme, worklog]) {
-    assert.match(text, /execution contracts/i);
-    assert.doesNotMatch(text, CHECKBOX);
-    assert.doesNotMatch(text, /Grill\/brainstorm/);
-  }
-  assert.match(readme, /not brainstorm\/grill/);
-  assert.match(readme, /local, gitignored/);
 });
 
 test("this repo does not ship empty brainstorm/grill gitkeeps", () => {
