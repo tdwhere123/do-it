@@ -27,6 +27,12 @@ stays `0.16.0` until a real 0.17 tag.
 - **Subagents:** default dispatch 0; at most one fresh-context second look.
 - **Runtime modes:** `legacy` (default) → `shadow` → `thin`. Deleting the
   lexical router is gated on behavior eval, not this changelog entry.
+- **0.17 unreleased gate (S19):** fixture seed dry-runs keep the canned
+  R03/R04/R06 honesty failures; live model A/B is `NOT_RUN`. Decision: keep
+  **legacy** as the default. S16 Phase A (thin default) and Phase B (hard
+  delete) are **not** authorized. Evidence:
+  `docs/release-evidence/0.17-unreleased.md`. Rollback:
+  `DO_IT_ROUTER_MODE=legacy`.
 
 ## 0.16.0
 
