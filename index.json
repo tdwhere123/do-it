@@ -40,7 +40,7 @@
     {
       "kind": "skill",
       "name": "do-it-core",
-      "description": "Use when starting non-trivial repo work or making a done/fixed/ready/merge claim: apply the universal evidence, scope, boundary, recovery, verification, and reporting rules.",
+      "description": "Use for non-trivial repository work and before any done/fixed/ready/merge claim: preserve the active contract, work from current evidence, respect boundaries, recover causally, and report only supported status.",
       "origin": "do-it",
       "optional": false,
       "group": "mainline",

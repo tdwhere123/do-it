@@ -188,7 +188,7 @@ cat > "$gate_scope_transcript" <<'JSONL'
 {"type":"assistant","message":{"content":[{"type":"text","text":"done"}]}}
 JSONL
 gate_scope_out="$(run_stop "$gate_scope_session" "$gate_scope_transcript")"
-assert_contains "$gate_scope_out" "narrowest fresh check" \
+assert_contains "$gate_scope_out" "fresh relevant evidence" \
   "skip-gate flag from an earlier prompt must not suppress a later completion reminder"
 question_session="q-then-work"
 run_router "$question_session" "你觉得这个 hook 怎么样？"
@@ -210,7 +210,7 @@ cat > "$transcript" <<'JSONL'
 JSONL
 gate_after_work="$(run_stop "$question_session" "$transcript")"
 assert_contains "$gate_after_work" '"additionalContext"' "question skip must not stick to later work verify reminder"
-assert_contains "$gate_after_work" 'narrowest fresh check' "later edited completion should receive verify reminder"
+assert_contains "$gate_after_work" 'fresh relevant evidence' "later edited completion should receive verify reminder"
 
 risk_question_session="risk-question-work"
 run_router "$risk_question_session" "Can you publish the release to production?"
@@ -221,7 +221,7 @@ run_router "$risk_question_session" "Can you publish the release to production?"
 risk_question_grill="$(run_grill "$risk_question_session" "Can you publish the release to production?")"
 assert_contains "$risk_question_grill" "do-it grill" "question wording must not suppress Heavy grill"
 risk_question_gate="$(run_stop "$risk_question_session" "$transcript")"
-assert_contains "$risk_question_gate" 'narrowest fresh check' "question wording must not suppress completion reminder"
+assert_contains "$risk_question_gate" 'fresh relevant evidence' "question wording must not suppress completion reminder"
 
 light_session="light-doc"
 run_router "$light_session" "typo in docs"

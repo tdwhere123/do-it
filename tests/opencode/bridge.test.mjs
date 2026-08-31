@@ -251,7 +251,7 @@ test("verification transcript keeps shell details private and does not satisfy a
       env: { ...process.env, DO_IT_HOOK_DATA: path.join(tempParent, "hook-data") }
     });
     assert.equal(gate.status, 0, gate.stderr);
-    assert.match(gate.stdout, /narrowest fresh check/);
+    assert.match(gate.stdout, /fresh relevant evidence/);
     assert.match(gate.stdout, /does not infer verification from command names/);
   } finally {
     transcript?.cleanup();
@@ -342,7 +342,7 @@ test("verification transcript keeps only current-turn fields and remains advisor
       }
     });
     assert.equal(gate.status, 0, gate.stderr);
-    assert.match(gate.stdout, /narrowest fresh check/);
+    assert.match(gate.stdout, /fresh relevant evidence/);
     assert.match(gate.stdout, /does not infer verification from command names/);
 
     assert.match(rows, /"type":"user"/);

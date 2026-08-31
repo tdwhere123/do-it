@@ -84,7 +84,7 @@ assert_advisory() {
   if printf '%s\n' "$output" | jq -e '
     (.decision? != "block")
     and .hookSpecificOutput.hookEventName == "Stop"
-    and (.hookSpecificOutput.additionalContext | contains("narrowest fresh check"))
+    and (.hookSpecificOutput.additionalContext | contains("fresh relevant evidence"))
     and (.hookSpecificOutput.additionalContext | contains("NOT_VERIFIED"))
     and (.hookSpecificOutput.additionalContext | contains("This hook does not infer verification from command names"))
   ' >/dev/null 2>&1; then
@@ -141,7 +141,7 @@ _append_edit > "$tx"
 _append_text "task done" >> "$tx"
 out="$(_run_gate c5b "$tx")"
 want='<system-reminder>
-Before any done, fixed, passing, ready, install, or merge claim: run the narrowest fresh check that exercises the changed path on this worktree and report its exact output; if proof is unavailable, state NOT_VERIFIED with the missing check and next action. This hook does not infer verification from command names.
+Before a done/fixed/passing/ready/install/merge claim, map each material acceptance item to fresh relevant evidence from this worktree; otherwise say NOT_VERIFIED and name the missing proof. This hook does not infer verification from command names.
 </system-reminder>'
 got="$(printf '%s\n' "$out" | jq -r '.hookSpecificOutput.additionalContext // ""')"
 got_norm="$(printf '%s' "$got" | tr -s '[:space:]' ' ' | sed 's/^ //; s/ $//')"
@@ -323,7 +323,7 @@ EOF
 out="$(_run_gate_kimi k1)"
 # Kimi streams text in chunks; the coalesced closing message must trigger the
 # reminder, emitted as plain text — never the raw JSON envelope.
-if [[ "$out" == *"narrowest fresh check"* ]] && ! printf '%s' "$out" | jq -e . >/dev/null 2>&1; then
+if [[ "$out" == *"fresh relevant evidence"* ]] && ! printf '%s' "$out" | jq -e . >/dev/null 2>&1; then
   _pass "kimi wire: streamed completion claim reminds in plain text"
 else
   _fail "kimi wire reminder missing or not plain text (got: $out)"
@@ -357,7 +357,7 @@ _kimi_wire k4 <<'EOF'
 EOF
 out="$(_run_gate_kimi k4)"
 # A hook-result injection is not a human turn: the edit before it still counts.
-if [[ "$out" == *"narrowest fresh check"* ]]; then
+if [[ "$out" == *"fresh relevant evidence"* ]]; then
   _pass "kimi wire: hook injections do not reset the current turn"
 else
   _fail "kimi wire injection wrongly sliced the turn (got: $out)"
@@ -378,7 +378,7 @@ _kimi_wire k6 <<'EOF'
 {"type":"context.append_loop_event","event":{"type":"content.part","part":{"type":"text","text":"ed."}}}
 EOF
 out="$(_run_gate_kimi k6)"
-if [[ "$out" == *"narrowest fresh check"* ]]; then
+if [[ "$out" == *"fresh relevant evidence"* ]]; then
   _pass "kimi wire: mid-token stream chunks coalesce without inserted newlines"
 else
   _fail "kimi wire mid-token coalesce failed (got: $out)"

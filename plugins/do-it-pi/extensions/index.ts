@@ -25,7 +25,7 @@ const defaultPluginRoot = path.resolve(
 const COMPLETION_PATTERN =
 	/(完成|已修|通过|完工|\bdone\b|\bpassed\b|\bfixed\b|\ball set\b|it works|works now|successfully|\bVERIFIED\b|ready to merge|ship it|ready to (ship|publish))/i;
 const VERIFY_REMINDER =
-	"<system-reminder>do-it: previous turn used completion language. Before any done, fixed, passing, ready, install, or merge claim: run the narrowest fresh check that exercises the changed path on this worktree and report its exact output; if proof is unavailable, state NOT_VERIFIED with the missing check and next action.</system-reminder>";
+	"<system-reminder>do-it: previous turn used completion language. Before a done/fixed/passing/ready/install/merge claim, map each material acceptance item to fresh relevant evidence from this worktree; otherwise say NOT_VERIFIED and name the missing proof.</system-reminder>";
 
 type MessagePart = { type?: unknown; text?: unknown };
 type MessageLike = { role?: unknown; content?: unknown };

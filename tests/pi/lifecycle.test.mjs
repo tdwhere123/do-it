@@ -220,7 +220,7 @@ test("root lifecycle injects bootstrap once, preserves ToolResult arrays, and qu
 			{ prompt: "next" },
 			ctx,
 		);
-		assert.match(afterSettled.message.content, /narrowest fresh check/i);
+		assert.match(afterSettled.message.content, /fresh relevant evidence/i);
 	} finally {
 		fs.rmSync(cwd, { recursive: true, force: true });
 	}
@@ -280,7 +280,7 @@ test("verification reminders require a same-turn successful edit and shared comp
 
 		await editResult("edit", false);
 		const reminder = await settle("Fixed.");
-		assert.match(reminder.message.content, /narrowest fresh check/i);
+		assert.match(reminder.message.content, /fresh relevant evidence/i);
 		assert.equal(
 			await pi.handlers.get("before_agent_start")({ prompt: "" }, ctx),
 			undefined,
