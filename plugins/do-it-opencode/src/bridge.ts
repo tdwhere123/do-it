@@ -23,6 +23,7 @@ export type HookPayload = {
   file_path?: string;
   transcript_path?: string;
   tool_input?: Record<string, unknown>;
+  tool_response?: Record<string, unknown>;
   stop_hook_active?: string;
 };
 
@@ -44,6 +45,7 @@ type HookRunnerOptions = {
 };
 
 const EDIT_TOOLS = new Set(["edit", "write", "multiedit"]);
+const SHELL_TOOLS = new Set(["bash", "shell", "powershell", "cmd"]);
 const DEFAULT_HOOK_TIMEOUT_MS = 15_000;
 const MAX_HOOK_OUTPUT_BYTES = 1024 * 1024;
 
@@ -65,6 +67,26 @@ export function isEditTool(tool: string): boolean {
   return EDIT_TOOLS.has(tool.toLowerCase());
 }
 
+export function isShellTool(tool: string): boolean {
+  return SHELL_TOOLS.has(tool.toLowerCase());
+}
+
+export function isEvidenceTool(tool: string): boolean {
+  return isEditTool(tool) || isShellTool(tool);
+}
+
+export function extractExitCode(
+  metadata?: Record<string, unknown>
+): number | undefined {
+  if (!metadata) return undefined;
+  for (const key of ["exit_code", "exitCode", "code"]) {
+    const value = metadata[key];
+    if (typeof value === "number" && Number.isInteger(value)) return value;
+    if (typeof value === "string" && /^-?\d+$/.test(value)) return Number(value);
+  }
+  return undefined;
+}
+
 export function buildHookPayload(input: {
   sessionID: string;
   model?: string;
@@ -72,11 +94,19 @@ export function buildHookPayload(input: {
   cwd: string;
   tool?: string;
   args?: Record<string, unknown>;
+  output?: string;
+  metadata?: Record<string, unknown>;
   transcriptPath?: string;
   stopHookActive?: boolean;
 }): HookPayload {
   const toolName = input.tool ? normalizeToolName(input.tool) ?? input.tool : undefined;
   const filePath = extractFilePath(input.args);
+  const exitCode = extractExitCode(input.metadata);
+  const toolResponse: Record<string, unknown> = {};
+  if (typeof input.output === "string" && input.output.length > 0) {
+    toolResponse.output = input.output;
+  }
+  if (exitCode !== undefined) toolResponse.exit_code = exitCode;
 
   return {
     session_id: input.sessionID,
@@ -87,6 +117,7 @@ export function buildHookPayload(input: {
     file_path: filePath,
     transcript_path: input.transcriptPath ?? "",
     tool_input: input.args,
+    ...(Object.keys(toolResponse).length > 0 ? { tool_response: toolResponse } : {}),
     ...(input.stopHookActive ? { stop_hook_active: "true" } : {})
   };
 }
@@ -373,7 +404,8 @@ export async function spawnHook(
     cwd: payload.cwd,
     env: {
       ...env,
-      OPENCODE_DATA: env.OPENCODE_DATA ?? path.join(payload.cwd, ".opencode")
+      OPENCODE_DATA: env.OPENCODE_DATA ?? path.join(payload.cwd, ".opencode"),
+      DO_IT_EVENT_HOST: env.DO_IT_EVENT_HOST ?? "opencode"
     },
     detached: platform !== "win32",
     stdio: ["pipe", "pipe", "pipe"],

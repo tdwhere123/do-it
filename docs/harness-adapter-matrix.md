@@ -45,6 +45,7 @@ Subagent contexts skip write-quality-lint (parent owns integration).
 | Grill nudge (Heavy) | `grill-prompt.sh` | `UserPromptSubmit` | `beforeSubmitPrompt` | `chat.message` (Heavy/explicit, advisory) | root `before_agent_start` (Heavy/explicit, advisory) | `UserPromptSubmit` (Heavy/explicit, advisory) |
 | Subagent stance | `subagent-stance.sh` | `UserPromptSubmit` | `beforeSubmitPrompt` | bootstrap guidance only | child `before_agent_start` when `PI_SUBAGENT_CHILD=1` | not wired — Subagent events carry empty `session_id` |
 | Write-time quality | `write-quality-lint.sh` | `PostToolUse` (Edit\|Write\|MultiEdit\|NotebookEdit) | `postToolUse` / `afterFileEdit` | `tool.execute.after` (bash bridge) | root `tool_result` (`edit`/`write`) | `PostToolUse` (Edit\|Write — the only Kimi edit tools) |
+| Evidence observe | `evidence-observer.sh` | `PostToolUse` Edit* + `Bash`/`Shell` | `postToolUse` (`StrReplace`/`Write`/`EditNotebook`/`Shell`) and `afterFileEdit` (deduped) | `tool.execute.after` edit + shell facts; command names are not proof | root `tool_result` (`edit`/`write`/`bash`); reminder uses ledger freshness | `PostToolUse` Edit\|Write + `Bash`; missing shell exit is `partial`, never `complete` |
 | Done claim | `verification-gate.sh` | `Stop` | `stop` | `session.idle` soft reminder from serialized host messages | root `agent_end` capture + `agent_settled` reminder on the next turn | `Stop`; transcript read from session `wire.jsonl` (no `transcript_path` on this host) |
 
 `router.sh` emits Standard core guidance inline for weak/unknown models and as a

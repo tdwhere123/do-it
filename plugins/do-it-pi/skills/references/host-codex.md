@@ -49,7 +49,8 @@ do-it doctor
 |---|---|
 | `UserPromptSubmit` (default off) | `behavior-feedback.sh` records only explicit behavioral feedback locally; it emits no context |
 | `UserPromptSubmit` | `prompt-submit.sh` (serializes `router.sh` → `grill-prompt.sh`) → `subagent-stance.sh` |
-| `PostToolUse` (Edit\|Write\|MultiEdit\|NotebookEdit) | `write-quality-lint.sh` |
+| `PostToolUse` (Edit\|Write\|MultiEdit\|NotebookEdit) | `evidence-observer.sh` then `write-quality-lint.sh` |
+| `PostToolUse` (Bash\|Shell) | `evidence-observer.sh` (canonical facts; missing exit is `partial`) |
 | `Stop` | `verification-gate.sh` |
 
 ## Authorization

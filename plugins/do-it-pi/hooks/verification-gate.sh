@@ -4,7 +4,7 @@
 # Claim-integrity advisory: after edits, a completion claim deserves fresh,
 # claim-specific proof from this worktree. The hook never infers proof from a
 # command shape and never blocks ordinary local work. `NOT_VERIFIED` remains an
-# honest alternative.
+# honest alternative. Observed ledger rows are candidates, not auto-proof.
 
 set -uo pipefail
 
@@ -13,6 +13,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/lib/common.sh"
 # shellcheck source=lib/debug.sh
 source "${SCRIPT_DIR}/lib/debug.sh"
+# shellcheck source=evidence-observer.sh
+source "${SCRIPT_DIR}/evidence-observer.sh"
 
 RAW_INPUT="$(do_it_read_stdin)"
 SESSION_ID="$(do_it_json_get "$RAW_INPUT" session_id)"
@@ -226,15 +228,53 @@ elif printf '%s' "$UNPARSED_SLICE" | grep -qiE '\bNOT_VERIFIED\b'; then
   _gate_finish 0
 fi
 
+CWD="$(do_it_json_get "$RAW_INPUT" cwd)"
+EVIDENCE_STATUS="none"
+EVIDENCE_DIAG=""
+EVIDENCE_REASON=""
+if [[ -n "$CWD" ]]; then
+  EVIDENCE_LINE="$(do_it_evidence_freshness "$CWD" 2>/dev/null || true)"
+  if [[ -n "$EVIDENCE_LINE" ]]; then
+    EVIDENCE_STATUS="$(do_it_json_get "$EVIDENCE_LINE" status)"
+    EVIDENCE_DIAG="$(do_it_json_get "$EVIDENCE_LINE" diagnostic)"
+    EVIDENCE_REASON="$(do_it_json_get "$EVIDENCE_LINE" reason)"
+  fi
+  [[ -n "$EVIDENCE_STATUS" ]] || EVIDENCE_STATUS="none"
+  if ! do_it_evidence_mode_off; then
+    DO_IT_EVENT_TASK_ID="$(do_it_active_task_read "$CWD" 2>/dev/null || true)" \
+      do_it_runtime_event_append completion-claim reported \
+      "completion language observed" "$CWD" || true
+    unset DO_IT_EVENT_TASK_ID
+  fi
+fi
+
+CAVEAT="This hook does not infer verification from command names."
+if [[ "$PARSE_OK" -ne 1 ]]; then
+  CAVEAT="${CAVEAT} Transcript parse was incomplete."
+fi
+if [[ "$EVIDENCE_STATUS" == "malformed" ]]; then
+  [[ -n "$EVIDENCE_DIAG" ]] || EVIDENCE_DIAG="Evidence ledger was unreadable."
+  CAVEAT="${CAVEAT} ${EVIDENCE_DIAG}"
+fi
+
+if [[ "$EVIDENCE_STATUS" == "fresh" ]]; then
+  REMINDER="<system-reminder>
+Observed evidence is a candidate, not proof. Map each material acceptance item to this worktree. ${CAVEAT}
+</system-reminder>"
+  do_it_debug verification-gate "decision=advisory reason=acceptance-mapping freshness=${EVIDENCE_REASON}"
+  do_it_emit_context Stop "$REMINDER"
+  _gate_finish 0
+fi
+
 if CORE_RULE_TEXT="$(do_it_core_rule r-verify)"; then
   REMINDER="<system-reminder>
-${CORE_RULE_TEXT} This hook does not infer verification from command names.
+${CORE_RULE_TEXT} ${CAVEAT}
 </system-reminder>"
 else
   REMINDER="<system-reminder>
 do-it core registry unavailable or invalid; canonical verification guidance was not loaded. NOT_VERIFIED: the required fresh proof is missing. Next action: read skill://do-it-core, then run the narrowest fresh check for the changed path and report its exact output.
 </system-reminder>"
 fi
-do_it_debug verification-gate "decision=advisory reason=edited-completion-claim"
+do_it_debug verification-gate "decision=advisory reason=edited-completion-claim freshness=${EVIDENCE_STATUS}"
 do_it_emit_context Stop "$REMINDER"
 _gate_finish 0

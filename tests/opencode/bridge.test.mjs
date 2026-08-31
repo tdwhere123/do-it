@@ -16,8 +16,11 @@ const indexUrl = pathToFileURL(indexJs).href;
 
 const {
   buildHookPayload,
+  extractExitCode,
   extractFilePath,
   isEditTool,
+  isEvidenceTool,
+  isShellTool,
   normalizeToolName,
   parseHookOutput,
   readSessionTier,
@@ -51,6 +54,14 @@ test("isEditTool recognizes edit-family tools", () => {
   assert.equal(isEditTool("grep"), false);
 });
 
+test("isShellTool and extractExitCode do not invent proof", () => {
+  assert.equal(isShellTool("bash"), true);
+  assert.equal(isEvidenceTool("shell"), true);
+  assert.equal(isEvidenceTool("grep"), false);
+  assert.equal(extractExitCode({ exit_code: 1 }), 1);
+  assert.equal(extractExitCode({}), undefined);
+});
+
 test("buildHookPayload extracts file_path from args", () => {
   const result = buildHookPayload({
     sessionID: "sess-1",
@@ -66,6 +77,30 @@ test("buildHookPayload extracts file_path from args", () => {
   assert.equal(result.tool_name, "Edit");
   assert.equal(result.file_path, "src/index.ts");
   assert.deepEqual(result.tool_input, { file_path: "src/index.ts", new_string: "x" });
+});
+
+test("buildHookPayload records observed output and exit without inferring success", () => {
+  const withExit = buildHookPayload({
+    sessionID: "sess-1",
+    cwd: "/tmp/project",
+    tool: "bash",
+    args: { command: "npm test" },
+    output: "ok",
+    metadata: { exit_code: 0 }
+  });
+  assert.equal(withExit.tool_name, "bash");
+  assert.equal(withExit.tool_response.exit_code, 0);
+  assert.equal(withExit.tool_response.output, "ok");
+
+  const withoutExit = buildHookPayload({
+    sessionID: "sess-1",
+    cwd: "/tmp/project",
+    tool: "bash",
+    args: { command: "npm test" },
+    output: "host omitted the exit code"
+  });
+  assert.equal(Object.hasOwn(withoutExit, "tool_response"), true);
+  assert.equal(Object.hasOwn(withoutExit.tool_response, "exit_code"), false);
 });
 
 test("extractFilePath prefers file_path then path", () => {
@@ -236,8 +271,9 @@ test("verification transcript keeps shell details private and does not satisfy a
   try {
     assert.ok(transcript);
     const rows = fs.readFileSync(transcript.path, "utf8");
-    assert.doesNotMatch(rows, /echo npm test|supersecret|API_TOKEN/);
-    assert.match(rows, /"command":"npm test"/);
+    assert.doesNotMatch(rows, /echo npm test|supersecret|API_TOKEN|"command":"npm test"/);
+    assert.match(rows, /"name":"Edit"/);
+    assert.doesNotMatch(rows, /"name":"Bash"/);
 
     const gate = spawnSync("bash", [path.join(repoRoot, "hooks", "verification-gate.sh")], {
       cwd: repoRoot,
@@ -325,7 +361,7 @@ test("verification transcript keeps only current-turn fields and remains advisor
       record.message?.content?.some((block) => block.type === type && block[idKey] === id)
     );
     assert.ok(frameIndex("tool_result", "tool_use_id", "edit-1") > frameIndex("tool_use", "id", "edit-1"));
-    assert.ok(frameIndex("tool_result", "tool_use_id", "bash-1") > frameIndex("tool_use", "id", "bash-1"));
+    assert.equal(frameIndex("tool_use", "id", "bash-1"), -1);
 
     const gate = spawnSync("bash", [path.join(repoRoot, "hooks", "verification-gate.sh")], {
       cwd: repoRoot,
@@ -347,10 +383,9 @@ test("verification transcript keeps only current-turn fields and remains advisor
 
     assert.match(rows, /"type":"user"/);
     assert.match(rows, /"name":"Edit"/);
-    assert.match(rows, /"name":"Bash"/);
-    assert.match(rows, /"command":"npm test"/);
+    assert.doesNotMatch(rows, /"name":"Bash"/);
+    assert.doesNotMatch(rows, /"command":"npm test"/);
     assert.match(rows, /"type":"tool_result".*"status":"completed"/);
-    assert.match(rows, /"type":"tool_result".*"status":"error"/);
     assert.match(rows, /"text":"Done\."/);
     assert.doesNotMatch(rows, /old private|current private|private source|private edit output|private metadata|private test output|secret-token|src\/private/);
     if (process.platform !== "win32") {

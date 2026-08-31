@@ -64,8 +64,9 @@ npm run test-opencode
 | `chat.message` (default off) | `behavior-feedback.sh` | silent local feedback capture for a confirmed root session only; parentage uncertainty skips capture |
 | `chat.message` | `router.sh`, `grill-prompt.sh` | classifier every message; grill only Heavy or explicit and always advisory |
 | `config` | — | registers `skills/do-it/` paths |
+| `tool.execute.after` | `evidence-observer.sh` | edit and shell facts only; command names are not treated as proof. Missing exit is `partial` |
 | `tool.execute.after` | `write-quality-lint.sh` | advisory bash bridge |
-| `session.idle` | `verification-gate.sh` | serializes host messages into a temporary transcript and emits only a soft reminder |
+| `session.idle` | `verification-gate.sh` | serializes host messages into a temporary transcript and emits only a soft reminder; freshness comes from the ledger |
 
 OpenCode has no pre-edit plan gate. It shares router/grill semantics with other
 hosts, but idle verification cannot interrupt completion and must not be described as a hard block.

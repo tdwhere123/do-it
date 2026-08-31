@@ -203,6 +203,11 @@ test("root lifecycle injects bootstrap once, preserves ToolResult arrays, and qu
 		assert.equal(toolResult.content[1], image);
 		assert.deepEqual(toolResult.details, { ok: true });
 		assert.equal(toolResult.isError, false);
+		assert.ok(
+			calls.some((call) => call.scriptName === "evidence-observer.sh"),
+			"root edit must record a canonical evidence fact",
+		);
+		assert.equal(calls.at(-1).payload.tool_name, "Edit");
 
 		await pi.handlers.get("agent_end")(
 			{
@@ -216,11 +221,18 @@ test("root lifecycle injects bootstrap once, preserves ToolResult arrays, and qu
 			ctx,
 		);
 		await pi.handlers.get("agent_settled")({}, ctx);
+		assert.ok(
+			calls.some((call) => call.scriptName === "verification-gate.sh"),
+			"settlement must ask the shared gate / ledger, not process-local success flags",
+		);
 		const afterSettled = await pi.handlers.get("before_agent_start")(
 			{ prompt: "next" },
 			ctx,
 		);
-		assert.match(afterSettled.message.content, /fresh relevant evidence/i);
+		assert.match(
+			afterSettled.message.content,
+			/verification-gate\.sh-context|fresh relevant evidence/i,
+		);
 	} finally {
 		fs.rmSync(cwd, { recursive: true, force: true });
 	}
@@ -231,7 +243,18 @@ test("verification reminders require a same-turn successful edit and shared comp
 	const pi = fakePi();
 	createDoItPiExtension({
 		env: { HOME: cwd },
-		runHook: async () => ({ exitCode: 0, stdout: "", stderr: "" }),
+		runHook: async (_hooksDir, scriptName) => {
+			if (scriptName === "verification-gate.sh") {
+				return {
+					exitCode: 0,
+					stdout: "",
+					stderr: "",
+					additionalContext:
+						"<system-reminder>map each material acceptance item to fresh relevant evidence from this worktree</system-reminder>",
+				};
+			}
+			return { exitCode: 0, stdout: "", stderr: "" };
+		},
 	})(pi.api);
 	const ctx = fakeContext(cwd);
 	const editResult = (toolName, isError) =>
@@ -374,6 +397,80 @@ test("child lifecycle runs only subagent stance", async () => {
 		);
 		await pi.handlers.get("agent_settled")({}, ctx);
 		assert.deepEqual(calls, ["subagent-stance.sh"]);
+	} finally {
+		fs.rmSync(cwd, { recursive: true, force: true });
+	}
+});
+
+test("root bash results are observed without treating isError as proof", async () => {
+	const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-pi-observe-"));
+	const calls = [];
+	const runHook = async (_hooksDir, scriptName, payload) => {
+		calls.push({ scriptName, payload });
+		return { exitCode: 0, stdout: "", stderr: "" };
+	};
+	const pi = fakePi();
+	createDoItPiExtension({ env: { HOME: cwd }, runHook })(pi.api);
+	const ctx = fakeContext(cwd);
+	try {
+		await pi.handlers.get("tool_result")(
+			{
+				toolName: "bash",
+				input: { command: "npm test" },
+				content: [{ type: "text", text: "ok" }],
+				details: { exit_code: 0 },
+				isError: false,
+			},
+			ctx,
+		);
+		assert.deepEqual(
+			calls.map((call) => call.scriptName),
+			["evidence-observer.sh"],
+		);
+		assert.equal(calls[0].payload.tool_name, "bash");
+		assert.equal(calls[0].payload.tool_input.command, "npm test");
+		assert.equal(calls[0].payload.tool_response.exit_code, 0);
+		assert.equal(calls[0].payload.tool_response.output, "ok");
+	} finally {
+		fs.rmSync(cwd, { recursive: true, force: true });
+	}
+});
+
+test("missing evidence observer does not reject Pi tool_result", async () => {
+	const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-pi-observer-missing-"));
+	const pi = fakePi();
+	createDoItPiExtension({
+		env: { HOME: cwd },
+		runHook: async (_hooksDir, scriptName) => {
+			if (scriptName === "evidence-observer.sh") {
+				return {
+					exitCode: 0,
+					stdout: "",
+					stderr: "missing",
+					diagnostic: "do-it hook skipped: script missing",
+					unavailable: true,
+				};
+			}
+			return {
+				exitCode: 0,
+				stdout: "",
+				stderr: "",
+				additionalContext: "write-quality-lint.sh-context",
+			};
+		},
+	})(pi.api);
+	const ctx = fakeContext(cwd);
+	try {
+		const result = await pi.handlers.get("tool_result")(
+			{
+				toolName: "edit",
+				input: { path: "src/a.ts" },
+				content: [{ type: "text", text: "edited" }],
+				isError: false,
+			},
+			ctx,
+		);
+		assert.equal(result.content.at(-1).text, "write-quality-lint.sh-context");
 	} finally {
 		fs.rmSync(cwd, { recursive: true, force: true });
 	}

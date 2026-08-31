@@ -30,7 +30,17 @@
     {
       "event": "PostToolUse",
       "matcher": "Edit|Write",
+      "command": "./hooks/evidence-observer.sh"
+    },
+    {
+      "event": "PostToolUse",
+      "matcher": "Edit|Write",
       "command": "./hooks/write-quality-lint.sh"
+    },
+    {
+      "event": "PostToolUse",
+      "matcher": "Bash",
+      "command": "./hooks/evidence-observer.sh"
     },
     {
       "event": "Stop",

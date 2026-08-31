@@ -64,7 +64,9 @@ const hookEvents = new Set([
 const expectedHooks = [
   { event: "UserPromptSubmit", command: "./hooks/prompt-submit.sh" },
   { event: "UserPromptSubmit", command: "./hooks/behavior-feedback.sh" },
+  { event: "PostToolUse", matcher: "Edit|Write", command: "./hooks/evidence-observer.sh" },
   { event: "PostToolUse", matcher: "Edit|Write", command: "./hooks/write-quality-lint.sh" },
+  { event: "PostToolUse", matcher: "Bash", command: "./hooks/evidence-observer.sh" },
   { event: "Stop", command: "./hooks/verification-gate.sh" }
 ];
 

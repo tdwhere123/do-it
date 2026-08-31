@@ -35,12 +35,21 @@ test("buildHookPayload keeps canonical model, transcript, and tool-result text",
 	assert.equal(payload.tool_name, "Edit");
 	assert.equal(payload.file_path, "src/a.ts");
 	assert.equal(payload.tool_result, "edited");
+	assert.equal(payload.tool_response.output, "edited");
 
 	const withoutModel = bridge.buildHookPayload({
 		sessionId: "session-2",
 		cwd: "/tmp/project",
 	});
 	assert.equal(withoutModel.model, undefined);
+});
+
+test("isShellTool and extractExitCode keep shell facts honest", () => {
+	assert.equal(bridge.isShellTool("bash"), true);
+	assert.equal(bridge.isEvidenceTool("write"), true);
+	assert.equal(bridge.isEvidenceTool("grep"), false);
+	assert.equal(bridge.extractExitCode({ exit_code: 0 }), 0);
+	assert.equal(bridge.extractExitCode({}), undefined);
 });
 
 test("parseHookOutput extracts advisory context", () => {

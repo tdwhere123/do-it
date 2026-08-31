@@ -48,7 +48,8 @@ the hooks; they only fire on their events while the plugin is enabled.
 |---|---|---|
 | `UserPromptSubmit` | `prompt-submit.sh` (serializes `router.sh` → `grill-prompt.sh`) | advisory tier + DIM signals; Kimi receives plain text |
 | `UserPromptSubmit` | `behavior-feedback.sh` | silent, default off |
-| `PostToolUse` (matcher `Edit\|Write`) | `write-quality-lint.sh` | Kimi's only edit tools are `Edit` and `Write` — no `MultiEdit`/`StrReplace` |
+| `PostToolUse` (matcher `Edit\|Write`) | `evidence-observer.sh` then `write-quality-lint.sh` | Kimi's only edit tools are `Edit` and `Write` — no `MultiEdit`/`StrReplace` |
+| `PostToolUse` (matcher `Bash`) | `evidence-observer.sh` | record command facts only when the payload has a reliable result; otherwise `worktree.coverage=partial` |
 | `Stop` | `verification-gate.sh` | advisory reminder; transcript via wire file (below) |
 
 Deliberately not wired: `subagent-stance.sh`. Kimi's `SubagentStart` /

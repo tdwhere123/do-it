@@ -181,6 +181,7 @@ search order).
 | `sessionStart` | `session-start.sh` | — | Light bootstrap; skills index hint |
 | `beforeSubmitPrompt` (default off) | `behavior-feedback.sh` | — | Silent local feedback capture; no additional context |
 | `beforeSubmitPrompt` | `prompt-submit` (serializes `router.sh` → `grill-prompt.sh`) → `subagent-stance.sh` | — | Grill injects Heavy-only |
+| `postToolUse` / `afterFileEdit` | `evidence-observer.sh` | `StrReplace\|Write\|EditNotebook` plus `Shell` on `postToolUse` | Same schema as other hosts; postToolUse/afterFileEdit edits are deduped |
 | `postToolUse` / `afterFileEdit` | `write-quality-lint.sh` | `StrReplace\|Write\|EditNotebook` | Single advisory reminder |
 | `stop` | `verification-gate.sh` | — | Advisory evidence reminder after an edited completion claim |
 

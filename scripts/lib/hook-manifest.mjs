@@ -16,6 +16,7 @@ export const HOOK_SCRIPTS = [
   "grill-prompt.sh",
   "subagent-stance.sh",
   "write-quality-lint.sh",
+  "evidence-observer.sh",
   "verification-gate.sh",
   "anti-patterns-lint.sh",
   "comments-lint.sh"
@@ -86,8 +87,23 @@ export function codexHooksJson() {
           hooks: [
             {
               type: "command",
+              command: codexHookCommand("evidence-observer.sh"),
+              timeout: 10
+            },
+            {
+              type: "command",
               command: codexHookCommand("write-quality-lint.sh"),
               timeout: 15
+            }
+          ]
+        },
+        {
+          matcher: "Bash|Shell",
+          hooks: [
+            {
+              type: "command",
+              command: codexHookCommand("evidence-observer.sh"),
+              timeout: 10
             }
           ]
         }

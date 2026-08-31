@@ -10,6 +10,7 @@ import { BOOTSTRAP_TEXT } from "./bootstrap.ts";
 import {
 	buildHookPayload,
 	isEditTool,
+	isEvidenceTool,
 	resolveBash,
 	spawnHook,
 	terminateActiveProcesses,
@@ -117,9 +118,10 @@ export function createDoItPiExtension(
 	const childProcess = isPiSubagent(env);
 
 	const bootstrappedSessions = new Set<string>();
-	const pendingVerifyReminder = new Set<string>();
+	const pendingVerifyReminder = new Map<string, string>();
 	const completionText = new Map<string, string>();
-	const successfulEdit = new Set<string>();
+	const lastAssistantMessages = new Map<string, readonly MessageLike[]>();
+	const observedEdit = new Set<string>();
 	const anonymousSessions = new WeakMap<object, string>();
 	let anonymousSessionSequence = 0;
 	let lastDiagnostic: string | undefined;
@@ -158,7 +160,61 @@ export function createDoItPiExtension(
 			CLAUDE_PLUGIN_DATA: dataDir,
 			CLAUDE_PLUGIN_ROOT: pluginRoot,
 			PLUGIN_ROOT: pluginRoot,
+			DO_IT_EVENT_HOST: "pi",
 		};
+	}
+
+	function detailsRecord(
+		details: unknown,
+	): Record<string, unknown> | undefined {
+		if (details && typeof details === "object" && !Array.isArray(details)) {
+			return details as Record<string, unknown>;
+		}
+		return undefined;
+	}
+
+	function writeGateTranscript(
+		_sid: string,
+		messages: readonly MessageLike[],
+		hadEdit: boolean,
+	): { path: string; cleanup(): void } | null {
+		let dir: string | undefined;
+		try {
+			dir = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-pi-gate-"));
+			fs.chmodSync(dir, 0o700);
+			const records: unknown[] = [{ type: "user", message: { content: [] } }];
+			if (hadEdit) {
+				records.push({
+					type: "assistant",
+					message: {
+						content: [
+							{ type: "tool_use", id: "edit-1", name: "Edit", input: {} },
+						],
+					},
+				});
+			}
+			const text = assistantTextFromMessages(messages);
+			if (text) {
+				records.push({
+					type: "assistant",
+					message: { content: [{ type: "text", text }] },
+				});
+			}
+			const transcriptPath = path.join(dir, "gate.jsonl");
+			fs.writeFileSync(
+				transcriptPath,
+				`${records.map((record) => JSON.stringify(record)).join("\n")}\n`,
+				{ encoding: "utf8", mode: 0o600 },
+			);
+			const cleanupDir = dir;
+			return {
+				path: transcriptPath,
+				cleanup: () => fs.rmSync(cleanupDir, { recursive: true, force: true }),
+			};
+		} catch {
+			if (dir) fs.rmSync(dir, { recursive: true, force: true });
+			return null;
+		}
 	}
 
 	async function invokeHook(
@@ -189,7 +245,7 @@ export function createDoItPiExtension(
 		ctx: ExtensionContext,
 		values: Omit<
 			Parameters<typeof buildHookPayload>[0],
-			"sessionId" | "cwd" | "model" | "transcriptPath"
+			"sessionId" | "cwd" | "model"
 		>,
 	): HookPayload {
 		return buildHookPayload({
@@ -249,7 +305,11 @@ export function createDoItPiExtension(
 					bootstrappedSessions.add(sid);
 				}
 
-				if (pendingVerifyReminder.delete(sid)) contexts.push(VERIFY_REMINDER);
+				const pending = pendingVerifyReminder.get(sid);
+				if (pending !== undefined) {
+					pendingVerifyReminder.delete(sid);
+					contexts.push(pending);
+				}
 
 				if (prompt.trim()) {
 					const payload = basePayload(ctx, { prompt });
@@ -274,8 +334,22 @@ export function createDoItPiExtension(
 		});
 
 		pi.on("tool_result", async (event, ctx) => {
-			if (childProcess || !isEditTool(event.toolName)) return undefined;
-			if (event.isError === false) successfulEdit.add(sessionId(ctx));
+			if (childProcess) return undefined;
+			const sid = sessionId(ctx);
+			if (isEvidenceTool(event.toolName)) {
+				await invokeHook(
+					"evidence-observer.sh",
+					basePayload(ctx, {
+						toolName: event.toolName,
+						input: event.input,
+						content: event.content,
+						details: detailsRecord(event.details),
+					}),
+					ctx,
+				);
+			}
+			if (!isEditTool(event.toolName)) return undefined;
+			if (event.isError === false) observedEdit.add(sid);
 
 			const result = await invokeHook(
 				"write-quality-lint.sh",
@@ -283,6 +357,7 @@ export function createDoItPiExtension(
 					toolName: event.toolName,
 					input: event.input,
 					content: event.content,
+					details: detailsRecord(event.details),
 				}),
 				ctx,
 			);
@@ -298,10 +373,9 @@ export function createDoItPiExtension(
 
 		pi.on("agent_end", async (event, ctx) => {
 			if (childProcess) return;
-			completionText.set(
-				sessionId(ctx),
-				assistantTextFromMessages(event.messages),
-			);
+			const sid = sessionId(ctx);
+			completionText.set(sid, assistantTextFromMessages(event.messages));
+			lastAssistantMessages.set(sid, event.messages ?? []);
 		});
 
 		pi.on("agent_settled", async (_event, ctx) => {
@@ -309,21 +383,47 @@ export function createDoItPiExtension(
 			const sid = sessionId(ctx);
 			const text = completionText.get(sid) ?? "";
 			completionText.delete(sid);
-			const edited = successfulEdit.delete(sid);
+			const messages = lastAssistantMessages.get(sid) ?? [];
+			lastAssistantMessages.delete(sid);
+			const edited = observedEdit.delete(sid);
 			if (
 				!edited ||
 				!COMPLETION_PATTERN.test(text) ||
 				/\bNOT_VERIFIED\b/i.test(text)
 			)
 				return;
-			pendingVerifyReminder.add(sid);
+
+			const transcript = writeGateTranscript(sid, messages, true);
+			if (!transcript) {
+				pendingVerifyReminder.set(sid, VERIFY_REMINDER);
+				return;
+			}
+			try {
+				const result = await invokeHook(
+					"verification-gate.sh",
+					basePayload(ctx, {
+						transcriptPath: transcript.path,
+						stopHookActive: false,
+					}),
+					ctx,
+				);
+				if (result.unavailable || result.exitCode !== 0) {
+					pendingVerifyReminder.set(sid, VERIFY_REMINDER);
+					return;
+				}
+				const reminder = result.additionalContext ?? result.blockReason;
+				if (reminder) pendingVerifyReminder.set(sid, reminder);
+			} finally {
+				transcript.cleanup();
+			}
 		});
 
 		pi.on("session_shutdown", async () => {
 			bootstrappedSessions.clear();
 			pendingVerifyReminder.clear();
 			completionText.clear();
-			successfulEdit.clear();
+			lastAssistantMessages.clear();
+			observedEdit.clear();
 			terminateActiveProcesses();
 		});
 	};

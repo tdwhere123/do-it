@@ -64,9 +64,9 @@ closure, and resume from its reported frontier when necessary.
 | --- | --- | --- |
 | `session_start` | create session data | create session data |
 | `before_agent_start` | bootstrap once, then `router.sh` and `grill-prompt.sh` | `subagent-stance.sh` only |
-| `tool_result` for `edit`/`write` | append `write-quality-lint.sh` advice without replacing ToolResult parts | skip root-only write hook |
-| `agent_end` | capture final assistant text from event messages | skip root-only completion capture |
-| `agent_settled` | queue a soft verification reminder for the next turn when completion language requires it | skip root-only reminder |
+| `tool_result` for `edit`/`write`/`bash` | record canonical evidence facts, then append `write-quality-lint.sh` advice without replacing ToolResult parts | skip root-only write/observe hooks |
+| `agent_end` | capture final assistant text from event messages (completion language only, not proof) | skip root-only completion capture |
+| `agent_settled` | queue a next-turn reminder from `verification-gate.sh` / ledger freshness; process-local edit flags are not the only truth | skip root-only reminder |
 | `session_shutdown` | terminate active hook process trees | same |
 
 Hook payloads include the session, working directory, transcript path, tool

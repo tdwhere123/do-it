@@ -23,9 +23,20 @@
     ],
     "postToolUse": [
       {
+        "matcher": "StrReplace|Write|EditNotebook|Shell",
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/run-hook.cmd evidence-observer",
+        "timeout": 10
+      },
+      {
         "matcher": "StrReplace|Write|EditNotebook",
         "command": "${CURSOR_PLUGIN_ROOT}/hooks/run-hook.cmd write-quality-lint",
         "timeout": 15
+      }
+    ],
+    "afterFileEdit": [
+      {
+        "command": "${CURSOR_PLUGIN_ROOT}/hooks/run-hook.cmd evidence-observer",
+        "timeout": 10
       }
     ],
     "stop": [

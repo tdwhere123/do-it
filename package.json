@@ -89,7 +89,7 @@
     "do-it": "node bin/do-it.mjs",
     "lint": "bash scripts/lint-hooks.sh",
     "lint-hooks": "bash scripts/lint-hooks.sh",
-    "test-hooks": "bash scripts/test-hooks.sh && bash tests/hooks/behavior-feedback.test.sh && bash tests/hooks/strict-external-actions.test.sh && bash tests/hooks/router.test.sh && bash tests/hooks/routing-golden.test.sh && bash tests/hooks/write-quality-lint.test.sh && bash tests/hooks/comments-lint.test.sh && bash tests/hooks/anti-patterns-lint.test.sh && bash tests/hooks/verification-gate.test.sh && bash tests/hooks/grill-prompt.test.sh && bash tests/hooks/subagent-stance.test.sh && bash tests/hooks/common.test.sh",
+    "test-hooks": "bash scripts/test-hooks.sh && bash tests/hooks/behavior-feedback.test.sh && bash tests/hooks/strict-external-actions.test.sh && bash tests/hooks/router.test.sh && bash tests/hooks/routing-golden.test.sh && bash tests/hooks/write-quality-lint.test.sh && bash tests/hooks/comments-lint.test.sh && bash tests/hooks/anti-patterns-lint.test.sh && bash tests/hooks/verification-gate.test.sh && bash tests/hooks/grill-prompt.test.sh && bash tests/hooks/subagent-stance.test.sh && bash tests/hooks/common.test.sh && bash tests/hooks/harness-adapter-evidence.test.sh",
     "test-agent-bundle": "node --test tests/agent-bundle.test.mjs",
     "test-core-consistency": "node --test tests/core-consistency.test.mjs",
     "test-install": "node --test tests/install/*.test.mjs",
