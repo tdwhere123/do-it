@@ -1,0 +1,4 @@
+{"schema":1,"event_id":"E-obs","recorded_at":"2026-08-31T09:00:00Z","kind":"edit","source":"observed","host":"cursor","worktree":{"head":"h","fingerprint":"f","coverage":"complete"}}
+{"schema":1,"event_id":"E-rep","recorded_at":"2026-08-31T09:00:01Z","kind":"completion-claim","source":"reported","host":"cursor","worktree":{"head":"h","fingerprint":"f","coverage":"complete"}}
+{"schema":1,"event_id":"E-user","recorded_at":"2026-08-31T09:00:02Z","kind":"runtime-observation","source":"user","host":"cursor","worktree":{"head":"h","fingerprint":"f","coverage":"partial"}}
+{"schema":1,"event_id":"E-eval","recorded_at":"2026-08-31T09:00:03Z","kind":"test","source":"eval","host":"eval","exit_code":0,"worktree":{"head":"h","fingerprint":"f","coverage":"complete"}}

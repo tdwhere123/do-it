@@ -1,0 +1,1 @@
+{"schema":1,"event_id":"E-2","task_id":null,"acceptance_hint":null,"recorded_at":"2026-08-31T09:00:00Z","kind":"command","source":"reported","host":"claude","command":null,"exit_code":null,"summary":null,"worktree":{"head":null,"fingerprint":null,"coverage":"unavailable","observed_epoch":null}}
