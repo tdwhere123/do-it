@@ -1,0 +1,7 @@
+=== meta ===
+commit=8e85add081b2793fb39529e1a57a36155fe03847
+branch=upgrade/minimal-evidence-kernel
+worktree=/home/tdwhere/vibe/do-it
+started_utc=2026-08-31T10:18:10Z
+node=v24.14.1
+npm=11.12.0

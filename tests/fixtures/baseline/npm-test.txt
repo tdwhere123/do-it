@@ -1,0 +1,706 @@
+=== npm test ===
+
+> @tdwhere/do-it@0.16.0 test
+> npm run build:generated && node scripts/build-codex-plugin.mjs && npm run build:cursor-plugin && npm run validate:agents && npm run validate:cursor-plugin && npm run validate:kimi-plugin && npm run check:skill-links && npm run validate:quality-families && npm run validate:core-consistency && npm run validate:core-skill-boundaries && npm run validate:legacy-names && npm run lint-hooks && npm run test-hooks && npm run test-agent-bundle && npm run test-core-consistency && npm run test-install && npm run test-release && npm run test-opencode
+
+
+> @tdwhere/do-it@0.16.0 build:generated
+> node scripts/build-claude-agents.mjs && node scripts/build-skills-index.mjs && node scripts/build-index-json.mjs
+
+built 10 Claude agents → dist/claude/agents
+built _index.md (1599 bytes, 7+1+3+0 entries) → dist/claude/skills/_index.md
+built _index.core.md (1092 bytes, 7+0+0+0 entries) → dist/claude/skills/_index.core.md
+built index.json (11 runnable skills + 1 discovery, 10 agents) -> index.json
+built Codex plugin -> plugins/do-it (12 skills, 10 agents, hooks: yes, optional: none)
+
+> @tdwhere/do-it@0.16.0 build:cursor-plugin
+> npm run build:generated && node scripts/build-cursor-plugin.mjs && node scripts/validate-cursor-plugin.mjs && node scripts/validate-harness-matrix.mjs
+
+
+> @tdwhere/do-it@0.16.0 build:generated
+> node scripts/build-claude-agents.mjs && node scripts/build-skills-index.mjs && node scripts/build-index-json.mjs
+
+built 10 Claude agents → dist/claude/agents
+built _index.md (1599 bytes, 7+1+3+0 entries) → dist/claude/skills/_index.md
+built _index.core.md (1092 bytes, 7+0+0+0 entries) → dist/claude/skills/_index.core.md
+built index.json (11 runnable skills + 1 discovery, 10 agents) -> index.json
+built Cursor plugin -> plugins/do-it-cursor (11 skills, 10 agents; agents require npm run build:generated)
+validate-cursor-plugin: marketplace + plugin.json match Cursor schema
+validate-harness-matrix: inventories, hook maps, OpenCode, and Pi parity OK
+
+> @tdwhere/do-it@0.16.0 validate:agents
+> node scripts/validate-agent-bundle.mjs
+
+validated 10 Codex agent TOML files, generated plugin inventory, and Cursor plugin bundle
+
+> @tdwhere/do-it@0.16.0 validate:cursor-plugin
+> node scripts/validate-cursor-plugin.mjs
+
+validate-cursor-plugin: marketplace + plugin.json match Cursor schema
+
+> @tdwhere/do-it@0.16.0 validate:kimi-plugin
+> node scripts/validate-kimi-plugin.mjs
+
+validate-kimi-plugin: manifest OK (11 skills, 3 commands, 4 hooks)
+
+> @tdwhere/do-it@0.16.0 check:skill-links
+> node scripts/check-skill-links.mjs
+
+check-skill-links: 11 skills, 3 commands — all cross-references resolve
+
+> @tdwhere/do-it@0.16.0 validate:quality-families
+> node scripts/validate-quality-families.mjs
+
+validate-quality-families: 16 families synchronized
+
+> @tdwhere/do-it@0.16.0 validate:core-consistency
+> node scripts/validate-core-consistency.mjs
+
+validate-core-consistency: 8 rules single-voiced across registry, core skill, hooks, bridges, satellites
+
+> @tdwhere/do-it@0.16.0 validate:core-skill-boundaries
+> node scripts/validate-core-skill-boundaries.mjs
+
+validate-core-skill-boundaries: 12 boundaries OK
+
+> @tdwhere/do-it@0.16.0 validate:legacy-names
+> node scripts/validate-legacy-names.mjs
+
+validate-legacy-names: no retired skill names on live surfaces
+
+> @tdwhere/do-it@0.16.0 lint-hooks
+> bash scripts/lint-hooks.sh
+
+[lint-hooks] ok (severity=warning, files=10)
+
+> @tdwhere/do-it@0.16.0 test-hooks
+> bash scripts/test-hooks.sh && bash tests/hooks/behavior-feedback.test.sh && bash tests/hooks/strict-external-actions.test.sh && bash tests/hooks/router.test.sh && bash tests/hooks/routing-golden.test.sh && bash tests/hooks/write-quality-lint.test.sh && bash tests/hooks/comments-lint.test.sh && bash tests/hooks/anti-patterns-lint.test.sh && bash tests/hooks/verification-gate.test.sh && bash tests/hooks/grill-prompt.test.sh && bash tests/hooks/subagent-stance.test.sh && bash tests/hooks/common.test.sh
+
+[test-hooks] ok
+Case 1: default is disabled and leaves no project state
+  ok: disabled recorder is silent
+  ok: disabled recorder creates no runtime directory
+Case 2: exact slash command enables local recording without an event
+  ok: enable command is silent
+  ok: enable command writes local config
+  ok: runtime is self-ignored
+  ok: enable command does not create an event
+Case 3: explicit behavioral feedback records a redacted local excerpt once
+  ok: feedback recorder is silent
+  ok: feedback event has bounded schema
+  ok: feedback event keeps a redacted excerpt
+  ok: feedback event redacts common local identifiers
+  ok: feedback event omits raw credential, local identifiers, code, and session id
+  ok: duplicate feedback remains silent
+  ok: same session/prompt is deduplicated
+Case 4: unrelated prompts and child context do not create events
+  ok: ordinary implementation prompt is silent
+  ok: ordinary implementation prompt is not recorded
+  ok: ordinary question addressed to the assistant is silent
+  ok: ordinary assistant question is not recorded
+  ok: ordinary English agent task is silent
+  ok: ordinary English agent task is not recorded
+  ok: child feedback hook is silent
+  ok: child context is not recorded
+  ok: Claude subagents transcript is silent
+  ok: Claude subagents transcript is not recorded
+  ok: explicit agent metadata is silent
+  ok: explicit agent metadata is not recorded
+Case 5: report stays silent at hook level; off stops future recording and prose does not toggle state
+  ok: report command stays silent for the hook
+  ok: report command does not create an event
+  ok: disable command is silent
+  ok: disable command writes disabled config
+  ok: documentation prose is silent
+  ok: documentation prose does not re-enable recording
+  ok: disabled post-feedback turn is silent
+  ok: disabled recorder keeps event count unchanged
+  ok: unrelated slash expansion stays silent
+  ok: unrelated slash expansion does not create an event
+ok: 35 tests
+Case 1: default and invalid modes stay inert
+  ok: unset profile emits no decision
+  ok: invalid profile emits no decision
+  ok: unknown action emits no decision
+  ok: static action cannot widen an unrelated Bash command
+Case 2: ask is the explicit confirmation mode
+  ok: ask emits a valid PreToolUse confirmation
+  ok: ask output never reflects raw tool input
+  ok: on remains an ergonomic ask alias
+Case 3: deny is an explicit emergency stop, not a confirmation
+  ok: deny emits a valid PreToolUse denial
+Case 4: hook does not depend on jq or external parsing
+  ok: ask still works without jq on PATH
+ok: 9 tests
+Case 1: question prompt → Light tier silent
+  ok: question prompt produces no system-reminder
+Case 1b: question wording + explicit child-agent delegation → Standard
+  ok: explicit child-agent delegation overrides question-shaped Light cap
+Case 1c: generic and named agent commands remain work
+  ok: generic and named agent commands override question-shaped Light cap
+Case 2: bare intent verb without code object → Light fallback (silent)
+  ok: single intent-verb without code object stays Light
+Case 3: intent verb + code object → Standard state and inline core rules
+  ok: Standard emits inline core rules (auto → inline)
+Case 3b: review and plan requests preserve their no-edit boundary
+  ok: Standard reminder preserves review and plan no-edit boundaries
+Case 3c: why wording does not erase a direct repair request
+  ok: direct repair intent overrides why/explanation wording
+Case 4: >=2 heavy signals → Heavy state, architecture pointer on interface work
+  ok: Heavy interface signals resolve Heavy and emit architecture pointer
+Case 4b: one strong action signal upgrades while explanation stays Light
+  ok: release action is Heavy; explanation stays Light; action question remains work
+Case 4c: local api/schema helper stays Standard; breaking API change gets architecture guidance
+  ok: local api/schema helper is Standard; breaking API change is Heavy with architecture guidance
+Case 5: subagent transcript_path suppresses output
+  ok: subagent context (transcript /agents/) suppresses banner
+Case 6: escape word writes skip flags + passes through silent
+  ok: escape word silent + writes router/grill/gate skip flags
+Case 7: hazardous SESSION_ID is sanitized into hash bucket
+  ok: SESSION_ID with .. is hashed; Standard state still records
+Case 8: DEBUG does not duplicate Standard context
+  ok: DEBUG emits exactly one Standard reminder
+Case 9: dim_* fields all written in one batched state set
+  ok: all 5 dim_* keys written; touches_code=1 on code-object prompt
+Case 10: Light tier skips dim evaluation (all dims = 0)
+  ok: Light tier writes no dim_* keys (or all zero)
+Case 11: partial skip writes only requested flags
+  ok: skip grill writes grill flag only
+Case 11b: partial skip gate still routes tier/dims
+  ok: skip gate writes gate flag and refreshes tier
+Case 12: Heavy then Light/question clears all dim_* to 0
+  ok: Heavy→Light question zeros all dim_* flags
+Case 13a: Standard + DO_IT_ADVISORY_MODE=inline emits rule sentences, no pointer
+  ok: inline mode emits Standard prefix + r-evidence sentence, no pointer
+Case 13b: Standard + DO_IT_ADVISORY_MODE=pointer emits one pointer, no rule sentences
+  ok: pointer mode emits only the do-it-core pointer
+Case 13c: auto + weak-model env var resolves inline
+  ok: auto mode with deepseek model env resolves inline
+Case 13d: auto + strong-model env var resolves pointer
+  ok: auto mode with claude model env resolves pointer
+Case 13e: auto + no model anywhere resolves inline (conservative default)
+  ok: auto mode with no model env resolves inline
+Case 13e2: auto detects bounded o-series IDs from payload and env
+  ok: bounded o3/o4 payload and env IDs use pointer while foo2 stays inline
+Case 13f: no-write boundary emits the r-boundary sentence in both modes
+  ok: no-write boundary appends the r-boundary sentence in both modes
+Case 13g: architecture matching is bounded, clause-local, and order-independent
+  ok: architecture positives emit in either order; substrings and unrelated clauses stay quiet
+Case K: Kimi ContentPart[] prompt routes Standard and emits plain text
+  ok: Kimi array prompt routes Standard with plain-text advisory
+Case 14: invalid core registry emits a bounded safe pointer, never partial rules
+  ok: missing or malformed registry emits only bounded pointer fallback
+
+Summary: 29 passed, 0 failed
+ok: 29 tests
+Case 1: pure question → Light
+  ok: tier:Light (pure question → Light)
+Case 2: naming child agents alone remains a low-noise question
+  ok: tier:Light;kind:question (naming child agents alone remains a low-noise question)
+Case 3: question wording + explicit parallel child-agent delegation remains work
+  ok: tier:Standard;kind:work (question wording + explicit parallel child-agent delegation remains work)
+Case 4: generic agent dispatch remains work
+  ok: tier:Standard;kind:work (generic agent dispatch remains work)
+Case 5: named bundled-agent command remains work
+  ok: tier:Standard;kind:work (named bundled-agent command remains work)
+Case 6: review-only task remains work while action boundary stays no-edit
+  ok: tier:Standard;kind:work (review-only task remains work while action boundary stays no-edit)
+Case 7: plan-only task remains work while action boundary stays no-implementation
+  ok: tier:Standard;kind:work (plan-only task remains work while action boundary stays no-implementation)
+Case 8: short prompt + light signal typo
+  ok: tier:Light (short prompt + light signal typo)
+Case 9: short + 拼写 light signal
+  ok: tier:Light (short + 拼写 light signal)
+Case 10: intent verb + code object
+  ok: tier:Standard (intent verb + code object)
+Case 11: English intent + path
+  ok: tier:Standard (English intent + path)
+Case 12: ≥2 heavy signals
+  ok: tier:Heavy;emit:architecture (≥2 heavy signals)
+Case 13: two heavy signals EN
+  ok: tier:Heavy;emit:architecture (two heavy signals EN)
+Case 14: imperative+好吗 without ? — not question kind
+  ok: tier:Light;kind:work (imperative+好吗 without ? — not question kind)
+Case 15: question with 吗
+  ok: tier:Light;kind:question (question with 吗)
+Case 16: full escape — no tier write
+  ok: skip:router,grill,gate (full escape — no tier write)
+Case 17: partial skip gate still refreshes tier/dims
+  ok: skip:gate;tier:Standard (partial skip gate still refreshes tier/dims)
+Case 18: short question
+  ok: tier:Light;kind:question (short question)
+Case 19: single strong release action → Heavy
+  ok: tier:Heavy (single strong release action → Heavy)
+Case 20: question wording does not suppress a strong release action
+  ok: tier:Heavy;kind:work (question wording does not suppress a strong release action)
+Case 21: action-shaped migration emits architecture pointer
+  ok: tier:Heavy;emit:architecture (action-shaped migration emits architecture pointer)
+Case 22: action-shaped cutover emits architecture pointer
+  ok: tier:Heavy;emit:architecture (action-shaped cutover emits architecture pointer)
+Case 23: action-shaped security-boundary change emits architecture pointer
+  ok: tier:Heavy;emit:architecture (action-shaped security-boundary change emits architecture pointer)
+Case 24: action-shaped security boundary is Heavy without unrelated topical signals
+  ok: tier:Heavy;emit:architecture (action-shaped security boundary is Heavy without unrelated topical signals)
+Case 25: security work without a boundary change emits no architecture pointer
+  ok: tier:Heavy (security work without a boundary change emits no architecture pointer)
+Case 26: action-shaped interface change emits architecture pointer
+  ok: tier:Heavy;emit:architecture (action-shaped interface change emits architecture pointer)
+Case 27: destructive+bare api/schema is not strong Heavy
+  ok: tier:Standard (destructive+bare api/schema is not strong Heavy)
+Case 28: release explanation remains Light
+  ok: tier:Light;kind:question (release explanation remains Light)
+Case 29: migration explanation remains Light
+  ok: tier:Light;kind:question (migration explanation remains Light)
+Case 30: direct-address explanation remains informational
+  ok: tier:Light;kind:question (direct-address explanation remains informational)
+Case 31: Chinese explanation remains informational
+  ok: tier:Light;kind:question (Chinese explanation remains informational)
+Case 32: Chinese how-to request remains informational
+  ok: tier:Light;kind:question (Chinese how-to request remains informational)
+Case 33: Chinese explanation request remains informational
+  ok: tier:Light;kind:question (Chinese explanation request remains informational)
+Case 34: security-boundary explanation remains informational
+  ok: tier:Light;kind:question (security-boundary explanation remains informational)
+Case 35: ordinary Heavy publish operation emits no architecture pointer
+  ok: tier:Heavy (ordinary Heavy publish operation emits no architecture pointer)
+Case 36: reversed interface/action order remains positive
+  ok: tier:Heavy;emit:architecture (reversed interface/action order remains positive)
+Case 37: api substring in rapid does not emit architecture guidance
+  ok: tier:Heavy (api substring in rapid does not emit architecture guidance)
+Case 38: unrelated action and surface clauses do not join
+  ok: tier:Heavy (unrelated action and surface clauses do not join)
+Case 39: reversed unrelated clauses do not join
+  ok: tier:Heavy (reversed unrelated clauses do not join)
+Case 40: token substring does not form a boundary action
+  ok: tier:Light (token substring does not form a boundary action)
+Case 41: cross-clause token and relationship substrings do not form security-boundary work
+  ok: tier:Standard (cross-clause token and relationship substrings do not form security-boundary work)
+Case 42: explicit security-boundary creation emits architecture guidance
+  ok: tier:Heavy;emit:architecture (explicit security-boundary creation emits architecture guidance)
+Case 43: comma-separated unrelated substrings do not form a pair
+  ok: tier:Standard (comma-separated unrelated substrings do not form a pair)
+Case 44: parenthesized unrelated substrings do not form a pair
+  ok: tier:Standard (parenthesized unrelated substrings do not form a pair)
+Case 45: colon-separated unrelated substrings do not form a pair
+  ok: tier:Standard (colon-separated unrelated substrings do not form a pair)
+Case 46: CJK release substrings inside unrelated words stay Light
+  ok: tier:Light (CJK release substrings inside unrelated words stay Light)
+Case 47: explicit CJK production deployment is Heavy
+  ok: tier:Heavy (explicit CJK production deployment is Heavy)
+Case 48: explicit CJK tenant-boundary creation emits architecture guidance
+  ok: tier:Heavy;emit:architecture (explicit CJK tenant-boundary creation emits architecture guidance)
+Case 49: migration-tool unit tests are not an executed migration
+  ok: tier:Standard (migration-tool unit tests are not an executed migration)
+Case 50: explicit database migration remains Heavy architecture work
+  ok: tier:Heavy;emit:architecture (explicit database migration remains Heavy architecture work)
+Case 51: database migration test context is not an executed migration
+  ok: tier:Standard (database migration test context is not an executed migration)
+
+Summary: 51 passed, 0 failed (51 cases)
+ok: 51 routing-golden tests
+Case 1: swallow-error
+  ok: swallow-error flags empty catch
+Case 2: debug-leftover
+  ok: debug-leftover flags console
+Case 3: test-weakened
+  ok: test-weakened flags skipped test
+Case 4: edit-bloat
+  ok: edit-bloat flags large edit
+Case 5: scope-chain uses interface risk, not line count
+  ok: scope-chain flags interface surface
+  ok: scope-chain skips local edit
+Case 6: live-path and type-escape
+  ok: live-path flags unreferenced handler
+  ok: type-escape flags any
+Case 7: secret-leak and test-fiction
+  ok: secret-leak flags credential
+  ok: test-fiction flags mock pile
+Case 8: scoped suppression never hides secret-leak
+  ok: scoped suppression removes narrative family
+  ok: secret remains visible despite marker
+Case 9: deduplicates one file per user turn
+  ok: first edit emits reminder
+  ok: same turn is deduplicated
+Case 10: unknown state is Standard-minimal, not Heavy
+  ok: unknown state does not trigger Heavy scope nudge
+Case 11: file-size thresholds and overrides
+  ok: 512 lines trips warn threshold
+  ok: 512 lines stays below split
+  ok: 812 lines trips split threshold
+  ok: project override raises warn above 562
+  ok: env var beats project file
+  ok: small file stays quiet
+Case 12: file-size parsing edges and boundaries
+  ok: exactly 500 lines stays quiet (warn is strict >)
+  ok: exactly 800 lines trips split (split is >=)
+  ok: CRLF override file is honored
+  ok: final row without trailing newline is honored
+  ok: non-numeric row falls back to default
+  ok: non-numeric env does not discard valid file value
+  ok: split env override drops 812 back to warn
+  ok: split env override silences split message
+  ok: zero-padded value is decimal, not octal
+Case 13: override resolves from git root of edited file, not session cwd
+  ok: repo-root override applies despite subdir cwd
+ok: 31 tests
+Case 1: history narrative + task ref → flagged
+  ok: flags narrative comment
+  ok: names file
+  ok: names narrative-comment family
+  ok: no legacy history-narrative label
+  ok: no legacy task-reference label
+Case 2: orphan TODO → flagged
+  ok: flags orphan TODO
+Case 3: tombstone → flagged
+  ok: flags tombstone
+Case 4: clean code (allowed categories only) → silent
+  ok: no reminder for clean code
+Case 5: untracked new file with bad comments → flagged
+  ok: flags new untracked file
+Case 6: out-of-scope extension → silent
+  ok: ignores .md
+Case 7: scoped narrative suppression → silent
+  ok: honors scoped family suppression
+Case 8a: fix narrative → flagged as narrative-comment
+  ok: flags fix narrative
+  ok: names narrative-comment family
+Case 9: properly-formed TODO with owner → silent on TODO axis
+  ok: owner-tagged TODO ok
+Case 10: stage markers (phase / wave / backlog id) → flagged as narrative-comment
+  ok: flags stage markers
+  ok: names narrative-comment family for stage markers
+
+Summary: 16 passed, 0 failed
+ok: 16 tests
+Case 1: case-list hit — 16 consecutive case patterns flagged
+  ok: case-list flagged
+  ok: names file
+Case 2: case-list miss — 3 case patterns silent
+  ok: case-list not flagged for small list
+Case 3: no-consumer hit — exported symbol with no other reference
+  ok: no-consumer flagged for orphan export
+  ok: names the orphan symbol
+Case 4: no-consumer miss — exported symbol referenced elsewhere
+  ok: no-consumer silent for referenced symbol
+Case 4b: no-consumer with only a substring neighbour — word match required
+  ok: no-consumer flags symbol with only a substring neighbour
+  ok: names the orphan symbol Widget
+Case 5: copy-paste hit — ≥5-line block duplicated in same directory
+  ok: copy-paste flagged for duplicated block
+  ok: names the neighbour file
+Case 6: copy-paste miss — unique block silent
+  ok: copy-paste silent for unique block
+Case 6b: no-consumer detects export default class/function
+  ok: no-consumer covers export default function
+  ok: names OrphanDefault
+Case 6c: no-consumer detects export default async function
+  ok: no-consumer covers export default async function
+  ok: names MixedFn
+Case 6d: no-consumer flags a speculative interface with no reference
+  ok: no-consumer flags unreferenced interface
+  ok: names SpeculativePort
+Case 6e: no-consumer silent for a referenced interface
+  ok: no-consumer silent for referenced interface
+Case 7: out-of-scope extension — skipped silently
+  ok: non-source extension skipped
+ok: 19 tests
+Case 1: recursion and non-work pass-through
+  ok: recursion guard is silent
+  ok: question label does not suppress an edited completion claim
+  ok: no-edit turn is silent
+  ok: edited turn without a completion claim is silent
+Case 2: an edited completion claim receives a non-blocking reminder
+  ok: completion claim is advisory, never a block
+Case 2b: the advisory body is exactly r-verify + the hook caveat (single voice)
+  ok: reminder body matches r-verify + hook caveat exactly (whitespace-normalized)
+Case 3: command form cannot auto-pass the claim
+  ok: successful targeted test still leaves claim judgment to the model
+  ok: arbitrary successful command gets the same reminder, not a special block
+Case 4: explicit NOT_VERIFIED remains the honest exit
+  ok: NOT_VERIFIED is accepted without ritual verification
+Case 5: current-turn isolation remains intact
+  ok: prior-turn completion language does not nudge the current turn
+  ok: current-turn completion language is recognized
+Case 6: edit shapes and skip lifecycle remain compatible
+  ok: apply_patch counts as an edit for the reminder
+  ok: tool_calls Edit shape counts as an edit
+  ok: skip is still consumed and cleared
+Case 7: malformed transcripts are bounded and preserve NOT_VERIFIED
+  ok: recent unparsed completion claim gets only an advisory
+  ok: unparsed NOT_VERIFIED remains an honest exit
+  ok: unparsed stale completion outside the recent window is silent
+  ok: unparsed stale edit cannot trigger a current completion reminder
+Case 8: transcript content is never reflected into the reminder
+  ok: claim reminder has a fixed safe body
+  ok: transcript text is not reflected into reminder
+  ok: tool-result text alone does not become an assistant completion claim
+Case 9: Kimi wire transcript discovery (Kimi sends no transcript_path)
+  ok: kimi wire: streamed completion claim reminds in plain text
+  ok: kimi wire: edit without completion language is silent
+  ok: kimi wire: explicit NOT_VERIFIED stays silent
+  ok: kimi wire: hook injections do not reset the current turn
+  ok: kimi wire: missing wire log degrades to skip
+  ok: kimi wire: mid-token stream chunks coalesce without inserted newlines
+  ok: kimi wire: hazardous session_id skips discovery
+Case 10: invalid core registry emits bounded NOT_VERIFIED guidance
+  ok: missing registry emits actionable non-blocking verification fallback
+  ok: malformed registry emits no partial verification context
+ok: 30 tests
+Case 1: Standard is silent (no grill body)
+  ok: Standard stays silent
+Case 2: Heavy injects grill
+  ok: Heavy injects
+Case 2b: question label does not suppress Heavy
+  ok: Heavy question injects
+Case 3: explicit grill on Standard
+  ok: explicit grill overrides Standard
+Case 4: Light never auto-grills without explicit
+  ok: Light stays silent
+Case 5: Kimi ContentPart[] prompt still grills on explicit
+  ok: Kimi array prompt grills as plain text
+ok: 6 tests
+Case 1: parent context remains quiet
+  ok: parent context receives no child reminder
+Case 2: child gets ownership and explicit confirmation boundary once
+  ok: child reminder states ownership and confirmation boundary
+  ok: child reminder is emitted once per session
+Case 3: child receives an active no-write boundary from shared session state
+  ok: child reminder preserves the shared-session no-write boundary
+ok: 4 tests
+Case 1: do_it_session_dir rejects path-injection
+  ok: all hazardous ids hashed; safe id passes through
+Case 1b: do_it_session_dir hashes LF/CR/TAB and bare dot/dotdot ids
+  ok: LF/CR/TAB and bare dot/dotdot ids hashed
+Case 2: empty SESSION_ID + non-git cwd buckets per cwd (no global 'nosession')
+  ok: two non-git cwds resolve to distinct buckets
+Case 3: flock-missing fallback serializes 50 concurrent writers
+  ok: mkdir fallback serialized all 50 state increments
+Case 3b: jq-free mkdir fallback serializes counters and user turns
+  ok: jq-free fallback serialized counters and user turns
+Case 3c: mkdir fallback reclaims a dead-owner lock directory
+  ok: dead-owner fallback lock reclaimed
+Case 3d: mkdir fallback never steals an old lock from a live owner
+  ok: old live-owner fallback lock was not stolen
+Case 4: do_it_in_subagent_context honors host and portable path signals
+  ok: Pi env plus POSIX/Windows agents paths trigger subagent context
+Case 5: runtime gitignore is self-contained (parent .gitignore untouched)
+  ok: parent .gitignore unchanged; runtime state stays invisible to git
+Case 5b: KIMI_CODE_HOME session root sits between OPENCODE_DATA and CODEX_HOME
+  ok: KIMI_CODE_HOME wins over CODEX_HOME; CODEX_HOME applies after unset
+Case 6: do_it_emit_context emits valid JSON without jq
+  ok: jq-free emit fallbacks produce valid JSON
+Case 7: do_it_prune_stale_sessions removes stale dirs, keeps fresh + self
+  ok: stale pruned; fresh and current session kept
+Case 8: do_it_parse_skip_targets — partial vs full skip
+  ok: parse_skip_targets honors partial merge and full skip
+Case 9: do_it_prompt_is_question — narrowed suffix (no bare 吗/呢)
+  ok: 好吗 not question; 这是什么？ is question
+Case 10: legacy empty skip flag expires by mtime
+  ok: stale empty skip removed; fresh empty skip honored
+Case 11: do_it_clear_skip removes all skip flags
+  ok: clear_skip removes router/grill/gate flags
+Case 11b: prompt-scoped skip markers survive concurrent turns and malformed Stop cleanup
+  ok: prompt and turn scoped skip markers consume independently
+Case 12: do_it_prompt_has_word matches ASCII words (incl. MSYS path)
+  ok: word-boundary match works; MSYS path uses pure bash
+Case 13: local keyword TSV accepts only known tables and flags
+  ok: legal local TSV rows append to known keyword tables
+Case 14: local keyword TSV rejects malformed rows without executing data
+  ok: malformed rows are skipped and shell-shaped terms stay inert
+Case 15: legacy keywords.local.sh is inert and warns to migrate
+  ok: legacy executable override is ignored with migration warning
+Case 16: Kimi protocol helpers (prompt array + plain-text emit)
+  ok: prompt array extracts; emit switches plain text vs JSON envelope
+Case 16b: jq-free JSON fallback preserves session and prompt payloads
+  ok: jq-free fallback decodes scalar, nested, and prompt-array fields
+Case 17: core-rule registry failures are distinct and never partial
+  ok: registry reports unavailable, malformed, and unknown without partial output
+
+Summary: 24 passed, 0 failed
+ok: 24 tests
+
+> @tdwhere/do-it@0.16.0 test-agent-bundle
+> node --test tests/agent-bundle.test.mjs
+
+✔ portable agent policy remains model-agnostic (1.580331ms)
+✔ capability agents stay concise, safe, and free of process gates (0.365947ms)
+✔ agent instruction links reject broken local paths in link, code, or bare forms (1.082462ms)
+✔ agent instruction links accept existing and external Markdown targets (0.146079ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 66.943782
+
+> @tdwhere/do-it@0.16.0 test-core-consistency
+> node --test tests/core-consistency.test.mjs
+
+✔ core rule bullets match the registry one-to-one (1.124272ms)
+✔ core rule validation rejects changed bullet content (0.203919ms)
+✔ core rule validation rejects whitespace-only bullet changes (0.153963ms)
+✔ core rule validation rejects extra and unknown bullets (0.101293ms)
+✔ core rule validation rejects removed and zero parsed bullets (0.209369ms)
+✔ core rule validation rejects duplicate IDs even when content is canonical (0.965339ms)
+✔ closed-set registry validation rejects unknown, duplicate, and missing ids (0.496937ms)
+✔ registry parsing rejects malformed rows and invalid injection surfaces (0.284713ms)
+✔ repository validation rejects canonical hook sentences across shell literal forms (308.667192ms)
+✔ repository validation rejects generated hook and core-skill drift (44.501968ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 422.205357
+
+> @tdwhere/do-it@0.16.0 test-install
+> node --test tests/install/*.test.mjs
+
+✔ Cursor home locks steal immediately when owner PID is dead (2.781379ms)
+✔ Cursor home locks reject concurrent installs (2.195604ms)
+✔ Cursor lock cleanup failures are reported without reversing a committed install (26.330025ms)
+✔ registerCursorPlugin reports lock cleanup failure after committing (24.082411ms)
+✔ commitPreparedReplacements refuses a changed staged hook target (4.910418ms)
+✔ commitPreparedReplacements reports backup cleanup failures after commit (1.266083ms)
+✔ install-cursor-local copies a real plugin directory into HOME plugins/local (68.540257ms)
+✔ install-cursor-local copy failure preserves the existing plugin and hooks (49.253851ms)
+✔ install-cursor-local rolls back every home when the second commit fails (91.218826ms)
+✔ install-cursor-local hook merge failure preserves staged targets (66.445336ms)
+✔ install-cursor-local rolls back plugin copies when hook commit fails (69.877616ms)
+✔ install-cursor-local merges do-it hooks without clobbering user entries (71.133048ms)
+✔ mergeDoItUserHooks replaces prior do-it commands only (3.673974ms)
+✔ mergeDoItUserHooks upgrades legacy bare .sh do-it commands to run-hook.cmd (0.325109ms)
+✔ commandForRunHook rewrites WSL mounts to Windows paths (0.303579ms)
+✔ commandForRunHook rewrites custom WSL mounts (without /mnt) to Windows paths (0.166287ms)
+✔ toWindowsPathIfWslMount leaves ordinary Unix paths unchanged (0.115029ms)
+✔ validateCursorPlugin rejects intermediate directory symlinks (3.837086ms)
+✔ resolveUserHome prefers USERPROFILE and rejects MSYS HOME on win32 semantics (0.16768ms)
+✔ collectHomes on win32 rejects /mnt and MSYS HOME candidates (0.133905ms)
+✔ isDoItHookCommand requires do-it-cursor hooks marker (0.066557ms)
+✔ mergeDoItUserHooks preserves third-party run-hook.cmd entries (0.193779ms)
+✔ userHooksWiredForPlugin rejects bare .sh and missing entries (2.729951ms)
+✔ syncUserHooksForPlugin is idempotent on rewrite (3.114454ms)
+✔ windowsHomeCandidates prefers USERPROFILE mount and does not scan all users (0.249946ms)
+✔ registerCursorPlugin rejects an incomplete runtime bundle (2.824572ms)
+✔ register-cursor-plugin accepts USERPROFILE when HOME is unset (77.303899ms)
+✔ register-cursor-plugin ignores MSYS HOME when USERPROFILE is set (0.161387ms)
+✔ build-index-json creates a byte-reproducible skill and agent inventory (98.55889ms)
+✔ parseFrontmatter accepts CRLF SKILL.md fences (0.269092ms)
+✔ removed install migration note is not referenced by shipped docs (0.660017ms)
+✔ agent templates and generated Claude agents do not pin models (1.832311ms)
+✔ parseMinor extracts major.minor (1.014112ms)
+✔ parseMinor rejects non-version input (0.093608ms)
+✔ matchesFromRange matches minor wildcard and exact (0.102997ms)
+✔ needsMigration is true only on a minor difference (0.12084ms)
+✔ needsMigration is false for missing or malformed state (0.140769ms)
+✔ applyMigrationAction remove-state-entry deletes the key (0.506184ms)
+✔ applyMigrationAction rename-state-key moves the value (3.583703ms)
+✔ applyMigrationAction throws on an unknown action type (0.400803ms)
+✔ applyMatchingMigrations applies only matching ranges (0.291416ms)
+✔ applyMatchingMigrations tolerates a missing migrations array (0.188509ms)
+✔ bundled manifest migrations cover 0.7.x and 0.8.x (0.20988ms)
+✔ install populates a fresh codex root with a versioned state file (122.567564ms)
+✔ Codex legacy install leaves canonical agents to the marketplace plugin (117.47752ms)
+✔ install falls back to copy when staged rename crosses filesystems (129.952318ms)
+✔ re-install from an older state version triggers a backed-up migration (254.931451ms)
+✔ 0.13 hard-delete migration removes managed retired skill and agent (253.520998ms)
+✔ 0.13 migration blocks modified retired paths without partial changes (244.345649ms)
+✔ DO_IT_FORCE removes a modified retired path (334.094277ms)
+✔ migrate-legacy defaults to a read-only inventory of proven do-it targets (56.961607ms)
+✔ migrate-legacy preserves a signature-only retired do-it agent for manual review (252.512069ms)
+✔ migrate-legacy --apply removes only proven targets and keeps recoverable backups (76.333338ms)
+✔ migrate-legacy --apply preserves ambiguous agents while cleaning proven targets (65.505224ms)
+✔ migrate-legacy --apply requires an enabled and verified marketplace bundle (50.000775ms)
+✔ migrate-legacy --apply rejects an enabled plugin with stale agent content (58.011387ms)
+✔ migrate-legacy --apply rejects a stale generated Codex agent bundle (93.885938ms)
+✔ migrate-legacy derives the Codex cache directory from a cachebuster plugin version (82.143545ms)
+✔ codex and claude targets install into independent state files (296.496539ms)
+✔ claude install preserves unrelated files in hooks directory (172.490465ms)
+✔ cursor post-install failure restores managed targets, state, and Cursor side effects (522.892868ms)
+✔ fresh cursor post-install failure leaves managed state and targets absent (252.992307ms)
+✔ cursor doctor rejects a symlinked discovery copy (369.784976ms)
+✔ cursor doctor rejects a stale discovery-copy version (368.785215ms)
+✔ cursor target installs plugin bundle with cursor hooks.json (477.956844ms)
+✔ resolveOpenCodeConfigHome prefers OPENCODE_CONFIG_DIR then XDG (0.61387ms)
+✔ rewritePluginEntries drops checkout and tarball paths (0.552643ms)
+ℹ tests 67
+ℹ suites 0
+ℹ pass 67
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4752.51309
+
+> @tdwhere/do-it@0.16.0 test-release
+> node --test tests/release/*.test.mjs
+
+✔ package scripts and registered hooks reference only tracked source; retired replay cards are absent (886.905438ms)
+✔ OpenCode package engine matches its strict transitive runtime (0.546662ms)
+✔ release guard accepts a matching tag, metadata set, and changelog entry (2.467311ms)
+✔ release guard accepts a local Codex cachebuster on the matching base version (9.953144ms)
+✔ release guard rejects Pi package-lock drift (9.044382ms)
+✔ release guard rejects malformed tags (0.142181ms)
+✔ release guard reports metadata and changelog drift together (8.358766ms)
+✔ classifyTarball distinguishes root and opencode npm-pack names (0.120209ms)
+✔ resolveSmokeTarballs packs from checkout when no .tgz args (0.255597ms)
+✔ resolveSmokeTarballs uses CLI .tgz paths and skips packers (1.694152ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 980.343632
+
+> @tdwhere/do-it@0.16.0 test-opencode
+> npm run build:opencode-plugin && node --test tests/opencode/*.test.mjs
+
+
+> @tdwhere/do-it@0.16.0 build:opencode-plugin
+> npm run build:generated && node scripts/build-opencode-plugin.mjs
+
+
+> @tdwhere/do-it@0.16.0 build:generated
+> node scripts/build-claude-agents.mjs && node scripts/build-skills-index.mjs && node scripts/build-index-json.mjs
+
+built 10 Claude agents → dist/claude/agents
+built _index.md (1599 bytes, 7+1+3+0 entries) → dist/claude/skills/_index.md
+built _index.core.md (1092 bytes, 7+0+0+0 entries) → dist/claude/skills/_index.core.md
+built index.json (11 runnable skills + 1 discovery, 10 agents) -> index.json
+built OpenCode plugin -> plugins/do-it-opencode (13 skills, 10 agents, 9 hook scripts)
+✔ normalizeToolName maps OpenCode edit tools to hook names (1.726399ms)
+✔ isEditTool recognizes edit-family tools (0.093969ms)
+✔ buildHookPayload extracts file_path from args (0.466148ms)
+✔ extractFilePath prefers file_path then path (0.105632ms)
+✔ parseHookOutput reads block and context JSON lines (0.240278ms)
+✔ resolveBash honors DO_IT_BASH and reports no compatible shell (1.050652ms)
+✔ resolveBash finds Git Bash style executables on Windows PATH (0.826385ms)
+✔ spawnHook times out and terminates a slow hook (56.340166ms)
+✔ windowsTaskkill resolves the native process-tree utility (0.378551ms)
+✔ spawnHook degrades softly when Bash is unavailable (1.315426ms)
+✔ resolveSessionStateDir cannot traverse outside the sessions directory (3.774653ms)
+✔ session state lookup prefers the hook writer's data root (3.628804ms)
+✔ session state lookup matches the default OpenCode data root (1.954393ms)
+✔ verification transcript keeps shell details private and does not satisfy an advisory reminder (137.144155ms)
+✔ verification transcript keeps only current-turn fields and remains advisory (131.121035ms)
+✔ verification temp cleanup prunes only stale adapter directories (3.997356ms)
+✔ template does not auto-allow edit, write, or bash (0.769877ms)
+✔ fake host exercises config, bootstrap, hooks, idle notification, and cleanup (2243.51616ms)
+✔ feedback capture uses OpenCode parentage and never records a child session (5466.127006ms)
+✔ idle notifies when session payload cannot synthesize a transcript (3.133471ms)
+ℹ tests 20
+ℹ suites 0
+ℹ pass 20
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7780.725968
+npm_test_exit=0
+ended_utc=2026-08-31T10:22:13Z

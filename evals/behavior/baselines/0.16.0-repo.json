@@ -1,0 +1,748 @@
+{
+  "schema": "do-it/behavior-repo-baseline/v1",
+  "freeze": {
+    "card": "S00",
+    "title": "0.16.0 static repository baseline",
+    "captured_utc": "2026-08-31T10:18:10Z",
+    "repository": "tdwhere123/do-it",
+    "commit": "8e85add081b2793fb39529e1a57a36155fe03847",
+    "version": "0.16.0",
+    "branch": "upgrade/minimal-evidence-kernel",
+    "worktree": "/home/tdwhere/vibe/do-it",
+    "node": "v24.14.1",
+    "npm": "11.12.0",
+    "design_doc": "docs/design/minimal-evidence-kernel.md"
+  },
+  "inventory": {
+    "runnable_skills": 11,
+    "generated_discovery_entries": 1,
+    "agents": 10,
+    "core_rule_ids": [
+      "r-route",
+      "r-evidence",
+      "r-scope",
+      "r-verify",
+      "r-uncertainty",
+      "r-boundary",
+      "r-report",
+      "r-recovery"
+    ],
+    "mainline_skills": [
+      "do-it-core",
+      "do-it-router",
+      "do-it-code-quality",
+      "do-it-review",
+      "do-it-decide",
+      "do-it-verify",
+      "do-it-architecture"
+    ],
+    "extended_on_demand": [
+      "do-it-retrospective"
+    ],
+    "extended_maintenance": [
+      "do-it-handbook",
+      "do-it-context",
+      "do-it-skill-authoring"
+    ],
+    "agent_ids": [
+      "architecture-strategist",
+      "code-mapper",
+      "code-quality-cleaner",
+      "documentation-engineer",
+      "plan-challenger",
+      "product-strategist",
+      "red-team-reviewer",
+      "reviewer",
+      "spec-compliance-reviewer",
+      "tdd-red-writer"
+    ],
+    "quality_families": [
+      {
+        "id": "narrative-comment",
+        "category": "comments"
+      },
+      {
+        "id": "orphan-todo",
+        "category": "comments"
+      },
+      {
+        "id": "tombstone",
+        "category": "comments"
+      },
+      {
+        "id": "case-list",
+        "category": "anti-pattern"
+      },
+      {
+        "id": "no-consumer",
+        "category": "anti-pattern"
+      },
+      {
+        "id": "copy-paste",
+        "category": "anti-pattern"
+      },
+      {
+        "id": "swallow-error",
+        "category": "integrity"
+      },
+      {
+        "id": "debug-leftover",
+        "category": "maintainability"
+      },
+      {
+        "id": "test-weakened",
+        "category": "integrity"
+      },
+      {
+        "id": "edit-bloat",
+        "category": "slicing"
+      },
+      {
+        "id": "file-size",
+        "category": "slicing"
+      },
+      {
+        "id": "scope-chain",
+        "category": "metacognition"
+      },
+      {
+        "id": "live-path",
+        "category": "metacognition"
+      },
+      {
+        "id": "secret-leak",
+        "category": "integrity"
+      },
+      {
+        "id": "type-escape",
+        "category": "metacognition"
+      },
+      {
+        "id": "test-fiction",
+        "category": "metacognition"
+      }
+    ],
+    "routing_golden_rows": 51
+  },
+  "sizes": {
+    "skills": {
+      "do-it-core": {
+        "path": "skills/do-it/do-it-core/SKILL.md",
+        "bytes": 4430,
+        "lines": 73,
+        "sha256": "d101305592ef7de936658215baf5d035c2adc878e683e792ddbd789aa5bce484"
+      },
+      "do-it-router": {
+        "path": "skills/do-it/do-it-router/SKILL.md",
+        "bytes": 3233,
+        "lines": 65,
+        "sha256": "fea5543144ffafb727533cc86c977b2639191830163a0dd76feec4893e0ea227"
+      },
+      "do-it-code-quality": {
+        "path": "skills/do-it/do-it-code-quality/SKILL.md",
+        "bytes": 6153,
+        "lines": 108,
+        "sha256": "e4dda099d9ed8f9b35a7525bccf007cc4bf0775f374f89f4932b1b4c2f3bd2d1"
+      },
+      "do-it-review": {
+        "path": "skills/do-it/do-it-review/SKILL.md",
+        "bytes": 3090,
+        "lines": 72,
+        "sha256": "327ae244b2a41f261e9812a487f1a4ef6e849fb242b998058ed1406b231b3cdc"
+      },
+      "do-it-decide": {
+        "path": "skills/do-it/do-it-decide/SKILL.md",
+        "bytes": 2932,
+        "lines": 63,
+        "sha256": "4b0a0c67c4db4dec467b3ee61f1d4eee78de273bcc5eb6682331a6db169f6865"
+      },
+      "do-it-verify": {
+        "path": "skills/do-it/do-it-verify/SKILL.md",
+        "bytes": 2120,
+        "lines": 52,
+        "sha256": "1e96676c27bebc3c73c29920e57c66a4bed93fedc6920aa5533371f5448e240e"
+      },
+      "do-it-architecture": {
+        "path": "skills/do-it/do-it-architecture/SKILL.md",
+        "bytes": 6475,
+        "lines": 109,
+        "sha256": "8a65461beb434d4be53640bbe680b47f9577dfb1fd10adca248e2a54acc37acc"
+      },
+      "do-it-retrospective": {
+        "path": "skills/do-it/do-it-retrospective/SKILL.md",
+        "bytes": 4199,
+        "lines": 94,
+        "sha256": "16657e631b93b83adce563a0fd06e637c1edf54c3371b3ed7a8a9398ada38145"
+      },
+      "do-it-handbook": {
+        "path": "skills/do-it/do-it-handbook/SKILL.md",
+        "bytes": 8821,
+        "lines": 167,
+        "sha256": "475d5170840e48851ddb43226bc1351d430907c9752c8f1b81a2408fc6a591ac"
+      },
+      "do-it-context": {
+        "path": "skills/do-it/do-it-context/SKILL.md",
+        "bytes": 10147,
+        "lines": 219,
+        "sha256": "0b3d5b1703c44a77c85e91080ed98f8454c8080b5d469db30d95902dc7f9ea35"
+      },
+      "do-it-skill-authoring": {
+        "path": "skills/do-it/do-it-skill-authoring/SKILL.md",
+        "bytes": 8434,
+        "lines": 177,
+        "sha256": "c337619ff540408fbadf554d6d8123cc847eab240e9ef3aa40daa97f61f9315e"
+      }
+    },
+    "hooks": {
+      "anti-patterns-lint.sh": {
+        "path": "hooks/anti-patterns-lint.sh",
+        "bytes": 95,
+        "lines": 2,
+        "sha256": "7b27e233baa28fd00492763db0bacf2345429a0e55aefb36dc1efc82291f8b5d"
+      },
+      "behavior-feedback.sh": {
+        "path": "hooks/behavior-feedback.sh",
+        "bytes": 8017,
+        "lines": 232,
+        "sha256": "3217264632bf61cda853461fa89a4c430c2889bb09cc3db49f3d1df7144ab88d"
+      },
+      "comments-lint.sh": {
+        "path": "hooks/comments-lint.sh",
+        "bytes": 95,
+        "lines": 2,
+        "sha256": "7b27e233baa28fd00492763db0bacf2345429a0e55aefb36dc1efc82291f8b5d"
+      },
+      "grill-prompt.sh": {
+        "path": "hooks/grill-prompt.sh",
+        "bytes": 8978,
+        "lines": 198,
+        "sha256": "36f1a846997947a2f8b2144970c2485c3386beeccbe8a4ad5e0b90cd7b535493"
+      },
+      "prompt-submit.sh": {
+        "path": "hooks/prompt-submit.sh",
+        "bytes": 2792,
+        "lines": 78,
+        "sha256": "fdeb8961dbf3b6078af30648351a2cce6c8818770720d4b536644114dbdee480"
+      },
+      "router.sh": {
+        "path": "hooks/router.sh",
+        "bytes": 29941,
+        "lines": 593,
+        "sha256": "d53eec46b9a9992dea9d7ac2b95c910399db2e9ed42c149e780aeafe3914312b"
+      },
+      "session-start.sh": {
+        "path": "hooks/session-start.sh",
+        "bytes": 1369,
+        "lines": 35,
+        "sha256": "bb8af15db184dd432683c98b2a47c2b22f097025e8f5d094fb3160c7a6d03d4a"
+      },
+      "strict-external-actions.sh": {
+        "path": "hooks/strict-external-actions.sh",
+        "bytes": 2727,
+        "lines": 55,
+        "sha256": "55fc731b7f4242cdfde8195432785b3a5d9adb9fca50282de0b5015f64ad11d5"
+      },
+      "subagent-stance.sh": {
+        "path": "hooks/subagent-stance.sh",
+        "bytes": 2003,
+        "lines": 46,
+        "sha256": "ba26983113923af2c68027fd5e890fc78b81eda98253b18614eb73ef2e3362b8"
+      },
+      "verification-gate.sh": {
+        "path": "hooks/verification-gate.sh",
+        "bytes": 9661,
+        "lines": 240,
+        "sha256": "951b131eb1712db799ff1f72b0c1ed762a8bab7ba52015ba7a151229438ec4c5"
+      },
+      "write-quality-lint.sh": {
+        "path": "hooks/write-quality-lint.sh",
+        "bytes": 8529,
+        "lines": 229,
+        "sha256": "dcd1ed43b0a1b66df288e74baf50487cc6c00d6d3de0cea938e0799418f83dc9"
+      }
+    },
+    "hook_libs": {
+      "debug.sh": {
+        "path": "hooks/lib/debug.sh",
+        "bytes": 724,
+        "lines": 19,
+        "sha256": "d9e2d2194d7d0b8f183e7f386612fe1818d9393125917ea336590075af21fd67"
+      },
+      "write-quality-scan.sh": {
+        "path": "hooks/lib/write-quality-scan.sh",
+        "bytes": 16614,
+        "lines": 421,
+        "sha256": "bf4ea551c11b23aa2494d87b60e2d1dac596ff63ee63dfb269f8755adaf408a3"
+      },
+      "common.sh": {
+        "path": "hooks/lib/common.sh",
+        "bytes": 54388,
+        "lines": 1457,
+        "sha256": "f3dea07951ecc9db767643d1883789c687dfd7dde3e1072e9743c1dc286cb625"
+      },
+      "keywords.sh": {
+        "path": "hooks/lib/keywords.sh",
+        "bytes": 7357,
+        "lines": 198,
+        "sha256": "4b2a2cb3cde426da6c54dc3e7cc71162174f35b7ad68f712d50eb46c0c52e865"
+      }
+    }
+  },
+  "source_pins": {
+    "hooks/router.sh": "d53eec46b9a9992dea9d7ac2b95c910399db2e9ed42c149e780aeafe3914312b",
+    "hooks/grill-prompt.sh": "36f1a846997947a2f8b2144970c2485c3386beeccbe8a4ad5e0b90cd7b535493",
+    "hooks/prompt-submit.sh": "fdeb8961dbf3b6078af30648351a2cce6c8818770720d4b536644114dbdee480",
+    "hooks/verification-gate.sh": "951b131eb1712db799ff1f72b0c1ed762a8bab7ba52015ba7a151229438ec4c5",
+    "hooks/lib/common.sh": "f3dea07951ecc9db767643d1883789c687dfd7dde3e1072e9743c1dc286cb625",
+    "tests/fixtures/routing-golden.tsv": "366c2e7e5e4a3f9c71757c1f33a11e6428dae8a8e43e026a4e6c70c084937b18",
+    "hooks/data/execution-failure-modes.tsv": "1597c3df612734ac733a784b8a68e9ee7cf9f1eda831f8e3268ae64ee3e6d63a"
+  },
+  "core_rules": [
+    {
+      "id": "r-route",
+      "injection_surface": "none",
+      "failure_modes": [
+        "over-routing",
+        "under-routing",
+        "ceremony"
+      ]
+    },
+    {
+      "id": "r-evidence",
+      "injection_surface": "UserPromptSubmit",
+      "failure_modes": [
+        "silent-assumption",
+        "invented-api",
+        "contract-drift"
+      ]
+    },
+    {
+      "id": "r-scope",
+      "injection_surface": "UserPromptSubmit",
+      "failure_modes": [
+        "scope-creep",
+        "collateral-change",
+        "needless-abstraction"
+      ]
+    },
+    {
+      "id": "r-verify",
+      "injection_surface": "UserPromptSubmit,Stop",
+      "failure_modes": [
+        "unverified-claim",
+        "dishonest-green",
+        "irrelevant-verification"
+      ]
+    },
+    {
+      "id": "r-uncertainty",
+      "injection_surface": "UserPromptSubmit",
+      "failure_modes": [
+        "low-risk-paralysis",
+        "unattended-guessing"
+      ]
+    },
+    {
+      "id": "r-boundary",
+      "injection_surface": "UserPromptSubmit",
+      "failure_modes": [
+        "action-scope-expansion",
+        "implicit-destructive-authorization",
+        "publication-expansion"
+      ]
+    },
+    {
+      "id": "r-report",
+      "injection_surface": "none",
+      "failure_modes": [
+        "dropped-requirements",
+        "process-noise"
+      ]
+    },
+    {
+      "id": "r-recovery",
+      "injection_surface": "none",
+      "failure_modes": [
+        "thrashing",
+        "cover-up-edit"
+      ]
+    }
+  ],
+  "session_keys_current": [
+    "tier",
+    "tier_history",
+    "last_prompt_kind",
+    "no_write_boundary",
+    "durable_plan_required",
+    "durable_plan_seen",
+    "dim_touches_code",
+    "dim_crosses_packages",
+    "dim_breaks_interface",
+    "dim_needs_tdd",
+    "dim_needs_review_loop",
+    "dim_brownfield",
+    "port_intent",
+    "grilled",
+    "plan_nudged",
+    "brownfield_nudged",
+    "user_turn",
+    "hook_invocations",
+    "subagent_stance_seen",
+    "behavior_feedback_last_hash"
+  ],
+  "session_keys_target_retire": [
+    "tier",
+    "tier_history",
+    "dim_touches_code",
+    "dim_crosses_packages",
+    "dim_breaks_interface",
+    "dim_needs_tdd",
+    "dim_needs_review_loop",
+    "grilled",
+    "durable_plan_required",
+    "durable_plan_seen",
+    "plan_nudged",
+    "dim_brownfield",
+    "brownfield_nudged",
+    "port_intent"
+  ],
+  "host_wiring": {
+    "claude": {
+      "prompt": "UserPromptSubmit/prompt-submit.sh",
+      "write": "PostToolUse Edit|Write|MultiEdit|NotebookEdit",
+      "done": "Stop",
+      "extra": "PreToolUse narrow external-actions profile default-off"
+    },
+    "codex": {
+      "prompt": "UserPromptSubmit via install/codex-hooks.json",
+      "write": "PostToolUse Edit|Write|MultiEdit|NotebookEdit",
+      "done": "Stop",
+      "extra": "plugin cannot veto tools"
+    },
+    "cursor": {
+      "prompt": "beforeSubmitPrompt via run-hook.cmd",
+      "write": "postToolUse StrReplace|Write|EditNotebook",
+      "done": "stop",
+      "extra": "sessionStart bootstrap"
+    },
+    "opencode": {
+      "prompt": "chat.message TS bridge",
+      "write": "tool.execute.after",
+      "done": "session.idle soft",
+      "extra": "independent npm package"
+    },
+    "pi": {
+      "prompt": "root before_agent_start",
+      "write": "root tool_result edit/write",
+      "done": "agent_end + next-turn agent_settled",
+      "extra": "independent npm package; namespaced agents need pi-subagents"
+    },
+    "kimi": {
+      "prompt": "UserPromptSubmit prompt-submit + behavior-feedback",
+      "write": "PostToolUse Edit|Write",
+      "done": "Stop",
+      "extra": "no custom subagents; subagent-stance unwired"
+    }
+  },
+  "run_hook_allowlist": [
+    "session-start.sh",
+    "behavior-feedback.sh",
+    "prompt-submit.sh",
+    "router.sh",
+    "grill-prompt.sh",
+    "subagent-stance.sh",
+    "write-quality-lint.sh",
+    "verification-gate.sh",
+    "anti-patterns-lint.sh",
+    "comments-lint.sh"
+  ],
+  "router_grill_snapshot": {
+    "path": "tests/fixtures/baseline/router-grill-snapshot.jsonl",
+    "cases": [
+      {
+        "id": "q-zh",
+        "prompt": "你觉得这个方案怎么样？",
+        "router_exit": 0,
+        "grill_exit": 0,
+        "router_stdout_empty": true,
+        "grill_stdout_empty": true,
+        "tier": "Light",
+        "last_prompt_kind": "question",
+        "no_write_boundary": "0",
+        "grilled": null,
+        "dims": {
+          "dim_brownfield": "0",
+          "dim_touches_code": "0",
+          "dim_crosses_packages": "0",
+          "dim_breaks_interface": "0",
+          "dim_needs_tdd": "0",
+          "dim_needs_review_loop": "0"
+        },
+        "durable_plan_required": "0"
+      },
+      {
+        "id": "light-typo",
+        "prompt": "typo in README.md",
+        "router_exit": 0,
+        "grill_exit": 0,
+        "router_stdout_empty": true,
+        "grill_stdout_empty": true,
+        "tier": "Light",
+        "last_prompt_kind": "work",
+        "no_write_boundary": "0",
+        "grilled": null,
+        "dims": {
+          "dim_brownfield": "0",
+          "dim_touches_code": "0",
+          "dim_crosses_packages": "0",
+          "dim_breaks_interface": "0",
+          "dim_needs_tdd": "0",
+          "dim_needs_review_loop": "0"
+        },
+        "durable_plan_required": "0"
+      },
+      {
+        "id": "std-fix",
+        "prompt": "fix bug in hooks/router.sh",
+        "router_exit": 0,
+        "grill_exit": 0,
+        "router_stdout_empty": false,
+        "grill_stdout_empty": true,
+        "tier": "Standard",
+        "last_prompt_kind": "work",
+        "no_write_boundary": "0",
+        "grilled": null,
+        "dims": {
+          "dim_brownfield": "0",
+          "dim_touches_code": "1",
+          "dim_crosses_packages": "0",
+          "dim_breaks_interface": "0",
+          "dim_needs_tdd": "1",
+          "dim_needs_review_loop": "0"
+        },
+        "durable_plan_required": "0"
+      },
+      {
+        "id": "heavy-migrate",
+        "prompt": "迁移 database schema 并 rewrite API",
+        "router_exit": 0,
+        "grill_exit": 0,
+        "router_stdout_empty": false,
+        "grill_stdout_empty": false,
+        "tier": "Heavy",
+        "last_prompt_kind": "work",
+        "no_write_boundary": "0",
+        "grilled": "1",
+        "dims": {
+          "dim_brownfield": "0",
+          "dim_touches_code": "1",
+          "dim_crosses_packages": "0",
+          "dim_breaks_interface": "1",
+          "dim_needs_tdd": "0",
+          "dim_needs_review_loop": "1"
+        },
+        "durable_plan_required": "1"
+      },
+      {
+        "id": "heavy-publish",
+        "prompt": "publish the release to production",
+        "router_exit": 0,
+        "grill_exit": 0,
+        "router_stdout_empty": true,
+        "grill_stdout_empty": false,
+        "tier": "Heavy",
+        "last_prompt_kind": "work",
+        "no_write_boundary": "0",
+        "grilled": "1",
+        "dims": {
+          "dim_brownfield": "0",
+          "dim_touches_code": "0",
+          "dim_crosses_packages": "0",
+          "dim_breaks_interface": "0",
+          "dim_needs_tdd": "0",
+          "dim_needs_review_loop": "1"
+        },
+        "durable_plan_required": "1"
+      },
+      {
+        "id": "q-explain",
+        "prompt": "how do database migrations work?",
+        "router_exit": 0,
+        "grill_exit": 0,
+        "router_stdout_empty": true,
+        "grill_stdout_empty": true,
+        "tier": "Light",
+        "last_prompt_kind": "question",
+        "no_write_boundary": "0",
+        "grilled": null,
+        "dims": {
+          "dim_brownfield": "0",
+          "dim_touches_code": "0",
+          "dim_crosses_packages": "0",
+          "dim_breaks_interface": "0",
+          "dim_needs_tdd": "0",
+          "dim_needs_review_loop": "0"
+        },
+        "durable_plan_required": "0"
+      },
+      {
+        "id": "escape",
+        "prompt": "yolo 直接做",
+        "router_exit": 0,
+        "grill_exit": 0,
+        "router_stdout_empty": true,
+        "grill_stdout_empty": true,
+        "tier": null,
+        "last_prompt_kind": null,
+        "no_write_boundary": null,
+        "grilled": null,
+        "dims": {},
+        "durable_plan_required": null
+      },
+      {
+        "id": "no-write",
+        "prompt": "Review the current API diff; do not edit.",
+        "router_exit": 0,
+        "grill_exit": 0,
+        "router_stdout_empty": false,
+        "grill_stdout_empty": true,
+        "tier": "Standard",
+        "last_prompt_kind": "work",
+        "no_write_boundary": "1",
+        "grilled": null,
+        "dims": {
+          "dim_brownfield": "0",
+          "dim_touches_code": "1",
+          "dim_crosses_packages": "0",
+          "dim_breaks_interface": "0",
+          "dim_needs_tdd": "0",
+          "dim_needs_review_loop": "0"
+        },
+        "durable_plan_required": "0"
+      },
+      {
+        "id": "grill-explicit",
+        "prompt": "please grill this migration plan",
+        "router_exit": 0,
+        "grill_exit": 0,
+        "router_stdout_empty": false,
+        "grill_stdout_empty": false,
+        "tier": "Standard",
+        "last_prompt_kind": "work",
+        "no_write_boundary": "0",
+        "grilled": "1",
+        "dims": {
+          "dim_brownfield": "0",
+          "dim_touches_code": "1",
+          "dim_crosses_packages": "0",
+          "dim_breaks_interface": "0",
+          "dim_needs_tdd": "0",
+          "dim_needs_review_loop": "0"
+        },
+        "durable_plan_required": "0"
+      },
+      {
+        "id": "work-zh",
+        "prompt": "实现 src/auth.ts 的登录",
+        "router_exit": 0,
+        "grill_exit": 0,
+        "router_stdout_empty": false,
+        "grill_stdout_empty": true,
+        "tier": "Standard",
+        "last_prompt_kind": "work",
+        "no_write_boundary": "0",
+        "grilled": null,
+        "dims": {
+          "dim_brownfield": "0",
+          "dim_touches_code": "1",
+          "dim_crosses_packages": "0",
+          "dim_breaks_interface": "0",
+          "dim_needs_tdd": "1",
+          "dim_needs_review_loop": "0"
+        },
+        "durable_plan_required": "0"
+      }
+    ]
+  },
+  "session_start_snapshot": "tests/fixtures/baseline/session-start-stdout.txt",
+  "commands": {
+    "status": "recorded",
+    "commit": "8e85add081b2793fb39529e1a57a36155fe03847",
+    "worktree": "/home/tdwhere/vibe/do-it",
+    "branch": "upgrade/minimal-evidence-kernel",
+    "npm_test": {
+      "command": "npm test",
+      "exit": 0,
+      "started_utc": "2026-08-31T10:18:10Z",
+      "ended_utc": "2026-08-31T10:22:13Z",
+      "log": "tests/fixtures/baseline/npm-test.txt",
+      "notes": [
+        "includes build:generated, host plugin builds, validators, lint-hooks, hook suites, install, release, opencode",
+        "index.json rebuilt as 11 runnable skills + 1 discovery, 10 agents",
+        "validate-quality-families: 16 families synchronized",
+        "validate-core-consistency: 8 rules",
+        "routing-golden: 51 passed"
+      ]
+    },
+    "npm_lint": {
+      "command": "npm run lint",
+      "exit": 0,
+      "started_utc": "2026-08-31T10:22:33Z",
+      "ended_utc": "2026-08-31T10:22:34Z",
+      "bytes": 206,
+      "tail": [
+        "=== npm run lint ===",
+        "started_utc=2026-08-31T10:22:33Z",
+        "> @tdwhere/do-it@0.16.0 lint",
+        "> bash scripts/lint-hooks.sh",
+        "[lint-hooks] ok (severity=warning, files=10)",
+        "npm_lint_exit=0",
+        "ended_utc=2026-08-31T10:22:34Z"
+      ],
+      "log": "tests/fixtures/baseline/npm-lint.txt",
+      "notes": [
+        "[lint-hooks] ok (severity=warning, files=10)"
+      ]
+    },
+    "npm_smoke_package": {
+      "command": "npm run smoke:package",
+      "exit": 0,
+      "started_utc": "2026-08-31T10:22:34Z",
+      "ended_utc": "2026-08-31T10:23:04Z",
+      "bytes": 851,
+      "tail": [
+        "npm warn EBADENGINE   required: { node: '^22.22.2 || ^24.15.0 || >=26.0.0' },",
+        "npm warn EBADENGINE   current: { node: 'v24.14.1', npm: '11.12.0' }",
+        "npm warn EBADENGINE }",
+        "npm warn EBADENGINE Unsupported engine {",
+        "npm warn EBADENGINE   package: 'ini@7.0.0',",
+        "npm warn EBADENGINE   required: { node: '^22.22.2 || ^24.15.0 || >=26.0.0' },",
+        "npm warn EBADENGINE   current: { node: 'v24.14.1', npm: '11.12.0' }",
+        "npm warn EBADENGINE }",
+        "added 28 packages in 25s",
+        "package smoke passed (packed): tdwhere-do-it-0.16.0.tgz, tdwhere-do-it-opencode-0.16.0.tgz",
+        "npm_smoke_exit=0",
+        "ended_utc=2026-08-31T10:23:04Z"
+      ],
+      "log": "tests/fixtures/baseline/npm-smoke-package.txt",
+      "notes": [
+        "package smoke passed (packed): tdwhere-do-it-0.16.0.tgz, tdwhere-do-it-opencode-0.16.0.tgz",
+        "EBADENGINE warning: @tdwhere/do-it-opencode requires node ^22.22.2 || ^24.15.0 || >=26.0.0; current v24.14.1. Smoke still passed. Residual baseline environment note, not an S00 failure."
+      ]
+    },
+    "git_diff_check": {
+      "command": "git diff --check",
+      "exit": 0,
+      "log": "tests/fixtures/baseline/git-diff-check.txt",
+      "notes": [
+        "no whitespace errors on tracked diffs; runtime source trees unchanged"
+      ]
+    }
+  },
+  "non_goals_observed": {
+    "runtime_behavior_changed": false,
+    "generated_artifacts_hand_edited": false,
+    "skills_rewritten": false,
+    "tracked_runtime_paths_diffed": []
+  }
+}
