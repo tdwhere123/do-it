@@ -12,6 +12,7 @@
     ],
     "extended": [
       "do-it-retrospective",
+      "do-it-adaptive",
       "do-it-handbook",
       "do-it-context",
       "do-it-skill-authoring"
@@ -117,6 +118,24 @@
       "kind": "file",
       "source": "hooks/prompt-submit.sh",
       "target": "hooks/prompt-submit.sh"
+    },
+    {
+      "name": "hooks-kernel-context",
+      "kind": "file",
+      "source": "hooks/kernel-context.sh",
+      "target": "hooks/kernel-context.sh"
+    },
+    {
+      "name": "hooks-adaptive-context",
+      "kind": "file",
+      "source": "hooks/adaptive-context.sh",
+      "target": "hooks/adaptive-context.sh"
+    },
+    {
+      "name": "hooks-evidence-observer",
+      "kind": "file",
+      "source": "hooks/evidence-observer.sh",
+      "target": "hooks/evidence-observer.sh"
     },
     {
       "name": "hooks-lib",
@@ -667,6 +686,12 @@
       "name": "do-it-retrospective",
       "source": "skills/do-it/do-it-retrospective",
       "target": "skills/do-it-retrospective",
+      "origin": "do-it"
+    },
+    {
+      "name": "do-it-adaptive",
+      "source": "skills/do-it/do-it-adaptive",
+      "target": "skills/do-it-adaptive",
       "origin": "do-it"
     },
     {

@@ -18,7 +18,8 @@ export const CORE_SKILLS = [
 
 /** On-demand extended skills — deliberately outside the meaning-centric default set. */
 export const EXTENDED_ON_DEMAND = [
-  "do-it-retrospective"
+  "do-it-retrospective",
+  "do-it-adaptive"
 ];
 
 export const EXTENDED_MAINTENANCE = [

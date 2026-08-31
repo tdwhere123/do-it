@@ -21,11 +21,28 @@ paths, tool names, and hook event names live in
 [`skills/do-it/references/host-vocabulary.md`](../skills/do-it/references/host-vocabulary.md)
 and the per-host sheets below.
 
+## Runtime modes
+
+Prompt injection is selected by `DO_IT_ROUTER_MODE`. Default remains **legacy**
+so 0.16 hosts keep router-then-grill behavior. Shadow and thin are opt-in;
+hooks stay fail-open if a kernel or adaptive script is missing.
+
+| Mode | Enable | Injects | Lexical classifier |
+| --- | --- | --- | --- |
+| **legacy** (default) | unset or `legacy` | `router.sh` then Heavy `grill-prompt.sh` | live |
+| **shadow** | `DO_IT_ROUTER_MODE=shadow` | compact kernel + adaptive overlay; classifier still runs for diagnostics | records only |
+| **thin** | `DO_IT_ROUTER_MODE=thin` | compact kernel + adaptive overlay | skipped |
+
+SessionStart on Cursor (and Kimi `sessionStart`) uses the same compact kernel
+when not in legacy. Children get `subagent-stance` only — not the full kernel
+or adaptive profile.
+
 ## Routing Tiers
 
-Hooks and skills share three routing tiers. Tier is an advisory input; boolean
-dimensions (`dim_*`) narrow intensity without changing it. Direct user intent
-and model judgment take precedence over router labels.
+Hooks and skills share three routing tiers. In **legacy** mode, tier is an
+advisory input; boolean dimensions (`dim_*`) narrow intensity without changing
+it. Direct user intent and model judgment take precedence over router labels.
+Shadow/thin do not treat `dim_*` as a workflow.
 
 | Tier | Router output | write-quality-lint | grill-prompt | Completion reminder |
 | --- | --- | --- | --- | --- |
@@ -40,10 +57,12 @@ Subagent contexts skip write-quality-lint (parent owns integration).
 
 | Signal | Script | Codex / Claude | Cursor | OpenCode | Pi | Kimi Code |
 | --- | --- | --- | --- | --- | --- | --- |
-| Opt-in feedback capture | `behavior-feedback.sh` | `UserPromptSubmit` plus narrow `UserPromptExpansion`, silent and default off | `beforeSubmitPrompt`, silent and default off | `chat.message`, silent and default off; only a confirmed root session is eligible | not wired | `UserPromptSubmit`, silent and default off |
-| Classify prompt | `router.sh` | `UserPromptSubmit` | `beforeSubmitPrompt` | `chat.message` | root `before_agent_start` | `UserPromptSubmit` |
-| Grill nudge (Heavy) | `grill-prompt.sh` | `UserPromptSubmit` | `beforeSubmitPrompt` | `chat.message` (Heavy/explicit, advisory) | root `before_agent_start` (Heavy/explicit, advisory) | `UserPromptSubmit` (Heavy/explicit, advisory) |
-| Subagent stance | `subagent-stance.sh` | `UserPromptSubmit` | `beforeSubmitPrompt` | bootstrap guidance only | child `before_agent_start` when `PI_SUBAGENT_CHILD=1` | not wired — Subagent events carry empty `session_id` |
+| Opt-in feedback capture | `learning-recorder.sh` (`behavior-feedback.sh` wrapper) | `UserPromptSubmit` plus narrow `UserPromptExpansion`, silent and default off | `beforeSubmitPrompt`, silent and default off | `chat.message`, silent and default off; only a confirmed root session is eligible | not wired | `UserPromptSubmit`, silent and default off |
+| Compact kernel | `kernel-context.sh` | via `prompt-submit` in shadow/thin; silent in legacy | `sessionStart` + `prompt-submit` prefix in shadow/thin | bootstrap / `chat.message` prefix in shadow/thin | root `before_agent_start` prefix in shadow/thin; children never get it | `sessionStart` + `prompt-submit` prefix in shadow/thin |
+| Adaptive overlay | `adaptive-context.sh` | via `prompt-submit` in shadow/thin; missing profile = 0 tokens | same, through `prompt-submit` | same | root only; children get at most one relevant delta, never the full profile | same; default off |
+| Classify prompt | `router.sh` | `UserPromptSubmit` (legacy/shadow; skipped in thin) | `beforeSubmitPrompt` (legacy/shadow; skipped in thin) | `chat.message` (legacy/shadow; skipped in thin) | root `before_agent_start` (legacy/shadow; skipped in thin) | `UserPromptSubmit` (legacy/shadow; skipped in thin) |
+| Grill nudge (Heavy) | `grill-prompt.sh` | `UserPromptSubmit` (legacy/shadow) | `beforeSubmitPrompt` (legacy/shadow) | `chat.message` (Heavy/explicit, advisory) | root `before_agent_start` (Heavy/explicit, advisory) | `UserPromptSubmit` (Heavy/explicit, advisory) |
+| Subagent stance | `subagent-stance.sh` | `UserPromptSubmit` | `beforeSubmitPrompt` | bootstrap guidance only | child `before_agent_start` when `PI_SUBAGENT_CHILD=1` | not wired — Subagent events carry empty `session_id`; host has no custom subagents |
 | Write-time quality | `write-quality-lint.sh` | `PostToolUse` (Edit\|Write\|MultiEdit\|NotebookEdit) | `postToolUse` / `afterFileEdit` | `tool.execute.after` (bash bridge) | root `tool_result` (`edit`/`write`) | `PostToolUse` (Edit\|Write — the only Kimi edit tools) |
 | Evidence observe | `evidence-observer.sh` | `PostToolUse` Edit* + `Bash`/`Shell` | `postToolUse` (`StrReplace`/`Write`/`EditNotebook`/`Shell`) and `afterFileEdit` (deduped) | `tool.execute.after` edit + shell facts; command names are not proof | root `tool_result` (`edit`/`write`/`bash`); reminder uses ledger freshness | `PostToolUse` Edit\|Write + `Bash`; missing shell exit is `partial`, never `complete` |
 | Done claim | `verification-gate.sh` | `Stop` | `stop` | `session.idle` soft reminder from serialized host messages | root `agent_end` capture + `agent_settled` reminder on the next turn | `Stop`; transcript read from session `wire.jsonl` (no `transcript_path` on this host) |
@@ -57,6 +76,19 @@ operations do not receive that pointer.
 `verification-gate.sh` quotes the canonical `r-verify` sentence from
 `hooks/data/execution-failure-modes.tsv` on every host — one voice, never
 per-host copies (`validate:core-consistency` enforces it).
+
+`evidence-observer.sh` records observed edit/command facts and worktree
+coverage. It never maps acceptance IDs and never emits `VERIFIED`. Missing
+shell exit is `partial`, never `complete`. Kimi stays honest about partial
+observability when the payload has no reliable result.
+
+Adaptive is **default-off and private**: no profile file means 0 tokens;
+profiles live in gitignored `.do-it/runtime/adaptive/` or `~/.do-it/adaptive/`
+and must not store secrets, paths, transcripts, or project architecture.
+Adaptive never weakens Core, no-write, or the active contract.
+
+Default subagent dispatch is **0**; at most **one** fresh-context second look.
+The parent owns the contract and the completion claim.
 
 Legacy `comments-lint.sh` and `anti-patterns-lint.sh` exec into
 `write-quality-lint.sh`; new installs register only the merged script.
@@ -135,10 +167,11 @@ PostToolUse quality reminders:
   `write-quality-families.md` (L3 progressive disclosure).
 - Light tier: hook does not run — zero post-edit injection.
 
-Bundled agents are optional capability experts. The parent gives a delegated
-slice its goal and any needed ownership or side-effect boundary; workers inspect
-independently, return useful evidence or uncertainty, and the parent integrates.
-There is no fixed delegation contract, agent count, or role matrix.
+Bundled agents are optional capability experts. Default dispatch is 0; at most
+one targeted second look. The parent gives a delegated slice its goal and any
+needed ownership or side-effect boundary; workers inspect independently, return
+useful evidence or uncertainty, and the parent integrates. There is no fixed
+role matrix.
 
 ## Session State Resolution
 

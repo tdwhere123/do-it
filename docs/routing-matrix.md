@@ -7,11 +7,11 @@
 
 ## Product Contract
 
-`do-it` exposes eleven user/runnable skills: seven core capabilities (including
+`do-it` exposes twelve user/runnable skills: seven core capabilities (including
 the protocol of record and the architecture-governance skill) plus three
-persistence or maintenance skills and one on-demand retrospective capability,
-along with ten portable agents. The generated `_index.md` is one discovery
-entry, not a twelfth capability.
+persistence or maintenance skills and two on-demand capabilities
+(retrospective and adaptive), along with ten portable agents. The generated
+`_index.md` is one discovery entry, not a thirteenth capability.
 
 | Capability | Canonical skill | Use when |
 | --- | --- | --- |
@@ -26,6 +26,7 @@ entry, not a twelfth capability.
 | Stable handbook | `do-it-handbook` | Stable project truth is repeatedly rediscovered or the user asks to scaffold it |
 | Maintain skills | `do-it-skill-authoring` | A do-it skill or its host packaging changes |
 | Retrospect | `do-it-retrospective` | User explicitly requests opt-in local feedback status, a report, or a confirmed lesson |
+| Adapt | `do-it-adaptive` | User inspects, proposes, activates, or reverts a personal overlay; default off, never weakens Core |
 
 The router supplies an advisory **Light / Standard / Heavy** risk label, then
 the model selects only the meaningful capability needed. Direct user intent and
@@ -40,11 +41,17 @@ the router never imposes a fixed chain or a permission gate.
 | Standard | Ordinary behavior/design work | Use code quality while writing; add decide/review only when their trigger is real. |
 | Heavy | Cross-boundary, interface, security, migration, release, or irreversible closeout | Pressure-test the load-bearing route, map the proof path, and use risk-matched review. |
 
+Default runtime is still **legacy** (`DO_IT_ROUTER_MODE=legacy`): the lexical
+classifier and Heavy grill path. `shadow` injects a compact kernel plus
+adaptive overlay while the classifier records diagnostics only. `thin` skips
+the classifier. Deletion of the lexical router is gated on behavior eval, not
+this docs page.
+
 Router dimensions (`dim_touches_code`, `dim_crosses_packages`,
 `dim_breaks_interface`, `dim_needs_tdd`, `dim_needs_review_loop`) are cheap
-signals, not a second workflow. They may inform depth but never override a
-direct request to act or delegate. Missing state degrades to minimal advisory
-behavior rather than block work.
+**legacy** signals, not a second workflow. They may inform depth in legacy
+mode but never override a direct request to act or delegate. Missing state
+degrades to minimal advisory behavior rather than block work.
 
 ## Meaning-First Delivery
 
@@ -65,8 +72,10 @@ parent owns shared files and integration.
 Use Grill only when a premise or user preference gates the route. Read local
 facts first; ask only for a material user-owned decision, and offer options or
 a recommended default only when they change the route. Use Diverge only when
-viable alternatives are truly unclear. Write a
-plan card only when a later worker/session needs its acceptance and proof notes.
+viable alternatives are truly unclear. Persist a
+`.do-it/plans/` file only as an execution contract (Goal / Decisions /
+Boundary / Acceptance) when a later worker/session needs it — not as a
+progress log or brainstorm dump.
 
 For a permanent external surface (dependency, datastore, framework/runtime, or
 protocol), research repository constraints and compare at least two viable
@@ -85,7 +94,10 @@ do not run or cite an unrelated command merely to satisfy a gate.
 
 ## Delegation
 
-Delegation has no standalone skill or mandatory contract. Bundled agents are
+Delegation has no standalone skill or mandatory contract. Default dispatch is
+**0**. At most **one** fresh-context second look, and only when independent
+evidence could change a costly decision, the slice is narrow and verifiable,
+or the current context is too anchored to audit itself. Bundled agents are
 optional capability experts: use one when an independent map, review, or
 specialist view improves the work, especially after a direct user request.
 Give a worker the goal, any necessary ownership or side-effect boundary, and the
@@ -93,26 +105,28 @@ useful result or evidence; add context only when the slice needs it.
 
 Workers operate autonomously within the assigned slice, report useful evidence
 or uncertainty, and do not commit, merge, or revert peer work by default. The
-parent owns integration and final claims. There is no fixed agent count or role
-matrix. User-defined global agents are separate from the plugin-owned bundle and
-are not part of its managed inventory.
+parent owns the contract, integration, and final claims. There is no fixed
+role matrix. User-defined global agents are separate from the plugin-owned
+bundle and are not part of its managed inventory.
 
 ## Host Delivery
 
 | Host | Distribution | Skills | Verification behavior |
 | --- | --- | --- | --- |
-| Codex | Marketplace-first plugin; optional CLI migration/doctor | All eleven + generated discovery entry | Advisory completion reminder; `do-it-verify` supplies claim-specific proof |
-| Claude Code | Marketplace-first plugin | All eleven + generated discovery entry | Advisory completion reminder; `do-it-verify` supplies claim-specific proof |
-| Cursor | Local copy / Team Import today; public listing pending | All eleven + generated discovery/reference files | Advisory completion reminder; `do-it-verify` supplies claim-specific proof |
-| OpenCode | Independent npm package; vendored config-home fallback | All eleven + generated discovery entry | Advisory completion reminder; `do-it-verify` supplies claim-specific proof |
-| Pi | Independent npm package or local-path install; optional `pi-subagents` | All eleven; ten namespaced package agents when discovered by `pi-subagents` | Advisory root lifecycle and child stance; `/do-it-status` diagnoses the adapter but does not prove agent discovery |
+| Codex | Marketplace-first plugin; optional CLI migration/doctor | All twelve + generated discovery entry | Advisory completion reminder; `do-it-verify` supplies claim-specific proof |
+| Claude Code | Marketplace-first plugin | All twelve + generated discovery entry | Advisory completion reminder; `do-it-verify` supplies claim-specific proof |
+| Cursor | Local copy / Team Import today; public listing pending | All twelve + generated discovery/reference files | Advisory completion reminder; `do-it-verify` supplies claim-specific proof |
+| OpenCode | Independent npm package; vendored config-home fallback | All twelve + generated discovery entry | Advisory completion reminder; `do-it-verify` supplies claim-specific proof |
+| Pi | Independent npm package or local-path install; optional `pi-subagents` | All twelve; ten namespaced package agents when discovered by `pi-subagents` | Advisory root lifecycle and child stance; `/do-it-status` diagnoses the adapter but does not prove agent discovery |
 
 No host registers `grill-pretool` or a pre-edit plan gate. `write-quality-lint`
 and `verification-gate` are advisory everywhere; `do-it-verify` remains the
 claim-specific proof discipline. The adapter matrix documents exact events and
 capability limits: [`harness-adapter-matrix.md`](harness-adapter-matrix.md).
-The feedback recorder is default-off and the Claude strict external-action
-profile is opt-in; neither changes normal routing.
+The feedback recorder and adaptive overlay are default-off; the Claude strict
+external-action profile is opt-in. None of them changes normal routing. Adaptive
+profiles are gitignored personal deltas and must not store secrets, paths, or
+project facts.
 
 ## Maintainer Checks
 
@@ -129,6 +143,8 @@ node scripts/validate-legacy-names.mjs
 node scripts/validate-quality-families.mjs
 node scripts/validate-harness-matrix.mjs
 npm run validate:core-skill-boundaries
+npm run validate:skill-contracts
+npm run eval:behavior:validate
 npm test
 ```
 

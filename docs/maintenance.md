@@ -62,6 +62,8 @@ Current validation commands:
 npm test
 npm run validate:agents
 npm run validate:core-skill-boundaries
+npm run validate:skill-contracts
+npm run eval:behavior:validate
 npm run build:claude-agents
 npm run build:codex-plugin
 npm exec --package . -- do-it setup
@@ -110,7 +112,7 @@ plugin metadata, and Hooks UI inspection after reload.
 | Codex plugin marketplace | Generated under `plugins/do-it/skills/` | Generated under `plugins/do-it/agents/` | None | Plugin hooks (trust under `/hooks`) | Optional via CLI | `npm run build:codex-plugin` and `CODEX_HOME=/tmp/do-it-plugin-test codex plugin marketplace add /path/to/do-it` then `codex plugin add do-it@tdwhere-do-it` |
 | Codex CLI setup (legacy) | Managed from `manifest.json` | Bundled Codex agents stay plugin-owned; `installAgents=false` preserves user `~/.codex/agents` | CLI `do-it` | Root `hooks.json` plus do-it-managed files under `hooks/` | Default target | `CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it setup` |
 | Claude Code plugin | Same maintained `skills/do-it/` source | Generated Markdown under `dist/claude/agents/` | `commands/` | Do-it-managed files under `hooks/`, including `hooks/hooks.json` | `--target=claude` | `CLAUDE_PLUGIN_ROOT_OVERRIDE=/tmp/do-it-claude-test npm exec --package . -- do-it setup --target=claude` |
-| Cursor local / Team Import (public listing pending) | Full 11 from `ALL_SKILLS` under `plugins/do-it-cursor/skills/` plus generated discovery/reference files | Generated under `plugins/do-it-cursor/agents/` | None | Medium: `sessionStart`, default-off feedback capture + serialized router/grill via `prompt-submit` + stance at `beforeSubmitPrompt`, `postToolUse`/`afterFileEdit`, advisory completion reminder (no `grill-pretool`) | Managed CLI setup only: `--target=cursor`; not standalone local copy | `npm run install:cursor-local`, Reload Window, inspect exact directory + Hooks UI; or `do-it setup --target=cursor` for managed doctor |
+| Cursor local / Team Import (public listing pending) | Full 12 from `ALL_SKILLS` under `plugins/do-it-cursor/skills/` plus generated discovery/reference files | Generated under `plugins/do-it-cursor/agents/` | None | Medium: `sessionStart`, default-off feedback capture + serialized `prompt-submit` (legacy router/grill or shadow/thin kernel) + stance at `beforeSubmitPrompt`, `postToolUse`/`afterFileEdit` evidence observe + write-quality, advisory completion reminder (no `grill-pretool`) | Managed CLI setup only: `--target=cursor`; not standalone local copy | `npm run install:cursor-local`, Reload Window, inspect exact directory + Hooks UI; or `do-it setup --target=cursor` for managed doctor |
 | OpenCode npm package / global vendored fallback | Generated under `plugins/do-it-opencode/skills/` | Generated under `plugins/do-it-opencode/agents/` | None | Medium-Light: transform bootstrap, `tool.execute.after`, `session.idle` soft reminder | No CLI doctor | Exact pack + `npm run smoke:package -- <opencode.tgz>`; `npm run install:opencode-global` verifies the config-home fallback |
 | Pi npm package | Generated under `plugins/do-it-pi/skills/` | Ten portable `do-it.*` agents through optional `pi-subagents`; prompt templates remain available without it | Prompt templates | Medium: root router/grill, root write advice, soft next-turn verification; child stance only | `/do-it-status` reports Bash, hook diagnostics, and `subagent` tool registration—not agent discovery | Exact pack + `node scripts/smoke-pi-package.mjs <pi.tgz>` exercises the real Pi loader; live package-agent discovery remains a separate `pi-subagents` check |
 
@@ -257,12 +259,15 @@ the same `agents/*.toml` source-of-truth. The Claude target adds:
 
 - `.claude-plugin/plugin.json` and `marketplace.json` — plugin metadata for
   `/plugin marketplace add tdwhere123/do-it` then `/plugin install do-it@do-it`.
-- `hooks/hooks.json` and hook scripts (`behavior-feedback.sh`, `router.sh`,
-  `grill-prompt.sh`, `subagent-stance.sh`, `write-quality-lint.sh`,
-  `verification-gate.sh`) — wire UserPromptSubmit / UserPromptExpansion /
-  PostToolUse / Stop without required slash commands. Claude alone also receives the default-off,
-  named-command `strict-external-actions.sh` PreToolUse profile. `grill-pretool`
-  is not registered.
+- `hooks/hooks.json` and hook scripts (`behavior-feedback.sh` /
+  `learning-recorder.sh`, `prompt-submit.sh`, `kernel-context.sh`,
+  `adaptive-context.sh`, `router.sh`, `grill-prompt.sh`, `subagent-stance.sh`,
+  `write-quality-lint.sh`, `evidence-observer.sh`, `verification-gate.sh`) —
+  wire UserPromptSubmit / UserPromptExpansion / PostToolUse / Stop without
+  required slash commands. Default runtime is still legacy router/grill;
+  shadow/thin kernel injection is opt-in and fail-open. Claude alone also
+  receives the default-off, named-command `strict-external-actions.sh`
+  PreToolUse profile. `grill-pretool` is not registered.
 - `commands/do-it-skip.md`, `commands/do-it-handbook.md`, and
   `commands/do-it-retrospective.md` — optional Claude command surfaces; the
   latter uses explicit `on|off|status|report` arguments.
@@ -315,7 +320,7 @@ target installs the **full** skill inventory (`ALL_SKILLS`) and adds:
   `grill-pretool` / `preToolUse` plan gate.
 - `scripts/build-cursor-plugin.mjs` — the only supported way to refresh the
   generated Cursor bundle; both local copy and managed CLI setup install the
-  full eleven-skill bundle.
+  full twelve-skill bundle.
 
 ### Maintaining the Cursor Target
 
@@ -326,7 +331,7 @@ target installs the **full** skill inventory (`ALL_SKILLS`) and adds:
   `plugins/do-it-cursor/skills/` or `plugins/do-it-cursor/agents/`.
 - **Hook change:** edit kernel scripts under `hooks/` and Cursor mapping under
   `install/cursor-hooks.json`; regenerate with `npm run build:cursor-plugin`.
-- **Install verification:** for `npm run install:cursor-local`, confirm all eleven
+- **Install verification:** for `npm run install:cursor-local`, confirm all twelve
   skill directories plus generated discovery/reference files land under
   `~/.cursor/plugins/local/do-it-cursor` as a **real directory**, Reload Window,
   and inspect Customize → Hooks for do-it `.cmd` entries. Do not run ordinary
@@ -472,6 +477,8 @@ git diff --check
 npm test
 npm run validate:agents
 npm run validate:core-skill-boundaries
+npm run validate:skill-contracts
+npm run eval:behavior:validate
 npm run build:claude-agents
 npm run build:codex-plugin
 CODEX_HOME=/tmp/do-it-codex-test ./install/install.sh

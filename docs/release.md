@@ -24,7 +24,7 @@ CLI setup path:
 
 | Plane | Current repository evidence |
 | --- | --- |
-| Source/package | `package.json`, manifest, and plugin metadata declare `0.16.0`; inventory is 11 user/runnable skills + 1 generated discovery entry + 10 agents. |
+| Source/package | `package.json`, manifest, and plugin metadata declare `0.16.0`; inventory is 12 user/runnable skills + 1 generated discovery entry + 10 agents. Unreleased 0.17 kernel work is in-tree; default runtime is still legacy. |
 | Git tag | The `0.16.0` release commit must carry `v0.16.0`; version metadata alone is not a release. |
 | Marketplace/npm | The release workflow publishes separate `@tdwhere/do-it`, `@tdwhere/do-it-opencode`, and `@tdwhere/do-it-pi` artifacts. Only post-workflow registry queries prove publication. Cursor marketplace listing remains pending. |
 | Live host | Only host install/inspection evidence proves an active version. Source, package, tag, and live host may differ. |
@@ -134,10 +134,10 @@ for doctor and migration — do not require pairing it with marketplace install.
 | Codex plugin marketplace | Yes, under `plugins/do-it/skills/` | Yes, under `plugins/do-it/agents/` | No slash command surface | Yes, plugin hooks (trust under `/hooks`) | Optional via CLI | `npm run build:codex-plugin` then `CODEX_HOME=/tmp/do-it-plugin-test codex plugin marketplace add /path/to/do-it` and `codex plugin add do-it@tdwhere-do-it` |
 | Codex CLI setup (legacy) | Yes, from `manifest.json` | No — bundled agents are plugin-owned; legacy CLI only supports safe migration | CLI `do-it` only | Yes, root `hooks.json` plus `hooks/` | Yes, default target | `CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it setup` |
 | Claude Code plugin | Yes, from `skills/do-it/` | Yes, under `dist/claude/agents/` | Yes, `commands/` | Yes, plugin `hooks/hooks.json` | Yes, `--target=claude` | `CLAUDE_PLUGIN_ROOT_OVERRIDE=/tmp/do-it-claude-test npm exec --package . -- do-it setup --target=claude` |
-| Cursor local / Team Import (public listing pending) | Full 11 (`ALL_SKILLS`) plus generated discovery/reference files | Yes, under `plugins/do-it-cursor/agents/` | No | Medium: `sessionStart`, `beforeSubmitPrompt`, `postToolUse`/`afterFileEdit`, advisory-evidence `stop` | Managed CLI setup only; not standalone local copy | `npm run install:cursor-local`, Reload Window, inspect exact directory + Hooks UI; or `do-it setup --target=cursor` for managed doctor |
+| Cursor local / Team Import (public listing pending) | Full 12 (`ALL_SKILLS`) plus generated discovery/reference files | Yes, under `plugins/do-it-cursor/agents/` | No | Medium: `sessionStart`, `beforeSubmitPrompt`, `postToolUse`/`afterFileEdit` (evidence observe + write-quality), advisory-evidence `stop` | Managed CLI setup only; not standalone local copy | `npm run install:cursor-local`, Reload Window, inspect exact directory + Hooks UI; or `do-it setup --target=cursor` for managed doctor |
 | OpenCode plugin | Yes, under `plugins/do-it-opencode/skills/` | Yes, under `plugins/do-it-opencode/agents/` | No | Medium-Light: transform bootstrap, `tool.execute.after`, `session.idle` soft reminder | No CLI doctor | `npm run build:opencode-plugin && npm run test-opencode` |
 | Pi package | Yes, under `plugins/do-it-pi/skills/` | Ten `do-it.*` package agents when optional `pi-subagents` is installed; prompts remain available without it | Prompt templates | Medium: root router/grill, root write advice, soft next-turn verification reminder; child stance only | `/do-it-status` | `npm run build:pi-plugin && npm --prefix plugins/do-it-pi test && node scripts/smoke-pi-package.mjs`; live: `/reload`, `/do-it-status`, and package-agent discovery |
-| Kimi Code plugin (repo root) | Full 11 via root `kimi.plugin.json` `skills` | No — host has no custom subagents | Yes, `/do-it:*` namespaced | Full-minus-subagent: manifest `hooks[]` (`UserPromptSubmit`×2, including serialized router/grill via `prompt-submit`; `PostToolUse`; `Stop`) | No — `/plugins info do-it` is the host-side check | `npm run validate:kimi-plugin`; live: `/plugins install /path/to/do-it` then `/reload` |
+| Kimi Code plugin (repo root) | Full 12 via root `kimi.plugin.json` `skills` | No — host has no custom subagents | Yes, `/do-it:*` namespaced | Full-minus-subagent: `sessionStart` kernel + manifest `hooks[]` (`UserPromptSubmit`×2 via `prompt-submit`/`behavior-feedback`; `PostToolUse` evidence observe + write-quality; `Stop`). Missing shell exit stays `partial`. | No — `/plugins info do-it` is the host-side check | `npm run validate:kimi-plugin`; live: `/plugins install /path/to/do-it` then `/reload` |
 
 ## 0.14.0
 
@@ -274,8 +274,10 @@ a release artifact.
     version fields as well as the other host metadata.
 13. Run `npm run smoke:package` for root/OpenCode and smoke the independently
     packed Pi tarball.
-14. Confirm `manifest.json` matches the on-disk inventory (11 user/runnable
-    skills + 1 generated discovery entry, 10 agents).
+14. Confirm `manifest.json` matches the on-disk inventory (12 user/runnable
+    skills + 1 generated discovery entry, 10 agents). Do not tag or publish
+    Unreleased 0.17 kernel work as `0.16.0` behavior; default runtime must
+    stay legacy until a real 0.17 release.
 15. Confirm root tarball contents remain separate from `plugins/do-it-pi`, and
     the Pi tarball contains only its README/license/runtime assets.
 16. Confirm temporary files, machine-local settings, `node_modules`, test build

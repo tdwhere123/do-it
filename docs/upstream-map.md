@@ -3,16 +3,19 @@
 This file records where do-it deliberately absorbs outside workflow ideas. It is
 not an install manifest; `manifest.json` is the install source of truth.
 
-The source version `0.16.0` defines eleven user/runnable do-it-native skill
-names plus one generated discovery entry; this is version metadata, not a
-publication claim. The skills are meaning buckets (see the migration table in
+The published source version `0.16.0` plus Unreleased kernel work define
+twelve user/runnable do-it-native skill names plus one generated discovery
+entry; this is version metadata, not a publication claim. The skills are
+meaning buckets (see the migration table in
 [`CHANGELOG.md`](../CHANGELOG.md)).
 
 **Lineage principle: convergence is not lineage.** Entries below record genuine
 learning or borrowing relationships only. Capabilities do-it evolved
 independently — three-tier routing, review's two axes, claim-specific
 verification — are not retro-mapped onto upstream lookalikes, and sources that
-were not absorbed from get no rows.
+were not absorbed from get no rows. **Upstream popularity does not prove do-it
+works.** Absorbed mechanisms still have to earn their place in this repo's
+behavior eval.
 
 ## Installed Skills
 
@@ -29,6 +32,7 @@ were not absorbed from get no rows.
 | `do-it-handbook` | lean handbook + worklog bootstrap | Seeds `.do-it/handbook/` and worklog templates; promotes stable facts without owning per-task review artifacts. |
 | `do-it-skill-authoring` | skill creation and maintenance | Absorbs progressive-disclosure skill writing and repo-managed skill validation. |
 | `do-it-retrospective` | opt-in local feedback/report loop | Keeps raw incidents local and redacted; turns repeated observations into a proposed, confirmed lesson rather than an automatic rule. |
+| `do-it-adaptive` | fixed interpreter for a personal overlay | Interprets a short, gitignored profile delta. Default off. Never stores secrets or project facts; never weakens Core. |
 
 Delegation has **no installed skill** — bundled agents are optional capability
 experts. The parent gives a worker the goal and any needed ownership or
@@ -105,9 +109,45 @@ as do-it-native decision support, not as a replacement state machine:
 | Plan checker and source-audit gaps | `do-it-review` | Missing coverage, unwired implementation, unused surfaces, and synthetic proof become findings. |
 | Fresh context per task | parent delegation guidance, `docs/routing-matrix.md` | Give a worker its goal and needed ownership boundary; let it return useful evidence or uncertainty. |
 
+Useful ideas from `EveryInc/compound-engineering-plugin` are absorbed as
+decision and contract mechanics, not as a mandatory brainstorm/plan pipeline:
+
+| Source Idea | do-it Destination | Absorbed Shape |
+| --- | --- | --- |
+| WHAT vs HOW split | `do-it-decide`, task contract | The contract owns intent, boundary, and acceptance (WHAT). Implementation HOW can move with repo evidence without silently rewriting settled decisions. |
+| Session-settled decisions stay closed | `do-it-decide` | `[user]` / `[evidence]` / `[choice]` stay settled unless new evidence appears; `[assumption]` stays open. |
+| Ask only decisions; facts first | `do-it-decide` | Read local truth first; ask only a user-owned decision that changes the route. |
+| Readiness vs implementation-time unknown | `do-it-decide`, `task-contract.md` | Planning-time unknowns must be resolved or deferred before a durable contract; implementation unknowns stay in Open. |
+| Artifact size follows the task | `do-it-handbook`, `do-it-decide` | Persist an execution contract only when earned; no fixed multi-file plan ceremony. |
+
+Rejected from that source: default grounding scouts, mandatory multi-stage
+pipelines, and per-plan reviewer deepening.
+
+Useful ideas from `Fission-AI/OpenSpec` are absorbed as artifact fluidity, not
+as a spec-driven development framework:
+
+| Source Idea | do-it Destination | Absorbed Shape |
+| --- | --- | --- |
+| Fluid, not rigid artifacts | `.do-it/plans/` execution contracts | One earned contract file instead of proposal/specs/design/tasks by default. |
+| Requirements should not live only in chat | `task-contract.md` | Goal / Decisions / Boundary / Acceptance persist when a later worker needs them. |
+
+Rejected from that source: a four-artifact change set and turning do-it into a
+full SDD framework.
+
+Useful ideas from `triggerdotdev/staff-engineering-skills` are absorbed as a
+compressed failure-model scan, not as per-trap skills. Star count is not
+maturity proof:
+
+| Source Idea | do-it Destination | Absorbed Shape |
+| --- | --- | --- |
+| Duplicate/replay as normal; check-then-act / RMW interleaving; retry amplification; commit/atomicity; copies and recovery | `stateful-change-scan.md`, `do-it-code-quality` | Identity / Interleaving / Commit / Amplification / Copies & Recovery — loaded when stateful change is in scope, not on every Light edit. |
+
+Rejected from that source: one skill per trap, and injecting a distributed-
+systems checklist into ordinary tasks.
+
 ## Installed Agents
 
-Ten agents in `0.16.0`:
+Ten agents in `0.16.0` (none deleted in the Unreleased kernel line):
 
 | Agent | do-it Role | Notes |
 | --- | --- | --- |

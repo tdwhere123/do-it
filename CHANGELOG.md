@@ -1,5 +1,33 @@
 # Changelog
 
+## Unreleased
+
+### Minimal evidence-carrying kernel (0.17-oriented; not published)
+
+Default runtime remains **legacy** (`DO_IT_ROUTER_MODE=legacy`): 0.16 router
+then grill. Shadow/thin kernel injection, evidence observe, and the adaptive
+overlay are present and fail-open; they are not the default. Version metadata
+stays `0.16.0` until a real 0.17 tag.
+
+- **Product:** do-it makes agent work evidence-carrying. Autonomy stays first.
+- **Skills:** added `do-it-adaptive` as extended-on-demand. Inventory is 12
+  runnable skills + 1 generated discovery entry + 10 agents. Core skill names
+  are unchanged.
+- **Contracts:** `.do-it/plans/` files are execution contracts (Goal /
+  Decisions / Boundary / Acceptance), not progress logs. Handbook bootstrap no
+  longer creates `brainstorm/` or `grill/`.
+- **Evidence:** `evidence-observer` records observed edit/command facts and
+  worktree coverage. A command name is not proof. Verification still requires
+  fresh worktree evidence or `NOT_VERIFIED`.
+- **Adaptive:** default-off, gitignored personal overlay. Never stores secrets,
+  paths, or project facts; never weakens Core.
+- **Eval:** deterministic behavior-eval schema/fixture tests run in `npm test`.
+  Paid/live model runs are `npm run eval:behavior` only; the live backend is
+  unimplemented.
+- **Subagents:** default dispatch 0; at most one fresh-context second look.
+- **Runtime modes:** `legacy` (default) → `shadow` → `thin`. Deleting the
+  lexical router is gated on behavior eval, not this changelog entry.
+
 ## 0.16.0
 
 ### Core protocol and architecture routing

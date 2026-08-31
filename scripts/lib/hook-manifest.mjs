@@ -13,6 +13,8 @@ export const HOOK_SCRIPTS = [
   "behavior-feedback.sh",
   "learning-recorder.sh",
   "prompt-submit.sh",
+  "kernel-context.sh",
+  "adaptive-context.sh",
   "router.sh",
   "grill-prompt.sh",
   "subagent-stance.sh",

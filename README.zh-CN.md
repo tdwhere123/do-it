@@ -8,10 +8,13 @@
 
 > 少即是多。最好的工作流，是你感觉不到它——直到它救了你。
 
+**do-it 让 agent 的工作带着证据。** 每一次完成声明都要能追溯到目标、已决决策、
+边界、验收，以及当前工作区上的新鲜证据。
+
 大多数 AI 编程工作流在给 agent 加规则。`do-it` 从相反方向出发：
 **什么可以不做？** 小事保持小。没有强制的 brainstorm → grill → plan → review
 链。每一个 skill、每一个子智能体、每一个 hook，都要靠"此刻有用"来赢得存在——
-而不是因为它是流水线的一环。
+而不是因为它是流水线的一环。自主优先：用户的直接意图压过 hook 标签。
 
 留下的东西精简而有意：
 
@@ -42,11 +45,12 @@
 
 do-it 在幕后工作，你不需要调用它——它在合适的生命周期点自动触发：
 
-- **Router** 给任务定级（Light / Standard / Heavy），建议可能有用的 skill。
-  Light 任务零仪式。
+- **默认运行时仍是 legacy**（`DO_IT_ROUTER_MODE=legacy`）：沿用 0.16 的 router
+  定级 Light / Standard / Heavy，Heavy 时可能 grill。`shadow` 和 `thin` 改为注入
+  精简 kernel 和可选 adaptive overlay；它们是按需开启，不是默认。
 - **写码时**，`write-quality-lint` 标出新代码中的反模式。每文件一条提醒；从不
-  阻塞。
-- **说"完成"之前**，verification gate 要求拿出新鲜证据。
+  阻塞。`evidence-observer` 记录编辑和命令事实；命令名本身不是证明。
+- **说"完成"之前**，verification gate 要求从当前工作区拿出新鲜证据。
 
 ### 3. 建立 `.do-it/`（推荐）
 
@@ -66,11 +70,13 @@ do-it 在幕后工作，你不需要调用它——它在合适的生命周期�
     glossary.md          长期稳定的词汇表
   worklog/             日报或目标笔记
   CONTEXT.md           精炼的术语和关系（自动更新）
-  brainstorm/ grill/ plans/   逐任务的材料
+  plans/               挣来的执行合同（不是进度日志）
 ```
 
 把 `invariants.md` 和 `glossary.md` 里的占位符换成你项目的真实规则。其余部分
-自行维护。
+自行维护。Bootstrap **不会**创建 `brainstorm/` 或 `grill/`。Adaptive profile 和
+运行时事件日志放在 gitignored 的 `.do-it/runtime/`（默认关闭；不要把密钥或项目
+事实写进去）。
 
 ### 4. 想跳就跳
 
@@ -102,6 +108,7 @@ Skill 按需加载，不按分级：
 | `do-it-handbook`, `do-it-context` | 项目真相与词汇表 |
 | `do-it-skill-authoring` | 编写 do-it skill |
 | `do-it-retrospective` | 默认关闭的行为报告 |
+| `do-it-adaptive` | 按需个人 overlay（默认关闭；从不削弱 Core） |
 
 ### 更少的代码，不是更多
 
@@ -132,15 +139,20 @@ Skill 按需加载，不按分级：
 
 ### 需要时委派
 
-十个内置子智能体提供独立的代码地图、审查和专业视角——有用就用，没用就忽略。
-你自己的全局 agent 不受插件更新影响。
+十个内置子智能体提供独立的代码地图、审查和专业视角。默认调度是 **0**。最多
+**一次**全新上下文的二次查看，且仅当独立证据可能改变昂贵决策、切片足够窄，
+或当前上下文已经绑死、无法自审时才用。你自己的全局 agent 不受插件更新影响。
 
 ## 整体流程
 
 ```mermaid
 flowchart TD
-    P[UserPromptSubmit] --> R[do-it-router<br/>分类 Light / Standard / Heavy]
+    P[UserPromptSubmit] --> PS[prompt-submit]
+    PS --> M{DO_IT_ROUTER_MODE}
+    M -->|legacy 默认| R[router 然后 grill]
+    M -->|shadow / thin 按需| K[kernel-context + adaptive-context]
     R --> C[do-it-core<br/>协议蓝本]
+    K --> C
     C --> B{意涵分桶}
     B --> CQ[do-it-code-quality<br/>写码时]
     B --> A[do-it-architecture<br/>承重架构]
@@ -149,6 +161,7 @@ flowchart TD
     B --> VY[do-it-verify<br/>宣布完成前]
     CQ --> E[执行]
     D --> E
+    E --> EO[PostToolUse: evidence-observer]
     E --> WQ[PostToolUse: write-quality-lint]
     E --> VG[verification-gate:<br/>建议性完成提醒]
     VG --> VY
@@ -173,9 +186,9 @@ Family 目录与抑制语法见
 
 ## 发布说明
 
-当前主线 **0.16.x**。发布说明与 tag 策略：
-[`docs/release.md`](./docs/release.md)。更早的说明：
-[`CHANGELOG.md`](./CHANGELOG.md)。
+已发布主线仍是 **0.16.x**。未发布的 0.17 工作（skill、合同、eval、运行时观察）
+写在 [`CHANGELOG.md`](./CHANGELOG.md)；默认运行时在打 0.17 标签之前保持
+legacy。Tag 策略见 [`docs/release.md`](./docs/release.md)。
 
 ## 本地开发
 
@@ -209,8 +222,9 @@ docs/            路由、维护、发布、适配器
 [`mattpocock/skills`](https://github.com/mattpocock/skills)、
 [`addyosmani/agent-skills`](https://github.com/addyosmani/agent-skills) 和
 [`gsd-build/get-shit-done`](https://github.com/gsd-build/get-shit-done)
-验证过的 **plan / subworker / TDD / review** 范式。
+的 **plan / subworker / TDD / review** 范式。
 逐条对照见 [`docs/upstream-map.md`](./docs/upstream-map.md)。
+来源项目不证明 do-it 有效；吸收项仍要在本仓库的行为 eval 里验证。
 
 `do-it` 是我自己对同一类问题的解法，来自真实项目里的日常使用。这里吸收的是
 方法，并改写成 do-it 原生的 Router / Tier / Skill 语言；不会 vendor 上游
