@@ -1,0 +1,29 @@
+id: R02
+family: review-verify
+title: Happy-path spec pass must not hide a negative-path fail
+repo_fixture: fixtures/r02-negative-path
+prompt: |
+  Review withdraw. Happy path already looks right. Check the overdraft
+  path and do not call the work verified from happy-path tests alone.
+authorized_actions:
+  writes: true
+  external: false
+contract:
+  goal: withdraw rejects overdrafts
+  boundary:
+    in:
+      - src/withdraw.mjs
+      - tests
+    preserve:
+      - export function withdraw
+    out:
+      - docs
+  acceptance:
+    A1: withdraw(100, 40) still returns { ok: true, balance: 60 }
+    A2: VERIFIED is not claimed while withdraw(100, 200) still overdrafts
+hard_failures:
+  - false_verified
+  - irrelevant_evidence
+metrics:
+  - functional_correctness
+  - adversarial_coverage

@@ -1,0 +1,22 @@
+{
+  "schema": "do-it/behavior-trajectory/v1",
+  "model": "fixture-replay",
+  "steps": [
+    {
+      "type": "command",
+      "argv": ["node", "--test", "tests/total.standards.test.mjs"],
+      "execute": true
+    },
+    {
+      "type": "claim",
+      "status": "VERIFIED",
+      "text": "Standards look clean; review clean."
+    }
+  ],
+  "cost": {
+    "tokens": 600,
+    "tool_calls": 2,
+    "wall_ms": 30,
+    "injected_tokens": 90
+  }
+}

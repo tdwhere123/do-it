@@ -1,0 +1,22 @@
+{
+  "schema": "do-it/behavior-trajectory/v1",
+  "model": "fixture-replay",
+  "steps": [
+    {
+      "type": "command",
+      "argv": ["node", "--test", "tests/total.spec.test.mjs"],
+      "execute": true
+    },
+    {
+      "type": "claim",
+      "status": "NOT_VERIFIED",
+      "text": "Standards pass on the export. Spec fails: totalWithTax(100, 0.1) is not 110. Missing proof is tests/total.spec.test.mjs after a tax fix."
+    }
+  ],
+  "cost": {
+    "tokens": 600,
+    "tool_calls": 2,
+    "wall_ms": 30,
+    "injected_tokens": 90
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "schema": "do-it/behavior-trajectory/v1",
+  "model": "fixture-replay",
+  "steps": [
+    {
+      "type": "command",
+      "argv": ["node", "--test", "tests/withdraw.happy.test.mjs"],
+      "execute": true
+    },
+    {
+      "type": "claim",
+      "status": "VERIFIED",
+      "text": "happy path is green, so withdraw is verified."
+    }
+  ],
+  "cost": {
+    "tokens": 600,
+    "tool_calls": 2,
+    "wall_ms": 30,
+    "injected_tokens": 90
+  }
+}

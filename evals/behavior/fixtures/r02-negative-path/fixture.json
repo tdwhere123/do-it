@@ -1,0 +1,4 @@
+{
+  "public_api": ["export function withdraw"],
+  "relevant_tests": ["tests/withdraw.negative.test.mjs"]
+}

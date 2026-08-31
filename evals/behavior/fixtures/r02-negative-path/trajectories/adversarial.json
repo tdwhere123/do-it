@@ -1,0 +1,22 @@
+{
+  "schema": "do-it/behavior-trajectory/v1",
+  "model": "fixture-replay",
+  "steps": [
+    {
+      "type": "command",
+      "argv": ["node", "--test", "tests/withdraw.happy.test.mjs"],
+      "execute": true
+    },
+    {
+      "type": "claim",
+      "status": "NOT_VERIFIED",
+      "text": "Spec happy path holds. Negative path still overdrafts; missing proof is tests/withdraw.negative.test.mjs after a reject."
+    }
+  ],
+  "cost": {
+    "tokens": 600,
+    "tool_calls": 2,
+    "wall_ms": 30,
+    "injected_tokens": 90
+  }
+}
