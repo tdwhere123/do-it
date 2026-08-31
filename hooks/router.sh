@@ -30,6 +30,12 @@ if do_it_in_subagent_context "$TRANSCRIPT_PATH"; then
   exit 0
 fi
 
+# thin: skip the lexical classifier. shadow still classifies for diagnostics.
+if [[ "$(do_it_router_mode)" == "thin" ]]; then
+  do_it_debug router "decision=thin-skip"
+  exit 0
+fi
+
 do_it_source_local_keywords "$CWD"
 # State persistence is best-effort for an advisory hook. A failed write must
 # never suppress this turn's guidance: set the flag, keep emitting, and exit 2
@@ -561,6 +567,13 @@ do_it_debug router "tier=$TIER question=$QUESTION_LIKE task_intent=$EXPLICIT_TAS
 #    publish operations stay silent;
 #  - Standard: inline rule sentences (weak/unknown models) or one do-it-core
 #    pointer (strong models). Light and other Heavy work stay silent.
+# shadow: persist diagnostics only — never put classifier text in model context.
+if [[ "$(do_it_router_mode)" == "shadow" ]]; then
+  do_it_debug router "decision=shadow-no-emit tier=$TIER no_write=$NO_WRITE_BOUNDARY"
+  [[ "$_ROUTER_STATE_FAILED" == "0" ]] || exit 2
+  exit 0
+fi
+
 ADVISORY_MODE="$(do_it_advisory_mode "$RAW_INPUT")"
 if [[ "$NO_WRITE_BOUNDARY" == "1" ]]; then
   if CORE_RULE_TEXT="$(do_it_core_rule r-boundary)"; then

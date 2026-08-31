@@ -6,6 +6,12 @@ import { fileURLToPath } from "node:url";
 import { BOOTSTRAP_TEXT } from "./bootstrap.js";
 import { buildHookPayload, isEditTool, isEvidenceTool, normalizeToolName, readSessionTier, spawnHook, terminateActiveProcesses } from "./bridge.js";
 const injectedSessions = new Set();
+function routerMode() {
+    const mode = (process.env.DO_IT_ROUTER_MODE ?? "legacy").trim();
+    if (mode === "shadow" || mode === "thin")
+        return mode;
+    return "legacy";
+}
 const pluginRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const hooksDir = path.join(pluginRoot, "hooks");
 const skillsDir = path.join(pluginRoot, "skills");
@@ -54,6 +60,8 @@ function feedbackRecorderMayRun(cwd, prompt) {
     }
 }
 function injectBootstrapOnce(messages, sessionId) {
+    if (routerMode() !== "legacy")
+        return;
     if (injectedSessions.has(sessionId))
         return;
     for (const message of messages) {

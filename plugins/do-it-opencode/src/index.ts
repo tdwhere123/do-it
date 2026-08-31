@@ -18,6 +18,12 @@ import {
 
 const injectedSessions = new Set<string>();
 
+function routerMode(): "legacy" | "shadow" | "thin" {
+  const mode = (process.env.DO_IT_ROUTER_MODE ?? "legacy").trim();
+  if (mode === "shadow" || mode === "thin") return mode;
+  return "legacy";
+}
+
 const pluginRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const hooksDir = path.join(pluginRoot, "hooks");
 const skillsDir = path.join(pluginRoot, "skills");
@@ -92,6 +98,7 @@ function feedbackRecorderMayRun(cwd: string, prompt: string): boolean {
 }
 
 function injectBootstrapOnce(messages: SessionMessage[], sessionId: string): void {
+  if (routerMode() !== "legacy") return;
   if (injectedSessions.has(sessionId)) return;
 
   for (const message of messages) {

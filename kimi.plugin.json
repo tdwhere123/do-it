@@ -18,6 +18,7 @@
   },
   "skills": "./skills/do-it/",
   "commands": "./commands/",
+  "sessionStart": "./hooks/kernel-context.sh",
   "hooks": [
     {
       "event": "UserPromptSubmit",

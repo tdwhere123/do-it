@@ -48,7 +48,7 @@ _isolate_state() {
   export DO_IT_HOOK_DATA="$1"
   rm -rf "$DO_IT_HOOK_DATA"
   unset CLAUDE_PLUGIN_DATA CODEX_HOME KIMI_CODE_HOME KIMI_PLUGIN_ROOT CLAUDE_AGENT_CONTEXT CLAUDE_SUBAGENT
-  unset DO_IT_DEBUG
+  unset DO_IT_DEBUG DO_IT_ROUTER_MODE
 }
 
 _state_for() {
@@ -723,6 +723,45 @@ case "$?" in
   11|12|13) _fail "missing registry fallback is incomplete or leaked partial context" ;;
   14|15|16) _fail "malformed registry fallback is incomplete or leaked partial context" ;;
   *)  _fail "registry fallback case failed (exit $?)" ;;
+esac
+
+# -------------------------------------------------------------------------
+echo "Case 15: shadow records diagnostics and emits no classifier context"
+(
+  _isolate_state "/tmp/doit-test-router-c15"
+  export DO_IT_ROUTER_MODE=shadow
+  out=$(_run_router "实现 src/auth.ts 的登录" "c15-std")
+  [[ -z "$out" ]] || { printf 'shadow leaked: %s\n' "$out" >&2; exit 11; }
+  [[ "$(jq -r '.tier' "$(_state_for c15-std)")" == "Standard" ]] || exit 12
+  out=$(_run_router "重写 schema 涉及 breaking change 跨 frontend/ backend/" "c15-heavy")
+  [[ -z "$out" ]] || { printf 'shadow heavy leaked: %s\n' "$out" >&2; exit 13; }
+  [[ "$(jq -r '.tier' "$(_state_for c15-heavy)")" == "Heavy" ]] || exit 14
+)
+case "$?" in
+  0)  _pass "shadow classifier is diagnostics-only" ;;
+  11) _fail "shadow Standard leaked model context" ;;
+  12) _fail "shadow Standard did not persist tier" ;;
+  13) _fail "shadow Heavy leaked model context" ;;
+  14) _fail "shadow Heavy did not persist tier" ;;
+  *)  _fail "shadow classifier case failed (exit $?)" ;;
+esac
+
+echo "Case 16: thin skips the lexical classifier"
+(
+  _isolate_state "/tmp/doit-test-router-c16"
+  export DO_IT_ROUTER_MODE=thin
+  out=$(_run_router "实现 src/auth.ts 的登录" "c16-1")
+  [[ -z "$out" ]] || exit 11
+  state="$(_state_for c16-1)"
+  if [[ -f "$state" ]]; then
+    [[ "$(jq -r '.tier // empty' "$state")" == "" ]] || exit 12
+  fi
+)
+case "$?" in
+  0)  _pass "thin skips classifier output and tier" ;;
+  11) _fail "thin leaked model context" ;;
+  12) _fail "thin persisted a classifier tier" ;;
+  *)  _fail "thin classifier case failed (exit $?)" ;;
 esac
 
 # -------------------------------------------------------------------------

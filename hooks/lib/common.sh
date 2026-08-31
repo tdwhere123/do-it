@@ -332,6 +332,91 @@ DO_IT_SKIP_TTL_SECONDS="${DO_IT_SKIP_TTL_SECONDS:-300}"
 # over token economy — conservative for the models that need the rules).
 DO_IT_ADVISORY_MODE="${DO_IT_ADVISORY_MODE:-auto}"
 
+# Router migration mode. `legacy` keeps the 0.16 classifier+grill inject.
+# `shadow` injects the compact kernel and records classifier diagnostics
+# without putting them in model context. `thin` skips the classifier.
+# Invalid or empty values fail-open to legacy so routing goldens stay green.
+# Session keys owned by the kernel path:
+#   kernel_hash, active_task_hash (adaptive_profile_hash lives in adaptive-context).
+do_it_router_mode() {
+  case "${DO_IT_ROUTER_MODE:-legacy}" in
+    shadow|thin) printf '%s' "$DO_IT_ROUTER_MODE" ;;
+    *) printf 'legacy' ;;
+  esac
+}
+
+# One short kernel for every model. No pointer/inline auto-switch.
+do_it_kernel_body() {
+  printf '%s' 'Do-it kernel: read current repository truth; preserve the active goal, settled decisions, boundary, and acceptance; resolve only decision-changing uncertainty; change the causal owner, not a downstream symptom; before a completion claim, use fresh relevant evidence from this worktree or say NOT_VERIFIED.'
+}
+
+do_it_kernel_nowrite_body() {
+  printf '%s' 'A user-owned no-write boundary is active. Inspect, explain, diagnose, review, or plan only; do not edit, run change-producing commands, or delegate implementation until the user explicitly reopens writes.'
+}
+
+do_it_kernel_task_body() {
+  printf 'Active do-it contract: %s. Read its Goal, Decisions, Boundary, and Acceptance before changing the repo.' "${1:-}"
+}
+
+# Collect shadow/thin kernel context. Empty in legacy, subagent, or when
+# nothing new is due. No-write is appended every turn and is never gated on
+# kernel_hash. Missing profile/active-task adds no extra lines.
+# Args: <session_id> <cwd> <prompt> [transcript_path].
+do_it_kernel_context_collect() {
+  local session_id="${1:-}" cwd="${2:-.}" prompt="${3:-}" transcript="${4:-}"
+  local mode no_write last_kernel kernel_body current_task last_task task_line text=""
+  mode="$(do_it_router_mode)"
+  case "$mode" in
+    shadow|thin) ;;
+    *) return 0 ;;
+  esac
+  if do_it_in_subagent_context "$transcript"; then
+    return 0
+  fi
+
+  no_write="$(do_it_session_state_get "$session_id" no_write_boundary)"
+  [[ "$no_write" == "1" ]] || no_write=0
+  if do_it_prompt_requests_no_write "$prompt"; then
+    no_write=1
+  elif do_it_prompt_reopens_writes "$prompt"; then
+    no_write=0
+  fi
+  do_it_session_state_set "$session_id" no_write_boundary "$no_write" 2>/dev/null || true
+
+  if [[ "$no_write" == "1" ]]; then
+    text="$(do_it_kernel_nowrite_body)"
+  fi
+
+  kernel_body="$(do_it_kernel_body)"
+  last_kernel="$(do_it_session_state_get "$session_id" kernel_hash)"
+  if [[ "$last_kernel" != "v1" ]]; then
+    if [[ -n "$text" ]]; then
+      text="${text}"$'\n'"${kernel_body}"
+    else
+      text="$kernel_body"
+    fi
+    do_it_session_state_set "$session_id" kernel_hash "v1" 2>/dev/null || true
+  fi
+
+  current_task=""
+  if declare -F do_it_active_task_read >/dev/null 2>&1; then
+    current_task="$(do_it_active_task_read "$cwd" 2>/dev/null || true)"
+  fi
+  last_task="$(do_it_session_state_get "$session_id" active_task_hash)"
+  if [[ -n "$current_task" && "$current_task" != "$last_task" ]]; then
+    task_line="$(do_it_kernel_task_body "$current_task")"
+    if [[ -n "$text" ]]; then
+      text="${text}"$'\n'"${task_line}"
+    else
+      text="$task_line"
+    fi
+  fi
+  do_it_session_state_set "$session_id" active_task_hash "${current_task}" 2>/dev/null || true
+
+  [[ -n "$text" ]] && printf '%s' "$text"
+  return 0
+}
+
 # Closed-set core-rule registry (single voice for rule emission). The path may
 # be overridden for packaged installs and deterministic failure-path tests.
 _DO_IT_RULES_DATA="${DO_IT_RULES_DATA:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../data" && pwd)/execution-failure-modes.tsv}"

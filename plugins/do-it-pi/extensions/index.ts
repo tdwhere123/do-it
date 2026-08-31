@@ -56,6 +56,14 @@ export function isPiSubagent(env: NodeJS.ProcessEnv = process.env): boolean {
 	return env.PI_SUBAGENT_CHILD === "1";
 }
 
+export function routerMode(
+	env: NodeJS.ProcessEnv = process.env,
+): "legacy" | "shadow" | "thin" {
+	const mode = (env.DO_IT_ROUTER_MODE ?? "legacy").trim();
+	if (mode === "shadow" || mode === "thin") return mode;
+	return "legacy";
+}
+
 export function appendToolResultContext<T>(
 	content: readonly T[],
 	additionalContext: string,
@@ -300,7 +308,7 @@ export function createDoItPiExtension(
 				const context = resultContext(result);
 				if (context) contexts.push(context);
 			} else {
-				if (!bootstrappedSessions.has(sid)) {
+				if (routerMode(env) === "legacy" && !bootstrappedSessions.has(sid)) {
 					contexts.push(BOOTSTRAP_TEXT);
 					bootstrappedSessions.add(sid);
 				}

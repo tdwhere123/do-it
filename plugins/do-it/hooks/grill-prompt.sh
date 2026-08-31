@@ -96,6 +96,21 @@ case "$PROMPT_LC" in
     ;;
 esac
 
+# shadow/thin: do not inject the Heavy grill reminder or legacy nudges.
+# An explicit grill request gets one compatibility diagnostic so old
+# prompts still have a visible signal; pressure-test belongs to do-it-decide.
+_GRILL_MODE="$(do_it_router_mode)"
+if [[ "$_GRILL_MODE" == "shadow" || "$_GRILL_MODE" == "thin" ]]; then
+  if [[ "$EXPLICIT_GRILL" -eq 1 ]]; then
+    do_it_debug grill-prompt "decision=compat-diagnostic mode=${_GRILL_MODE}"
+    do_it_emit_context UserPromptSubmit \
+      "do-it grill: legacy pressure-test injection is inactive (${_GRILL_MODE}). Use do-it-decide when a load-bearing premise still needs a challenge. Compatibility diagnostic only."
+  else
+    do_it_debug grill-prompt "decision=silent-mode mode=${_GRILL_MODE}"
+  fi
+  exit 0
+fi
+
 # ---- One-shot advisory nudges (work turns only; never block) ----
 ADVISORY_TIER="$(do_it_session_state_get "$SESSION_ID" tier)"
 
