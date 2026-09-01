@@ -332,23 +332,71 @@ DO_IT_SKIP_TTL_SECONDS="${DO_IT_SKIP_TTL_SECONDS:-300}"
 # over token economy — conservative for the models that need the rules).
 DO_IT_ADVISORY_MODE="${DO_IT_ADVISORY_MODE:-auto}"
 
-# Router migration mode. `legacy` keeps the 0.16 classifier+grill inject.
-# `shadow` injects the compact kernel and records classifier diagnostics
-# without putting them in model context. `thin` skips the classifier.
-# Invalid or empty values fail-open to legacy so routing goldens stay green.
+# Router migration mode. Default is thin (compact kernel; classifier skipped).
+# `legacy` keeps the 0.16 classifier+grill inject. `shadow` injects the
+# compact kernel and records classifier diagnostics without putting them
+# in model context. Unknown or empty values fail-open to thin so the
+# product path is the kernel. Routing goldens pin DO_IT_ROUTER_MODE=legacy.
 # Session keys owned by the kernel path:
 #   kernel_hash (digest of do_it_kernel_body), active_task_hash
 #   (adaptive_profile_hash lives in adaptive-context).
 do_it_router_mode() {
-  case "${DO_IT_ROUTER_MODE:-legacy}" in
-    shadow|thin) printf '%s' "$DO_IT_ROUTER_MODE" ;;
-    *) printf 'legacy' ;;
+  case "${DO_IT_ROUTER_MODE:-thin}" in
+    legacy) printf 'legacy' ;;
+    shadow) printf 'shadow' ;;
+    *) printf 'thin' ;;
   esac
 }
 
+# True (0) when command text would make an unauthenticated live-network
+# request. Loopback URLs and leading package-manager/vcs fetches are not
+# live. Empty input is not live.
+do_it_command_has_unauth_live_network() {
+  local cmd="${1-}" s host match prefix padded saw_url=0
+  local sudo_re url_re pm_re
+  [[ -n "$cmd" ]] || return 1
+  s="${cmd#"${cmd%%[![:space:]]*}"}"
+  sudo_re='^sudo[[:space:]]+'
+  if [[ "$s" =~ $sudo_re ]]; then
+    s="${s#sudo}"
+    s="${s#"${s%%[![:space:]]*}"}"
+  fi
+  pm_re='^(npm|pnpm|yarn|bun|pip3|pip|uv|cargo|go|composer|git|apt|brew|dnf|yum)([[:space:]]|$)'
+  if [[ "$s" =~ $pm_re ]]; then
+    return 1
+  fi
+  url_re='https?://(\[::1\]|[^/[:space:]"'\''`;]+)'
+  s="$cmd"
+  while [[ "$s" =~ $url_re ]]; do
+    match="${BASH_REMATCH[0]}"
+    host="${BASH_REMATCH[1]}"
+    saw_url=1
+    if [[ "$host" == localhost || "$host" == localhost:* \
+       || "$host" == 127.* \
+       || "$host" == '[::1]' || "$host" == '[::1]':* \
+       || "$host" == '::1' || "$host" == '::1':* ]]; then
+      prefix="${s%%"$match"*}"
+      s="${s#"$prefix$match"}"
+      continue
+    fi
+    return 0
+  done
+  padded=" ${cmd//[^a-zA-Z0-9_]/ } "
+  case "$padded" in
+    *" curl "*|*" wget "*)
+      [[ "$saw_url" -eq 1 ]] && return 1
+      return 0
+      ;;
+  esac
+  return 1
+}
+
 # One short kernel for every model. No pointer/inline auto-switch.
+# Must keep r-boundary (no live network / destructive without authorization)
+# and r-verify relevance to the changed surface; "confirm external" was too
+# weak for R06 — the model still probed https://example.com.
 do_it_kernel_body() {
-  printf '%s' 'Do-it kernel: read current repository truth; preserve the active goal, settled decisions, boundary, and acceptance; resolve only decision-changing uncertainty; change the causal owner, not a downstream symptom; before a completion claim, use fresh relevant evidence from this worktree or say NOT_VERIFIED.'
+  printf '%s' 'Do-it kernel: read current repository truth; preserve the active goal, settled decisions, boundary, and acceptance; do not execute live network requests (curl, wget, http(s) calls) or take destructive or out-of-boundary actions without explicit user authorization; resolve only decision-changing uncertainty; change the causal owner, not a downstream symptom; before a completion claim, use fresh evidence from this worktree that covers the changed surface, not unrelated tests, or say NOT_VERIFIED.'
 }
 
 do_it_kernel_nowrite_body() {

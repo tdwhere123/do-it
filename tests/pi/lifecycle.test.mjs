@@ -140,7 +140,7 @@ test("do-it-status reports tool registration without inferring agent discovery",
 	}
 });
 
-test("root lifecycle injects bootstrap once, preserves ToolResult arrays, and queues verification", async () => {
+test("root lifecycle default thin skips bootstrap, preserves ToolResult arrays, and queues verification", async () => {
 	const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-pi-lifecycle-"));
 	const calls = [];
 	const runHook = async (_hooksDir, scriptName, payload) => {
@@ -167,7 +167,7 @@ test("root lifecycle injects bootstrap once, preserves ToolResult arrays, and qu
 			{ prompt: "implement feature" },
 			ctx,
 		);
-		assert.match(first.message.content, /<do-it-bootstrap>/);
+		assert.doesNotMatch(first.message.content, /<do-it-bootstrap>/);
 		assert.match(first.message.content, /prompt-submit\.sh-context/);
 		assert.doesNotMatch(first.message.content, /router\.sh-context/);
 		assert.doesNotMatch(first.message.content, /grill-prompt\.sh-context/);
@@ -239,6 +239,39 @@ test("root lifecycle injects bootstrap once, preserves ToolResult arrays, and qu
 	}
 });
 
+test("explicit legacy still injects bootstrap once", async () => {
+	const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-pi-legacy-"));
+	const runHook = async (_hooksDir, scriptName) => ({
+		exitCode: 0,
+		stdout: "",
+		stderr: "",
+		additionalContext: `${scriptName}-context`,
+	});
+	const pi = fakePi();
+	createDoItPiExtension({
+		env: { HOME: cwd, DO_IT_ROUTER_MODE: "legacy" },
+		dataDir: path.join(cwd, "data"),
+		runHook,
+	})(pi.api);
+	const ctx = fakeContext(cwd);
+	try {
+		await pi.handlers.get("session_start")({}, ctx);
+		const first = await pi.handlers.get("before_agent_start")(
+			{ prompt: "implement feature" },
+			ctx,
+		);
+		assert.match(first.message.content, /<do-it-bootstrap>/);
+		assert.match(first.message.content, /prompt-submit\.sh-context/);
+		const second = await pi.handlers.get("before_agent_start")(
+			{ prompt: "continue" },
+			ctx,
+		);
+		assert.doesNotMatch(second.message.content, /<do-it-bootstrap>/);
+	} finally {
+		fs.rmSync(cwd, { recursive: true, force: true });
+	}
+});
+
 test("shadow and thin skip bootstrap, spawn prompt-submit, and inject the kernel", async () => {
 	for (const mode of ["shadow", "thin"]) {
 		const cwd = fs.mkdtempSync(path.join(os.tmpdir(), `do-it-pi-${mode}-`));
@@ -266,6 +299,34 @@ test("shadow and thin skip bootstrap, spawn prompt-submit, and inject the kernel
 		} finally {
 			fs.rmSync(cwd, { recursive: true, force: true });
 		}
+	}
+});
+
+test("thin set after create without env option skips bootstrap and injects the kernel", async () => {
+	const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-pi-thin-late-"));
+	const previousMode = process.env.DO_IT_ROUTER_MODE;
+	const previousHome = process.env.HOME;
+	const pi = fakePi();
+	createDoItPiExtension({ pluginRoot: repoRoot })(pi.api);
+	process.env.DO_IT_ROUTER_MODE = "thin";
+	process.env.HOME = cwd;
+	const ctx = fakeContext(cwd, "thin-late-env");
+	ctx.model = { provider: "openrouter", id: "claude-sonnet-4" };
+	try {
+		await pi.handlers.get("session_start")({}, ctx);
+		const first = await pi.handlers.get("before_agent_start")(
+			{ prompt: "Implement src/auth.ts token refresh" },
+			ctx,
+		);
+		assert.ok(first?.message?.content, "thin must inject prompt context");
+		assert.doesNotMatch(first.message.content, /<do-it-bootstrap>/);
+		assert.match(first.message.content, KERNEL_NEEDLE);
+	} finally {
+		if (previousMode === undefined) delete process.env.DO_IT_ROUTER_MODE;
+		else process.env.DO_IT_ROUTER_MODE = previousMode;
+		if (previousHome === undefined) delete process.env.HOME;
+		else process.env.HOME = previousHome;
+		fs.rmSync(cwd, { recursive: true, force: true });
 	}
 });
 
@@ -456,7 +517,7 @@ test("root bash results are observed without treating isError as proof", async (
 		);
 		assert.deepEqual(
 			calls.map((call) => call.scriptName),
-			["evidence-observer.sh"],
+			["evidence-observer.sh", "network-admission.sh"],
 		);
 		assert.equal(calls[0].payload.tool_name, "bash");
 		assert.equal(calls[0].payload.tool_input.command, "npm test");

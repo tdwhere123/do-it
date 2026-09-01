@@ -48,7 +48,8 @@ _isolate_state() {
   export DO_IT_HOOK_DATA="$1"
   rm -rf "$DO_IT_HOOK_DATA"
   unset CLAUDE_PLUGIN_DATA CODEX_HOME KIMI_CODE_HOME KIMI_PLUGIN_ROOT CLAUDE_AGENT_CONTEXT CLAUDE_SUBAGENT
-  unset DO_IT_DEBUG DO_IT_ROUTER_MODE
+  unset DO_IT_DEBUG
+  export DO_IT_ROUTER_MODE=legacy
 }
 
 _state_for() {

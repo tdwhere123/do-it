@@ -1,9 +1,8 @@
 #!/usr/bin/env node
 
-// Behavior eval runner. The fixture backend is the one runnable
-// implementation: it replays canned trajectories against a fresh
-// workspace copy and scores deterministic gates. Live host/model
-// backends are declared unimplemented and must not be faked.
+// Behavior eval runner. Fixture replay is the default and the only
+// path npm test may execute. Live Cursor/Pi adapters require explicit
+// --backend live plus host credentials, and must not fake a model run.
 
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
@@ -18,6 +17,12 @@ import {
   summarizeFaces,
   writeRunArtifacts
 } from "./report.mjs";
+import {
+  defaultLiveHosts,
+  executeLiveJob,
+  parseHosts,
+  probeHost
+} from "./hosts/live-run.mjs";
 import {
   CONDITIONS,
   FAMILIES,
@@ -38,9 +43,8 @@ export const BACKENDS = Object.freeze({
   },
   live: {
     id: "live",
-    runnable: false,
-    description: "Live host/model adapter",
-    reason: "Live host/model backend is unimplemented"
+    runnable: true,
+    description: "Cursor Grok 4.6 / Pi deepseek-v4-flash adapters; requires credentials"
   }
 });
 
@@ -66,6 +70,7 @@ export function parseArgs(argv) {
     suite: null,
     samples: 1,
     backend: null,
+    hosts: [],
     blind: false,
     outDir: null,
     writeBaseline: null,
@@ -101,6 +106,9 @@ export function parseArgs(argv) {
       out.suite = String(next() ?? "").trim();
     } else if (arg === "--samples") out.samples = Number(next());
     else if (arg === "--backend") out.backend = String(next() ?? "");
+    else if (arg === "--host" || arg === "--hosts") {
+      out.hosts = parseHosts(next());
+    }
     else if (arg === "--out") out.outDir = next();
     else if (arg === "--write-baseline") out.writeBaseline = next();
     else throw new Error(`unknown argument: ${arg}`);
@@ -128,9 +136,12 @@ export function parseArgs(argv) {
   if (out.suite === "") {
     throw new Error("unknown suite: ");
   }
-  if (out.dryRun) out.backend = out.backend ?? "fixture";
+  if (out.dryRun) out.backend = "fixture";
   if (!out.backend) out.backend = "fixture";
   if (out.conditions.length === 0) out.conditions = ["legacy"];
+  if (out.backend === "live" && out.hosts.length === 0) {
+    out.hosts = defaultLiveHosts();
+  }
   return out;
 }
 
@@ -147,7 +158,8 @@ Options:
   --suite release      Seed plus extra corpus (all loaded scenarios)
   --condition NAME     vanilla | legacy | kernel | adaptive (candidate aliases kernel)
   --samples N          Fresh workspace per sample (default 1)
-  --backend NAME       fixture (runnable) | live (unimplemented)
+  --backend NAME       fixture | live (Cursor Grok 4.6 / Pi deepseek-v4-flash)
+  --host NAME[,NAME]   live hosts: cursor, pi (default both). Missing creds → NOT_RUN
   --blind              Hide condition from the judge input
   --out DIR            Run output directory
   --write-baseline PATH
@@ -316,20 +328,23 @@ export class FixtureBackend {
 }
 
 export class LiveBackend {
-  constructor() {
+  constructor(options = {}) {
     this.id = "live";
-    this.runnable = false;
-    this.reason = BACKENDS.live.reason;
+    this.runnable = true;
+    this.repoRoot = options.repoRoot;
+    this.fixturesRoot = options.fixturesRoot;
+    this.adapters = options.adapters ?? {};
+    this.env = options.env ?? process.env;
   }
 
-  async run() {
-    return {
-      status: "NOT_RUN",
-      backend: "live",
-      model: "NOT_RUN",
-      reason: this.reason,
-      unimplemented: true
-    };
+  async run(job) {
+    return executeLiveJob({
+      ...job,
+      repoRoot: this.repoRoot,
+      fixturesRoot: this.fixturesRoot,
+      adapters: this.adapters,
+      env: this.env
+    });
   }
 }
 
@@ -337,6 +352,26 @@ export function createBackend(name, options) {
   if (name === "fixture") return new FixtureBackend(options);
   if (name === "live") return new LiveBackend(options);
   throw new Error(`unknown backend: ${name}`);
+}
+
+const HOST_PROBE_SECRETS = Object.freeze(["apiKey", "sdk", "record", "authPath"]);
+
+// Live probes may carry in-process credentials; suite JSON, aggregates,
+// --json, and --write-baseline must not.
+export function publicHostProbe(probe) {
+  if (probe == null || typeof probe !== "object" || Array.isArray(probe)) {
+    return probe;
+  }
+  const publicProbe = { ...probe };
+  let stripped = false;
+  for (const key of HOST_PROBE_SECRETS) {
+    if (Object.hasOwn(publicProbe, key)) {
+      delete publicProbe[key];
+      stripped = true;
+    }
+  }
+  if (publicProbe.ok && stripped) publicProbe.credential = "present";
+  return publicProbe;
 }
 
 function costFrom(result) {
@@ -392,16 +427,52 @@ export async function runSuite(options) {
   const conditions = options.conditions?.length ? options.conditions : ["legacy"];
   const backendName = options.backend ?? "fixture";
   const backendInfo = BACKENDS[backendName];
-  const backend = createBackend(backendName, { behaviorRoot, fixturesRoot, repoRoot });
+  const hosts = backendName === "live" ? defaultLiveHosts(options.hosts) : [null];
+  const backend = createBackend(backendName, {
+    behaviorRoot,
+    fixturesRoot,
+    repoRoot,
+    adapters: options.adapters,
+    env: options.env
+  });
   const repoCommit = options.repoCommit ?? gitHead(repoRoot);
   const capturedUtc = options.capturedUtc ?? new Date().toISOString();
   const outDir = options.outDir ?? path.join(behaviorRoot, "runs", nowStamp());
 
+  const hostProbes = {};
+  if (backendName === "live") {
+    for (const host of hosts) {
+      const adapter = options.adapters?.[host];
+      const probe = adapter?.probe
+        ? await adapter.probe({ repoRoot, env: options.env ?? process.env, host })
+        : await probeHost(host, {
+            repoRoot,
+            env: options.env ?? process.env,
+            importSdk: adapter?.importSdk
+          });
+      hostProbes[host] = publicHostProbe(probe);
+    }
+  }
+  const liveRunnable = Object.values(hostProbes).some((probe) => probe?.ok);
   const modelRuns = {
-    status: backendInfo.runnable ? "ran-fixture" : "NOT_RUN",
-    reason: backendInfo.runnable
-      ? "fixture backend executed canned trajectories"
-      : backendInfo.reason,
+    status:
+      backendName === "live"
+        ? liveRunnable
+          ? "live"
+          : "NOT_RUN"
+        : backendInfo.runnable
+          ? "ran-fixture"
+          : "NOT_RUN",
+    reason:
+      backendName === "live"
+        ? liveRunnable
+          ? "live host adapter executed (missing hosts stay NOT_RUN)"
+          : Object.values(hostProbes)
+              .map((probe) => probe?.reason)
+              .filter(Boolean)
+              .join("; ") || "no live host has credentials"
+        : "fixture backend executed canned trajectories",
+    hosts: backendName === "live" ? hostProbes : undefined,
     backends: {
       fixture: BACKENDS.fixture.runnable ? "runnable" : "unimplemented",
       live: BACKENDS.live.runnable ? "runnable" : "unimplemented"
@@ -411,14 +482,18 @@ export async function runSuite(options) {
   const runs = [];
   for (const scenario of selected) {
     for (const condition of conditions) {
+      for (const host of hosts) {
       for (let sample = 0; sample < (options.samples ?? 1); sample += 1) {
         const result = await backend.run({
           scenario,
           condition,
+          host,
           blinded: options.blind === true,
           sample
         });
-        const runId = `${scenario.id}-${condition}-${sample}`;
+        const runId = host
+          ? `${scenario.id}-${condition}-${host}-${sample}`
+          : `${scenario.id}-${condition}-${sample}`;
         const trajectoryRef = result.trajectory
           ? `trajectories/${runId}.json`
           : null;
@@ -426,12 +501,14 @@ export async function runSuite(options) {
           scenario_id: scenario.id,
           family: scenario.family,
           condition,
+          host: result.host ?? host,
           sample,
           backend: result.backend ?? backendName,
           status: result.status,
           reason: result.reason,
           unimplemented: result.unimplemented === true,
           model: result.model ?? (result.status === "ran" ? "fixture-replay" : "NOT_RUN"),
+          thinking: result.thinking ?? null,
           repo_commit: repoCommit,
           permissions: {
             writes: scenario.authorized_actions.writes,
@@ -461,6 +538,8 @@ export async function runSuite(options) {
                 schema: "do-it/behavior-run-manifest/v1",
                 model: run.model,
                 condition: run.condition,
+                host: run.host,
+                thinking: run.thinking,
                 repo_commit: run.repo_commit,
                 permissions: run.permissions,
                 cost: run.cost,
@@ -480,6 +559,7 @@ export async function runSuite(options) {
         delete stored.trajectory;
         runs.push(stored);
       }
+      }
     }
   }
 
@@ -492,6 +572,7 @@ export async function runSuite(options) {
     dry_run: options.dryRun === true,
     blinded: options.blind === true,
     samples: options.samples ?? 1,
+    hosts: backendName === "live" ? hosts : [],
     conditions,
     model_runs: modelRuns,
     runs,
@@ -513,10 +594,13 @@ export async function runSuite(options) {
       repo_commit: repoCommit,
       conditions: [...CONDITIONS],
       model_runs: {
-        status: "NOT_RUN",
+        status: modelRuns.status,
         reason:
-          "No model credentials in this worktree; live host/model backend is unimplemented. Fixture dry-run results below are not promotion evidence.",
-        backends: modelRuns.backends
+          backendName === "live"
+            ? modelRuns.reason
+            : "Fixture dry-run results are not promotion evidence. Live A/B requires --backend live and host credentials.",
+        backends: modelRuns.backends,
+        hosts: modelRuns.hosts
       },
       notes: [
         "A single run is not promotion evidence.",
@@ -559,23 +643,6 @@ export async function main(argv = process.argv.slice(2), options = {}) {
 
   const behaviorRoot = options.behaviorRoot ?? behaviorRootFrom(import.meta.url);
   const repoRoot = options.repoRoot ?? path.resolve(behaviorRoot, "..", "..");
-  const liveRequested = args.backend === "live" && !args.dryRun;
-  if (liveRequested) {
-    const note = {
-      schema: "do-it/behavior-suite/v1",
-      model_runs: {
-        status: "NOT_RUN",
-        reason: BACKENDS.live.reason,
-        backends: { fixture: "runnable", live: "unimplemented" }
-      },
-      runs: []
-    };
-    process.stderr.write(`${BACKENDS.live.reason}. Use --dry-run --backend fixture.\n`);
-    if (args.json) process.stdout.write(`${JSON.stringify(note, null, 2)}\n`);
-    if (options.exit !== false) process.exit(2);
-    return 2;
-  }
-
   try {
     const suite = await runSuite({
       behaviorRoot,
@@ -586,8 +653,11 @@ export async function main(argv = process.argv.slice(2), options = {}) {
       conditions: args.conditions,
       samples: args.samples,
       backend: args.backend,
+      hosts: args.hosts,
       dryRun: args.dryRun || args.backend === "fixture",
       blind: args.blind,
+      env: options.env,
+      adapters: options.adapters,
       outDir: args.outDir ? path.resolve(args.outDir) : undefined,
       writeBaseline: args.writeBaseline ? path.resolve(args.writeBaseline) : undefined,
       command: `node evals/behavior/runner.mjs ${argv.join(" ")}`.trim()
@@ -597,6 +667,14 @@ export async function main(argv = process.argv.slice(2), options = {}) {
     } else {
       process.stdout.write(renderSuiteMarkdown(suite));
       process.stdout.write(`\nWrote ${suite.runs.length} run(s). Hard gates do not share a composite score.\n`);
+    }
+    const liveRequested = args.backend === "live" && !args.dryRun;
+    const anyLive = suite.runs.some((run) => run.status === "ran");
+    if (liveRequested && !anyLive) {
+      const reason = suite.model_runs?.reason || "live backend produced no runs";
+      process.stderr.write(`${reason}\n`);
+      if (options.exit !== false) process.exit(2);
+      return 2;
     }
     const failed = suite.runs.some((run) => run.judge && run.judge.hard_gate === "fail");
     const code = failed ? 1 : 0;

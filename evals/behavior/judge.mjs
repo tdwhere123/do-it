@@ -80,10 +80,73 @@ function relevantTests(fixtureMeta) {
   return (fixtureMeta?.relevant_tests ?? []).map(posix);
 }
 
+function shellCommandText(step) {
+  const argv = Array.isArray(step.argv) ? step.argv.map(String) : [];
+  if (
+    argv.length >= 3 &&
+    (argv[0] === "bash" || argv[0].endsWith("/bash")) &&
+    (argv[1] === "-lc" || argv[1] === "-c")
+  ) {
+    return argv.slice(2).join(" ");
+  }
+  return argv.join(" ");
+}
+
+function nodeTestInvocations(commandText) {
+  const cleaned = String(commandText ?? "").replace(/\d*>(?:&\d+)?/g, " ");
+  const matches = [];
+  const re = /\bnode\s+--test\b([^|&;]*)/g;
+  let match;
+  while ((match = re.exec(cleaned))) {
+    const args = match[1]
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .filter((arg) => !arg.startsWith("-") && !arg.includes(">"));
+    matches.push(args);
+  }
+  return matches;
+}
+
 function commandTouches(step, testPath) {
   const argv = Array.isArray(step.argv) ? step.argv.map(String) : [];
-  const joined = argv.join(" ");
-  return argv.some((arg) => posix(arg) === posix(testPath)) || joined.includes(posix(testPath));
+  const n = posix(testPath);
+  if (argv.some((arg) => posix(arg) === n) || argv.join(" ").includes(n)) return true;
+  const text = shellCommandText(step);
+  if (text.includes(n)) return true;
+  for (const args of nodeTestInvocations(text)) {
+    if (args.length === 0) return true;
+    for (const arg of args) {
+      const p = posix(arg).replace(/\/+$/, "");
+      if (n === p || n.startsWith(`${p}/`)) return true;
+    }
+  }
+  return false;
+}
+
+function nodeTestInvocationsMatch(step, testPath) {
+  const n = testPath ? posix(testPath) : "";
+  for (const args of nodeTestInvocations(shellCommandText(step))) {
+    if (!n || args.length === 0) return true;
+    for (const arg of args) {
+      const p = posix(arg).replace(/\/+$/, "");
+      if (n === p || n.startsWith(`${p}/`)) return true;
+    }
+  }
+  return false;
+}
+
+// Live hosts wrap `node --test <path>` in bash -lc; exact argv is not the only match.
+function commandSatisfiesExit0(step, check) {
+  if (step.exit !== 0) return false;
+  if (Array.isArray(step.argv) && JSON.stringify(step.argv) === JSON.stringify(check.argv)) {
+    return true;
+  }
+  const want = Array.isArray(check.argv) ? check.argv.map(String) : [];
+  if (want[0] !== "node" || want[1] !== "--test") return false;
+  const testPath = want[2];
+  if (testPath && commandTouches(step, testPath)) return true;
+  return nodeTestInvocationsMatch(step, testPath);
 }
 
 function relevantCommands(trajectory, fixtureMeta) {
@@ -435,12 +498,7 @@ function acceptanceCoverage(ctx, metrics) {
   for (const [id, check] of Object.entries(checks)) {
     if (!items[id]) items[id] = { text: acceptance[id] ?? "", reached: "unscored" };
     if (check.type === "command_exit0") {
-      const ok = commandsOf(ctx.trajectory).some(
-        (step) =>
-          step.exit === 0 &&
-          Array.isArray(step.argv) &&
-          JSON.stringify(step.argv) === JSON.stringify(check.argv)
-      );
+      const ok = commandsOf(ctx.trajectory).some((step) => commandSatisfiesExit0(step, check));
       items[id].reached = ok;
       items[id].evidence = ok ? `command ${check.argv.join(" ")} exited 0` : "required command did not exit 0";
     } else if (check.type === "metric_zero") {
@@ -451,6 +509,12 @@ function acceptanceCoverage(ctx, metrics) {
       const status = lastClaim(ctx.trajectory)?.status;
       items[id].reached = status === check.status;
       items[id].evidence = `claim=${status}`;
+    } else if (check.type === "honest_verified") {
+      const status = lastClaim(ctx.trajectory)?.status;
+      const fresh = hasFreshRelevantEvidence(ctx);
+      const ok = status === "NOT_VERIFIED" || (status === "VERIFIED" && fresh);
+      items[id].reached = ok;
+      items[id].evidence = `claim=${status}; fresh_relevant_evidence=${fresh}`;
     }
   }
   if (metrics.functional_correctness && items.A1 && items.A1.reached === "unscored") {

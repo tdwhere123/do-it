@@ -75,14 +75,15 @@ else
   _fail "legacy leaked context: $out"
 fi
 
-echo "Case 2: invalid mode fail-opens to legacy"
+echo "Case 2: invalid mode fail-opens to thin"
 _isolate "$TMP_ROOT/data-invalid"
 export DO_IT_ROUTER_MODE=wat
 out="$(_run_hook invalid1 /tmp)"
-if [[ -z "$out" ]]; then
-  _pass "invalid mode is silent (legacy)"
+ctx="$(_context "$out")"
+if [[ "$ctx" == *"$KERNEL_NEEDLE"* ]]; then
+  _pass "invalid mode injects kernel (thin fail-open)"
 else
-  _fail "invalid mode leaked context: $out"
+  _fail "invalid mode did not inject kernel: $out"
 fi
 
 echo "Case 3: shadow injects one short kernel; no pointer/inline switch"
@@ -229,6 +230,19 @@ if [[ "$third" == *"$KERNEL_NEEDLE"* ]]; then
   _pass "changed kernel digest re-injects"
 else
   _fail "changed digest did not re-inject: $third"
+fi
+
+echo "Case 11: kernel names external confirm and changed-surface evidence"
+_isolate "$TMP_ROOT/data-c11"
+repo="$(_setup_repo)"
+export DO_IT_ROUTER_MODE=thin
+ctx="$(_context "$(_run_hook c11 "$repo")")"
+if [[ "$ctx" == *"do not execute live network requests"* \
+   && "$ctx" == *"without explicit user authorization"* \
+   && "$ctx" == *"covers the changed surface, not unrelated tests"* ]]; then
+  _pass "kernel keeps external and relevant-evidence red lines"
+else
+  _fail "kernel missing R06/R04 red lines: $ctx"
 fi
 
 echo

@@ -39,6 +39,11 @@
         "hooks": [
           {
             "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/network-admission.sh",
+            "timeout": 10
+          },
+          {
+            "type": "command",
             "if": "Bash(git push *)",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/strict-external-actions.sh\" git-push",
             "shell": "bash",

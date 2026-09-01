@@ -12,6 +12,9 @@ HOOK="$REPO_ROOT/hooks/behavior-feedback.sh"
 PASS=0
 FAIL=0
 TMP_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/do-it-feedback-test.XXXXXX")"
+export GIT_CONFIG_GLOBAL=/dev/null
+export GIT_CONFIG_SYSTEM=/dev/null
+unset GIT_DIR GIT_WORK_TREE
 
 cleanup() { rm -rf "$TMP_ROOT"; }
 trap cleanup EXIT
@@ -41,8 +44,19 @@ _event_count() {
   wc -l < "$events" | tr -d ' '
 }
 
+_setup_git_project() {
+  local dir="$1"
+  mkdir -p "$dir"
+  git -C "$dir" init -q
+  git -C "$dir" config user.email t@e.com
+  git -C "$dir" config user.name t
+  printf 'base\n' > "$dir/README"
+  git -C "$dir" add README
+  git -C "$dir" commit -q -m base
+}
+
 project="$TMP_ROOT/project"
-mkdir -p "$project"
+_setup_git_project "$project"
 runtime="$project/.do-it/runtime"
 config="$runtime/retrospective/config.json"
 events="$runtime/events/learning.jsonl"

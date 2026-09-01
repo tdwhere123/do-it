@@ -36,15 +36,29 @@ Do not invent the remaining 24 here.
    Locality (Maintainability).
 3. Never emit a composite / overall / weighted score.
 
+`cost.injected_tokens` counts host-injected do-it text only: compact
+kernel, `<do-it-bootstrap>`, `<system-reminder>`, and router/grill/
+architecture/adaptive emissions. Assistant restatements of those
+strings are not injection. A meter that only matches `Do-it kernel:`
+will report legacy as 0.
+
 ## Backends
 
 | Backend | Status |
 | --- | --- |
 | `fixture` | **runnable** — replays canned trajectories, executes fixture tests, scores gates |
-| `live` | **unimplemented** — do not fake a host/model run |
+| `live` | **runnable with credentials** — Cursor (`@cursor/sdk` local Agent + Grok 4.6 max) and Pi (`createAgentSession` + `deepseek-v4-flash` / `thinkingLevel: max`) |
 
-If model credentials are missing, record `NOT_RUN` for the model run and
-still execute the fixture harness.
+Live never runs from ordinary `npm test`. CI blocks live unless
+`DO_IT_EVAL_LIVE=1`. A missing SDK or credential is `NOT_RUN` for that
+host — never a fake trajectory. Vanilla uses isolated settings (Cursor
+`settingSources: []`; Pi temp `agentDir` with only the DeepSeek key).
+Kernel / legacy / adaptive stage the matching plugin into that isolated
+workspace. Legacy is the 0.16.0 baseline tree
+(`8e85add081b2793fb39529e1a57a36155fe03847`).
+
+Do not use official `OPENAI_API_KEY`. Do not use Pi `openai-codex` or
+Pi `xai/grok-4.6` for this gate.
 
 ## CLI
 
@@ -54,17 +68,26 @@ node evals/behavior/runner.mjs --dry-run --scenario D01
 node evals/behavior/runner.mjs --scenario D01,D02 --condition legacy --dry-run
 node evals/behavior/runner.mjs --dry-run --condition legacy --samples 2 --blind
 node evals/behavior/report.mjs evals/behavior/baselines/0.16.0.json
+
+# Live (paid; not part of npm test)
+export DO_IT_EVAL_LIVE=1
+export CURSOR_API_KEY=...          # Cursor Dashboard → Integrations
+# Pi reads ~/.pi/agent/auth.json deepseek API key only
+node evals/behavior/runner.mjs --backend live --host cursor --scenario D01 --condition vanilla,legacy,kernel,adaptive
+node evals/behavior/runner.mjs --backend live --host pi --scenario D01 --condition vanilla,legacy,kernel,adaptive
+node evals/behavior/runner.mjs --backend live --host cursor,pi --samples 2
 ```
 
-`--dry-run` is the fixture backend. `--backend live` exits 2 and states
-unimplemented. `--blind` hides the condition from the judge input; the
-manifest still records it.
+`--dry-run` always selects the fixture backend. `--backend live` with
+no runnable host exits 2 and records `NOT_RUN`. `--host` selects
+`cursor` and/or `pi`. `--blind` hides the condition from the judge
+input; the manifest still records it.
 
 `--scenario D01` is the smoke dry-run (exit 0). A full seed dry-run
 exits 1 because R03/R04/R06 default trajectories are canned honesty
 failures that prove the hard gates; that is not a model measurement.
 
-Each run record stores: `model`, `condition`, `repo_commit`,
+Each run record stores: `model`, `condition`, `host`, `repo_commit`,
 `permissions`, `cost`, `trajectory_ref`.
 
 ## Layout
@@ -75,6 +98,7 @@ evals/behavior/
   fixtures/<name>/{workspace,trajectories,fixture.json}
   rubrics/
   runner.mjs  validate.mjs  judge.mjs  report.mjs
+  hosts/cursor-sdk.mjs hosts/pi-sdk.mjs
   baselines/0.16.0.json
   runs/                 # gitignored raw output
 ```
@@ -85,6 +109,6 @@ and non-sensitive fixtures.
 ## Tests
 
 `node --test tests/behavior-eval*.test.mjs` covers validate, the
-deterministic judge, and dry-run only. Parent integration should add
-those tests to ordinary `npm test` without adding `eval:behavior` model
-calls.
+deterministic judge, fixture dry-run, and live adapters with injected
+fakes. Ordinary `npm test` still must not call paid SDKs. Real model
+runs use the live CLI above (`DO_IT_EVAL_LIVE=1 node evals/behavior/runner.mjs --backend live ...`).

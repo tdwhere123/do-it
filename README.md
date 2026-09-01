@@ -50,10 +50,11 @@ Per-host details and smoke tests: [docs/install.md](./docs/install.md).
 do-it works behind the scenes. You don't invoke it — it fires at the right
 lifecycle points:
 
-- **Default runtime is still legacy** (`DO_IT_ROUTER_MODE=legacy`): the 0.16
-  router sizes Light / Standard / Heavy and may grill on Heavy. `shadow` and
-  `thin` inject a compact kernel plus an optional adaptive overlay instead;
-  they are opt-in, not the default.
+- **Default runtime is thin** (unset or `DO_IT_ROUTER_MODE=thin`): a compact
+  kernel plus an optional adaptive overlay; the lexical classifier is skipped.
+  Rollback to the 0.16 router-then-grill path: `DO_IT_ROUTER_MODE=legacy`.
+  `shadow` still injects the kernel while the classifier records diagnostics
+  only. This is S16 Phase A in this worktree, not a tagged 0.19.
 - **While writing**, `write-quality-lint` flags anti-patterns on new lines.
   One reminder per file; never blocks. `evidence-observer` records edit and
   command facts; a command name is not proof.
@@ -96,7 +97,9 @@ The rest maintains itself. Bootstrap does **not** create `brainstorm/` or
 
 ### Right-sized work
 
-The router gives every task an advisory risk label — not a permission gate.
+On the legacy rollback path (`DO_IT_ROUTER_MODE=legacy`), the router gives
+every task an advisory risk label — not a permission gate. Thin (the default)
+skips that classifier.
 
 | Tier | What happens |
 | --- | --- |
@@ -164,8 +167,8 @@ global agents stay untouched by plugin updates.
 flowchart TD
     P[UserPromptSubmit] --> PS[prompt-submit]
     PS --> M{DO_IT_ROUTER_MODE}
-    M -->|legacy default| R[router then grill]
-    M -->|shadow / thin opt-in| K[kernel-context + adaptive-context]
+    M -->|thin default / shadow| K[kernel-context + adaptive-context]
+    M -->|legacy rollback| R[router then grill]
     R --> C[do-it-core<br/>protocol of record]
     K --> C
     C --> B{meaning buckets}
@@ -202,8 +205,9 @@ Family catalog and suppression syntax:
 ## Release Notes
 
 The published line is **0.16.x**. Unreleased 0.17 work (skills, contracts,
-eval, runtime observe) is documented in [`CHANGELOG.md`](./CHANGELOG.md);
-default runtime stays legacy until a tagged 0.17. Tag policy:
+eval, runtime observe) is documented in [`CHANGELOG.md`](./CHANGELOG.md).
+This worktree default is **thin** (S16 Phase A, not a tagged 0.19). Rollback:
+`DO_IT_ROUTER_MODE=legacy`. Tag policy:
 [`docs/release.md`](./docs/release.md).
 
 ## Local Development

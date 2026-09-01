@@ -16,8 +16,9 @@ VERIFIED on stale or irrelevant evidence, no Core weakening.
 ## Cost
 
 tokens, tool calls, wall time, injected tokens, user questions,
-subagent count, ceremony artifacts. Thresholds freeze after the 0.16
-baseline; this face reports raw numbers.
+subagent count, ceremony artifacts. This face reports raw numbers.
+Injection versus 0.16 is not a thin-default veto; EVAL §6.2 promotes
+on behavior non-inferiority.
 
 ## Locality (Maintainability)
 

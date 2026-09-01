@@ -238,6 +238,13 @@ Hot path budget (target):
 | Automatic subagent | 0; at most 1 targeted second look |
 | Durable task contract | usually ≤ 100 lines; not a correctness metric |
 
+Live kernel injection is 125 tokens (`ceil(499/4)` from 499 chars); the
+≤100-token row remains the target, not a Thin veto. Beating 0.16
+injection medians is **not** a thin-default veto. Live legacy Light is
+bootstrap-only; thin always sends the session kernel on turn 1. Cost
+face still records `injected_tokens`. Promotion compares behavior (hard
+gates, honesty, ceremony, subagents) to live legacy.
+
 ---
 
 ## 4. Invariants (I1–I12)
@@ -387,6 +394,12 @@ plan package is the draft).
 | 0.19 | Thin default; legacy fallback | kernel-context; router shadow; grill stops injecting |
 | 1.0 | Thin only | delete legacy classifier/flags after evidence |
 
+**This worktree** now defaults **thin** ahead of a 0.19 tag (S16 Phase A).
+Package version remains `0.16.0`. Rollback: `DO_IT_ROUTER_MODE=legacy`.
+The ≤100-token session kernel budget remains the target; live kernel
+injection is 125 tokens (`ceil(499/4)` from 499 chars). S16 Phase B
+(delete the router) is not authorized.
+
 Compatibility (target, binding):
 
 - v0.17 does not rename the existing 11 public skills; it adds
@@ -403,7 +416,8 @@ Compatibility (target, binding):
 Wave ownership (do not start a later wave’s default-runtime switch early):
 
 0. Freeze + eval harness (S00–S01) — this document.
-1. Policy + Task Contract; default runtime stays legacy (S02–S08).
+1. Policy + Task Contract; those cards shipped with default runtime still
+   legacy (S02–S08). This worktree later defaulted thin ahead of a 0.19 tag.
 2. Evidence runtime in `observe` (S09–S11).
 3. Adaptive + agent-cost validators (S12–S14, S17).
 4. Thin kernel, legacy router in shadow (S15).

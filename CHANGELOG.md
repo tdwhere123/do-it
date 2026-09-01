@@ -4,10 +4,12 @@
 
 ### Minimal evidence-carrying kernel (0.17-oriented; not published)
 
-Default runtime remains **legacy** (`DO_IT_ROUTER_MODE=legacy`): 0.16 router
-then grill. Shadow/thin kernel injection, evidence observe, and the adaptive
-overlay are present and fail-open; they are not the default. Version metadata
-stays `0.16.0` until a real 0.17 tag.
+Default runtime is now **thin** (unset or `DO_IT_ROUTER_MODE=thin`): compact
+kernel plus optional adaptive overlay; the lexical classifier is skipped.
+Rollback to 0.16 router-then-grill: `DO_IT_ROUTER_MODE=legacy`. Live-network
+admission is Claude `ask` and other-host reminders — not more kernel text.
+S16 Phase A is this worktree default, not a tagged 0.19. Version metadata
+stays `0.16.0` until a real 0.17/0.19 tag.
 
 - **Product:** do-it makes agent work evidence-carrying. Autonomy stays first.
 - **Skills:** added `do-it-adaptive` as extended-on-demand. Inventory is 12
@@ -23,15 +25,18 @@ stays `0.16.0` until a real 0.17 tag.
   paths, or project facts; never weakens Core.
 - **Eval:** deterministic behavior-eval schema/fixture tests run in `npm test`.
   `npm run eval:behavior` is the D01 fixture dry-run smoke, not a paid A/B.
-  Live/paid runs would use `--backend live` (unimplemented; `NOT_RUN`).
+  Live adapters are runnable with credentials; ordinary `npm test` still
+  must not call paid models. Eval compares kernel vs legacy by setting
+  `DO_IT_ROUTER_MODE` explicitly. Do not claim the full 28-scenario /
+  `samples=2` matrix ran.
 - **Subagents:** default dispatch 0; at most one fresh-context second look.
-- **Runtime modes:** `legacy` (default) → `shadow` → `thin`. Deleting the
-  lexical router is gated on behavior eval, not this changelog entry.
+- **Runtime modes:** `thin` (default) → `shadow` (opt-in) → `legacy`
+  (rollback and eval baseline). Deleting the lexical router (S16 Phase B)
+  is **not** authorized.
 - **0.17 unreleased gate (S19):** fixture seed dry-runs keep the canned
-  R03/R04/R06 honesty failures; live model A/B is `NOT_RUN`. Decision: keep
-  **legacy** as the default. S16 Phase A (thin default) and Phase B (hard
-  delete) are **not** authorized. Evidence:
-  `docs/release-evidence/0.17-unreleased.md`. Rollback:
+  R03/R04/R06 honesty failures. Live adapters exist; this worktree default
+  is **thin**. Comparison to 0.16/legacy is for optimization, not a veto.
+  Evidence: `docs/release-evidence/0.17-unreleased.md`. Rollback:
   `DO_IT_ROUTER_MODE=legacy`.
 
 ## 0.16.0

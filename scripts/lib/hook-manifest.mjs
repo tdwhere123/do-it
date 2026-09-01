@@ -20,6 +20,7 @@ export const HOOK_SCRIPTS = [
   "subagent-stance.sh",
   "write-quality-lint.sh",
   "evidence-observer.sh",
+  "network-admission.sh",
   "verification-gate.sh",
   "anti-patterns-lint.sh",
   "comments-lint.sh"
@@ -106,6 +107,11 @@ export function codexHooksJson() {
             {
               type: "command",
               command: codexHookCommand("evidence-observer.sh"),
+              timeout: 10
+            },
+            {
+              type: "command",
+              command: codexHookCommand("network-admission.sh"),
               timeout: 10
             }
           ]

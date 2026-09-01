@@ -45,9 +45,10 @@
 
 do-it 在幕后工作，你不需要调用它——它在合适的生命周期点自动触发：
 
-- **默认运行时仍是 legacy**（`DO_IT_ROUTER_MODE=legacy`）：沿用 0.16 的 router
-  定级 Light / Standard / Heavy，Heavy 时可能 grill。`shadow` 和 `thin` 改为注入
-  精简 kernel 和可选 adaptive overlay；它们是按需开启，不是默认。
+- **默认运行时是 thin**（未设置或 `DO_IT_ROUTER_MODE=thin`）：注入精简 kernel
+  和可选 adaptive overlay；跳过 lexical classifier。回滚到 0.16 的 router 然后
+  grill：`DO_IT_ROUTER_MODE=legacy`。`shadow` 仍注入 kernel，classifier 只记
+  诊断。这是本 worktree 的 S16 Phase A，不是 tagged 0.19。
 - **写码时**，`write-quality-lint` 标出新代码中的反模式。每文件一条提醒；从不
   阻塞。`evidence-observer` 记录编辑和命令事实；命令名本身不是证明。
 - **说"完成"之前**，verification gate 要求从当前工作区拿出新鲜证据。
@@ -87,7 +88,8 @@ do-it 在幕后工作，你不需要调用它——它在合适的生命周期�
 
 ### 合适的体量
 
-Router 给每个任务一个建议性的风险标签——不是权限门。
+在 legacy 回滚路径（`DO_IT_ROUTER_MODE=legacy`）上，router 给每个任务一个建议性的
+风险标签——不是权限门。thin（默认）跳过该 classifier。
 
 | 分级 | 发生什么 |
 | --- | --- |
@@ -149,8 +151,8 @@ Skill 按需加载，不按分级：
 flowchart TD
     P[UserPromptSubmit] --> PS[prompt-submit]
     PS --> M{DO_IT_ROUTER_MODE}
-    M -->|legacy 默认| R[router 然后 grill]
-    M -->|shadow / thin 按需| K[kernel-context + adaptive-context]
+    M -->|thin 默认 / shadow| K[kernel-context + adaptive-context]
+    M -->|legacy 回滚| R[router 然后 grill]
     R --> C[do-it-core<br/>协议蓝本]
     K --> C
     C --> B{意涵分桶}
@@ -187,8 +189,9 @@ Family 目录与抑制语法见
 ## 发布说明
 
 已发布主线仍是 **0.16.x**。未发布的 0.17 工作（skill、合同、eval、运行时观察）
-写在 [`CHANGELOG.md`](./CHANGELOG.md)；默认运行时在打 0.17 标签之前保持
-legacy。Tag 策略见 [`docs/release.md`](./docs/release.md)。
+写在 [`CHANGELOG.md`](./CHANGELOG.md)。本 worktree 默认 runtime 为 **thin**
+（S16 Phase A，不是 tagged 0.19）。回滚：`DO_IT_ROUTER_MODE=legacy`。Tag 策略见
+[`docs/release.md`](./docs/release.md)。
 
 ## 本地开发
 

@@ -264,8 +264,9 @@ the same `agents/*.toml` source-of-truth. The Claude target adds:
   `adaptive-context.sh`, `router.sh`, `grill-prompt.sh`, `subagent-stance.sh`,
   `write-quality-lint.sh`, `evidence-observer.sh`, `verification-gate.sh`) —
   wire UserPromptSubmit / UserPromptExpansion / PostToolUse / Stop without
-  required slash commands. Default runtime is still legacy router/grill;
-  shadow/thin kernel injection is opt-in and fail-open. Claude alone also
+  required slash commands. Default runtime is **thin** (kernel + adaptive
+  overlay); rollback `DO_IT_ROUTER_MODE=legacy` restores router/grill.
+  Shadow remains opt-in. Hooks stay fail-open. Claude alone also
   receives the default-off, named-command `strict-external-actions.sh`
   PreToolUse profile. `grill-pretool` is not registered.
 - `commands/do-it-skip.md`, `commands/do-it-handbook.md`, and

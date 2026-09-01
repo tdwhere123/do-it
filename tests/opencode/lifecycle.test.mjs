@@ -152,21 +152,10 @@ test("fake host exercises config, bootstrap, hooks, idle notification, and clean
 			]),
 		];
 		await hooks["experimental.chat.messages.transform"]({}, { messages });
-		assert.match(messages[0].parts[0].text, /<do-it-bootstrap>/);
-		assert.match(
-			messages[0].parts[0].text,
-			/direct user intent wins over hook heuristics/,
-		);
-		assert.match(
-			messages[0].parts[0].text,
-			/Bundled subagents are visible in the host agent list/,
-		);
-		assert.doesNotMatch(messages[0].parts[0].text, /Light, Standard, or Heavy/);
+		assert.doesNotMatch(messages[0].parts[0].text, /<do-it-bootstrap>/);
+		assert.equal(messages[0].parts[0].text, "implement this");
 		await hooks["experimental.chat.messages.transform"]({}, { messages });
-		assert.equal(
-			messages[0].parts[0].text.match(/<do-it-bootstrap>/g).length,
-			1,
-		);
+		assert.doesNotMatch(messages[0].parts[0].text, /<do-it-bootstrap>/);
 
 		const promptOutput = {
 			parts: [
@@ -187,8 +176,12 @@ test("fake host exercises config, bootstrap, hooks, idle notification, and clean
 			promptOutput.parts[0].text,
 			/Implement src\/auth\.ts token refresh/,
 		);
-		assert.match(promptOutput.parts[0].text, /skill:\/\/do-it-core/);
-		assert.doesNotMatch(promptOutput.parts[0].text, /Work from evidence:/);
+		assert.match(
+			promptOutput.parts[0].text,
+			/Do-it kernel: read current repository truth/,
+		);
+		assert.doesNotMatch(promptOutput.parts[0].text, /skill:\/\/do-it-core/);
+		assert.doesNotMatch(promptOutput.parts[0].text, /do-it tier:/);
 
 		const editOutput = { title: "Edit", output: "edited", metadata: {} };
 		await hooks["tool.execute.after"](

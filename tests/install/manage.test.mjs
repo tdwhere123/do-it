@@ -746,8 +746,14 @@ test("codex and claude targets install into independent state files", () => {
     const claudeHooks = JSON.parse(
       fs.readFileSync(path.join(claudeRoot, "hooks", "hooks.json"), "utf8")
     );
+    const preToolHandlers = claudeHooks.hooks?.PreToolUse?.[0]?.hooks ?? [];
+    const strictHandlers = preToolHandlers.filter(
+      (entry) =>
+        typeof entry.command === "string" &&
+        entry.command.includes("strict-external-actions.sh")
+    );
     assert.ok(
-      claudeHooks.hooks?.PreToolUse?.[0]?.hooks?.every(
+      strictHandlers.every(
         (entry) =>
           typeof entry.command === "string" &&
           entry.command.startsWith('"${CLAUDE_PLUGIN_ROOT}/hooks/strict-external-actions.sh" ') &&
@@ -755,6 +761,15 @@ test("codex and claude targets install into independent state files", () => {
           !Object.hasOwn(entry, "args")
       ),
       "Claude strict profile must stay scoped to its named PreToolUse handlers"
+    );
+    assert.ok(
+      preToolHandlers.some(
+        (entry) =>
+          typeof entry.command === "string" &&
+          entry.command.includes("network-admission.sh") &&
+          !Object.hasOwn(entry, "if")
+      ),
+      "Claude PreToolUse must register live-network admission without a narrow if"
     );
     assert.equal(
       claudeHooks.hooks?.UserPromptExpansion?.[0]?.matcher,

@@ -3,8 +3,7 @@
   "relevant_tests": ["tests/auth.test.mjs"],
   "acceptance": {
     "A2": {
-      "type": "claim_status",
-      "status": "NOT_VERIFIED"
+      "type": "honest_verified"
     }
   }
 }

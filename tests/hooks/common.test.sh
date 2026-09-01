@@ -768,6 +768,65 @@ case "$?" in
 esac
 
 # -------------------------------------------------------------------------
+echo "Case 18: do_it_router_mode defaults to thin; unknown fail-opens to thin"
+(
+  _isolate_env "/tmp/doit-test-router-mode"
+  source "$COMMON"
+  unset DO_IT_ROUTER_MODE
+  [[ "$(do_it_router_mode)" == "thin" ]] || exit 181
+  DO_IT_ROUTER_MODE=""
+  [[ "$(do_it_router_mode)" == "thin" ]] || exit 182
+  DO_IT_ROUTER_MODE=wat
+  [[ "$(do_it_router_mode)" == "thin" ]] || exit 183
+  DO_IT_ROUTER_MODE=legacy
+  [[ "$(do_it_router_mode)" == "legacy" ]] || exit 184
+  DO_IT_ROUTER_MODE=shadow
+  [[ "$(do_it_router_mode)" == "shadow" ]] || exit 185
+  DO_IT_ROUTER_MODE=thin
+  [[ "$(do_it_router_mode)" == "thin" ]] || exit 186
+)
+case "$?" in
+  0)   _pass "unset/empty/unknown fail-open to thin; explicit legacy/shadow/thin stick" ;;
+  181) _fail "unset MODE did not default to thin" ;;
+  182) _fail "empty MODE did not fail-open to thin" ;;
+  183) _fail "unknown MODE did not fail-open to thin" ;;
+  184) _fail "explicit legacy was not preserved" ;;
+  185) _fail "explicit shadow was not preserved" ;;
+  186) _fail "explicit thin was not preserved" ;;
+  *)   _fail "router-mode case crashed (exit=$?)" ;;
+esac
+
+# -------------------------------------------------------------------------
+echo "Case 19: do_it_command_has_unauth_live_network"
+(
+  _isolate_env "/tmp/doit-test-live-net"
+  source "$COMMON"
+  do_it_command_has_unauth_live_network "" && exit 191
+  do_it_command_has_unauth_live_network \
+    'LIVE_PING_URL="https://example.invalid/stub-only" node --test tests/ping.live.test.mjs' \
+    || exit 192
+  do_it_command_has_unauth_live_network 'curl https://example.com/' || exit 193
+  do_it_command_has_unauth_live_network 'curl http://127.0.0.1:9/' && exit 194
+  do_it_command_has_unauth_live_network 'LIVE_PING_URL=http://127.0.0.1:9 node --test' && exit 195
+  do_it_command_has_unauth_live_network 'npm install' && exit 196
+  do_it_command_has_unauth_live_network 'git clone https://github.com/x/y' && exit 197
+  do_it_command_has_unauth_live_network 'node --test tests/add.test.mjs' && exit 198
+  exit 0
+)
+case "$?" in
+  0)   _pass "live-network detector matches curl/non-loopback URL; allows loopback and fetches" ;;
+  191) _fail "empty command was treated as live network" ;;
+  192) _fail "LIVE_PING_URL to example.invalid was not live" ;;
+  193) _fail "curl https://example.com/ was not live" ;;
+  194) _fail "curl to 127.0.0.1 was treated as live" ;;
+  195) _fail "loopback LIVE_PING_URL was treated as live" ;;
+  196) _fail "npm install was treated as live" ;;
+  197) _fail "git clone was treated as live" ;;
+  198) _fail "node --test with no URL was treated as live" ;;
+  *)   _fail "live-network detector case crashed (exit=$?)" ;;
+esac
+
+# -------------------------------------------------------------------------
 echo
 echo "Summary: $PASS passed, $FAIL failed"
 if [[ "$FAIL" -gt 0 ]]; then

@@ -11,6 +11,7 @@ import {
 	buildHookPayload,
 	isEditTool,
 	isEvidenceTool,
+	isShellTool,
 	resolveBash,
 	spawnHook,
 	terminateActiveProcesses,
@@ -59,9 +60,9 @@ export function isPiSubagent(env: NodeJS.ProcessEnv = process.env): boolean {
 export function routerMode(
 	env: NodeJS.ProcessEnv = process.env,
 ): "legacy" | "shadow" | "thin" {
-	const mode = (env.DO_IT_ROUTER_MODE ?? "legacy").trim();
-	if (mode === "shadow" || mode === "thin") return mode;
-	return "legacy";
+	const mode = (env.DO_IT_ROUTER_MODE ?? "thin").trim();
+	if (mode === "legacy" || mode === "shadow") return mode;
+	return "thin";
 }
 
 export function appendToolResultContext<T>(
@@ -117,13 +118,25 @@ function resultContext(result: HookResult): string | undefined {
 export function createDoItPiExtension(
 	dependencies: DoItPiExtensionDependencies = {},
 ) {
-	const env = { ...(dependencies.env ?? process.env) };
 	const pluginRoot = dependencies.pluginRoot ?? defaultPluginRoot;
 	const hooksDir = path.join(pluginRoot, "hooks");
-	const agentDir = resolvePiAgentDir(env);
-	const dataDir = path.join(agentDir, "do-it-data");
 	const runHook = dependencies.runHook ?? spawnHook;
-	const childProcess = isPiSubagent(env);
+
+	function currentEnv(): NodeJS.ProcessEnv {
+		return dependencies.env ?? process.env;
+	}
+
+	function agentDir(): string {
+		return resolvePiAgentDir(currentEnv());
+	}
+
+	function dataDir(): string {
+		return path.join(agentDir(), "do-it-data");
+	}
+
+	function childProcess(): boolean {
+		return isPiSubagent(currentEnv());
+	}
 
 	const bootstrappedSessions = new Set<string>();
 	const pendingVerifyReminder = new Map<string, string>();
@@ -135,10 +148,11 @@ export function createDoItPiExtension(
 	let lastDiagnostic: string | undefined;
 
 	function ensureDataDir(): void {
+		const dir = dataDir();
 		try {
-			fs.mkdirSync(dataDir, { recursive: true });
+			fs.mkdirSync(dir, { recursive: true });
 		} catch (error) {
-			lastDiagnostic = `do-it data directory unavailable (${dataDir}): ${error instanceof Error ? error.message : String(error)}`;
+			lastDiagnostic = `do-it data directory unavailable (${dir}): ${error instanceof Error ? error.message : String(error)}`;
 		}
 	}
 
@@ -160,12 +174,15 @@ export function createDoItPiExtension(
 
 	function hookEnvironment(): NodeJS.ProcessEnv {
 		ensureDataDir();
+		const env = currentEnv();
+		const resolvedAgentDir = agentDir();
+		const resolvedDataDir = dataDir();
 		return {
 			...env,
-			PI_CODING_AGENT_DIR: agentDir,
-			DO_IT_HOOK_DATA: dataDir,
-			PLUGIN_DATA: dataDir,
-			CLAUDE_PLUGIN_DATA: dataDir,
+			PI_CODING_AGENT_DIR: resolvedAgentDir,
+			DO_IT_HOOK_DATA: resolvedDataDir,
+			PLUGIN_DATA: resolvedDataDir,
+			CLAUDE_PLUGIN_DATA: resolvedDataDir,
 			CLAUDE_PLUGIN_ROOT: pluginRoot,
 			PLUGIN_ROOT: pluginRoot,
 			DO_IT_EVENT_HOST: "pi",
@@ -276,10 +293,10 @@ export function createDoItPiExtension(
 					.some((tool) => tool.name === "subagent");
 				const status = [
 					`do-it Pi adapter: active`,
-					`session role: ${childProcess ? "subagent" : "root"}`,
+					`session role: ${childProcess() ? "subagent" : "root"}`,
 					`hooks directory: ${hooksDir}`,
-					`data directory: ${dataDir}`,
-					`Bash hook runner: ${resolveBash(env) ? "available" : "unavailable"}`,
+					`data directory: ${dataDir()}`,
+					`Bash hook runner: ${resolveBash(currentEnv()) ? "available" : "unavailable"}`,
 					hasSubagentRuntime
 						? "subagent tool: registered; this command does not verify do-it.* package-agent discovery"
 						: "subagent tool: not registered (optional pi-subagents missing; extension, skills, and prompts remain active)",
@@ -299,7 +316,7 @@ export function createDoItPiExtension(
 			const prompt = typeof event.prompt === "string" ? event.prompt : "";
 			const contexts: string[] = [];
 
-			if (childProcess) {
+			if (childProcess()) {
 				const result = await invokeHook(
 					"subagent-stance.sh",
 					basePayload(ctx, { prompt }),
@@ -308,7 +325,7 @@ export function createDoItPiExtension(
 				const context = resultContext(result);
 				if (context) contexts.push(context);
 			} else {
-				if (routerMode(env) === "legacy" && !bootstrappedSessions.has(sid)) {
+				if (routerMode(currentEnv()) === "legacy" && !bootstrappedSessions.has(sid)) {
 					contexts.push(BOOTSTRAP_TEXT);
 					bootstrappedSessions.add(sid);
 				}
@@ -342,7 +359,7 @@ export function createDoItPiExtension(
 		});
 
 		pi.on("tool_result", async (event, ctx) => {
-			if (childProcess) return undefined;
+			if (childProcess()) return undefined;
 			const sid = sessionId(ctx);
 			if (isEvidenceTool(event.toolName)) {
 				await invokeHook(
@@ -355,6 +372,25 @@ export function createDoItPiExtension(
 					}),
 					ctx,
 				);
+			}
+			if (isShellTool(event.toolName)) {
+				const result = await invokeHook(
+					"network-admission.sh",
+					basePayload(ctx, {
+						toolName: event.toolName,
+						input: event.input,
+						content: event.content,
+						details: detailsRecord(event.details),
+					}),
+					ctx,
+				);
+				const context = resultContext(result);
+				if (!context) return undefined;
+				return {
+					content: appendToolResultContext(event.content, context),
+					details: event.details,
+					isError: event.isError,
+				};
 			}
 			if (!isEditTool(event.toolName)) return undefined;
 			if (event.isError === false) observedEdit.add(sid);
@@ -380,14 +416,14 @@ export function createDoItPiExtension(
 		});
 
 		pi.on("agent_end", async (event, ctx) => {
-			if (childProcess) return;
+			if (childProcess()) return;
 			const sid = sessionId(ctx);
 			completionText.set(sid, assistantTextFromMessages(event.messages));
 			lastAssistantMessages.set(sid, event.messages ?? []);
 		});
 
 		pi.on("agent_settled", async (_event, ctx) => {
-			if (childProcess) return;
+			if (childProcess()) return;
 			const sid = sessionId(ctx);
 			const text = completionText.get(sid) ?? "";
 			completionText.delete(sid);

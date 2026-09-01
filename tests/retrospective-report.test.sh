@@ -16,6 +16,9 @@ FIXTURES="$REPO_ROOT/tests/fixtures/retrospective"
 PASS=0
 FAIL=0
 TMP_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/do-it-retro-report.XXXXXX")"
+export GIT_CONFIG_GLOBAL=/dev/null
+export GIT_CONFIG_SYSTEM=/dev/null
+unset GIT_DIR GIT_WORK_TREE
 
 cleanup() { rm -rf "$TMP_ROOT"; }
 trap cleanup EXIT
@@ -26,9 +29,21 @@ _fail() { echo "  FAIL: $1" >&2; FAIL=$((FAIL + 1)); }
 # shellcheck source=../hooks/learning-recorder.sh
 source "$RECORDER"
 
+_setup_git_project() {
+  local dir="$1"
+  mkdir -p "$dir"
+  git -C "$dir" init -q
+  git -C "$dir" config user.email t@e.com
+  git -C "$dir" config user.name t
+  printf 'base\n' > "$dir/README"
+  git -C "$dir" add README
+  git -C "$dir" commit -q -m base
+}
+
 _setup_project() {
   local name="$1" fixture="$2"
   local dir="$TMP_ROOT/$name"
+  _setup_git_project "$dir"
   mkdir -p "$dir/.do-it/runtime/events" "$dir/.do-it/runtime/retrospective" "$dir/.do-it/runtime/adaptive"
   printf '{"schema":1,"enabled":true}\n' > "$dir/.do-it/runtime/retrospective/config.json"
   cp "$fixture" "$dir/.do-it/runtime/events/learning.jsonl"
@@ -163,7 +178,7 @@ fi
 
 echo "Case 6: hook report command does not write profile/core"
 hook_proj="$TMP_ROOT/hook-report"
-mkdir -p "$hook_proj"
+_setup_git_project "$hook_proj"
 core_before="$(wc -c < "$REPO_ROOT/skills/do-it/do-it-core/SKILL.md" | tr -d ' ')"
 jq -nc --arg cwd "$hook_proj" \
   '{session_id:"report-cmd", prompt:"/do-it-retrospective report", cwd:$cwd, hook_event_name:"UserPromptExpansion", command_name:"do-it-retrospective"}' \

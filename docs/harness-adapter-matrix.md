@@ -23,15 +23,18 @@ and the per-host sheets below.
 
 ## Runtime modes
 
-Prompt injection is selected by `DO_IT_ROUTER_MODE`. Default remains **legacy**
-so 0.16 hosts keep router-then-grill behavior. Shadow and thin are opt-in;
-hooks stay fail-open if a kernel or adaptive script is missing.
+Prompt injection is selected by `DO_IT_ROUTER_MODE`. Default is **thin**:
+compact kernel plus optional adaptive overlay; the lexical classifier is
+skipped. Rollback to 0.16 router-then-grill is `DO_IT_ROUTER_MODE=legacy`.
+Shadow remains opt-in. Hooks stay fail-open if a kernel or adaptive script
+is missing. This worktree default is S16 Phase A, not a tagged 0.19;
+package version stays `0.16.0`.
 
 | Mode | Enable | Injects | Lexical classifier |
 | --- | --- | --- | --- |
-| **legacy** (default) | unset or `legacy` | `router.sh` then Heavy `grill-prompt.sh` | live |
+| **thin** (default) | unset or `thin` | compact kernel + adaptive overlay | skipped |
 | **shadow** | `DO_IT_ROUTER_MODE=shadow` | compact kernel + adaptive overlay; classifier still runs for diagnostics | records only |
-| **thin** | `DO_IT_ROUTER_MODE=thin` | compact kernel + adaptive overlay | skipped |
+| **legacy** | `DO_IT_ROUTER_MODE=legacy` | `router.sh` then Heavy `grill-prompt.sh` | live |
 
 SessionStart on Cursor (and Kimi `sessionStart`) uses the same compact kernel
 when not in legacy. Children get `subagent-stance` only — not the full kernel

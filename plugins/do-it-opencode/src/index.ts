@@ -9,6 +9,7 @@ import {
   buildHookPayload,
   isEditTool,
   isEvidenceTool,
+  isShellTool,
   normalizeToolName,
   readSessionTier,
   spawnHook,
@@ -19,9 +20,9 @@ import {
 const injectedSessions = new Set<string>();
 
 function routerMode(): "legacy" | "shadow" | "thin" {
-  const mode = (process.env.DO_IT_ROUTER_MODE ?? "legacy").trim();
-  if (mode === "shadow" || mode === "thin") return mode;
-  return "legacy";
+  const mode = (process.env.DO_IT_ROUTER_MODE ?? "thin").trim();
+  if (mode === "legacy" || mode === "shadow") return mode;
+  return "thin";
 }
 
 const pluginRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -441,6 +442,23 @@ function createHooks(ctx: PluginInput): Hooks {
             metadata
           })
         );
+      }
+
+      if (isShellTool(input.tool)) {
+        const admission = await spawnHook(
+          hooksDir,
+          "network-admission.sh",
+          buildHookPayload({
+            sessionID: input.sessionID,
+            cwd,
+            tool: input.tool,
+            args: input.args
+          })
+        );
+        const admissionContext = hookContext(admission);
+        if (admissionContext) {
+          output.output = `${output.output ?? ""}\n${admissionContext}`.trim();
+        }
       }
 
       if (!isEditTool(input.tool)) return;

@@ -6,7 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { BACKENDS, parseArgs, runSuite } from "../evals/behavior/runner.mjs";
+import { BACKENDS, parseArgs, publicHostProbe, runSuite } from "../evals/behavior/runner.mjs";
 import { hasCompositeScore } from "../evals/behavior/judge.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -42,17 +42,68 @@ test("parseArgs still throws on unknown flags and unknown suite/family", () => {
   assert.throws(() => parseArgs(["--condition", "candidate-x"]), /unknown condition: candidate-x/);
 });
 
-test("live backend is unimplemented and is not faked", () => {
-  assert.equal(BACKENDS.live.runnable, false);
-  assert.match(BACKENDS.live.reason, /unimplemented/i);
+test("publicHostProbe strips credentials from live host probes", () => {
+  const cursor = publicHostProbe({
+    ok: true,
+    host: "cursor",
+    apiKey: "crsr_test_not_real",
+    sdk: { Agent: 1 }
+  });
+  assert.equal(cursor.ok, true);
+  assert.equal(cursor.host, "cursor");
+  assert.equal(cursor.credential, "present");
+  assert.equal(Object.hasOwn(cursor, "apiKey"), false);
+  assert.equal(Object.hasOwn(cursor, "sdk"), false);
+  const dumped = JSON.stringify(cursor);
+  assert.equal(dumped.includes("crsr_test_not_real"), false);
+  assert.equal(dumped.includes('"apiKey"'), false);
+
+  const pi = publicHostProbe({
+    ok: true,
+    host: "pi",
+    model: "deepseek/deepseek-v4-flash",
+    thinking: "max"
+  });
+  assert.equal(Object.hasOwn(pi, "credential"), false);
+  assert.equal(pi.host, "pi");
+
+  const cred = publicHostProbe({
+    ok: false,
+    reason: "missing",
+    authPath: "/tmp/auth.json",
+    record: { deepseek: { type: "api_key", key: "test-not-real" } }
+  });
+  assert.equal(Object.hasOwn(cred, "authPath"), false);
+  assert.equal(Object.hasOwn(cred, "record"), false);
+  assert.equal(Object.hasOwn(cred, "credential"), false);
+  assert.equal(JSON.stringify(cred).includes("test-not-real"), false);
+});
+
+test("live backend without credentials is NOT_RUN and is not faked", () => {
+  assert.equal(BACKENDS.live.runnable, true);
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-eval-nocred-"));
   const result = spawnSync(
     process.execPath,
-    [runnerCli, "--backend", "live", "--scenario", "D01"],
-    { cwd: repoRoot, encoding: "utf8" }
+    [runnerCli, "--backend", "live", "--host", "cursor", "--scenario", "D01"],
+    {
+      cwd: repoRoot,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        HOME: home,
+        USERPROFILE: home,
+        CURSOR_API_KEY: "",
+        PI_CODING_AGENT_DIR: path.join(home, ".pi", "agent"),
+        CI: "true",
+        DO_IT_EVAL_LIVE: ""
+      }
+    }
   );
   assert.equal(result.status, 2, result.stderr);
-  assert.match(result.stderr, /unimplemented/i);
+  assert.match(result.stderr, /CURSOR_API_KEY|blocked in CI|not set/i);
+  assert.doesNotMatch(result.stderr, /unimplemented/i);
   assert.doesNotMatch(result.stdout + result.stderr, /"model": "gpt-/);
+  fs.rmSync(home, { recursive: true, force: true });
 });
 
 test("dry-run fixture backend records model, condition, commit, permissions, cost, trajectory ref", async () => {

@@ -46,6 +46,7 @@ entry_points=(
   hooks/write-quality-lint.sh
   hooks/anti-patterns-lint.sh
   hooks/comments-lint.sh
+  hooks/network-admission.sh
 )
 
 # `-x` lets shellcheck follow `# shellcheck source=...` lines so the lib files

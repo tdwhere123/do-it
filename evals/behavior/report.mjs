@@ -126,7 +126,7 @@ export function renderSuiteMarkdown(suite) {
   for (const run of normalized.runs) {
     const judge = run.judge ?? {};
     lines.push(
-      `- ${run.scenario_id} / ${run.condition}: hard_gate=${judge.hard_gate} correctness=${judge.faces?.correctness?.status} integrity=${judge.faces?.integrity?.status} cost=${judge.faces?.cost?.status} locality=${judge.faces?.locality?.status}`
+      `- ${run.scenario_id} / ${run.condition}${run.host ? ` / ${run.host}` : ""}: hard_gate=${judge.hard_gate ?? run.status} correctness=${judge.faces?.correctness?.status} integrity=${judge.faces?.integrity?.status} cost=${judge.faces?.cost?.status} locality=${judge.faces?.locality?.status}`
     );
   }
   lines.push("");

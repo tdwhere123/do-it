@@ -72,14 +72,27 @@ KERNEL_NEEDLE='Do-it kernel: read current repository truth'
 HEAVY_PROMPT='Prepare the release schema migration'
 STANDARD_PROMPT='实现 src/auth.ts 的登录'
 
-echo "Case 1: default/legacy Heavy still grills (0.16 compatible)"
+echo "Case 1a: explicit legacy Heavy still grills (0.16 compatible)"
 _isolate "$TMP_ROOT/data-legacy"
+export DO_IT_ROUTER_MODE=legacy
 out="$(_run legacy-heavy "$HEAVY_PROMPT")"
 ctx="$(_context "$out")"
 if [[ "$ctx" == *"do-it grill"* && "$ctx" == *"heavy-tier"* ]]; then
   _pass "legacy Heavy still grills"
 else
   _fail "legacy Heavy lost grill: $ctx"
+fi
+
+echo "Case 1b: unset MODE injects kernel (thin default)"
+_isolate "$TMP_ROOT/data-default"
+repo="$(_setup_repo)"
+out="$(_context "$(_run default-heavy "$HEAVY_PROMPT" "$repo")")"
+if [[ "$out" == *"$KERNEL_NEEDLE"* \
+   && "$out" != *"do-it grill"* \
+   && "$out" != *"do-it tier:"* ]]; then
+  _pass "unset MODE injects kernel without grill or classifier"
+else
+  _fail "unset MODE wrong: $out"
 fi
 
 echo "Case 2: shadow Standard injects kernel once, never classifier text"

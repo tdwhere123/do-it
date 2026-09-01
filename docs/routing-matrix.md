@@ -41,11 +41,13 @@ the router never imposes a fixed chain or a permission gate.
 | Standard | Ordinary behavior/design work | Use code quality while writing; add decide/review only when their trigger is real. |
 | Heavy | Cross-boundary, interface, security, migration, release, or irreversible closeout | Pressure-test the load-bearing route, map the proof path, and use risk-matched review. |
 
-Default runtime is still **legacy** (`DO_IT_ROUTER_MODE=legacy`): the lexical
-classifier and Heavy grill path. `shadow` injects a compact kernel plus
-adaptive overlay while the classifier records diagnostics only. `thin` skips
-the classifier. Deletion of the lexical router is gated on behavior eval, not
-this docs page.
+Default runtime is **thin** (unset or `DO_IT_ROUTER_MODE=thin`): compact
+kernel plus optional adaptive overlay; the lexical classifier is skipped.
+`shadow` injects the same kernel while the classifier records diagnostics
+only. Rollback to the lexical classifier and Heavy grill path:
+`DO_IT_ROUTER_MODE=legacy`. Deletion of the lexical router (S16 Phase B) is
+not authorized on this docs page. This worktree default is S16 Phase A, not
+a tagged 0.19.
 
 Router dimensions (`dim_touches_code`, `dim_crosses_packages`,
 `dim_breaks_interface`, `dim_needs_tdd`, `dim_needs_review_loop`) are cheap

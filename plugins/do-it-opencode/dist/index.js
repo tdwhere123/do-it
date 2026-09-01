@@ -4,13 +4,13 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { BOOTSTRAP_TEXT } from "./bootstrap.js";
-import { buildHookPayload, isEditTool, isEvidenceTool, normalizeToolName, readSessionTier, spawnHook, terminateActiveProcesses } from "./bridge.js";
+import { buildHookPayload, isEditTool, isEvidenceTool, isShellTool, normalizeToolName, readSessionTier, spawnHook, terminateActiveProcesses } from "./bridge.js";
 const injectedSessions = new Set();
 function routerMode() {
-    const mode = (process.env.DO_IT_ROUTER_MODE ?? "legacy").trim();
-    if (mode === "shadow" || mode === "thin")
+    const mode = (process.env.DO_IT_ROUTER_MODE ?? "thin").trim();
+    if (mode === "legacy" || mode === "shadow")
         return mode;
-    return "legacy";
+    return "thin";
 }
 const pluginRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const hooksDir = path.join(pluginRoot, "hooks");
@@ -400,6 +400,18 @@ function createHooks(ctx) {
                     output: typeof output.output === "string" ? output.output : undefined,
                     metadata
                 }));
+            }
+            if (isShellTool(input.tool)) {
+                const admission = await spawnHook(hooksDir, "network-admission.sh", buildHookPayload({
+                    sessionID: input.sessionID,
+                    cwd,
+                    tool: input.tool,
+                    args: input.args
+                }));
+                const admissionContext = hookContext(admission);
+                if (admissionContext) {
+                    output.output = `${output.output ?? ""}\n${admissionContext}`.trim();
+                }
             }
             if (!isEditTool(input.tool))
                 return;
