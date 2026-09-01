@@ -64,7 +64,9 @@ jobs:
 
       - name: Run canonical full suite
         if: matrix.os == 'ubuntu-latest' && matrix.node-version == '22.x'
-        run: npm test
+        run: |
+          npm ci --prefix plugins/do-it-pi --ignore-scripts
+          npm test
 
       - name: Run compatibility checks
         if: matrix.os != 'ubuntu-latest' || matrix.node-version != '22.x'

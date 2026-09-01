@@ -290,7 +290,14 @@ test("shadow and thin skip bootstrap, spawn prompt-submit, and inject the kernel
 		const cwd = fs.mkdtempSync(path.join(os.tmpdir(), `do-it-pi-${mode}-`));
 		const pi = fakePi();
 		createDoItPiExtension({
-			env: { HOME: cwd, DO_IT_ROUTER_MODE: mode },
+			env: {
+				...process.env,
+				HOME: cwd,
+				DO_IT_ROUTER_MODE: mode,
+				// Windows Git Bash + real prompt-submit (shadow still runs router)
+				// exceeds the 15s default hook timeout on hosted runners.
+				DO_IT_HOOK_TIMEOUT_MS: process.platform === "win32" ? "60000" : "15000",
+			},
 			pluginRoot: repoRoot,
 		})(pi.api);
 		const ctx = fakeContext(cwd, `${mode}-session`);
