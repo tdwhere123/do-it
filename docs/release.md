@@ -24,8 +24,8 @@ CLI setup path:
 
 | Plane | Current repository evidence |
 | --- | --- |
-| Source/package | `package.json`, manifest, and plugin metadata declare `0.16.0`; inventory is 12 user/runnable skills + 1 generated discovery entry + 10 agents. Unreleased 0.17 kernel work is in-tree; this worktree default is **thin** (S16 Phase A, not a tagged 0.19). Rollback: `DO_IT_ROUTER_MODE=legacy`. |
-| Git tag | The `0.16.0` release commit must carry `v0.16.0`; version metadata alone is not a release. |
+| Source/package | `package.json`, manifest, and plugin metadata declare `0.17.0`; inventory is 12 user/runnable skills + 1 generated discovery entry + 10 agents. Thin is the default runtime (S16 Phase A, not a tagged 0.19). Rollback: `DO_IT_ROUTER_MODE=legacy`. This is source metadata, not an npm publish. |
+| Git tag | A `0.17.0` GitHub/npm release still requires `v0.17.0`; version metadata alone is not a release. |
 | Marketplace/npm | The release workflow publishes separate `@tdwhere/do-it`, `@tdwhere/do-it-opencode`, and `@tdwhere/do-it-pi` artifacts. Only post-workflow registry queries prove publication. Cursor marketplace listing remains pending. |
 | Live host | Only host install/inspection evidence proves an active version. Source, package, tag, and live host may differ. |
 
@@ -275,9 +275,9 @@ a release artifact.
 13. Run `npm run smoke:package` for root/OpenCode and smoke the independently
     packed Pi tarball.
 14. Confirm `manifest.json` matches the on-disk inventory (12 user/runnable
-    skills + 1 generated discovery entry, 10 agents). Do not tag or publish
-    Unreleased 0.17 kernel work as `0.16.0` behavior. This worktree default
-    is thin (S16 Phase A, not a tagged 0.19); rollback is
+    skills + 1 generated discovery entry, 10 agents). Source metadata is
+    `0.17.0`; do not tag or npm-publish until those are authorized. Default
+    runtime is thin (S16 Phase A, not a tagged 0.19); rollback is
     `DO_IT_ROUTER_MODE=legacy`.
 15. Confirm root tarball contents remain separate from `plugins/do-it-pi`, and
     the Pi tarball contains only its README/license/runtime assets.

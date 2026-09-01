@@ -28,7 +28,7 @@ compact kernel plus optional adaptive overlay; the lexical classifier is
 skipped. Rollback to 0.16 router-then-grill is `DO_IT_ROUTER_MODE=legacy`.
 Shadow remains opt-in. Hooks stay fail-open if a kernel or adaptive script
 is missing. This worktree default is S16 Phase A, not a tagged 0.19;
-package version stays `0.16.0`.
+package version is `0.17.0` (source metadata; not a git tag or npm publish).
 
 | Mode | Enable | Injects | Lexical classifier |
 | --- | --- | --- | --- |

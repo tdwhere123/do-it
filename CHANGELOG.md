@@ -2,14 +2,16 @@
 
 ## Unreleased
 
-### Minimal evidence-carrying kernel (0.17-oriented; not published)
+## 0.17.0
+
+### Minimal evidence-carrying kernel
 
 Default runtime is now **thin** (unset or `DO_IT_ROUTER_MODE=thin`): compact
 kernel plus optional adaptive overlay; the lexical classifier is skipped.
 Rollback to 0.16 router-then-grill: `DO_IT_ROUTER_MODE=legacy`. Live-network
 admission is Claude `ask` and other-host reminders — not more kernel text.
-S16 Phase A is this worktree default, not a tagged 0.19. Version metadata
-stays `0.16.0` until a real 0.17/0.19 tag.
+S16 Phase A is this release default, not a tagged 0.19. Version metadata is
+`0.17.0`. This commit is not a git tag or npm publish.
 
 - **Product:** do-it makes agent work evidence-carrying. Autonomy stays first.
 - **Skills:** added `do-it-adaptive` as extended-on-demand. Inventory is 12
@@ -43,8 +45,8 @@ stays `0.16.0` until a real 0.17/0.19 tag.
   R03/R04/R06 honesty failures. Live adapters exist; this worktree default
   is **thin**. Comparison to 0.16/legacy is for optimization, not a veto.
   Evidence: `docs/release-evidence/0.17-unreleased.md`. Rollback:
-  `DO_IT_ROUTER_MODE=legacy`. Version metadata stays `0.16.0`; this is S16
-  Phase A worktree default, not a tagged 0.19.
+  `DO_IT_ROUTER_MODE=legacy`. Version metadata is `0.17.0`; this is S16
+  Phase A as a source release, not a tagged 0.19 or npm publish.
 
 ## 0.16.0
 

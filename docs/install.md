@@ -10,8 +10,8 @@ agents, and hooks together.
 
 | Truth plane | What this repository can claim |
 | --- | --- |
-| Source/package metadata | This checkout declares `0.16.0`, 12 user/runnable skills + 1 generated discovery entry, and 10 agents. |
-| Git tag | The `0.16.0` release commit must carry `v0.16.0`; version metadata alone is not a release tag. |
+| Source/package metadata | This checkout declares `0.17.0`, 12 user/runnable skills + 1 generated discovery entry, and 10 agents. |
+| Git tag | A `0.17.0` npm/GitHub release still requires `v0.17.0`; version metadata alone is not a release tag. |
 | Marketplace / npm | Coordinates and publish paths are documented; only post-workflow `npm view` proves registry publication. Cursor marketplace listing remains pending. |
 | Live host | Only an install/inspection on that host proves what is active there; do not infer it from source or a packed artifact. |
 

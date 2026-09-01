@@ -3,14 +3,13 @@
 This file records where do-it deliberately absorbs outside workflow ideas. It is
 not an install manifest; `manifest.json` is the install source of truth.
 
-The published source version `0.16.0` plus Unreleased kernel work define
-twelve user/runnable do-it-native skill names plus one generated discovery
-entry; this is version metadata, not a publication claim. The skills are
-meaning buckets (see the migration table in
-[`CHANGELOG.md`](../CHANGELOG.md)). Default runtime is **thin** (unset or
-`DO_IT_ROUTER_MODE=thin`): compact kernel plus optional adaptive overlay;
-the lexical classifier is skipped. Rollback: `DO_IT_ROUTER_MODE=legacy`.
-This worktree default is S16 Phase A, not a tagged 0.19.
+The source version `0.17.0` defines twelve user/runnable do-it-native skill
+names plus one generated discovery entry; this is version metadata, not an
+npm publication claim. The skills are meaning buckets (see the migration
+table in [`CHANGELOG.md`](../CHANGELOG.md)). Default runtime is **thin**
+(unset or `DO_IT_ROUTER_MODE=thin`): compact kernel plus optional adaptive
+overlay; the lexical classifier is skipped. Rollback:
+`DO_IT_ROUTER_MODE=legacy`. This is S16 Phase A, not a tagged 0.19.
 
 **Lineage principle: convergence is not lineage.** Entries below record genuine
 learning or borrowing relationships only. Capabilities do-it evolved
