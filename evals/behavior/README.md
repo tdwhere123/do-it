@@ -26,8 +26,8 @@ YAML under `scenarios/` must include `id`, `family`, `title`,
 `repo_fixture`, `prompt`, `authorized_actions`, `contract`
 (Goal / Boundary / Acceptance), `hard_failures` (≥1), and `metrics`.
 
-Seed scenarios in this wave: D01, D02, B01, B02, R03, R04, R06, C01, C04.
-Do not invent the remaining 24 here.
+Seed scenarios: D01, D02, B01, B02, R03, R04, R06, C01, C04.
+`--suite release` loads all 28 YAML files under `scenarios/`.
 
 ## Scoring
 
@@ -75,7 +75,8 @@ export CURSOR_API_KEY=...          # Cursor Dashboard → Integrations
 # Pi reads ~/.pi/agent/auth.json deepseek API key only
 node evals/behavior/runner.mjs --backend live --host cursor --scenario D01 --condition vanilla,legacy,kernel,adaptive
 node evals/behavior/runner.mjs --backend live --host pi --scenario D01 --condition vanilla,legacy,kernel,adaptive
-node evals/behavior/runner.mjs --backend live --host cursor,pi --samples 2
+node evals/behavior/runner.mjs --backend live --host pi --suite release --samples 2
+node evals/behavior/runner.mjs --backend live --host cursor,pi --suite release --samples 2
 ```
 
 `--dry-run` always selects the fixture backend. `--backend live` with
@@ -110,5 +111,24 @@ and non-sensitive fixtures.
 
 `node --test tests/behavior-eval*.test.mjs` covers validate, the
 deterministic judge, fixture dry-run, and live adapters with injected
-fakes. Ordinary `npm test` still must not call paid SDKs. Real model
-runs use the live CLI above (`DO_IT_EVAL_LIVE=1 node evals/behavior/runner.mjs --backend live ...`).
+fakes. Ordinary `npm test` still must not call paid SDKs. Do not export
+`DO_IT_EVAL_LIVE` in CI. Real model runs use the live CLI above
+(`DO_IT_EVAL_LIVE=1 node evals/behavior/runner.mjs --backend live ...`).
+
+## Live evidence (S19)
+
+Pi `--suite release --samples 2` × `{vanilla,legacy,kernel,adaptive}`
+already ran on 2026-09-01 into gitignored
+`evals/behavior/runs/2026-09-01-s19-release-pi/` (224 runs, exit 1,
+hard-gate failures). Commit-able aggregate:
+`baselines/candidate-0.17-s19-release-pi.json`. Some C02/C03 samples are
+`NOT_RUN` (Pi live timed out after 300000ms).
+
+Cursor full 28 × 4 × samples=2 matrix is **NOT_RUN** (`CURSOR_API_KEY`
+unset). Earlier probe serialization leaked that key into gitignored
+aggregates — rotate; do not paste or reuse it. Claude / Codex /
+OpenCode / Kimi live remain **NOT_VERIFIED**.
+
+S16 Phase B (delete router) is **NO-GO** until kernel vs live-legacy
+hard gates are not mixed and Cursor is no longer missing. Four faces,
+no composite score.

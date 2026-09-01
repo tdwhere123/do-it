@@ -107,11 +107,13 @@ skips that classifier.
 | **Standard** | Load skills only when the task needs them. No mandatory chain. |
 | **Heavy** | Cross-boundary, release, security, or irreversible. Earns scrutiny. |
 
-Skills are loaded by need, not by tier:
+Twelve runnable skills (plus one generated discovery index) and ten optional
+agents. Skills are loaded by need, not by tier:
 
 | Skill | When |
 | --- | --- |
 | `do-it-core` | Always-on protocol of record — route the tier, then evidence / scope / verify / report |
+| `do-it-router` | Front door — pick Light / Standard / Heavy, then self-select meaning skills |
 | `do-it-code-quality` | Editing code — scope, TDD, debugging, contracts |
 | `do-it-architecture` | Load-bearing architecture — authority, contracts, boundaries, cutover, guards |
 | `do-it-decide` | Options unclear, load-bearing premises |

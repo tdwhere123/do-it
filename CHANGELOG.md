@@ -27,8 +27,14 @@ stays `0.16.0` until a real 0.17/0.19 tag.
   `npm run eval:behavior` is the D01 fixture dry-run smoke, not a paid A/B.
   Live adapters are runnable with credentials; ordinary `npm test` still
   must not call paid models. Eval compares kernel vs legacy by setting
-  `DO_IT_ROUTER_MODE` explicitly. Do not claim the full 28-scenario /
-  `samples=2` matrix ran.
+  `DO_IT_ROUTER_MODE` explicitly. Pi live `--suite release --samples 2`
+  was captured 2026-09-01 into gitignored
+  `evals/behavior/runs/2026-09-01-s19-release-pi` (224 runs; runner exit 1
+  = hard-gate failures). Cursor full matrix is **NOT_RUN**
+  (`CURSOR_API_KEY` unset). Write-up:
+  `docs/release-evidence/0.17-unreleased.md`.
+- **Write-quality:** `write-quality-lint` scans added lines. Extra-family
+  risk is path-only; it no longer consults router `tier` / `dim_*`.
 - **Subagents:** default dispatch 0; at most one fresh-context second look.
 - **Runtime modes:** `thin` (default) → `shadow` (opt-in) → `legacy`
   (rollback and eval baseline). Deleting the lexical router (S16 Phase B)
@@ -37,7 +43,8 @@ stays `0.16.0` until a real 0.17/0.19 tag.
   R03/R04/R06 honesty failures. Live adapters exist; this worktree default
   is **thin**. Comparison to 0.16/legacy is for optimization, not a veto.
   Evidence: `docs/release-evidence/0.17-unreleased.md`. Rollback:
-  `DO_IT_ROUTER_MODE=legacy`.
+  `DO_IT_ROUTER_MODE=legacy`. Version metadata stays `0.16.0`; this is S16
+  Phase A worktree default, not a tagged 0.19.
 
 ## 0.16.0
 

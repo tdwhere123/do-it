@@ -10,6 +10,10 @@ cd "$REPO_ROOT"
 TMP_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/do-it-hook-tests.XXXXXX")"
 export CLAUDE_PLUGIN_DATA="$TMP_ROOT/plugin-data"
 mkdir -p "$CLAUDE_PLUGIN_DATA"
+# This file is the 0.16 router→grill regression suite. Pin legacy so thin
+# default does not skip the classifier. Thin-default coverage lives in
+# tests/hooks/prompt-submit.test.sh.
+export DO_IT_ROUTER_MODE=legacy
 
 cleanup() {
   rm -rf "$TMP_ROOT"
@@ -103,6 +107,13 @@ assert_contains "$pipeline_out" '"additionalContext"' \
   "serialized prompt entrypoint should emit one host-shaped envelope"
 assert_contains "$pipeline_out" "do-it grill" \
   "serialized prompt entrypoint must let grill consume the router tier"
+thin_default_out="$(
+  DO_IT_ROUTER_MODE=thin run_prompt_submit "thin-default-prompt" "Prepare the release schema migration"
+)"
+assert_contains "$thin_default_out" "Do-it kernel:" \
+  "thin default serialized prompt should inject the kernel"
+assert_not_contains "$thin_default_out" "do-it grill" \
+  "thin default serialized prompt should not auto-grill"
 [[ "$(state_value "$pipeline_session" tier)" == "Heavy" ]] \
   || fail "serialized prompt entrypoint should persist Heavy before grill reads it"
 kimi_pipeline_session="serialized-prompt-submit-kimi"

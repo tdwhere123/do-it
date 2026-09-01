@@ -49,9 +49,9 @@ Shadow/thin do not treat `dim_*` as a workflow.
 
 | Tier | Router output | write-quality-lint | grill-prompt | Completion reminder |
 | --- | --- | --- | --- | --- |
-| **Light** | state-only, quiet | skipped | skipped | advisory only when relevant |
-| **Standard** | state + model-adaptive core guidance: inline rule sentences or one `do-it-core` pointer | when `dim_touches_code=1` or ≥5 added lines | skipped (Heavy-only) | advisory only when relevant |
-| **Heavy** | state-only by default; one `do-it-architecture` pointer for action-shaped interface/schema, migration/cutover, or security-boundary work | always (advisory) | full grill body when warranted | advisory only when relevant |
+| **Light** | state-only, quiet | advisory on added lines; extra families from path, not `tier`/`dim_*` | skipped | advisory only when relevant |
+| **Standard** | state + model-adaptive core guidance: inline rule sentences or one `do-it-core` pointer | advisory on added lines; extra families from path, not `tier`/`dim_*` | skipped (Heavy-only) | advisory only when relevant |
+| **Heavy** | state-only by default; one `do-it-architecture` pointer for action-shaped interface/schema, migration/cutover, or security-boundary work | advisory on added lines; extra families from path, not `tier`/`dim_*` | full grill body when warranted | advisory only when relevant |
 
 Subagent contexts skip write-quality-lint (parent owns integration).
 `grill-pretool` is removed on all hosts.

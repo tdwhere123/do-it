@@ -6,9 +6,9 @@ set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 STANCE="$REPO_ROOT/hooks/subagent-stance.sh"
-ROUTER="$REPO_ROOT/hooks/router.sh"
+KERNEL="$REPO_ROOT/hooks/kernel-context.sh"
 [[ -x "$STANCE" || -f "$STANCE" ]] || { echo "FAIL: missing $STANCE" >&2; exit 1; }
-[[ -x "$ROUTER" || -f "$ROUTER" ]] || { echo "FAIL: missing $ROUTER" >&2; exit 1; }
+[[ -x "$KERNEL" || -f "$KERNEL" ]] || { echo "FAIL: missing $KERNEL" >&2; exit 1; }
 
 PASS=0
 FAIL=0
@@ -30,11 +30,11 @@ _run_stance() {
     | bash "$STANCE"
 }
 
-_run_router() {
+_run_kernel() {
   local session_id="$1" prompt="$2"
   jq -nc --arg sid "$session_id" --arg prompt "$prompt" \
     '{session_id:$sid, prompt:$prompt, cwd:"/tmp"}' \
-    | bash "$ROUTER"
+    | bash "$KERNEL" >/dev/null
 }
 
 # -------------------------------------------------------------------------
@@ -64,7 +64,7 @@ if [[ -z "$out" ]]; then _pass "child reminder is emitted once per session"; els
 # -------------------------------------------------------------------------
 echo "Case 3: child receives an active no-write boundary from shared session state"
 _isolate /tmp/doit-subagent-stance-c3
-_run_router c3 "先不改代码；先审查 src/child.ts。" >/dev/null
+_run_kernel c3 "先不改代码；先审查 src/child.ts。"
 out="$(_run_stance c3 /tmp/agents/child-no-write-transcript.jsonl)"
 if printf '%s' "$out" | jq -e '
   .hookSpecificOutput.additionalContext | contains("no-write boundary") and contains("do not edit")

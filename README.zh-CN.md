@@ -97,11 +97,13 @@ do-it 在幕后工作，你不需要调用它——它在合适的生命周期�
 | **Standard** | 按需加载 skill。没有强制链。 |
 | **Heavy** | 跨边界、发布、安全、不可逆。值得多看一眼。 |
 
+12 个可运行 skill（另加 1 个生成式发现索引）和 10 个可选 agent。
 Skill 按需加载，不按分级：
 
 | Skill | 时机 |
 | --- | --- |
 | `do-it-core` | 常驻协议蓝本——先定分级，再证据 / 范围 / 验证 / 汇报 |
+| `do-it-router` | 入口——先选 Light / Standard / Heavy，再自选意涵 skill |
 | `do-it-code-quality` | 改代码——范围、TDD、调试、契约 |
 | `do-it-architecture` | 承重架构——权威、契约、边界、切换、防护 |
 | `do-it-decide` | 选项不清、承重前提 |
@@ -227,11 +229,11 @@ docs/            路由、维护、发布、适配器
 [`gsd-build/get-shit-done`](https://github.com/gsd-build/get-shit-done)
 的 **plan / subworker / TDD / review** 范式。
 逐条对照见 [`docs/upstream-map.md`](./docs/upstream-map.md)。
-来源项目不证明 do-it 有效；吸收项仍要在本仓库的行为 eval 里验证。
 
 `do-it` 是我自己对同一类问题的解法，来自真实项目里的日常使用。这里吸收的是
 方法，并改写成 do-it 原生的 Router / Tier / Skill 语言；不会 vendor 上游
-skill 原文，也不会安装上游 skill 名称。
+skill 原文，也不会安装上游 skill 名称。来源项目不证明 do-it 有效；吸收项仍
+要在本仓库的行为 eval 里验证。
 
 感谢 [Linux.do](https://linux.do) 社区持续的实战反馈。
 

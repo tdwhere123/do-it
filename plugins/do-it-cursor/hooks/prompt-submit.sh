@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Serialized UserPromptSubmit entrypoint.
 #
-# DO_IT_ROUTER_MODE=legacy (default): router then grill — 0.16 compatible.
+# DO_IT_ROUTER_MODE=thin (default): compact kernel + adaptive; classifier skipped.
 # shadow: compact kernel + adaptive; classifier records diagnostics only.
-# thin: compact kernel + adaptive; classifier skipped.
+# legacy: router then grill — 0.16 rollback and eval baseline.
 #
 # Fail-open: a missing kernel/adaptive script never crashes the turn.
 # Router guidance is computed in-memory, so legacy still emits the tier

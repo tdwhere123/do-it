@@ -47,7 +47,7 @@ the hooks; they only fire on their events while the plugin is enabled.
 | Kimi event | Kernel script | Notes |
 |---|---|---|
 | `sessionStart` (manifest field, not `hooks[]`) | `kernel-context.sh` | silent in `legacy`; compact kernel in `shadow`/`thin` |
-| `UserPromptSubmit` | `prompt-submit.sh` (serializes `router.sh` → `grill-prompt.sh`) | advisory tier + DIM signals; Kimi receives plain text |
+| `UserPromptSubmit` | `prompt-submit.sh` (thin default: kernel + adaptive, classifier skipped; `legacy` serializes `router.sh` → `grill-prompt.sh`) | Kimi receives plain text |
 | `UserPromptSubmit` | `behavior-feedback.sh` | silent, default off |
 | `PostToolUse` (matcher `Edit\|Write`) | `evidence-observer.sh` then `write-quality-lint.sh` | Kimi's only edit tools are `Edit` and `Write` — no `MultiEdit`/`StrReplace` |
 | `PostToolUse` (matcher `Bash`) | `evidence-observer.sh` | record command facts only when the payload has a reliable result; otherwise `worktree.coverage=partial` |

@@ -120,6 +120,7 @@ bundle and are not part of its managed inventory.
 | Cursor | Local copy / Team Import today; public listing pending | All twelve + generated discovery/reference files | Advisory completion reminder; `do-it-verify` supplies claim-specific proof |
 | OpenCode | Independent npm package; vendored config-home fallback | All twelve + generated discovery entry | Advisory completion reminder; `do-it-verify` supplies claim-specific proof |
 | Pi | Independent npm package or local-path install; optional `pi-subagents` | All twelve; ten namespaced package agents when discovered by `pi-subagents` | Advisory root lifecycle and child stance; `/do-it-status` diagnoses the adapter but does not prove agent discovery |
+| Kimi Code | Repo-root plugin via `/plugins install` (no build) | All twelve; no generated index; agents not shipped | Advisory completion reminder; `do-it-verify` supplies claim-specific proof |
 
 No host registers `grill-pretool` or a pre-edit plan gate. `write-quality-lint`
 and `verification-gate` are advisory everywhere; `do-it-verify` remains the

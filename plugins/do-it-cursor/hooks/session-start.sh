@@ -25,8 +25,11 @@ fi
 CONTEXT=""
 if [[ "$(do_it_router_mode)" != "legacy" ]]; then
   CONTEXT="$(do_it_kernel_context_collect "$SESSION_ID" "$CWD" "$PROMPT" "$TRANSCRIPT_PATH")"
+  # SessionStart is the host's once-per-session event. If collect is empty
+  # (missing session dir, already-hashed, or doctor smoke), still emit the
+  # kernel so Cursor additional_context is never blank in thin/shadow.
   if [[ -z "$CONTEXT" ]]; then
-    exit 0
+    CONTEXT="$(do_it_kernel_body)"
   fi
 else
   read -r -d '' CONTEXT <<'EOF' || true
