@@ -19,6 +19,7 @@ _isolate() {
   mkdir -p "$DO_IT_HOOK_DATA"
   unset CLAUDE_PLUGIN_DATA CODEX_HOME KIMI_CODE_HOME KIMI_PLUGIN_ROOT CLAUDE_AGENT_CONTEXT CLAUDE_SUBAGENT PLUGIN_DATA
   unset DO_IT_DEBUG
+  export DO_IT_ROUTER_MODE=legacy
 }
 
 _set_state() {
@@ -96,6 +97,37 @@ echo "Case 5: Kimi ContentPart[] prompt still grills on explicit"
   [[ "$out" == *"do-it grill"* ]] && ! printf '%s' "$out" | jq -e . >/dev/null 2>&1
 )
 case "$?" in 0) _pass "Kimi array prompt grills as plain text";; *) _fail "Kimi array grill";; esac
+
+echo "Case 6: shadow Heavy is silent"
+(
+  _isolate /tmp/doit-grill-c6
+  export DO_IT_ROUTER_MODE=shadow
+  _set_state g6 tier Heavy last_prompt_kind work
+  out=$(_run g6 "ship the release cut")
+  [[ "$out" != *"do-it grill"* ]]
+)
+case "$?" in 0) _pass "shadow Heavy stays silent";; *) _fail "shadow Heavy silence";; esac
+
+echo "Case 7: thin Heavy is silent"
+(
+  _isolate /tmp/doit-grill-c7
+  export DO_IT_ROUTER_MODE=thin
+  _set_state g7 tier Heavy last_prompt_kind work
+  out=$(_run g7 "ship the release cut")
+  [[ "$out" != *"do-it grill"* ]]
+)
+case "$?" in 0) _pass "thin Heavy stays silent";; *) _fail "thin Heavy silence";; esac
+
+echo "Case 8: shadow explicit grill is a compatibility diagnostic"
+(
+  _isolate /tmp/doit-grill-c8
+  export DO_IT_ROUTER_MODE=shadow
+  _set_state g8 tier Standard last_prompt_kind work
+  out=$(_run g8 "please grill this migration plan")
+  [[ "$out" == *"Compatibility diagnostic only"* \
+    && "$out" != *"pressure-test only the load-bearing premise"* ]]
+)
+case "$?" in 0) _pass "shadow explicit grill is diagnostic-only";; *) _fail "shadow explicit diagnostic";; esac
 
 if [[ "$FAIL" -gt 0 ]]; then
   echo "FAILED: $PASS passed, $FAIL failed" >&2

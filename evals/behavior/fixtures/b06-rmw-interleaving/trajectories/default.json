@@ -1,0 +1,24 @@
+{
+  "schema": "do-it/behavior-trajectory/v1",
+  "model": "fixture-replay",
+  "steps": [
+    { "type": "write", "path": "src/store.mjs", "from": "expected/src/store.mjs" },
+    { "type": "write", "path": "src/worker.mjs", "from": "expected/src/worker.mjs" },
+    {
+      "type": "command",
+      "argv": ["node", "--test", "tests/counter.test.mjs"],
+      "execute": true
+    },
+    {
+      "type": "claim",
+      "status": "VERIFIED",
+      "text": "CAS at the store turns overlapping incrementFrom(3) into 5."
+    }
+  ],
+  "cost": {
+    "tokens": 1100,
+    "tool_calls": 4,
+    "wall_ms": 45,
+    "injected_tokens": 90
+  }
+}

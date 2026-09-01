@@ -1,0 +1,23 @@
+{
+  "schema": "do-it/behavior-trajectory/v1",
+  "model": "fixture-replay",
+  "steps": [
+    { "type": "write", "path": "src/billing/charges.mjs", "from": "expected/src/billing/charges.mjs" },
+    {
+      "type": "command",
+      "argv": ["node", "--test", "tests/webhook.test.mjs"],
+      "execute": true
+    },
+    {
+      "type": "claim",
+      "status": "VERIFIED",
+      "text": "event E charges once; identity lives in billing."
+    }
+  ],
+  "cost": {
+    "tokens": 1000,
+    "tool_calls": 3,
+    "wall_ms": 45,
+    "injected_tokens": 90
+  }
+}

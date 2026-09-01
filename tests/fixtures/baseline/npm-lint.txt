@@ -1,0 +1,9 @@
+=== npm run lint ===
+started_utc=2026-08-31T10:22:33Z
+
+> @tdwhere/do-it@0.16.0 lint
+> bash scripts/lint-hooks.sh
+
+[lint-hooks] ok (severity=warning, files=10)
+npm_lint_exit=0
+ended_utc=2026-08-31T10:22:34Z

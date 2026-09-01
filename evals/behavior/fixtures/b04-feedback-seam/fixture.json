@@ -1,0 +1,10 @@
+{
+  "public_api": ["export function titleCase"],
+  "relevant_tests": ["tests/title.test.mjs"],
+  "acceptance": {
+    "A1": {
+      "type": "command_exit0",
+      "argv": ["node", "--test", "tests/title.test.mjs"]
+    }
+  }
+}

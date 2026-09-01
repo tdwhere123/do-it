@@ -1,0 +1,25 @@
+{
+  "schema": "do-it/behavior-trajectory/v1",
+  "model": "fixture-replay",
+  "condition": "legacy",
+  "steps": [
+    { "type": "read", "path": "src/add.mjs" },
+    { "type": "write", "path": "src/add.mjs", "from": "expected/src/add.mjs" },
+    {
+      "type": "command",
+      "argv": ["node", "--test", "tests/add.test.mjs"],
+      "execute": true
+    },
+    {
+      "type": "claim",
+      "status": "VERIFIED",
+      "text": "add(2, 3) is 5; tests/add.test.mjs exited 0 after the edit."
+    }
+  ],
+  "cost": {
+    "tokens": 800,
+    "tool_calls": 3,
+    "wall_ms": 40,
+    "injected_tokens": 80
+  }
+}

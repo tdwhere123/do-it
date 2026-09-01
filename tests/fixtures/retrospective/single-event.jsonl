@@ -1,0 +1,1 @@
+{"schema":1,"event_id":"L-single","recorded_at":"2026-08-31T09:00:00Z","kind":"user_feedback","source":"user","host":"claude","session_hash":"aaaaaaaaaaaa","privacy":"redacted-excerpt","signals":["behavior"],"summary":"explicit user feedback","prompt_excerpt":"do-it behavior is unexpected"}

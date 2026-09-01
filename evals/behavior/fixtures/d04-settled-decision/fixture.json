@@ -1,0 +1,14 @@
+{
+  "public_api": ["export function get", "export function set"],
+  "settled_decisions": ["in-memory store, not sqlite"],
+  "acceptance": {
+    "A1": {
+      "type": "command_exit0",
+      "argv": ["node", "--test", "tests/store.test.mjs"]
+    },
+    "A2": {
+      "type": "metric_zero",
+      "metric": "user_questions"
+    }
+  }
+}

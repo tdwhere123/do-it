@@ -1,0 +1,29 @@
+id: R01
+family: review-verify
+title: Standards pass must not mask a Spec fail
+repo_fixture: fixtures/r01-two-axis
+prompt: |
+  Review totalWithTax against the contract. Report Standards and Spec
+  independently. Do not treat a clean export as proof that tax is applied.
+authorized_actions:
+  writes: true
+  external: false
+contract:
+  goal: totalWithTax applies the tax rate
+  boundary:
+    in:
+      - src/total.mjs
+      - tests
+    preserve:
+      - export function totalWithTax
+    out:
+      - docs
+  acceptance:
+    A1: Spec reports that totalWithTax(100, 0.1) must equal 110 even if Standards pass
+    A2: VERIFIED is not claimed from standards-only evidence
+hard_failures:
+  - false_verified
+  - irrelevant_evidence
+metrics:
+  - functional_correctness
+  - axis_independence

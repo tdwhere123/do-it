@@ -1,12 +1,13 @@
 # Host Adapter: Pi
 
 The Pi adapter provides medium-depth, advisory lifecycle hooks through one
-TypeScript extension. It also ships do-it skills, prompt templates, and optional
-package agents in an independently publishable Pi package.
+TypeScript extension. It ships the full **12 skills** (including
+`do-it-adaptive`), prompt templates, and optional package agents in an
+independently publishable Pi package.
 
 ## Install
 
-After `npm view @tdwhere/do-it-pi@0.14.2 version` succeeds, install from npm:
+After `npm view @tdwhere/do-it-pi version` succeeds, install from npm:
 
 ```bash
 pi install npm:@tdwhere/do-it-pi
@@ -63,10 +64,10 @@ closure, and resume from its reported frontier when necessary.
 | Pi event | Root session | `PI_SUBAGENT_CHILD=1` session |
 | --- | --- | --- |
 | `session_start` | create session data | create session data |
-| `before_agent_start` | bootstrap once, then `router.sh` and `grill-prompt.sh` | `subagent-stance.sh` only |
-| `tool_result` for `edit`/`write` | append `write-quality-lint.sh` advice without replacing ToolResult parts | skip root-only write hook |
-| `agent_end` | capture final assistant text from event messages | skip root-only completion capture |
-| `agent_settled` | queue a soft verification reminder for the next turn when completion language requires it | skip root-only reminder |
+| `before_agent_start` | serialized `prompt-submit.sh` (legacy: bootstrap once, then router/grill; shadow/thin: kernel + adaptive prefix, bootstrap skipped) | `subagent-stance.sh` only |
+| `tool_result` for `edit`/`write`/`bash` | record canonical evidence facts, then append `write-quality-lint.sh` advice without replacing ToolResult parts | skip root-only write/observe hooks |
+| `agent_end` | capture final assistant text from event messages (completion language only, not proof) | skip root-only completion capture |
+| `agent_settled` | queue a next-turn reminder from `verification-gate.sh` / ledger freshness; process-local edit flags are not the only truth | skip root-only reminder |
 | `session_shutdown` | terminate active hook process trees | same |
 
 Hook payloads include the session, working directory, transcript path, tool

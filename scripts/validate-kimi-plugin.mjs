@@ -64,7 +64,10 @@ const hookEvents = new Set([
 const expectedHooks = [
   { event: "UserPromptSubmit", command: "./hooks/prompt-submit.sh" },
   { event: "UserPromptSubmit", command: "./hooks/behavior-feedback.sh" },
+  { event: "PostToolUse", matcher: "Edit|Write", command: "./hooks/evidence-observer.sh" },
   { event: "PostToolUse", matcher: "Edit|Write", command: "./hooks/write-quality-lint.sh" },
+  { event: "PostToolUse", matcher: "Bash", command: "./hooks/evidence-observer.sh" },
+  { event: "PostToolUse", matcher: "Bash", command: "./hooks/network-admission.sh" },
   { event: "Stop", command: "./hooks/verification-gate.sh" }
 ];
 
@@ -158,6 +161,21 @@ function main() {
     else if (target.endsWith(".md")) commandCount += 1;
   }
   if (commandCount === 0) fail("commands: no .md command files found");
+
+  if (manifest.sessionStart !== "./hooks/kernel-context.sh") {
+    fail(
+      `sessionStart must be "./hooks/kernel-context.sh", got ${JSON.stringify(manifest.sessionStart)}`
+    );
+  } else {
+    const sessionStart = resolvePluginPath(manifest.sessionStart, "sessionStart");
+    if (sessionStart && process.platform !== "win32") {
+      try {
+        fs.accessSync(sessionStart, fs.constants.X_OK);
+      } catch {
+        fail(`sessionStart: not executable: ${manifest.sessionStart}`);
+      }
+    }
+  }
 
   // hooks: strict entry shape, known events, script paths exist (+ executable on POSIX).
   if (!Array.isArray(manifest.hooks) || manifest.hooks.length === 0) {

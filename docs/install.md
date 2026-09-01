@@ -10,8 +10,8 @@ agents, and hooks together.
 
 | Truth plane | What this repository can claim |
 | --- | --- |
-| Source/package metadata | This checkout declares `0.16.0`, 11 user/runnable skills + 1 generated discovery entry, and 10 agents. |
-| Git tag | The `0.16.0` release commit must carry `v0.16.0`; version metadata alone is not a release tag. |
+| Source/package metadata | This checkout declares `0.17.0`, 12 user/runnable skills + 1 generated discovery entry, and 10 agents. |
+| Git tag | A `0.17.0` npm/GitHub release still requires `v0.17.0`; version metadata alone is not a release tag. |
 | Marketplace / npm | Coordinates and publish paths are documented; only post-workflow `npm view` proves registry publication. Cursor marketplace listing remains pending. |
 | Live host | Only an install/inspection on that host proves what is active there; do not infer it from source or a packed artifact. |
 
@@ -35,7 +35,7 @@ CODEX_HOME=/tmp/do-it-plugin-test codex plugin add do-it@tdwhere-do-it
 ```
 
 The Codex plugin bundle lives at `plugins/do-it/` (generated from
-`manifest.json`): 11 user/runnable skills, 1 generated `_index.md` discovery
+`manifest.json`): 12 user/runnable skills, 1 generated `_index.md` discovery
 entry, and 10 agents, plus plugin-local hooks.
 
 Modern Codex plugins own those bundled do-it agents.
@@ -87,15 +87,16 @@ listed there yet**. Until it is submitted/reviewed, use:
 4. **Public listing later:** submit at
    [cursor.com/marketplace/publish](https://cursor.com/marketplace/publish).
 
-Cursor gets the **full 11 skills** (`do-it-core`, `do-it-router`,
+Cursor gets the **full 12 skills** (`do-it-core`, `do-it-router`,
 `do-it-code-quality`, `do-it-architecture`, `do-it-review`, `do-it-decide`,
 `do-it-verify`, plus `do-it-handbook`, `do-it-context`,
-`do-it-skill-authoring`, and `do-it-retrospective`) with the
+`do-it-skill-authoring`, `do-it-adaptive`, and `do-it-retrospective`) with the
 skills index and `references/` — the same set as Codex, Claude, and OpenCode.
 
 Medium hook depth: `sessionStart`, `beforeSubmitPrompt` (serialized router / Heavy
-grill via `prompt-submit`, plus stance), `postToolUse` / `afterFileEdit` advisory `write-quality-lint`, and
-`stop` verification gate. See
+grill via `prompt-submit`, plus stance), `postToolUse` / `afterFileEdit`
+`evidence-observer` then advisory `write-quality-lint`, and `stop`
+verification gate. See
 [`harness-adapter-matrix.md`](./harness-adapter-matrix.md).
 
 ## OpenCode
@@ -162,17 +163,20 @@ export KIMI_CODE_HOME=/tmp/do-it-kimi-test
 # From a Kimi Code session pointed at this checkout:
 #   /plugins install /path/to/do-it
 #   /reload
-# Then: confirm 11 skills appear, `/do-it:skip` resolves, and a prompt + Edit +
-# stop turn exercises router / write-quality-lint / verification-gate.
+# Then: confirm 12 skills appear, `/do-it:skip` resolves, and a prompt + Edit +
+# stop turn exercises sessionStart/kernel-context, evidence-observer,
+# router / write-quality-lint / verification-gate.
 # Or run the packaged validator without a live session:
 npm run validate:kimi-plugin
 ```
 
-Kimi Code ships the **full 11 skills**, the three commands as `/do-it:skip`,
-`/do-it:handbook`, `/do-it:retrospective`, and 4 manifest hooks
-(serialized `UserPromptSubmit` router / grill via `prompt-submit`, plus
-behavior-feedback; `PostToolUse` on `Edit|Write` write-quality-lint; `Stop`
-verification-gate). Kimi Code has no custom-subagent mechanism (built-in `coder` / `explore` / `plan` only), so the
+Kimi Code ships the **full 12 skills**, the three commands as `/do-it:skip`,
+`/do-it:handbook`, `/do-it:retrospective`, 6 `hooks[]` entries, and top-level
+`sessionStart` → `kernel-context.sh` (silent in legacy; kernel in
+shadow/thin). Manifest hooks: serialized `UserPromptSubmit` via
+`prompt-submit` plus behavior-feedback; `PostToolUse` `evidence-observer` on
+`Edit|Write` and `Bash`, then write-quality-lint on edits; `Stop`
+verification-gate. Kimi Code has no custom-subagent mechanism (built-in `coder` / `explore` / `plan` only), so the
 10 portable agents are **not** installed on this host, and `subagent-stance`
 stays unwired (Kimi's Subagent events carry an empty `session_id`). Protocol
 and limits: [`skills/do-it/references/host-kimi.md`](../skills/do-it/references/host-kimi.md).
@@ -203,17 +207,17 @@ Runnable skill matrix (tiers in `scripts/skill-tiers.mjs`):
 
 | Host | User/runnable skills | Discovery metadata | Agents |
 | --- | --- | --- | --- |
-| Codex / Claude / Cursor / OpenCode | 11 — 7 core + 4 extended | 1 generated `_index.md` entry (not a twelfth skill) | 10 |
-| Pi | 11 — 7 core + 4 extended | host-native (extension + skills dir) + prompt templates | 10 `do-it.*` package agents when optional `pi-subagents` is installed; 0 without it |
-| Kimi Code | 11 — 7 core + 4 extended | host-native discovery (no generated index) | 0 — no custom subagents |
+| Codex / Claude / Cursor / OpenCode | 12 — 7 core + 5 extended | 1 generated `_index.md` entry (not a thirteenth skill) | 10 |
+| Pi | 12 — 7 core + 5 extended | host-native (extension + skills dir) + prompt templates | 10 `do-it.*` package agents when optional `pi-subagents` is installed; 0 without it |
+| Kimi Code | 12 — 7 core + 5 extended | host-native discovery (no generated index) | 0 — no custom subagents |
 
 - Meaning-bucket skills: `do-it-core` (protocol of record — route the tier,
   then evidence / scope / verify / report), `do-it-router`, `do-it-code-quality`
   (write defense), `do-it-architecture` (load-bearing architecture governance),
   `do-it-review` (review + fix), `do-it-decide` (pressure-test / diverge /
   plan / slice), `do-it-verify` (evidence + closeout), plus extended
-  `do-it-handbook`, `do-it-context`, `do-it-skill-authoring`, and
-  on-demand `do-it-retrospective`.
+  `do-it-handbook`, `do-it-context`, `do-it-skill-authoring`, on-demand
+  `do-it-adaptive`, and on-demand `do-it-retrospective`.
 - Ten portable agents: decide lenses (`product-strategist`,
   `architecture-strategist`, `plan-challenger`), write lenses (`code-mapper`,
   `code-quality-cleaner`, `tdd-red-writer`), review lenses (`reviewer`,
@@ -222,7 +226,8 @@ Runnable skill matrix (tiers in `scripts/skill-tiers.mjs`):
 - Shared hook set, wired per host: default-off silent `behavior-feedback`;
   `prompt-submit` (serialized `router` then Heavy-only `grill-prompt` on manifest
   hosts; adapter hosts preserve the same order); `subagent-stance`; advisory
-  `write-quality-lint`; advisory `verification-gate`; `session-start` (Cursor);
+  `write-quality-lint`; advisory `verification-gate`; `evidence-observer`;
+  `kernel-context` (`sessionStart` on Kimi; Cursor `session-start`);
   and Claude's default-off named-command `strict-external-actions` profile. The
   verification hook is an advisory reminder on every host; `do-it-verify`
   remains responsible for claim-specific proof. No host registers a

@@ -1,10 +1,10 @@
 {
-  "version": "0.16.0",
+  "version": "0.17.0",
   "package": "@tdwhere/do-it",
   "repository": "https://github.com/tdwhere123/do-it",
   "domain": "agentic-workflow",
-  "total_skills": 11,
-  "total_capabilities": 11,
+  "total_skills": 12,
+  "total_capabilities": 12,
   "total_discovery_entries": 1,
   "total_agents": 10,
   "coverage": {
@@ -12,7 +12,7 @@
       "index": 1,
       "mainline": 7,
       "maintenance": 3,
-      "on-demand": 1
+      "on-demand": 2
     },
     "optional_skills": []
   },
@@ -40,7 +40,7 @@
     {
       "kind": "skill",
       "name": "do-it-core",
-      "description": "Use when starting non-trivial repo work or making a done/fixed/ready/merge claim: apply the universal evidence, scope, boundary, recovery, verification, and reporting rules.",
+      "description": "Use for non-trivial repository work and before any done/fixed/ready/merge claim: preserve the active contract, work from current evidence, respect boundaries, recover causally, and report only supported status.",
       "origin": "do-it",
       "optional": false,
       "group": "mainline",
@@ -50,7 +50,7 @@
     {
       "kind": "skill",
       "name": "do-it-architecture",
-      "description": "Use when work changes or evaluates load-bearing authority, ownership, public or persisted contracts, dependency boundaries, migration/cutover, recovery, guards, or structural deletion.",
+      "description": "Use when authority, ownership, public or persisted contracts, dependency boundaries, migration/cutover, recovery, guards, or structural deletion can change the safe route.",
       "origin": "do-it",
       "optional": false,
       "group": "mainline",
@@ -60,7 +60,7 @@
     {
       "kind": "skill",
       "name": "do-it-code-quality",
-      "description": "Use when writing or designing code: name premise and blast radius, deepen modules at seams, TDD at agreed seams, diagnose before patching, and keep producer→consumer contracts honest.",
+      "description": "Use when designing, changing, or debugging code: trace live behavior, locate rightful authority, make the smallest causal closure, stress applicable stateful surfaces, and prove the changed contract.",
       "origin": "do-it",
       "optional": false,
       "group": "mainline",
@@ -80,7 +80,7 @@
     {
       "kind": "skill",
       "name": "do-it-decide",
-      "description": "Use when premises or options must be pressure-tested, a short plan/handoff is needed, or a large plan must be sliced — grill facts locally, ask decisions one at a time.",
+      "description": "Use when a decision, plan, dependency, or handoff could change what gets built: find the highest-value unknown, resolve it cheaply, commit only settled decisions and acceptance.",
       "origin": "do-it",
       "optional": false,
       "group": "mainline",
@@ -90,7 +90,7 @@
     {
       "kind": "skill",
       "name": "do-it-verify",
-      "description": "Use before any done, fixed, passing, ready, install, or merge claim, and when closing a branch — fresh evidence on this worktree; hooks vary by host, this skill is the checklist.",
+      "description": "Use before any done, fixed, passing, ready, install, or merge claim, and when closing a branch — map acceptance to fresh evidence on this worktree; hooks vary by host, this skill is the checklist.",
       "origin": "do-it",
       "optional": false,
       "group": "mainline",
@@ -100,12 +100,22 @@
     {
       "kind": "skill",
       "name": "do-it-retrospective",
-      "description": "Use only when the user explicitly asks to enable, disable, inspect, report, or persist opt-in local do-it behavioral feedback.",
+      "description": "Use only when the user explicitly asks to enable, disable, inspect, report, or persist opt-in local do-it learning events.",
       "origin": "do-it",
       "optional": false,
       "group": "on-demand",
       "source": "skills/do-it/do-it-retrospective",
       "target": "skills/do-it-retrospective"
+    },
+    {
+      "kind": "skill",
+      "name": "do-it-adaptive",
+      "description": "Use when inspecting, proposing, testing, activating, reverting, or explaining personalized do-it behavior deltas; the fixed skill interprets bounded profiles and never self-modifies the core.",
+      "origin": "do-it",
+      "optional": false,
+      "group": "on-demand",
+      "source": "skills/do-it/do-it-adaptive",
+      "target": "skills/do-it-adaptive"
     },
     {
       "kind": "skill",
@@ -120,7 +130,7 @@
     {
       "kind": "skill",
       "name": "do-it-handbook",
-      "description": "Use when a project needs a lean `.do-it/handbook/` for stable project truth plus `.do-it/worklog/` for daily or goal notes.",
+      "description": "Use when a project needs a lean `.do-it/handbook/` for stable project truth, `.do-it/worklog/` for notes, and `.do-it/plans/` as durable execution contracts.",
       "origin": "do-it",
       "optional": false,
       "group": "maintenance",
@@ -140,7 +150,7 @@
     {
       "kind": "agent",
       "name": "architecture-strategist",
-      "description": "Use when an architectural choice or stage boundary needs a read-only view of invariants, ownership, extension seams, and proof.",
+      "description": "Use when an architectural choice or stage boundary needs a read-only view of invariants, ownership, extension seams, and proof. Not a default dispatch.",
       "origin": "do-it",
       "optional": false,
       "source": "agents/architecture-strategist.toml",
@@ -158,7 +168,7 @@
     {
       "kind": "agent",
       "name": "code-quality-cleaner",
-      "description": "Use when a diff needs a read-only maintainability review for dead code, duplication, needless abstraction, reinvented primitives, and safe simplification.",
+      "description": "Use when a diff needs a read-only maintainability review for dead code, duplication, needless abstraction, reinvented primitives, and safe simplification. Not a default dispatch.",
       "origin": "do-it",
       "optional": false,
       "source": "agents/code-quality-cleaner.toml",
@@ -176,7 +186,7 @@
     {
       "kind": "agent",
       "name": "plan-challenger",
-      "description": "Use when a proposed plan needs a read-only challenge of outcome, scope, acceptance, risk, and cheaper credible alternatives.",
+      "description": "Use when a proposed plan needs a read-only challenge of outcome, scope, acceptance, risk, and cheaper credible alternatives. Not a default dispatch.",
       "origin": "do-it",
       "optional": false,
       "source": "agents/plan-challenger.toml",
@@ -185,7 +195,7 @@
     {
       "kind": "agent",
       "name": "product-strategist",
-      "description": "Use when a feature or decision needs a read-only product lens on user goal, boundary, viable options, and tradeoffs.",
+      "description": "Use when a feature or decision needs a read-only product lens on user goal, boundary, viable options, and tradeoffs. Not a default dispatch.",
       "origin": "do-it",
       "optional": false,
       "source": "agents/product-strategist.toml",
@@ -221,7 +231,7 @@
     {
       "kind": "agent",
       "name": "tdd-red-writer",
-      "description": "Use when a behavior change benefits from a narrow failing test before implementation and a test-only write scope is available.",
+      "description": "Use when a behavior change benefits from a narrow failing test before implementation and a test-only write scope is available. Not a default dispatch.",
       "origin": "do-it",
       "optional": false,
       "source": "agents/tdd-red-writer.toml",

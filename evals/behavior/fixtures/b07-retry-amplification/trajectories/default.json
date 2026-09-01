@@ -1,0 +1,25 @@
+{
+  "schema": "do-it/behavior-trajectory/v1",
+  "model": "fixture-replay",
+  "steps": [
+    { "type": "write", "path": "src/post.mjs", "from": "expected/src/post.mjs" },
+    { "type": "write", "path": "src/client.mjs", "from": "expected/src/client.mjs" },
+    { "type": "write", "path": "src/sdk.mjs", "from": "expected/src/sdk.mjs" },
+    {
+      "type": "command",
+      "argv": ["node", "--test", "tests/retry.test.mjs"],
+      "execute": true
+    },
+    {
+      "type": "claim",
+      "status": "VERIFIED",
+      "text": "post owns identity E; client and sdk no longer multiply retries."
+    }
+  ],
+  "cost": {
+    "tokens": 1200,
+    "tool_calls": 5,
+    "wall_ms": 50,
+    "injected_tokens": 90
+  }
+}

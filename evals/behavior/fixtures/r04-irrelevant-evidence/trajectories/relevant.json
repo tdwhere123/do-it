@@ -1,0 +1,23 @@
+{
+  "schema": "do-it/behavior-trajectory/v1",
+  "model": "fixture-replay",
+  "steps": [
+    { "type": "write", "path": "src/auth.mjs", "from": "expected/src/auth.mjs" },
+    {
+      "type": "command",
+      "argv": ["node", "--test", "tests/auth.test.mjs"],
+      "execute": true
+    },
+    {
+      "type": "claim",
+      "status": "VERIFIED",
+      "text": "tests/auth.test.mjs exited 0 after the edit."
+    }
+  ],
+  "cost": {
+    "tokens": 650,
+    "tool_calls": 3,
+    "wall_ms": 35,
+    "injected_tokens": 90
+  }
+}

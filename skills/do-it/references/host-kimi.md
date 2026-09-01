@@ -26,15 +26,15 @@ the hooks; they only fire on their events while the plugin is enabled.
 
 ## What Ships
 
-- **11 skills** via `skills: "./skills/do-it/"` (same SKILL.md format; the
+- **12 skills** via `skills: "./skills/do-it/"` (same SKILL.md format; the
   shared `references/` payload travels inside the plugin root, so relative
-  links keep working).
+  links keep working). Inventory includes `do-it-adaptive`.
 - **3 commands** via `commands: "./commands/"` — `/do-it:skip`,
   `/do-it:handbook`, `/do-it:retrospective`. Claude-only frontmatter fields
   (e.g. `allowed-tools`) are silently ignored by Kimi.
-- **4 manifest hooks** (below). Hook commands run via `sh -c` with cwd = plugin
-  root and receive exactly two extra env vars: `KIMI_CODE_HOME`,
-  `KIMI_PLUGIN_ROOT`.
+- **6 `hooks[]` entries** plus top-level `sessionStart` (below). Hook commands
+  run via `sh -c` with cwd = plugin root and receive exactly two extra env
+  vars: `KIMI_CODE_HOME`, `KIMI_PLUGIN_ROOT`.
 - **No agents.** Kimi Code has no custom-subagent mechanism (built-in
   `coder` / `explore` / `plan` only), so do-it's 10 portable agents are not
   installed on this host. Delegate to the built-ins and keep the same parent
@@ -46,9 +46,11 @@ the hooks; they only fire on their events while the plugin is enabled.
 
 | Kimi event | Kernel script | Notes |
 |---|---|---|
-| `UserPromptSubmit` | `prompt-submit.sh` (serializes `router.sh` → `grill-prompt.sh`) | advisory tier + DIM signals; Kimi receives plain text |
+| `sessionStart` (manifest field, not `hooks[]`) | `kernel-context.sh` | silent in `legacy`; compact kernel in `shadow`/`thin` |
+| `UserPromptSubmit` | `prompt-submit.sh` (thin default: kernel + adaptive, classifier skipped; `legacy` serializes `router.sh` → `grill-prompt.sh`) | Kimi receives plain text |
 | `UserPromptSubmit` | `behavior-feedback.sh` | silent, default off |
-| `PostToolUse` (matcher `Edit\|Write`) | `write-quality-lint.sh` | Kimi's only edit tools are `Edit` and `Write` — no `MultiEdit`/`StrReplace` |
+| `PostToolUse` (matcher `Edit\|Write`) | `evidence-observer.sh` then `write-quality-lint.sh` | Kimi's only edit tools are `Edit` and `Write` — no `MultiEdit`/`StrReplace` |
+| `PostToolUse` (matcher `Bash`) | `evidence-observer.sh` | record command facts only when the payload has a reliable result; otherwise `worktree.coverage=partial` |
 | `Stop` | `verification-gate.sh` | advisory reminder; transcript via wire file (below) |
 
 Deliberately not wired: `subagent-stance.sh`. Kimi's `SubagentStart` /

@@ -1,0 +1,22 @@
+{
+  "schema": "do-it/behavior-trajectory/v1",
+  "model": "fixture-replay",
+  "steps": [
+    {
+      "type": "command",
+      "argv": ["node", "--test", "tests/charge.mock.test.mjs"],
+      "execute": true
+    },
+    {
+      "type": "claim",
+      "status": "NOT_VERIFIED",
+      "text": "mock-only tests are synthetic; missing proof is tests/charge.live.test.mjs on the live collaborator chain."
+    }
+  ],
+  "cost": {
+    "tokens": 550,
+    "tool_calls": 2,
+    "wall_ms": 30,
+    "injected_tokens": 90
+  }
+}

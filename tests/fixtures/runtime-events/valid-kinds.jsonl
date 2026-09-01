@@ -1,0 +1,7 @@
+{"schema":1,"event_id":"k-edit","recorded_at":"2026-08-31T09:00:00Z","kind":"edit","source":"observed","host":"pi","worktree":{"head":"h","fingerprint":"f","coverage":"complete"}}
+{"schema":1,"event_id":"k-command","recorded_at":"2026-08-31T09:00:00Z","kind":"command","source":"observed","host":"pi","command":"npm test","exit_code":0,"worktree":{"head":"h","fingerprint":"f","coverage":"complete"}}
+{"schema":1,"event_id":"k-test","recorded_at":"2026-08-31T09:00:00Z","kind":"test","source":"observed","host":"pi","worktree":{"head":"h","fingerprint":"f","coverage":"complete"}}
+{"schema":1,"event_id":"k-build","recorded_at":"2026-08-31T09:00:00Z","kind":"build","source":"observed","host":"pi","worktree":{"head":"h","fingerprint":"f","coverage":"complete"}}
+{"schema":1,"event_id":"k-runtime","recorded_at":"2026-08-31T09:00:00Z","kind":"runtime-observation","source":"observed","host":"pi","worktree":{"head":"h","fingerprint":"f","coverage":"complete"}}
+{"schema":1,"event_id":"k-review","recorded_at":"2026-08-31T09:00:00Z","kind":"review","source":"reported","host":"pi","worktree":{"head":"h","fingerprint":"f","coverage":"complete"}}
+{"schema":1,"event_id":"k-claim","recorded_at":"2026-08-31T09:00:00Z","kind":"completion-claim","source":"reported","host":"pi","worktree":{"head":"h","fingerprint":"f","coverage":"complete"}}

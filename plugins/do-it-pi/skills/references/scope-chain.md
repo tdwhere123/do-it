@@ -1,6 +1,8 @@
 # Scope Chain
 
-Bound work without reading the whole repo. Used by `do-it-code-quality` and path maps.
+Bound work without reading the whole repo. Used by `do-it-code-quality`
+Trace/Locate and by path maps. The edit set is the **causal cone**, not
+adjacency; change-loop detail: [`causal-change.md`](causal-change.md).
 
 Leading words: **premise**, **blast radius**, **bounded chain**.
 
@@ -46,6 +48,8 @@ Classes / N/A: [`workflow-kernel.md`](workflow-kernel.md).
 4. Repo-wide search — rename, shared invariant, or `@anchor` / term grep — never as the default first move.
 
 Prefer one bounded chain over a package tour. No consumer in-task → do not invent the API.
+Targeted reads: locate the symbol or section first. Whole-file reads on files
+over ~500 lines / 30 KB burn context and blur the chain.
 
 ## Quick Checks
 

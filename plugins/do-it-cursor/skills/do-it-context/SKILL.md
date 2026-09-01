@@ -11,6 +11,10 @@ description: "Use when repo terms or invariants are drifting, or when user/docs/
 
 It is **not** a wiki, README replacement, or onboarding doc. It is a terse, declarative artifact intended to fit in the AI's working memory budget. Keep it under ~200 lines.
 
+Project truth ≠ task state ≠ adaptive profile. CONTEXT is project-truth
+sediment. Task progress belongs in an earned execution contract or chat.
+Adaptive deltas and runtime/events stay local and gitignored.
+
 ## When To Use
 
 - The first time `do-it-decide` clarifies a term in this repo, write it back here so the next session does not re-litigate.
@@ -23,7 +27,10 @@ It is **not** a wiki, README replacement, or onboarding doc. It is a terse, decl
 - Onboarding narrative, history, or rationale → that belongs in `README.md` / `docs/` / commit messages.
 - Tutorial content → README.
 - Anything code can express clearly on its own → leave it in code.
-- Status / TODO / current-work → `.do-it/plans/` or the issue tracker.
+- Status / TODO / current-work → an earned `.do-it/plans/<task>.md` execution
+  contract, chat, or the issue tracker — not CONTEXT.
+- Adaptive / personal policy or runtime session state → local gitignored
+  files, not CONTEXT.
 
 ## Context Hierarchy
 
@@ -37,7 +44,7 @@ When context sources disagree, use this order:
    *what the code is*.
 3. `.do-it/CONTEXT.md` for terse repo terms, invariants, and relationships that
    code does not express accessibly.
-4. Current plan, grill log, task card, or issue for the active work.
+4. Active execution contract, worklog, or issue for the current work.
 5. README, docs, ADRs, and maintenance guides.
 6. Memory, old reports, previous worker summaries, and external sources.
 
@@ -70,8 +77,9 @@ See `CONTEXT-FORMAT.md` (in this skill directory) for the exact shape.
 
 ### Initial Setup
 
-`/do-it-handbook init` creates the `.do-it/` tree including a `CONTEXT.md`
-skeleton (three section headers, zero entries) — the recommended first setup.
+`/do-it-handbook init` creates CONTEXT, handbook, worklog, and plans
+containers (plus a local ignore for runtime / adaptive / events). It does not
+create brainstorm/grill and never overwrites an existing `CONTEXT.md`.
 If you need CONTEXT alone:
 
 1. From repo root: `mkdir -p .do-it && touch .do-it/CONTEXT.md`.
@@ -104,11 +112,14 @@ review bar, do/don't rules, and restraint principles. do-it reads it before deci
 - **CLAUDE.md** — durable *behavioral* conventions and team rules (human-owned,
   rarely changes).
 - **`.do-it/CONTEXT.md`** — per-session *factual* sediment (terms, invariants,
-  relationships) that `do-it-decide` writes.
+  relationships) that `do-it-decide` writes. Not task state, not adaptive.
 - **`.do-it/handbook/`** — stable project truth (invariants, architecture,
   glossary) plus a worklog template.
-- **`.do-it/worklog/`** — daily or goal-scoped notes, evidence, decisions, and
+- **`.do-it/worklog/`** — daily or goal-scoped notes, evidence, and
   reusable lessons that are not stable enough for the handbook.
+- **`.do-it/plans/`** — durable execution contracts (Goal / Decisions /
+  Boundary / Acceptance), not progress logs.
+- **runtime / adaptive / events** — local, gitignored; not project truth.
 
 CLAUDE.md is the top of the convention ladder: a rule that has held across
 sessions and is about *how to work* (not a project fact) graduates here from
@@ -178,7 +189,8 @@ Promote stable canonical terms into `glossary.md` when they become durable proje
 
 Do not update CONTEXT.md when:
 
-- the fact is only current status, a TODO, or a task-specific plan;
+- the fact is only current status, a TODO, a task-specific plan, adaptive
+  preference, or runtime/session state;
 - current code contradicts the proposed invariant;
 - the term is still a user decision and has not been chosen;
 - the proposed entry comes from external material that has not been rewritten
@@ -188,8 +200,8 @@ Do not update CONTEXT.md when:
 ## Common Rationalizations
 
 - *"This belongs in the README."* — Maybe — but if the AI workflow needs it next turn, it has to live somewhere terse and declarative, and `README` is too long-form.
-- *"It's already in the code."* — If grill keeps re-asking the same question, it's not _accessible enough_ in the code.
-- *"I'll add it later."* — The next session will re-grill the same term. Three lines now save twenty later.
+- *"It's already in the code."* — If later sessions keep re-deriving the same term, it's not _accessible enough_ in the code.
+- *"I'll add it later."* — The next session will re-open the same term. Three lines now save twenty later.
 
 ## Red Flags
 

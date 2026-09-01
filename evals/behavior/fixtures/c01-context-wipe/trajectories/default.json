@@ -1,0 +1,34 @@
+{
+  "schema": "do-it/behavior-trajectory/v1",
+  "model": "fixture-replay",
+  "steps": [
+    { "type": "context_wipe" },
+    {
+      "type": "recover",
+      "contract_path": "contracts/resume-task.md",
+      "recovered": {
+        "goal": "Increment the counter by the settled delta.",
+        "decisions": ["[user] delta is 2, not 1"],
+        "boundary": { "in": ["src/counter.mjs", "tests"], "out": ["docs"] },
+        "acceptance": { "A1": "counter() returns previous + 2" }
+      }
+    },
+    { "type": "write", "path": "src/counter.mjs", "from": "expected/src/counter.mjs" },
+    {
+      "type": "command",
+      "argv": ["node", "--test", "tests/counter.test.mjs"],
+      "execute": true
+    },
+    {
+      "type": "claim",
+      "status": "VERIFIED",
+      "text": "recovered Goal/Decisions/Boundary/Acceptance; tests exited 0 after the edit."
+    }
+  ],
+  "cost": {
+    "tokens": 1100,
+    "tool_calls": 5,
+    "wall_ms": 55,
+    "injected_tokens": 40
+  }
+}

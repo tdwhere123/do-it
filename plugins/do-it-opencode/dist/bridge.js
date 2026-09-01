@@ -13,6 +13,7 @@ export function terminateActiveProcesses() {
     activeProcesses.clear();
 }
 const EDIT_TOOLS = new Set(["edit", "write", "multiedit"]);
+const SHELL_TOOLS = new Set(["bash", "shell", "powershell", "cmd"]);
 const DEFAULT_HOOK_TIMEOUT_MS = 15_000;
 const MAX_HOOK_OUTPUT_BYTES = 1024 * 1024;
 /** Map OpenCode tool ids to do-it hook tool_name values. */
@@ -31,9 +32,34 @@ export function normalizeToolName(tool) {
 export function isEditTool(tool) {
     return EDIT_TOOLS.has(tool.toLowerCase());
 }
+export function isShellTool(tool) {
+    return SHELL_TOOLS.has(tool.toLowerCase());
+}
+export function isEvidenceTool(tool) {
+    return isEditTool(tool) || isShellTool(tool);
+}
+export function extractExitCode(metadata) {
+    if (!metadata)
+        return undefined;
+    for (const key of ["exit_code", "exitCode", "code"]) {
+        const value = metadata[key];
+        if (typeof value === "number" && Number.isInteger(value))
+            return value;
+        if (typeof value === "string" && /^-?\d+$/.test(value))
+            return Number(value);
+    }
+    return undefined;
+}
 export function buildHookPayload(input) {
     const toolName = input.tool ? normalizeToolName(input.tool) ?? input.tool : undefined;
     const filePath = extractFilePath(input.args);
+    const exitCode = extractExitCode(input.metadata);
+    const toolResponse = {};
+    if (typeof input.output === "string" && input.output.length > 0) {
+        toolResponse.output = input.output;
+    }
+    if (exitCode !== undefined)
+        toolResponse.exit_code = exitCode;
     return {
         session_id: input.sessionID,
         model: input.model,
@@ -43,6 +69,7 @@ export function buildHookPayload(input) {
         file_path: filePath,
         transcript_path: input.transcriptPath ?? "",
         tool_input: input.args,
+        ...(Object.keys(toolResponse).length > 0 ? { tool_response: toolResponse } : {}),
         ...(input.stopHookActive ? { stop_hook_active: "true" } : {})
     };
 }
@@ -311,7 +338,8 @@ export async function spawnHook(hooksDir, scriptName, payload, options = {}) {
         cwd: payload.cwd,
         env: {
             ...env,
-            OPENCODE_DATA: env.OPENCODE_DATA ?? path.join(payload.cwd, ".opencode")
+            OPENCODE_DATA: env.OPENCODE_DATA ?? path.join(payload.cwd, ".opencode"),
+            DO_IT_EVENT_HOST: env.DO_IT_EVENT_HOST ?? "opencode"
         },
         detached: platform !== "win32",
         stdio: ["pipe", "pipe", "pipe"],

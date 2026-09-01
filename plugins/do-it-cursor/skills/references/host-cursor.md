@@ -6,12 +6,13 @@ when listed.
 
 ## Skill Bundle
 
-The Cursor plugin registers the **full skill set** (same as Codex / Claude /
+The Cursor plugin registers the **full 12-skill set** (same as Codex / Claude /
 OpenCode):
 
-`do-it-router`, `do-it-code-quality`, `do-it-review`, `do-it-decide`,
-`do-it-verify`, plus extended `do-it-handbook`, `do-it-context`,
-`do-it-skill-authoring`, and the on-demand `do-it-retrospective`.
+`do-it-core`, `do-it-router`, `do-it-code-quality`, `do-it-architecture`,
+`do-it-review`, `do-it-decide`, `do-it-verify`, plus extended
+`do-it-handbook`, `do-it-context`, `do-it-skill-authoring`,
+`do-it-adaptive`, and the on-demand `do-it-retrospective`.
 
 `skills/do-it/references/` is always copied alongside (shared kernel — not a
 registered skill).
@@ -160,7 +161,7 @@ plugins/do-it-cursor/.cursor-plugin/plugin.json
 ~/.cursor/plugins/local/do-it-cursor/   # real copy (not an external symlink)
 ├── .cursor-plugin/plugin.json
 ├── assets/logo.svg
-├── skills/          # full 11 skills + references/
+├── skills/          # full 12 skills + references/
 ├── agents/
 └── hooks/
     ├── hooks.json          # also mirrored into ~/.cursor/hooks.json
@@ -180,7 +181,8 @@ search order).
 |---|---|---|---|
 | `sessionStart` | `session-start.sh` | — | Light bootstrap; skills index hint |
 | `beforeSubmitPrompt` (default off) | `behavior-feedback.sh` | — | Silent local feedback capture; no additional context |
-| `beforeSubmitPrompt` | `prompt-submit` (serializes `router.sh` → `grill-prompt.sh`) → `subagent-stance.sh` | — | Grill injects Heavy-only |
+| `beforeSubmitPrompt` | `prompt-submit` (thin default: kernel + adaptive, classifier skipped; `legacy` serializes `router.sh` → `grill-prompt.sh`) → `subagent-stance.sh` | — | Grill is Heavy-only and legacy/shadow only |
+| `postToolUse` / `afterFileEdit` | `evidence-observer.sh` | `StrReplace\|Write\|EditNotebook` plus `Shell` on `postToolUse` | Same schema as other hosts; postToolUse/afterFileEdit edits are deduped |
 | `postToolUse` / `afterFileEdit` | `write-quality-lint.sh` | `StrReplace\|Write\|EditNotebook` | Single advisory reminder |
 | `stop` | `verification-gate.sh` | — | Advisory evidence reminder after an edited completion claim |
 

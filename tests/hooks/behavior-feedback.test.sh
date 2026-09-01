@@ -12,6 +12,9 @@ HOOK="$REPO_ROOT/hooks/behavior-feedback.sh"
 PASS=0
 FAIL=0
 TMP_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/do-it-feedback-test.XXXXXX")"
+export GIT_CONFIG_GLOBAL=/dev/null
+export GIT_CONFIG_SYSTEM=/dev/null
+unset GIT_DIR GIT_WORK_TREE
 
 cleanup() { rm -rf "$TMP_ROOT"; }
 trap cleanup EXIT
@@ -41,11 +44,23 @@ _event_count() {
   wc -l < "$events" | tr -d ' '
 }
 
+_setup_git_project() {
+  local dir="$1"
+  mkdir -p "$dir"
+  git -C "$dir" init -q
+  git -C "$dir" config user.email t@e.com
+  git -C "$dir" config user.name t
+  printf 'base\n' > "$dir/README"
+  git -C "$dir" add README
+  git -C "$dir" commit -q -m base
+}
+
 project="$TMP_ROOT/project"
-mkdir -p "$project"
+_setup_git_project "$project"
 runtime="$project/.do-it/runtime"
 config="$runtime/retrospective/config.json"
-events="$runtime/retrospective/events.jsonl"
+events="$runtime/events/learning.jsonl"
+compat="$runtime/retrospective/events.jsonl"
 
 echo "Case 1: default is disabled and leaves no project state"
 out="$(_run s1 'do-it 的行为不对，为什么没有调用子智能体？' "$project")"
@@ -70,7 +85,8 @@ code='```const apiKey = "never-store-this";```'
 prompt="do-it 的行为不对：你没有调用我预先设计好的子智能体。Bearer $secret access_token=long-secret-value email=$email url=$url path=$absolute_path windows_path=$windows_path jwt=$jwt $code"
 out="$(_run s1 "$prompt" "$project")"
 _assert_empty "feedback recorder is silent" "$out"
-_assert "feedback event has bounded schema" "jq -e '.schema == 1 and .kind == \"behavior-feedback\" and .host == \"claude\" and (.session | test(\"^[0-9a-f]{12}$\")) and (.signals | contains(\"delegation\"))' \"$events\" >/dev/null"
+_assert "feedback event has bounded schema" "jq -e '.schema == 1 and .kind == \"user_feedback\" and .source == \"user\" and .host == \"claude\" and (.session_hash | test(\"^[0-9a-f]{12}$\")) and (.signals | index(\"delegation\") != null)' \"$events\" >/dev/null"
+_assert "compat copy is written" "[[ -f \"$compat\" ]] && jq -e '.kind == \"user_feedback\" and (.session_hash | test(\"^[0-9a-f]{12}$\"))' \"$compat\" >/dev/null"
 _assert "feedback event keeps a redacted excerpt" "jq -e '.prompt_excerpt | contains(\"[REDACTED_SECRET]\")' \"$events\" >/dev/null"
 _assert "feedback event redacts common local identifiers" "jq -e '.prompt_excerpt | contains(\"[REDACTED_EMAIL]\") and contains(\"[REDACTED_URL]\") and contains(\"[REDACTED_PATH]\") and contains(\"[REDACTED_JWT]\") and contains(\"[REDACTED_CODE]\")' \"$events\" >/dev/null"
 _assert "feedback event omits raw credential, local identifiers, code, and session id" "! grep -Fq \"$secret\" \"$events\" && ! grep -Fq \"$email\" \"$events\" && ! grep -Fq \"$url\" \"$events\" && ! grep -Fq \"$absolute_path\" \"$events\" && ! grep -Fq \"$windows_path\" \"$events\" && ! grep -Fq \"$jwt\" \"$events\" && ! grep -Fq 'never-store-this' \"$events\" && ! grep -Fq s1 \"$events\""

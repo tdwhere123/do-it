@@ -1,0 +1,12 @@
+{
+  "session_id": "obs-build",
+  "cwd": "",
+  "tool_name": "Bash",
+  "tool_input": {
+    "command": "pnpm run build"
+  },
+  "tool_response": {
+    "stdout": "built ok",
+    "exit_code": 0
+  }
+}

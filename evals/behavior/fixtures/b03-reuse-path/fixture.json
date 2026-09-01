@@ -1,0 +1,10 @@
+{
+  "public_api": ["export function taxAmount", "export function invoiceTotal"],
+  "relevant_tests": ["tests/invoice.test.mjs"],
+  "acceptance": {
+    "A1": {
+      "type": "command_exit0",
+      "argv": ["node", "--test", "tests/invoice.test.mjs"]
+    }
+  }
+}

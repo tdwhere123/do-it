@@ -1,0 +1,12 @@
+{
+  "session_id": "obs-cmd",
+  "cwd": "",
+  "tool_name": "Bash",
+  "tool_input": {
+    "command": "pwd && git status"
+  },
+  "tool_response": {
+    "stdout": "/tmp/repo\non branch main",
+    "exit_code": 0
+  }
+}

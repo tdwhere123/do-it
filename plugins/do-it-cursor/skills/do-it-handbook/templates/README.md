@@ -20,8 +20,18 @@ experiments, temporary status, and lessons live in `.do-it/worklog/`.
 | Stable system shape | `architecture.md` |
 | Vocabulary | `glossary.md` |
 | Daily or goal history | `.do-it/worklog/` |
+| Execution contracts | `.do-it/plans/` |
+| Active sediment | `.do-it/CONTEXT.md` |
+| Runtime / adaptive / events | local only (gitignored) |
 
-Process guidance is owned by skills, not this handbook: decisions and plan cards →
+`.do-it/plans/` holds durable execution contracts: Goal, Decisions, Boundary,
+Acceptance. They are not progress logs. Do not add progress checkboxes.
+Persist a contract only when earned; otherwise finish in chat.
+
+Project truth, task state, and adaptive profile are different planes. Do not
+store task progress or personal policy in this handbook.
+
+Process guidance is owned by skills, not this handbook: execution contracts →
 `do-it-decide`, review protocol → `do-it-review`, delegation →
 `workflow-kernel.md` delegation boundary guidance, execution routing →
 `do-it-router`. The handbook update rules live in the `do-it-handbook` SKILL

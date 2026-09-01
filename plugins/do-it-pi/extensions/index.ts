@@ -10,6 +10,8 @@ import { BOOTSTRAP_TEXT } from "./bootstrap.ts";
 import {
 	buildHookPayload,
 	isEditTool,
+	isEvidenceTool,
+	isShellTool,
 	resolveBash,
 	spawnHook,
 	terminateActiveProcesses,
@@ -25,7 +27,7 @@ const defaultPluginRoot = path.resolve(
 const COMPLETION_PATTERN =
 	/(完成|已修|通过|完工|\bdone\b|\bpassed\b|\bfixed\b|\ball set\b|it works|works now|successfully|\bVERIFIED\b|ready to merge|ship it|ready to (ship|publish))/i;
 const VERIFY_REMINDER =
-	"<system-reminder>do-it: previous turn used completion language. Before any done, fixed, passing, ready, install, or merge claim: run the narrowest fresh check that exercises the changed path on this worktree and report its exact output; if proof is unavailable, state NOT_VERIFIED with the missing check and next action.</system-reminder>";
+	"<system-reminder>do-it: previous turn used completion language. Before a done/fixed/passing/ready/install/merge claim, map each material acceptance item to fresh relevant evidence from this worktree; otherwise say NOT_VERIFIED and name the missing proof.</system-reminder>";
 
 type MessagePart = { type?: unknown; text?: unknown };
 type MessageLike = { role?: unknown; content?: unknown };
@@ -53,6 +55,14 @@ export function resolvePiAgentDir(
 
 export function isPiSubagent(env: NodeJS.ProcessEnv = process.env): boolean {
 	return env.PI_SUBAGENT_CHILD === "1";
+}
+
+export function routerMode(
+	env: NodeJS.ProcessEnv = process.env,
+): "legacy" | "shadow" | "thin" {
+	const mode = (env.DO_IT_ROUTER_MODE ?? "thin").trim();
+	if (mode === "legacy" || mode === "shadow") return mode;
+	return "thin";
 }
 
 export function appendToolResultContext<T>(
@@ -108,27 +118,41 @@ function resultContext(result: HookResult): string | undefined {
 export function createDoItPiExtension(
 	dependencies: DoItPiExtensionDependencies = {},
 ) {
-	const env = { ...(dependencies.env ?? process.env) };
 	const pluginRoot = dependencies.pluginRoot ?? defaultPluginRoot;
 	const hooksDir = path.join(pluginRoot, "hooks");
-	const agentDir = resolvePiAgentDir(env);
-	const dataDir = path.join(agentDir, "do-it-data");
 	const runHook = dependencies.runHook ?? spawnHook;
-	const childProcess = isPiSubagent(env);
+
+	function currentEnv(): NodeJS.ProcessEnv {
+		return dependencies.env ?? process.env;
+	}
+
+	function agentDir(): string {
+		return resolvePiAgentDir(currentEnv());
+	}
+
+	function dataDir(): string {
+		return path.join(agentDir(), "do-it-data");
+	}
+
+	function childProcess(): boolean {
+		return isPiSubagent(currentEnv());
+	}
 
 	const bootstrappedSessions = new Set<string>();
-	const pendingVerifyReminder = new Set<string>();
+	const pendingVerifyReminder = new Map<string, string>();
 	const completionText = new Map<string, string>();
-	const successfulEdit = new Set<string>();
+	const lastAssistantMessages = new Map<string, readonly MessageLike[]>();
+	const observedEdit = new Set<string>();
 	const anonymousSessions = new WeakMap<object, string>();
 	let anonymousSessionSequence = 0;
 	let lastDiagnostic: string | undefined;
 
 	function ensureDataDir(): void {
+		const dir = dataDir();
 		try {
-			fs.mkdirSync(dataDir, { recursive: true });
+			fs.mkdirSync(dir, { recursive: true });
 		} catch (error) {
-			lastDiagnostic = `do-it data directory unavailable (${dataDir}): ${error instanceof Error ? error.message : String(error)}`;
+			lastDiagnostic = `do-it data directory unavailable (${dir}): ${error instanceof Error ? error.message : String(error)}`;
 		}
 	}
 
@@ -150,15 +174,72 @@ export function createDoItPiExtension(
 
 	function hookEnvironment(): NodeJS.ProcessEnv {
 		ensureDataDir();
+		const env = currentEnv();
+		const resolvedAgentDir = agentDir();
+		const resolvedDataDir = dataDir();
 		return {
 			...env,
-			PI_CODING_AGENT_DIR: agentDir,
-			DO_IT_HOOK_DATA: dataDir,
-			PLUGIN_DATA: dataDir,
-			CLAUDE_PLUGIN_DATA: dataDir,
+			PI_CODING_AGENT_DIR: resolvedAgentDir,
+			DO_IT_HOOK_DATA: resolvedDataDir,
+			PLUGIN_DATA: resolvedDataDir,
+			CLAUDE_PLUGIN_DATA: resolvedDataDir,
 			CLAUDE_PLUGIN_ROOT: pluginRoot,
 			PLUGIN_ROOT: pluginRoot,
+			DO_IT_EVENT_HOST: "pi",
 		};
+	}
+
+	function detailsRecord(
+		details: unknown,
+	): Record<string, unknown> | undefined {
+		if (details && typeof details === "object" && !Array.isArray(details)) {
+			return details as Record<string, unknown>;
+		}
+		return undefined;
+	}
+
+	function writeGateTranscript(
+		_sid: string,
+		messages: readonly MessageLike[],
+		hadEdit: boolean,
+	): { path: string; cleanup(): void } | null {
+		let dir: string | undefined;
+		try {
+			dir = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-pi-gate-"));
+			fs.chmodSync(dir, 0o700);
+			const records: unknown[] = [{ type: "user", message: { content: [] } }];
+			if (hadEdit) {
+				records.push({
+					type: "assistant",
+					message: {
+						content: [
+							{ type: "tool_use", id: "edit-1", name: "Edit", input: {} },
+						],
+					},
+				});
+			}
+			const text = assistantTextFromMessages(messages);
+			if (text) {
+				records.push({
+					type: "assistant",
+					message: { content: [{ type: "text", text }] },
+				});
+			}
+			const transcriptPath = path.join(dir, "gate.jsonl");
+			fs.writeFileSync(
+				transcriptPath,
+				`${records.map((record) => JSON.stringify(record)).join("\n")}\n`,
+				{ encoding: "utf8", mode: 0o600 },
+			);
+			const cleanupDir = dir;
+			return {
+				path: transcriptPath,
+				cleanup: () => fs.rmSync(cleanupDir, { recursive: true, force: true }),
+			};
+		} catch {
+			if (dir) fs.rmSync(dir, { recursive: true, force: true });
+			return null;
+		}
 	}
 
 	async function invokeHook(
@@ -189,7 +270,7 @@ export function createDoItPiExtension(
 		ctx: ExtensionContext,
 		values: Omit<
 			Parameters<typeof buildHookPayload>[0],
-			"sessionId" | "cwd" | "model" | "transcriptPath"
+			"sessionId" | "cwd" | "model"
 		>,
 	): HookPayload {
 		return buildHookPayload({
@@ -212,10 +293,10 @@ export function createDoItPiExtension(
 					.some((tool) => tool.name === "subagent");
 				const status = [
 					`do-it Pi adapter: active`,
-					`session role: ${childProcess ? "subagent" : "root"}`,
+					`session role: ${childProcess() ? "subagent" : "root"}`,
 					`hooks directory: ${hooksDir}`,
-					`data directory: ${dataDir}`,
-					`Bash hook runner: ${resolveBash(env) ? "available" : "unavailable"}`,
+					`data directory: ${dataDir()}`,
+					`Bash hook runner: ${resolveBash(currentEnv()) ? "available" : "unavailable"}`,
 					hasSubagentRuntime
 						? "subagent tool: registered; this command does not verify do-it.* package-agent discovery"
 						: "subagent tool: not registered (optional pi-subagents missing; extension, skills, and prompts remain active)",
@@ -235,7 +316,7 @@ export function createDoItPiExtension(
 			const prompt = typeof event.prompt === "string" ? event.prompt : "";
 			const contexts: string[] = [];
 
-			if (childProcess) {
+			if (childProcess()) {
 				const result = await invokeHook(
 					"subagent-stance.sh",
 					basePayload(ctx, { prompt }),
@@ -244,12 +325,16 @@ export function createDoItPiExtension(
 				const context = resultContext(result);
 				if (context) contexts.push(context);
 			} else {
-				if (!bootstrappedSessions.has(sid)) {
+				if (routerMode(currentEnv()) === "legacy" && !bootstrappedSessions.has(sid)) {
 					contexts.push(BOOTSTRAP_TEXT);
 					bootstrappedSessions.add(sid);
 				}
 
-				if (pendingVerifyReminder.delete(sid)) contexts.push(VERIFY_REMINDER);
+				const pending = pendingVerifyReminder.get(sid);
+				if (pending !== undefined) {
+					pendingVerifyReminder.delete(sid);
+					contexts.push(pending);
+				}
 
 				if (prompt.trim()) {
 					const payload = basePayload(ctx, { prompt });
@@ -274,8 +359,41 @@ export function createDoItPiExtension(
 		});
 
 		pi.on("tool_result", async (event, ctx) => {
-			if (childProcess || !isEditTool(event.toolName)) return undefined;
-			if (event.isError === false) successfulEdit.add(sessionId(ctx));
+			if (childProcess()) return undefined;
+			const sid = sessionId(ctx);
+			if (isEvidenceTool(event.toolName)) {
+				await invokeHook(
+					"evidence-observer.sh",
+					basePayload(ctx, {
+						toolName: event.toolName,
+						input: event.input,
+						content: event.content,
+						details: detailsRecord(event.details),
+					}),
+					ctx,
+				);
+			}
+			if (isShellTool(event.toolName)) {
+				const result = await invokeHook(
+					"network-admission.sh",
+					basePayload(ctx, {
+						toolName: event.toolName,
+						input: event.input,
+						content: event.content,
+						details: detailsRecord(event.details),
+					}),
+					ctx,
+				);
+				const context = resultContext(result);
+				if (!context) return undefined;
+				return {
+					content: appendToolResultContext(event.content, context),
+					details: event.details,
+					isError: event.isError,
+				};
+			}
+			if (!isEditTool(event.toolName)) return undefined;
+			if (event.isError === false) observedEdit.add(sid);
 
 			const result = await invokeHook(
 				"write-quality-lint.sh",
@@ -283,6 +401,7 @@ export function createDoItPiExtension(
 					toolName: event.toolName,
 					input: event.input,
 					content: event.content,
+					details: detailsRecord(event.details),
 				}),
 				ctx,
 			);
@@ -297,33 +416,58 @@ export function createDoItPiExtension(
 		});
 
 		pi.on("agent_end", async (event, ctx) => {
-			if (childProcess) return;
-			completionText.set(
-				sessionId(ctx),
-				assistantTextFromMessages(event.messages),
-			);
+			if (childProcess()) return;
+			const sid = sessionId(ctx);
+			completionText.set(sid, assistantTextFromMessages(event.messages));
+			lastAssistantMessages.set(sid, event.messages ?? []);
 		});
 
 		pi.on("agent_settled", async (_event, ctx) => {
-			if (childProcess) return;
+			if (childProcess()) return;
 			const sid = sessionId(ctx);
 			const text = completionText.get(sid) ?? "";
 			completionText.delete(sid);
-			const edited = successfulEdit.delete(sid);
+			const messages = lastAssistantMessages.get(sid) ?? [];
+			lastAssistantMessages.delete(sid);
+			const edited = observedEdit.delete(sid);
 			if (
 				!edited ||
 				!COMPLETION_PATTERN.test(text) ||
 				/\bNOT_VERIFIED\b/i.test(text)
 			)
 				return;
-			pendingVerifyReminder.add(sid);
+
+			const transcript = writeGateTranscript(sid, messages, true);
+			if (!transcript) {
+				pendingVerifyReminder.set(sid, VERIFY_REMINDER);
+				return;
+			}
+			try {
+				const result = await invokeHook(
+					"verification-gate.sh",
+					basePayload(ctx, {
+						transcriptPath: transcript.path,
+						stopHookActive: false,
+					}),
+					ctx,
+				);
+				if (result.unavailable || result.exitCode !== 0) {
+					pendingVerifyReminder.set(sid, VERIFY_REMINDER);
+					return;
+				}
+				const reminder = result.additionalContext ?? result.blockReason;
+				if (reminder) pendingVerifyReminder.set(sid, reminder);
+			} finally {
+				transcript.cleanup();
+			}
 		});
 
 		pi.on("session_shutdown", async () => {
 			bootstrappedSessions.clear();
 			pendingVerifyReminder.clear();
 			completionText.clear();
-			successfulEdit.clear();
+			lastAssistantMessages.clear();
+			observedEdit.clear();
 			terminateActiveProcesses();
 		});
 	};

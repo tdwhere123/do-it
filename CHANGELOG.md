@@ -1,5 +1,53 @@
 # Changelog
 
+## Unreleased
+
+## 0.17.0
+
+### Minimal evidence-carrying kernel
+
+Default runtime is now **thin** (unset or `DO_IT_ROUTER_MODE=thin`): compact
+kernel plus optional adaptive overlay; the lexical classifier is skipped.
+Rollback to 0.16 router-then-grill: `DO_IT_ROUTER_MODE=legacy`. Live-network
+admission is Claude `ask` and other-host reminders — not more kernel text.
+S16 Phase A is this release default, not a tagged 0.19. Version metadata is
+`0.17.0`. This commit is not a git tag or npm publish.
+
+- **Product:** do-it makes agent work evidence-carrying. Autonomy stays first.
+- **Skills:** added `do-it-adaptive` as extended-on-demand. Inventory is 12
+  runnable skills + 1 generated discovery entry + 10 agents. Core skill names
+  are unchanged.
+- **Contracts:** `.do-it/plans/` files are execution contracts (Goal /
+  Decisions / Boundary / Acceptance), not progress logs. Handbook bootstrap no
+  longer creates `brainstorm/` or `grill/`.
+- **Evidence:** `evidence-observer` records observed edit/command facts and
+  worktree coverage. A command name is not proof. Verification still requires
+  fresh worktree evidence or `NOT_VERIFIED`.
+- **Adaptive:** default-off, gitignored personal overlay. Never stores secrets,
+  paths, or project facts; never weakens Core.
+- **Eval:** deterministic behavior-eval schema/fixture tests run in `npm test`.
+  `npm run eval:behavior` is the D01 fixture dry-run smoke, not a paid A/B.
+  Live adapters are runnable with credentials; ordinary `npm test` still
+  must not call paid models. Eval compares kernel vs legacy by setting
+  `DO_IT_ROUTER_MODE` explicitly. Pi live `--suite release --samples 2`
+  was captured 2026-09-01 into gitignored
+  `evals/behavior/runs/2026-09-01-s19-release-pi` (224 runs; runner exit 1
+  = hard-gate failures). Cursor full matrix is **NOT_RUN**
+  (`CURSOR_API_KEY` unset). Write-up:
+  `docs/release-evidence/0.17-unreleased.md`.
+- **Write-quality:** `write-quality-lint` scans added lines. Extra-family
+  risk is path-only; it no longer consults router `tier` / `dim_*`.
+- **Subagents:** default dispatch 0; at most one fresh-context second look.
+- **Runtime modes:** `thin` (default) → `shadow` (opt-in) → `legacy`
+  (rollback and eval baseline). Deleting the lexical router (S16 Phase B)
+  is **not** authorized.
+- **0.17 unreleased gate (S19):** fixture seed dry-runs keep the canned
+  R03/R04/R06 honesty failures. Live adapters exist; this worktree default
+  is **thin**. Comparison to 0.16/legacy is for optimization, not a veto.
+  Evidence: `docs/release-evidence/0.17-unreleased.md`. Rollback:
+  `DO_IT_ROUTER_MODE=legacy`. Version metadata is `0.17.0`; this is S16
+  Phase A as a source release, not a tagged 0.19 or npm publish.
+
 ## 0.16.0
 
 ### Core protocol and architecture routing

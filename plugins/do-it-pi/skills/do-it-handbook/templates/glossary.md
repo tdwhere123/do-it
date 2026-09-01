@@ -40,7 +40,20 @@ Avoid:
 **Blocking / Important / Opportunity** — Severity used in review
 findings. See `do-it-review`.
 
-**Decide modes** — `do-it-decide` offers Grill when a premise or preference gates the route, Diverge when alternatives are genuinely unclear, and a plan card only when durable coordination needs it.
+**Decision-changing unknown** — the unknown that would change the route
+if answered wrongly. See `do-it-decide`.
+
+**Cheapest resolver** — the cheapest reliable method that can settle
+that unknown. See `do-it-decide` and `decision-resolvers.md`.
+
+**Decision boundary** — the fact under which each viable route wins when
+no route dominates. See `do-it-decide`.
+
+**Readiness** — the check that a four-heading contract is earned before
+execution. See `task-contract.md`.
+
+**Task Contract** — Goal / Decisions / Boundary / Acceptance. Plans are
+earned contracts, not progress logs. See `task-contract.md`.
 
 ## Anti-Glossary (Terms To Avoid)
 
@@ -48,4 +61,8 @@ Names that have been deliberately retired or that conflict with
 upstream terms. Listing them here saves a debate the next time someone
 proposes them.
 
+- Grill — retired Decide mode (premise/preference interview). Use cheapest resolver.
+- Diverge — retired Decide mode (unclear alternatives). Use decision-changing unknown and decision boundary.
+- Plan Card — retired durable coordination artifact. Use the four-heading Task Contract.
+- Slice — retired Decide mode. Use the active contract Boundary.
 - _<retired term>_ — _<reason; replacement term>_.

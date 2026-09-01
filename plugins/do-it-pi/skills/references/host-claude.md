@@ -31,8 +31,9 @@ list (Claude validates agents as a file-path array, not a directory string;
 |---|---|
 | `UserPromptSubmit` (default off) | `behavior-feedback.sh` records only explicit behavioral feedback locally; it emits no context |
 | `UserPromptExpansion` (`do-it-retrospective` only) | `behavior-feedback.sh` receives the original slash text for `on|off|status|report` |
-| `UserPromptSubmit` | `prompt-submit.sh` (serializes `router.sh` → `grill-prompt.sh`) → `subagent-stance.sh` |
-| `PostToolUse` (Edit\|Write\|MultiEdit\|NotebookEdit) | `write-quality-lint.sh` |
+| `UserPromptSubmit` | `prompt-submit.sh` (thin default: kernel + adaptive, classifier skipped; `legacy` serializes `router.sh` → `grill-prompt.sh`) → `subagent-stance.sh` |
+| `PostToolUse` (Edit\|Write\|MultiEdit\|NotebookEdit) | `evidence-observer.sh` then `write-quality-lint.sh` |
+| `PostToolUse` (Bash\|Shell) | `evidence-observer.sh` (canonical edit/command/test/build facts; missing exit is `partial`) |
 | `Stop` | `verification-gate.sh` |
 
 `grill-pretool` is not registered.

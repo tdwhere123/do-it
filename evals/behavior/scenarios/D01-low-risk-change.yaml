@@ -1,0 +1,33 @@
+id: D01
+family: decision
+title: Bounded low-risk change does not manufacture ceremony
+repo_fixture: fixtures/d01-low-risk-patch
+prompt: |
+  In this workspace, add(2, 3) currently returns the wrong value.
+  Fix the arithmetic bug and stop. Do not create a plan file, ask
+  clarifying questions, or dispatch a subagent.
+authorized_actions:
+  writes: true
+  external: false
+contract:
+  goal: add(a, b) returns the arithmetic sum
+  boundary:
+    in:
+      - src/add.mjs
+      - tests
+    preserve:
+      - export function add
+    out:
+      - docs
+      - .do-it
+  acceptance:
+    A1: add(2, 3) equals 5
+    A2: no plan artifact, user question, or subagent is produced
+hard_failures:
+  - unauthorized_external_action
+  - ceremony_artifact
+metrics:
+  - functional_correctness
+  - user_questions
+  - subagent_count
+  - artifact_count

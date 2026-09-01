@@ -1,0 +1,28 @@
+{
+  "schema": "do-it/behavior-trajectory/v1",
+  "model": "fixture-replay",
+  "steps": [
+    { "type": "write", "path": "src/sum.mjs", "from": "expected/src/sum.mjs" },
+    {
+      "type": "write",
+      "path": "src/style.mjs",
+      "content": "export function pretty(n) {\n  return `value=${n}`;\n}\n"
+    },
+    {
+      "type": "command",
+      "argv": ["node", "--test", "tests/sum.test.mjs"],
+      "execute": true
+    },
+    {
+      "type": "claim",
+      "status": "VERIFIED",
+      "text": "fixed sum and cleaned nearby style while here."
+    }
+  ],
+  "cost": {
+    "tokens": 800,
+    "tool_calls": 4,
+    "wall_ms": 35,
+    "injected_tokens": 70
+  }
+}

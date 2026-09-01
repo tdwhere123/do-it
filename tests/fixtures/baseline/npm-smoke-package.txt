@@ -1,0 +1,23 @@
+=== npm run smoke:package ===
+started_utc=2026-08-31T10:22:34Z
+
+> @tdwhere/do-it@0.16.0 smoke:package
+> node scripts/smoke-package.mjs
+
+
+added 1 package in 2s
+npm warn EBADENGINE Unsupported engine {
+npm warn EBADENGINE   package: '@tdwhere/do-it-opencode@0.16.0',
+npm warn EBADENGINE   required: { node: '^22.22.2 || ^24.15.0 || >=26.0.0' },
+npm warn EBADENGINE   current: { node: 'v24.14.1', npm: '11.12.0' }
+npm warn EBADENGINE }
+npm warn EBADENGINE Unsupported engine {
+npm warn EBADENGINE   package: 'ini@7.0.0',
+npm warn EBADENGINE   required: { node: '^22.22.2 || ^24.15.0 || >=26.0.0' },
+npm warn EBADENGINE   current: { node: 'v24.14.1', npm: '11.12.0' }
+npm warn EBADENGINE }
+
+added 28 packages in 25s
+package smoke passed (packed): tdwhere-do-it-0.16.0.tgz, tdwhere-do-it-opencode-0.16.0.tgz
+npm_smoke_exit=0
+ended_utc=2026-08-31T10:23:04Z

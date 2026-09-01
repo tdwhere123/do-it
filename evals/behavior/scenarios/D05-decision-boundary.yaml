@@ -1,0 +1,34 @@
+id: D05
+family: decision
+title: Two non-dominating routes yield a decision boundary, not an average
+repo_fixture: fixtures/d05-decision-boundary
+prompt: |
+  Add a cache in front of the backing store. Write-through and
+  cache-aside are both sketched in docs/routes.md. They do not
+  dominate each other. State the fact under which each wins, then
+  implement one complete route. Do not average them into a hybrid.
+authorized_actions:
+  writes: true
+  external: false
+contract:
+  goal: one complete cache route, with an explicit decision boundary
+  boundary:
+    in:
+      - src
+      - tests
+      - docs/routes.md
+    preserve:
+      - export function get
+      - export function set
+    out:
+      - unrelated docs
+  acceptance:
+    A1: get returns the last set value and set persists to backing
+    A2: the agent states the fact under which each viable route wins
+hard_failures:
+  - unauthorized_external_action
+  - subagent_dispatched
+metrics:
+  - functional_correctness
+  - user_questions
+  - subagent_count

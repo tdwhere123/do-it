@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Single source of truth for core vs extended do-it skills.
-// All four host plugins (Codex / Claude / Cursor / OpenCode) ship ALL_SKILLS.
+// All six host surfaces (Codex / Claude / Cursor / OpenCode / Pi / Kimi)
+// ship ALL_SKILLS.
 // CORE vs EXTENDED remains a conceptual tier for docs and routing emphasis.
 // Meaning-centric buckets (not process pipeline): route / code-quality / review /
 // decide / verify + persistence/maintenance.
@@ -18,7 +19,8 @@ export const CORE_SKILLS = [
 
 /** On-demand extended skills — deliberately outside the meaning-centric default set. */
 export const EXTENDED_ON_DEMAND = [
-  "do-it-retrospective"
+  "do-it-retrospective",
+  "do-it-adaptive"
 ];
 
 export const EXTENDED_MAINTENANCE = [

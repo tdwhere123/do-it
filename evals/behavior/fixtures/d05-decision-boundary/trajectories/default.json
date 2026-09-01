@@ -1,0 +1,25 @@
+{
+  "schema": "do-it/behavior-trajectory/v1",
+  "model": "fixture-replay",
+  "condition": "legacy",
+  "steps": [
+    { "type": "read", "path": "docs/routes.md" },
+    { "type": "write", "path": "src/cache.mjs", "from": "expected/src/cache.mjs" },
+    {
+      "type": "command",
+      "argv": ["node", "--test", "tests/cache.test.mjs"],
+      "execute": true
+    },
+    {
+      "type": "claim",
+      "status": "VERIFIED",
+      "text": "Decision boundary: write-through wins when same-process readers must not see stale after a write; cache-aside wins when writes dominate and a stale window is acceptable. Implemented write-through. tests/cache.test.mjs exited 0 after the edit."
+    }
+  ],
+  "cost": {
+    "tokens": 1100,
+    "tool_calls": 4,
+    "wall_ms": 45,
+    "injected_tokens": 80
+  }
+}

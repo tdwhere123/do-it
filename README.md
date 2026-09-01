@@ -8,11 +8,15 @@
 
 > Less is more. The best workflow is the one you don't notice until it saves you.
 
+**do-it makes agent work evidence-carrying.** Every completion claim traces to a
+goal, settled decisions, a boundary, acceptance, and fresh evidence on this
+worktree.
+
 Most AI coding workflows add rules. `do-it` starts from the opposite
 direction: **what can the agent skip?** Small work stays small. No mandatory
 brainstorm → grill → plan → review chain. Every skill, every sub-agent, every
 hook earns its place by being useful *right now* — not by being part of a
-pipeline.
+pipeline. Autonomy stays first: direct user intent outranks hook labels.
 
 What remains is lean and deliberate:
 
@@ -46,11 +50,16 @@ Per-host details and smoke tests: [docs/install.md](./docs/install.md).
 do-it works behind the scenes. You don't invoke it — it fires at the right
 lifecycle points:
 
-- **Router** sizes your task (Light / Standard / Heavy) and suggests skills.
-  Light tasks carry zero ceremony.
+- **Default runtime is thin** (unset or `DO_IT_ROUTER_MODE=thin`): a compact
+  kernel plus an optional adaptive overlay; the lexical classifier is skipped.
+  Rollback to the 0.16 router-then-grill path: `DO_IT_ROUTER_MODE=legacy`.
+  `shadow` still injects the kernel while the classifier records diagnostics
+  only. This is S16 Phase A in this worktree, not a tagged 0.19.
 - **While writing**, `write-quality-lint` flags anti-patterns on new lines.
-  One reminder per file; never blocks.
-- **Before "done"**, the verification gate asks for fresh proof.
+  One reminder per file; never blocks. `evidence-observer` records edit and
+  command facts; a command name is not proof.
+- **Before "done"**, the verification gate asks for fresh proof from this
+  worktree.
 
 ### 3. Set up `.do-it/` (recommended)
 
@@ -71,11 +80,13 @@ This creates:
     glossary.md          long-stable vocabulary
   worklog/             daily or goal-scoped notes
   CONTEXT.md           terse terms and relationships (auto-updated)
-  brainstorm/ grill/ plans/   per-task artifacts
+  plans/               execution contracts when earned (not progress logs)
 ```
 
 Fill in `invariants.md` and `glossary.md` with your project's actual rules.
-The rest maintains itself.
+The rest maintains itself. Bootstrap does **not** create `brainstorm/` or
+`grill/`. Adaptive profiles and runtime event logs stay gitignored under
+`.do-it/runtime/` (default off; never store secrets or project facts there).
 
 ### 4. Skip when you want to
 
@@ -86,7 +97,9 @@ The rest maintains itself.
 
 ### Right-sized work
 
-The router gives every task an advisory risk label — not a permission gate.
+On the legacy rollback path (`DO_IT_ROUTER_MODE=legacy`), the router gives
+every task an advisory risk label — not a permission gate. Thin (the default)
+skips that classifier.
 
 | Tier | What happens |
 | --- | --- |
@@ -94,11 +107,13 @@ The router gives every task an advisory risk label — not a permission gate.
 | **Standard** | Load skills only when the task needs them. No mandatory chain. |
 | **Heavy** | Cross-boundary, release, security, or irreversible. Earns scrutiny. |
 
-Skills are loaded by need, not by tier:
+Twelve runnable skills (plus one generated discovery index) and ten optional
+agents. Skills are loaded by need, not by tier:
 
 | Skill | When |
 | --- | --- |
 | `do-it-core` | Always-on protocol of record — route the tier, then evidence / scope / verify / report |
+| `do-it-router` | Front door — pick Light / Standard / Heavy, then self-select meaning skills |
 | `do-it-code-quality` | Editing code — scope, TDD, debugging, contracts |
 | `do-it-architecture` | Load-bearing architecture — authority, contracts, boundaries, cutover, guards |
 | `do-it-decide` | Options unclear, load-bearing premises |
@@ -107,6 +122,7 @@ Skills are loaded by need, not by tier:
 | `do-it-handbook`, `do-it-context` | Project truth and glossary |
 | `do-it-skill-authoring` | Writing do-it skills |
 | `do-it-retrospective` | Opt-in behavior report (default off) |
+| `do-it-adaptive` | On-demand personal overlay (default off; never weakens Core) |
 
 ### Less code, not more
 
@@ -142,15 +158,21 @@ See [strict external actions](./docs/strict-external-actions.md).
 ### Delegate when it helps
 
 Ten bundled sub-agents offer independent mapping, review, and specialist
-views — use them when they improve the work, ignore them when they don't.
-Your global agents stay untouched by plugin updates.
+views. Default dispatch is **0**. At most **one** fresh-context second look,
+and only when independent evidence could change a costly decision, the slice
+is narrow, or the current context is too anchored to audit itself. Your
+global agents stay untouched by plugin updates.
 
 ## The Flow
 
 ```mermaid
 flowchart TD
-    P[UserPromptSubmit] --> R[do-it-router<br/>classify Light / Standard / Heavy]
+    P[UserPromptSubmit] --> PS[prompt-submit]
+    PS --> M{DO_IT_ROUTER_MODE}
+    M -->|thin default / shadow| K[kernel-context + adaptive-context]
+    M -->|legacy rollback| R[router then grill]
     R --> C[do-it-core<br/>protocol of record]
+    K --> C
     C --> B{meaning buckets}
     B --> CQ[do-it-code-quality<br/>when editing code]
     B --> A[do-it-architecture<br/>load-bearing architecture]
@@ -159,6 +181,7 @@ flowchart TD
     B --> VY[do-it-verify<br/>before done claims]
     CQ --> E[execute]
     D --> E
+    E --> EO[PostToolUse: evidence-observer]
     E --> WQ[PostToolUse: write-quality-lint]
     E --> VG[verification-gate:<br/>advisory completion reminder]
     VG --> VY
@@ -183,9 +206,11 @@ Family catalog and suppression syntax:
 
 ## Release Notes
 
-The current line is **0.16.x**. Release notes and tag policy:
-[`docs/release.md`](./docs/release.md). Older notes:
-[`CHANGELOG.md`](./CHANGELOG.md).
+The published line is **0.16.x**. Unreleased 0.17 work (skills, contracts,
+eval, runtime observe) is documented in [`CHANGELOG.md`](./CHANGELOG.md).
+This worktree default is **thin** (S16 Phase A, not a tagged 0.19). Rollback:
+`DO_IT_ROUTER_MODE=legacy`. Tag policy:
+[`docs/release.md`](./docs/release.md).
 
 ## Local Development
 
@@ -224,7 +249,9 @@ Row-by-row source map: [`docs/upstream-map.md`](./docs/upstream-map.md).
 
 `do-it` is my own take on the same problem space, shaped by daily use on real
 work. It rewrites methods into do-it-native Router / Tier / Skill language; it
-does not vendor upstream skill text or install upstream skill names.
+does not vendor upstream skill text or install upstream skill names. Upstream
+projects do not prove do-it works; absorbed ideas still have to earn their
+place in this repo's behavior eval.
 
 Thanks to the [Linux.do](https://linux.do) community for steady real-world
 feedback.

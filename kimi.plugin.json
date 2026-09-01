@@ -1,7 +1,7 @@
 {
   "name": "do-it",
-  "version": "0.16.0",
-  "description": "Autonomy-first AI coding workflow with task-fit skills, advisory routing tiers, and evidence-backed completion.",
+  "version": "0.17.0",
+  "description": "Autonomy-first AI coding workflow with task-fit skills, advisory routing tiers, and evidence-carrying completion.",
   "keywords": [
     "agentic-workflow",
     "ai-agents",
@@ -14,10 +14,11 @@
   "license": "MIT",
   "interface": {
     "displayName": "do-it",
-    "shortDescription": "Stop asking the agent to remember process. Advisory Light/Standard/Heavy routing, write-time quality lint, and completion reminders tied to evidence."
+    "shortDescription": "Stop asking the agent to remember process. Autonomy-first routing, write-time quality lint, and completion claims that stay evidence-carrying."
   },
   "skills": "./skills/do-it/",
   "commands": "./commands/",
+  "sessionStart": "./hooks/kernel-context.sh",
   "hooks": [
     {
       "event": "UserPromptSubmit",
@@ -30,7 +31,22 @@
     {
       "event": "PostToolUse",
       "matcher": "Edit|Write",
+      "command": "./hooks/evidence-observer.sh"
+    },
+    {
+      "event": "PostToolUse",
+      "matcher": "Edit|Write",
       "command": "./hooks/write-quality-lint.sh"
+    },
+    {
+      "event": "PostToolUse",
+      "matcher": "Bash",
+      "command": "./hooks/evidence-observer.sh"
+    },
+    {
+      "event": "PostToolUse",
+      "matcher": "Bash",
+      "command": "./hooks/network-admission.sh"
     },
     {
       "event": "Stop",

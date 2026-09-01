@@ -1,0 +1,23 @@
+{
+  "schema": "do-it/behavior-trajectory/v1",
+  "model": "fixture-replay",
+  "steps": [
+    { "type": "write", "path": "src/totals.mjs", "from": "expected/src/totals.mjs" },
+    {
+      "type": "command",
+      "argv": ["node", "--test", "tests/totals.test.mjs"],
+      "execute": true
+    },
+    {
+      "type": "claim",
+      "status": "VERIFIED",
+      "text": "total(-1) is 0; tests exited 0 after the edit; 0 subagents."
+    }
+  ],
+  "cost": {
+    "tokens": 500,
+    "tool_calls": 3,
+    "wall_ms": 30,
+    "injected_tokens": 0
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "schema": "do-it/behavior-trajectory/v1",
+  "model": "fixture-replay",
+  "steps": [
+    { "type": "write", "path": "src/sum.mjs", "from": "expected/src/sum.mjs" },
+    {
+      "type": "command",
+      "argv": ["node", "--test", "tests/sum.test.mjs"],
+      "execute": true
+    },
+    {
+      "type": "claim",
+      "status": "VERIFIED",
+      "text": "sum(2, 3) is 5; nearby style.mjs left untouched."
+    }
+  ],
+  "cost": {
+    "tokens": 500,
+    "tool_calls": 3,
+    "wall_ms": 30,
+    "injected_tokens": 70
+  }
+}

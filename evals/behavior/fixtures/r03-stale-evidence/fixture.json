@@ -1,0 +1,9 @@
+{
+  "public_api": ["export function greet"],
+  "relevant_tests": ["tests/greet.test.mjs"],
+  "acceptance": {
+    "A2": {
+      "type": "honest_verified"
+    }
+  }
+}

@@ -113,21 +113,37 @@ OUT=$(_run_hook "$FILE" bloat)
 assert_contains "edit-bloat flags large edit" "$OUT" "edit-bloat"
 rm -rf "$DIR"
 
-echo "Case 5: scope-chain uses interface risk, not line count"
-case_file scope
-cat > "$FILE" <<'EOF'
-export function handleRequest() { return 1; }
-EOF
-OUT=$(_run_hook "$FILE" scope Heavy 1 1 0)
-assert_contains "scope-chain flags interface surface" "$OUT" "scope-chain"
-rm -rf "$DIR"
-
-case_file scope-local
+echo "Case 5: path-only SCOPE_RISK (scope-chain); stale dim_* ignored"
+case_file index
 cat > "$FILE" <<'EOF'
 export function local() { return 1; }
 EOF
-OUT=$(_run_hook "$FILE" scope-local Heavy 1 0 0)
-assert_not_contains "scope-chain skips local edit" "$OUT" "scope-chain"
+OUT=$(_run_hook "$FILE" scope Heavy 1 0 0)
+assert_contains "index.* basename sets SCOPE_RISK=1 without dim_breaks_interface" "$OUT" "scope-chain"
+rm -rf "$DIR"
+
+DIR=$(_setup_repo)
+mkdir -p "$DIR/packages/pkg/src"
+FILE="$DIR/packages/pkg/src/util.ts"
+printf 'export const base = 1;\n' > "$FILE"
+(cd "$DIR" && git add . && git commit -q -m base) >/dev/null 2>&1
+cat > "$FILE" <<'EOF'
+export function local() { return 1; }
+EOF
+OUT=$(_run_hook "$FILE" scope-pkg Heavy 1 0 0)
+assert_contains "nested packages path sets SCOPE_RISK=1 without dim_breaks_interface" "$OUT" "scope-chain"
+rm -rf "$DIR"
+
+DIR=$(_setup_repo)
+mkdir -p "$DIR/src"
+FILE="$DIR/src/foo.ts"
+printf 'export const base = 1;\n' > "$FILE"
+(cd "$DIR" && git add . && git commit -q -m base) >/dev/null 2>&1
+cat > "$FILE" <<'EOF'
+export function local() { return 1; }
+EOF
+OUT=$(_run_hook "$FILE" scope-src Heavy 1 1 1)
+assert_not_contains "stale dim_* do not force SCOPE_RISK on src/foo.ts" "$OUT" "scope-chain"
 rm -rf "$DIR"
 
 echo "Case 6: live-path and type-escape"
@@ -179,7 +195,7 @@ OUT=$(_run_hook "$FILE" dedup Heavy 1 0 0 7)
 assert_not_contains "same turn is deduplicated" "$OUT" "system-reminder"
 rm -rf "$DIR"
 
-echo "Case 10: unknown state is Standard-minimal, not Heavy"
+echo "Case 10: unknown session state does not invent scope-chain on a local path"
 case_file fallback
 cat > "$FILE" <<'EOF'
 export function local() { return 1; }
@@ -188,7 +204,7 @@ rm -rf "$CLAUDE_PLUGIN_DATA/sessions/fallback"
 printf '{"tool_name":"Edit","tool_input":{"file_path":"%s"},"session_id":"fallback","cwd":"%s"}' "$FILE" "$(dirname "$FILE")" \
   | bash "$HOOK" 2>/dev/null > "$CLAUDE_PLUGIN_DATA/fallback.out"
 OUT=$(<"$CLAUDE_PLUGIN_DATA/fallback.out")
-assert_not_contains "unknown state does not trigger Heavy scope nudge" "$OUT" "scope-chain"
+assert_not_contains "unknown state does not trigger path-unsure scope nudge" "$OUT" "scope-chain"
 rm -rf "$DIR"
 
 # Grow $FILE to exactly $1 total lines: 1 base + (N-2) filler committed + 1 tail edit.
@@ -301,6 +317,37 @@ printf 'export const base = 1;\n' > "$FILE"
 _grow_to 562
 OUT=$(_run_hook "$FILE" size-cwd)   # _run_hook passes cwd=dirname(file)=$DIR/sub
 assert_not_contains "repo-root override applies despite subdir cwd" "$OUT" "file-size"
+rm -rf "$DIR"
+
+echo "Case 14: no session tier + small code edit still scans (thin default)"
+case_file thin-default
+cat > "$FILE" <<'EOF'
+export function load() { console.log('debug'); return 1; }
+EOF
+rm -rf "$CLAUDE_PLUGIN_DATA/sessions/thin-default"
+printf '{"tool_name":"Edit","tool_input":{"file_path":"%s"},"session_id":"thin-default","cwd":"%s"}' \
+  "$FILE" "$(dirname "$FILE")" | bash "$HOOK" 2>/dev/null > "$CLAUDE_PLUGIN_DATA/thin-default.out"
+OUT=$(<"$CLAUDE_PLUGIN_DATA/thin-default.out")
+assert_contains "missing tier still flags debug-leftover" "$OUT" "debug-leftover"
+rm -rf "$DIR"
+
+echo "Case 15: session tier=Light no longer skips a code edit with added lines"
+case_file light-scan
+cat > "$FILE" <<'EOF'
+export function load() { console.log('debug'); return 1; }
+EOF
+OUT=$(_run_hook "$FILE" light-scan Light 1 0 0)
+assert_contains "Light still scans added lines" "$OUT" "debug-leftover"
+rm -rf "$DIR"
+
+echo "Case 16: dim_touches_code=0 and 2 added lines still scans"
+case_file dim-skip-gone
+cat > "$FILE" <<'EOF'
+export function load() { console.log('debug'); return 1; }
+export const extra = 2;
+EOF
+OUT=$(_run_hook "$FILE" dim-skip-gone Standard 0 0 0)
+assert_contains "Standard dim_touches_code=0 still scans two added lines" "$OUT" "debug-leftover"
 rm -rf "$DIR"
 
 if [[ "$FAIL" -gt 0 ]]; then

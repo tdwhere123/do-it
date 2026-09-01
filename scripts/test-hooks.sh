@@ -10,6 +10,10 @@ cd "$REPO_ROOT"
 TMP_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/do-it-hook-tests.XXXXXX")"
 export CLAUDE_PLUGIN_DATA="$TMP_ROOT/plugin-data"
 mkdir -p "$CLAUDE_PLUGIN_DATA"
+# This file is the 0.16 router→grill regression suite. Pin legacy so thin
+# default does not skip the classifier. Thin-default coverage lives in
+# tests/hooks/prompt-submit.test.sh.
+export DO_IT_ROUTER_MODE=legacy
 
 cleanup() {
   rm -rf "$TMP_ROOT"
@@ -103,6 +107,13 @@ assert_contains "$pipeline_out" '"additionalContext"' \
   "serialized prompt entrypoint should emit one host-shaped envelope"
 assert_contains "$pipeline_out" "do-it grill" \
   "serialized prompt entrypoint must let grill consume the router tier"
+thin_default_out="$(
+  DO_IT_ROUTER_MODE=thin run_prompt_submit "thin-default-prompt" "Prepare the release schema migration"
+)"
+assert_contains "$thin_default_out" "Do-it kernel:" \
+  "thin default serialized prompt should inject the kernel"
+assert_not_contains "$thin_default_out" "do-it grill" \
+  "thin default serialized prompt should not auto-grill"
 [[ "$(state_value "$pipeline_session" tier)" == "Heavy" ]] \
   || fail "serialized prompt entrypoint should persist Heavy before grill reads it"
 kimi_pipeline_session="serialized-prompt-submit-kimi"
@@ -188,7 +199,7 @@ cat > "$gate_scope_transcript" <<'JSONL'
 {"type":"assistant","message":{"content":[{"type":"text","text":"done"}]}}
 JSONL
 gate_scope_out="$(run_stop "$gate_scope_session" "$gate_scope_transcript")"
-assert_contains "$gate_scope_out" "narrowest fresh check" \
+assert_contains "$gate_scope_out" "fresh relevant evidence" \
   "skip-gate flag from an earlier prompt must not suppress a later completion reminder"
 question_session="q-then-work"
 run_router "$question_session" "你觉得这个 hook 怎么样？"
@@ -210,7 +221,7 @@ cat > "$transcript" <<'JSONL'
 JSONL
 gate_after_work="$(run_stop "$question_session" "$transcript")"
 assert_contains "$gate_after_work" '"additionalContext"' "question skip must not stick to later work verify reminder"
-assert_contains "$gate_after_work" 'narrowest fresh check' "later edited completion should receive verify reminder"
+assert_contains "$gate_after_work" 'fresh relevant evidence' "later edited completion should receive verify reminder"
 
 risk_question_session="risk-question-work"
 run_router "$risk_question_session" "Can you publish the release to production?"
@@ -221,7 +232,7 @@ run_router "$risk_question_session" "Can you publish the release to production?"
 risk_question_grill="$(run_grill "$risk_question_session" "Can you publish the release to production?")"
 assert_contains "$risk_question_grill" "do-it grill" "question wording must not suppress Heavy grill"
 risk_question_gate="$(run_stop "$risk_question_session" "$transcript")"
-assert_contains "$risk_question_gate" 'narrowest fresh check' "question wording must not suppress completion reminder"
+assert_contains "$risk_question_gate" 'fresh relevant evidence' "question wording must not suppress completion reminder"
 
 light_session="light-doc"
 run_router "$light_session" "typo in docs"

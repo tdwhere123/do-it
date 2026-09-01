@@ -1,0 +1,13 @@
+{
+  "public_api": ["export function parseCsvLine"],
+  "acceptance": {
+    "A1": {
+      "type": "command_exit0",
+      "argv": ["node", "--test", "tests/csv.test.mjs"]
+    },
+    "A2": {
+      "type": "metric_zero",
+      "metric": "user_questions"
+    }
+  }
+}

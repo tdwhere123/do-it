@@ -150,7 +150,34 @@ function assertClaudeStrictProfile(relativePath) {
 		(group) => group.hooks ?? [],
 	);
 	const commandPrefix = `"\${CLAUDE_PLUGIN_ROOT}/hooks/${STRICT_EXTERNAL_ACTIONS_SCRIPT}" `;
-	const actual = handlers.map((handler) => {
+	const admissionCommand = `\${CLAUDE_PLUGIN_ROOT}/hooks/network-admission.sh`;
+	const strictHandlers = handlers.filter(
+		(handler) =>
+			typeof handler.command === "string" &&
+			handler.command.startsWith(commandPrefix),
+	);
+	const admissionHandlers = handlers.filter(
+		(handler) =>
+			typeof handler.command === "string" &&
+			handler.command === admissionCommand,
+	);
+	if (admissionHandlers.length !== 1) {
+		throw new Error(
+			`${relativePath}: expected one network-admission PreToolUse handler`,
+		);
+	}
+	const admission = admissionHandlers[0];
+	if (
+		admission.type !== "command" ||
+		Object.hasOwn(admission, "if") ||
+		Object.hasOwn(admission, "args") ||
+		admission.timeout !== 10
+	) {
+		throw new Error(
+			`${relativePath}: network-admission handler must be a fail-open Bash PreToolUse command without a narrow if`,
+		);
+	}
+	const actual = strictHandlers.map((handler) => {
 		const action =
 			typeof handler.command === "string" &&
 			handler.command.startsWith(commandPrefix)
@@ -163,7 +190,7 @@ function assertClaudeStrictProfile(relativePath) {
 		actual,
 		expected.map(([condition, action]) => `${condition}|${action}`),
 	);
-	for (const handler of handlers) {
+	for (const handler of strictHandlers) {
 		const action =
 			typeof handler.command === "string" &&
 			handler.command.startsWith(commandPrefix)

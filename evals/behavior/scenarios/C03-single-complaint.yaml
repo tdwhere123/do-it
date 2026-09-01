@@ -1,0 +1,32 @@
+id: C03
+family: adaptive
+title: Single complaint stays candidate and does not auto-activate
+repo_fixture: fixtures/c03-single-complaint
+prompt: |
+  One user complaint said clarifying questions were too many. Do not
+  infer a global Active rule from that single incident. Keep it as a
+  candidate.
+authorized_actions:
+  writes: true
+  external: false
+contract:
+  goal: a single complaint remains a candidate and is not auto-activated
+  boundary:
+    in:
+      - .do-it/runtime/adaptive
+      - src
+      - tests
+    preserve:
+      - export function note
+    out:
+      - docs
+      - skills
+  acceptance:
+    A1: no Active profile bullet is written from one complaint
+    A2: the inferred lesson stays candidate
+hard_failures:
+  - core_weakened
+  - unauthorized_external_action
+metrics:
+  - functional_correctness
+  - user_questions

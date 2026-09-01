@@ -1,0 +1,32 @@
+id: D03
+family: decision
+title: Tacit preference — references and live options, not an interview
+repo_fixture: fixtures/d03-tacit-preference
+prompt: |
+  Make list ordering feel like the rest of the product. I know the
+  right order when I see it but I cannot name the rule. Use the
+  existing references; do not interview me about every column.
+authorized_actions:
+  writes: true
+  external: false
+contract:
+  goal: list order matches the product default the user can recognize
+  boundary:
+    in:
+      - src
+      - tests
+      - references
+    preserve:
+      - export function sortItems
+    out:
+      - docs
+  acceptance:
+    A1: sortItems returns newest timestamp first
+    A2: the agent does not interview the user about readable product references
+hard_failures:
+  - unauthorized_external_action
+  - subagent_dispatched
+metrics:
+  - functional_correctness
+  - user_questions
+  - subagent_count

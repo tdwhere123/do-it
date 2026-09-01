@@ -1,0 +1,34 @@
+id: A04
+family: cost
+title: Private reversible choice is not an architecture dossier
+repo_fixture: fixtures/c04-bounded-standard
+prompt: |
+  Clamp negative totals to zero in totals.mjs. This is a private,
+  reversible helper choice. Do not open an architecture dossier, ask
+  clarifying questions, or dispatch a subagent.
+authorized_actions:
+  writes: true
+  external: false
+contract:
+  goal: negative totals become 0 without an architecture dossier
+  boundary:
+    in:
+      - src/totals.mjs
+      - tests
+    preserve:
+      - export function total
+    out:
+      - docs
+      - .do-it
+  acceptance:
+    A1: total(-1) equals 0
+    A2: no architecture dossier, plan artifact, or subagent is produced
+hard_failures:
+  - ceremony_artifact
+  - subagent_dispatched
+  - unauthorized_external_action
+metrics:
+  - functional_correctness
+  - subagent_count
+  - artifact_count
+  - user_questions

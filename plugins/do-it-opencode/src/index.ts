@@ -8,6 +8,8 @@ import { BOOTSTRAP_TEXT } from "./bootstrap.js";
 import {
   buildHookPayload,
   isEditTool,
+  isEvidenceTool,
+  isShellTool,
   normalizeToolName,
   readSessionTier,
   spawnHook,
@@ -16,6 +18,12 @@ import {
 } from "./bridge.js";
 
 const injectedSessions = new Set<string>();
+
+function routerMode(): "legacy" | "shadow" | "thin" {
+  const mode = (process.env.DO_IT_ROUTER_MODE ?? "thin").trim();
+  if (mode === "legacy" || mode === "shadow") return mode;
+  return "thin";
+}
 
 const pluginRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const hooksDir = path.join(pluginRoot, "hooks");
@@ -91,6 +99,7 @@ function feedbackRecorderMayRun(cwd: string, prompt: string): boolean {
 }
 
 function injectBootstrapOnce(messages: SessionMessage[], sessionId: string): void {
+  if (routerMode() !== "legacy") return;
   if (injectedSessions.has(sessionId)) return;
 
   for (const message of messages) {
@@ -166,98 +175,6 @@ export function cleanupStaleVerificationTemps(
   }
 }
 
-/** Split an already whitespace-normalized command on shell delimiters without `\s*` ReDoS. */
-function splitCommandSegments(command: string): string[] {
-  const parts: string[] = [];
-  let buf = "";
-  for (let i = 0; i < command.length; i += 1) {
-    const two = command.slice(i, i + 2);
-    if (two === "&&" || two === "||") {
-      if (buf.trim()) parts.push(buf.trim());
-      buf = "";
-      i += 1;
-      continue;
-    }
-    const ch = command[i];
-    if (ch === ";" || ch === "|") {
-      if (buf.trim()) parts.push(buf.trim());
-      buf = "";
-      continue;
-    }
-    buf += ch;
-  }
-  if (buf.trim()) parts.push(buf.trim());
-  return parts;
-}
-
-/** Strip leading `env` / `KEY=VAL` prefixes with a linear scan (no nested quantifiers). */
-function stripLeadingEnvAssignments(segment: string): string {
-  let rest = segment.trim();
-  if (rest.toLowerCase().startsWith("env ")) rest = rest.slice(4).trimStart();
-  while (rest.length > 0) {
-    const eq = rest.match(/^([A-Za-z_][A-Za-z0-9_]*)=/);
-    if (!eq) break;
-    let i = eq[0].length;
-    const quote = rest[i];
-    if (quote === '"' || quote === "'") {
-      i += 1;
-      while (i < rest.length && rest[i] !== quote) i += 1;
-      if (i < rest.length) i += 1;
-    } else {
-      while (i < rest.length && !/[\s;|&]/.test(rest[i]!)) i += 1;
-    }
-    rest = rest.slice(i).trimStart();
-  }
-  return rest;
-}
-
-function tokensIncludeKeyword(tokens: string[], keywords: string[]): boolean {
-  for (const token of tokens) {
-    const lower = token.toLowerCase();
-    for (const keyword of keywords) {
-      if (lower === keyword || lower.includes(keyword)) return true;
-    }
-  }
-  return false;
-}
-
-function evidenceCommand(command: unknown): string | null {
-  if (typeof command !== "string") return null;
-  // Collapse whitespace once so segment matchers stay linear-time.
-  const normalizedCommand = command.replace(/[\t\n\r ]+/g, " ").trim();
-  if (!normalizedCommand) return null;
-
-  const runners = new Set(["vitest", "jest", "playwright", "pytest", "mypy", "tsc", "eslint", "ruff", "biome", "prettier"]);
-  for (let segment of splitCommandSegments(normalizedCommand)) {
-    segment = stripLeadingEnvAssignments(segment);
-    if (segment.toLowerCase().startsWith("command ")) segment = segment.slice(8).trimStart();
-    const tokens = segment.split(" ").filter(Boolean);
-    if (tokens.length === 0) continue;
-
-    const head = tokens[0]!.toLowerCase();
-    const arg1 = (tokens[1] ?? "").toLowerCase();
-
-    if (head === "npm" && (arg1 === "test" || arg1 === "run" || arg1 === "exec")) return `npm ${arg1}`;
-    if ((head === "pnpm" || head === "yarn") && (arg1 === "test" || arg1 === "build" || arg1 === "exec" || arg1 === "run")) {
-      return `${head} ${arg1}`;
-    }
-    if (runners.has(head)) return head;
-    if (head === "cargo" && (arg1 === "test" || arg1 === "run" || arg1 === "build" || arg1 === "check" || arg1 === "clippy")) {
-      return `cargo ${arg1}`;
-    }
-    if (head === "go" && (arg1 === "test" || arg1 === "run" || arg1 === "build" || arg1 === "vet")) return `go ${arg1}`;
-    if (head === "do-it" && arg1 === "doctor") return "do-it doctor";
-    if (head === "git" && arg1 === "diff") return "git diff";
-    if (head === "node" && tokensIncludeKeyword(tokens.slice(1), ["validate", "check", "test", "build"])) {
-      return "node validation";
-    }
-    if ((head === "python" || head === "python3") && tokensIncludeKeyword(tokens.slice(1), ["test", "check", "validate"])) {
-      return "python validation";
-    }
-  }
-  return null;
-}
-
 function toolStatus(part: MessagePart): "completed" | "error" | "unknown" {
   if (part.state?.status === "completed") return "completed";
   if (part.state?.status === "error") return "error";
@@ -329,20 +246,15 @@ function verificationRecords(data: unknown): Array<Record<string, unknown>> {
       const rawTool = part.tool ?? part.name;
       if (!rawTool) continue;
       const normalized = normalizeToolName(rawTool);
-      const isShell = rawTool.toLowerCase() === "bash" || rawTool.toLowerCase() === "shell";
-      if (!normalized && !isShell) continue;
-      if (normalized && part.state?.status !== "completed") continue;
+      if (!normalized) continue;
+      if (part.state?.status !== "completed") continue;
 
-      const name = normalized ?? "Bash";
-      const command = isShell && part.state?.status === "completed"
-        ? evidenceCommand(part.state.input?.command)
-        : undefined;
-      const input = command ? { command } : {};
+      const name = normalized;
       fallbackCallID += 1;
       const callID = part.callID ?? `${name.toLowerCase()}-${fallbackCallID}`;
       records.push({
         type: "assistant",
-        message: { content: [{ type: "tool_use", id: callID, name, input }] }
+        message: { content: [{ type: "tool_use", id: callID, name, input: {} }] }
       });
       records.push({
         type: "user",
@@ -513,6 +425,42 @@ function createHooks(ctx: PluginInput): Hooks {
     },
 
     "tool.execute.after": async (input, output) => {
+      if (isEvidenceTool(input.tool)) {
+        const metadata =
+          output.metadata && typeof output.metadata === "object" && !Array.isArray(output.metadata)
+            ? (output.metadata as Record<string, unknown>)
+            : undefined;
+        await spawnHook(
+          hooksDir,
+          "evidence-observer.sh",
+          buildHookPayload({
+            sessionID: input.sessionID,
+            cwd,
+            tool: input.tool,
+            args: input.args,
+            output: typeof output.output === "string" ? output.output : undefined,
+            metadata
+          })
+        );
+      }
+
+      if (isShellTool(input.tool)) {
+        const admission = await spawnHook(
+          hooksDir,
+          "network-admission.sh",
+          buildHookPayload({
+            sessionID: input.sessionID,
+            cwd,
+            tool: input.tool,
+            args: input.args
+          })
+        );
+        const admissionContext = hookContext(admission);
+        if (admissionContext) {
+          output.output = `${output.output ?? ""}\n${admissionContext}`.trim();
+        }
+      }
+
       if (!isEditTool(input.tool)) return;
 
       const result = await spawnHook(

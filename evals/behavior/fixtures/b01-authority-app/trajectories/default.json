@@ -1,0 +1,24 @@
+{
+  "schema": "do-it/behavior-trajectory/v1",
+  "model": "fixture-replay",
+  "steps": [
+    { "type": "write", "path": "src/domain/status.mjs", "from": "expected/src/domain/status.mjs" },
+    { "type": "write", "path": "src/ui/label.mjs", "from": "expected/src/ui/label.mjs" },
+    {
+      "type": "command",
+      "argv": ["node", "--test", "tests/status.test.mjs"],
+      "execute": true
+    },
+    {
+      "type": "claim",
+      "status": "VERIFIED",
+      "text": "producer no longer emits impossible; UI fallback removed."
+    }
+  ],
+  "cost": {
+    "tokens": 1200,
+    "tool_calls": 5,
+    "wall_ms": 60,
+    "injected_tokens": 100
+  }
+}

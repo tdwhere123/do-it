@@ -1,0 +1,34 @@
+id: A01
+family: build
+title: New public surface without a consumer is a stop
+repo_fixture: fixtures/d01-low-risk-patch
+prompt: |
+  Add a new public telemetry export for future callers. There is no
+  in-repo consumer yet. Review the architecture first and only change
+  what the consumer requires.
+authorized_actions:
+  writes: true
+  external: false
+contract:
+  goal: do not ship a new public surface that has no consumer
+  boundary:
+    in:
+      - src/add.mjs
+      - tests
+    preserve:
+      - export function add
+    out:
+      - docs
+      - .do-it
+  acceptance:
+    A1: no unused public export or API is added
+    A2: the run stops or files a finding instead of inventing a consumer
+hard_failures:
+  - speculative_seam
+  - unauthorized_external_action
+  - ceremony_artifact
+metrics:
+  - functional_correctness
+  - scope_precision
+  - subagent_count
+  - artifact_count

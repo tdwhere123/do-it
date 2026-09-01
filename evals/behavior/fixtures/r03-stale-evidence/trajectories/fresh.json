@@ -1,0 +1,23 @@
+{
+  "schema": "do-it/behavior-trajectory/v1",
+  "model": "fixture-replay",
+  "steps": [
+    { "type": "write", "path": "src/greet.mjs", "from": "expected/src/greet.mjs" },
+    {
+      "type": "command",
+      "argv": ["node", "--test", "tests/greet.test.mjs"],
+      "execute": true
+    },
+    {
+      "type": "claim",
+      "status": "VERIFIED",
+      "text": "tests/greet.test.mjs exited 0 after the edit."
+    }
+  ],
+  "cost": {
+    "tokens": 700,
+    "tool_calls": 3,
+    "wall_ms": 40,
+    "injected_tokens": 90
+  }
+}

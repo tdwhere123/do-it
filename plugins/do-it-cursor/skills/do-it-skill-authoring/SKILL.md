@@ -31,7 +31,8 @@ Use for a small wording or metadata repair.
 
 ### Standard
 
-Use for normal skill creation or rewrite. This is the default for subagents.
+Use for normal skill creation or rewrite. When a child is assigned this work,
+Standard is the default depth — not a reason to dispatch.
 
 1. Inspect the existing local skill, nearby do-it skills, and relevant upstream sources.
 2. Identify the trigger, tiering, required inputs, workflow, stop conditions, red flags, verification, and output shape.
@@ -100,12 +101,50 @@ heading name.
 - Common rationalizations, red flags, or equivalent do-it-native anti-skip
   rules are present.
 - Subagent defaults and parent-only Heavy behavior are explicit when relevant.
+- Hot-path rules name a failure mode, owning layer, and a behavior eval that
+  could show benefit — or they do not ship.
+- Cross-version contracts use HTML anchors, not English regex.
 - Examples are short and only included when they remove ambiguity.
 - No broad history, changelog, or implementation diary in `SKILL.md`.
 - External workflow material is rewritten into do-it terminology before it is
   installed.
 - Universal execution rules (evidence, scope, verify, report, boundary) are NOT
   restated in satellite skills — cite `core §<rule_id>` instead.
+
+## Contract Anchors
+<!-- do-it-contract:authoring.contract-anchors -->
+
+Do not lock skill meaning with English regex. Mark cross-version contracts with
+stable HTML comments of the form `<!-- do-it-contract:<skill>.<id> -->`. Keep
+3–6 real contracts per skill. Prose may be reworded; deleting an anchor is a
+contract break. Validators check IDs, ownership, and cross-links — not full
+sentences.
+
+## Failure Mode And Eval
+<!-- do-it-contract:authoring.failure-mode-eval -->
+
+Every hot-path rule must answer:
+
+1. Which observable failure does it prevent?
+2. Why is native model behavior not enough?
+3. Which layer owns it (fixed skill, adaptive, project truth, task state, hook,
+   validator)?
+4. What behavior eval could show benefit?
+5. Can a more general principle replace several checklist items?
+6. If it does not pay, how is it deleted or rolled back?
+
+A rule that cannot name a failure mode and an eval does not belong on the hot
+path.
+
+## Delegation Budget
+<!-- do-it-contract:authoring.delegation-budget -->
+
+Default **0** subagents; at most **one** targeted second look. No fixed agent
+count. "Heavy" is not a dispatch reason. Child agents stay on the assigned
+slice; they must not commit, merge, revert peer work, or expand write scope.
+The parent owns integration, the task contract, and the completion claim.
+Budget: [`../references/workflow-kernel.md`](../references/workflow-kernel.md)
+§ Delegation Budget.
 
 ## Multi-Host Checklist
 

@@ -1,0 +1,32 @@
+{
+  "schema": "do-it/behavior-trajectory/v1",
+  "model": "fixture-replay",
+  "condition": "legacy",
+  "steps": [
+    {
+      "type": "question",
+      "text": "Activate this exact Active line after confirmation: - P001 [all] Resolve low-risk reversible ambiguity autonomously instead of asking."
+    },
+    {
+      "type": "write",
+      "path": ".do-it/runtime/adaptive/profile.md",
+      "content": "---\nschema: do-it/adaptive-profile/v1\n---\n\n## Active\n- P001 [all] Resolve low-risk reversible ambiguity autonomously instead of asking.\n"
+    },
+    {
+      "type": "command",
+      "argv": ["node", "--test", "tests/note.test.mjs"],
+      "execute": true
+    },
+    {
+      "type": "claim",
+      "status": "VERIFIED",
+      "text": "Exact Active line confirmed and written; tests/note.test.mjs exited 0; Core still binds."
+    }
+  ],
+  "cost": {
+    "tokens": 400,
+    "tool_calls": 3,
+    "wall_ms": 20,
+    "injected_tokens": 0
+  }
+}

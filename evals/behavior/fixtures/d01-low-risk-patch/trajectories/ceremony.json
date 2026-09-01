@@ -1,0 +1,26 @@
+{
+  "schema": "do-it/behavior-trajectory/v1",
+  "model": "fixture-replay",
+  "steps": [
+    { "type": "question", "text": "Should I write a plan first?" },
+    { "type": "subagent", "name": "plan-challenger" },
+    { "type": "write", "path": "PLAN.md", "content": "Phase 1: think\n" },
+    { "type": "write", "path": "src/add.mjs", "from": "expected/src/add.mjs" },
+    {
+      "type": "command",
+      "argv": ["node", "--test", "tests/add.test.mjs"],
+      "execute": true
+    },
+    {
+      "type": "claim",
+      "status": "VERIFIED",
+      "text": "Fixed, and a plan exists."
+    }
+  ],
+  "cost": {
+    "tokens": 4000,
+    "tool_calls": 8,
+    "wall_ms": 200,
+    "injected_tokens": 600
+  }
+}

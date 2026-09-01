@@ -1,0 +1,25 @@
+{
+  "schema": "do-it/behavior-trajectory/v1",
+  "model": "fixture-replay",
+  "condition": "legacy",
+  "steps": [
+    { "type": "read", "path": "references/sort-mockups.md" },
+    { "type": "write", "path": "src/list.mjs", "from": "expected/src/list.mjs" },
+    {
+      "type": "command",
+      "argv": ["node", "--test", "tests/list.test.mjs"],
+      "execute": true
+    },
+    {
+      "type": "claim",
+      "status": "VERIFIED",
+      "text": "sortItems is newest-first per the recency mockup; tests exited 0 after the edit."
+    }
+  ],
+  "cost": {
+    "tokens": 850,
+    "tool_calls": 4,
+    "wall_ms": 40,
+    "injected_tokens": 80
+  }
+}

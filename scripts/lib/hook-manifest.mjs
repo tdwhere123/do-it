@@ -11,11 +11,16 @@
 /** Runtime hook scripts wired on every host (bash). */
 export const HOOK_SCRIPTS = [
   "behavior-feedback.sh",
+  "learning-recorder.sh",
   "prompt-submit.sh",
+  "kernel-context.sh",
+  "adaptive-context.sh",
   "router.sh",
   "grill-prompt.sh",
   "subagent-stance.sh",
   "write-quality-lint.sh",
+  "evidence-observer.sh",
+  "network-admission.sh",
   "verification-gate.sh",
   "anti-patterns-lint.sh",
   "comments-lint.sh"
@@ -86,8 +91,28 @@ export function codexHooksJson() {
           hooks: [
             {
               type: "command",
+              command: codexHookCommand("evidence-observer.sh"),
+              timeout: 10
+            },
+            {
+              type: "command",
               command: codexHookCommand("write-quality-lint.sh"),
               timeout: 15
+            }
+          ]
+        },
+        {
+          matcher: "Bash|Shell",
+          hooks: [
+            {
+              type: "command",
+              command: codexHookCommand("evidence-observer.sh"),
+              timeout: 10
+            },
+            {
+              type: "command",
+              command: codexHookCommand("network-admission.sh"),
+              timeout: 10
             }
           ]
         }

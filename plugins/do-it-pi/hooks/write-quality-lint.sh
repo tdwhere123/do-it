@@ -113,30 +113,8 @@ if [[ -z "$WQ_ADDED_LINES" ]]; then
   exit 0
 fi
 
-TIER="$(do_it_session_state_get "$SESSION_ID" tier)"
-HAS_ROUTER_TIER=1
-# Hosts without router state must not become noisier merely because their adapter
-# cannot classify the turn. Standard is the smallest useful advisory fallback.
-if [[ -z "$TIER" ]]; then
-  TIER="Standard"
-  HAS_ROUTER_TIER=0
-fi
-
-ADDED_LINE_COUNT="$(printf '%s\n' "$WQ_ADDED_LINES" | grep -c . || true)"
-case "$TIER" in
-  Light)
-    do_it_debug write-quality-lint "decision=skip reason=tier-light file=$FILE_PATH"
-    exit 0
-    ;;
-  Standard)
-    DIM_TOUCHES_CODE="$(do_it_session_state_get "$SESSION_ID" dim_touches_code)"
-    [[ "$HAS_ROUTER_TIER" == "0" ]] && DIM_TOUCHES_CODE="1"
-    if [[ "$DIM_TOUCHES_CODE" != "1" && "${ADDED_LINE_COUNT:-0}" -lt 5 ]]; then
-      do_it_debug write-quality-lint "decision=skip reason=tier-standard-gate touches=$DIM_TOUCHES_CODE added=$ADDED_LINE_COUNT file=$FILE_PATH"
-      exit 0
-    fi
-    ;;
-esac
+# Added lines are the scan gate. Router tier/dim_* are not consulted: thin
+# sessions have no classifier, and Light/Standard must not skip a real edit.
 
 PROJECT_ROOT="$(do_it_project_root "$CWD")"
 PROJECT_ROOT="${PROJECT_ROOT%/}"
@@ -161,14 +139,25 @@ WQ_COMMENT_HITS=0
 
 wq_scan_comment_families
 wq_scan_antipattern_families "$REPO_ROOT" "$FILE_PATH" "$CWD"
-DIM_BREAKS_INTERFACE="$(do_it_session_state_get "$SESSION_ID" dim_breaks_interface)"
-DIM_CROSSES_PACKAGES="$(do_it_session_state_get "$SESSION_ID" dim_crosses_packages)"
-SCOPE_RISK="0"
-if [[ "$DIM_BREAKS_INTERFACE" == "1" || "$DIM_CROSSES_PACKAGES" == "1" ]]; then
-  SCOPE_RISK="1"
-elif [[ -z "$DIM_BREAKS_INTERFACE$DIM_CROSSES_PACKAGES" ]]; then
-  SCOPE_RISK="unknown"
-fi
+
+# Cheap path-only SCOPE_RISK for extra families. High-signal public API or a
+# nested workspace package → 1; otherwise unknown (large-edit fallback in the
+# scanner). Not a lexical-router reimplementation.
+_wq_scope_risk_from_path() {
+  local file_path="$1" repo_root="$2"
+  local rel="${file_path#"${repo_root}/"}" base
+  [[ "$rel" == "$file_path" ]] && rel="${file_path##*/}"
+  rel="${rel#./}"
+  base="${rel##*/}"
+  case "$base" in
+    index.*|plugin.json|manifest.json) printf '%s' 1; return ;;
+  esac
+  case "$rel" in
+    packages/*/*|plugins/*/*|apps/*/*) printf '%s' 1; return ;;
+  esac
+  printf '%s' unknown
+}
+SCOPE_RISK="$(_wq_scope_risk_from_path "$FILE_PATH" "$REPO_ROOT")"
 wq_scan_extra_families "$FILE_PATH" "$SCOPE_RISK" "$REPO_ROOT"
 
 # Suppress individual advisory families with a reason-bearing marker, never the

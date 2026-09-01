@@ -10,6 +10,7 @@ export type HookPayload = {
 	tool_name?: string;
 	tool_input?: Record<string, unknown>;
 	tool_result?: string;
+	tool_response?: Record<string, unknown>;
 	file_path?: string;
 	transcript_path?: string;
 	stop_hook_active?: string;
@@ -37,6 +38,7 @@ export type HookRunnerOptions = {
 type ContentPart = { type?: unknown; text?: unknown };
 
 const EDIT_TOOLS = new Set(["edit", "write", "multiedit"]);
+const SHELL_TOOLS = new Set(["bash", "shell", "powershell", "cmd"]);
 const DEFAULT_HOOK_TIMEOUT_MS = 15_000;
 const MAX_HOOK_OUTPUT_BYTES = 256 * 1024;
 const MAX_ADDITIONAL_CONTEXT_BYTES = 64 * 1024;
@@ -59,6 +61,26 @@ export function normalizeToolName(tool: string): string | null {
 
 export function isEditTool(tool: string): boolean {
 	return EDIT_TOOLS.has(tool.toLowerCase());
+}
+
+export function isShellTool(tool: string): boolean {
+	return SHELL_TOOLS.has(tool.toLowerCase());
+}
+
+export function isEvidenceTool(tool: string): boolean {
+	return isEditTool(tool) || isShellTool(tool);
+}
+
+export function extractExitCode(
+	details?: Record<string, unknown>,
+): number | undefined {
+	if (!details) return undefined;
+	for (const key of ["exit_code", "exitCode", "code"]) {
+		const value = details[key];
+		if (typeof value === "number" && Number.isInteger(value)) return value;
+		if (typeof value === "string" && /^-?\d+$/.test(value)) return Number(value);
+	}
+	return undefined;
 }
 
 export function extractFilePath(
@@ -90,9 +112,16 @@ export function buildHookPayload(input: {
 	toolName?: string;
 	input?: Record<string, unknown>;
 	content?: readonly ContentPart[];
+	details?: Record<string, unknown>;
 	transcriptPath?: string;
 	stopHookActive?: boolean;
 }): HookPayload {
+	const toolResult = contentText(input.content);
+	const exitCode = extractExitCode(input.details);
+	const toolResponse: Record<string, unknown> = {};
+	if (toolResult) toolResponse.output = toolResult;
+	if (exitCode !== undefined) toolResponse.exit_code = exitCode;
+
 	return {
 		session_id: input.sessionId,
 		cwd: input.cwd,
@@ -102,7 +131,10 @@ export function buildHookPayload(input: {
 			? (normalizeToolName(input.toolName) ?? input.toolName)
 			: undefined,
 		tool_input: input.input,
-		tool_result: contentText(input.content),
+		tool_result: toolResult,
+		...(Object.keys(toolResponse).length > 0
+			? { tool_response: toolResponse }
+			: {}),
 		file_path: extractFilePath(input.input),
 		transcript_path: input.transcriptPath ?? "",
 		...(input.stopHookActive ? { stop_hook_active: "true" } : {}),

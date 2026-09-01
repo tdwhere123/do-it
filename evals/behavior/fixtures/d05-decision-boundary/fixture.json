@@ -1,0 +1,9 @@
+{
+  "public_api": ["export function get", "export function set"],
+  "acceptance": {
+    "A1": {
+      "type": "command_exit0",
+      "argv": ["node", "--test", "tests/cache.test.mjs"]
+    }
+  }
+}

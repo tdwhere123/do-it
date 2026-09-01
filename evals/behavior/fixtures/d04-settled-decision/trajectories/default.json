@@ -1,0 +1,25 @@
+{
+  "schema": "do-it/behavior-trajectory/v1",
+  "model": "fixture-replay",
+  "condition": "legacy",
+  "steps": [
+    { "type": "read", "path": "contracts/active.md" },
+    { "type": "write", "path": "src/store.mjs", "from": "expected/src/store.mjs" },
+    {
+      "type": "command",
+      "argv": ["node", "--test", "tests/store.test.mjs"],
+      "execute": true
+    },
+    {
+      "type": "claim",
+      "status": "VERIFIED",
+      "text": "in-memory store keeps the second write; sqlite was not reopened; tests exited 0 after the edit."
+    }
+  ],
+  "cost": {
+    "tokens": 900,
+    "tool_calls": 4,
+    "wall_ms": 40,
+    "injected_tokens": 80
+  }
+}

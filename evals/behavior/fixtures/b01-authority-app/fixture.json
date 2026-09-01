@@ -1,0 +1,12 @@
+{
+  "public_api": ["export function produceStatus", "export function statusLabel"],
+  "authority_paths": ["src/domain/"],
+  "downstream_paths": ["src/ui/"],
+  "relevant_tests": ["tests/status.test.mjs"],
+  "acceptance": {
+    "A1": {
+      "type": "command_exit0",
+      "argv": ["node", "--test", "tests/status.test.mjs"]
+    }
+  }
+}

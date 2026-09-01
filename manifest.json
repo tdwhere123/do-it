@@ -1,5 +1,5 @@
 {
-  "version": "0.16.0",
+  "version": "0.17.0",
   "skillTiers": {
     "core": [
       "do-it-core",
@@ -12,6 +12,7 @@
     ],
     "extended": [
       "do-it-retrospective",
+      "do-it-adaptive",
       "do-it-handbook",
       "do-it-context",
       "do-it-skill-authoring"
@@ -107,10 +108,34 @@
       "target": "hooks/behavior-feedback.sh"
     },
     {
+      "name": "hooks-learning-recorder",
+      "kind": "file",
+      "source": "hooks/learning-recorder.sh",
+      "target": "hooks/learning-recorder.sh"
+    },
+    {
       "name": "hooks-prompt-submit",
       "kind": "file",
       "source": "hooks/prompt-submit.sh",
       "target": "hooks/prompt-submit.sh"
+    },
+    {
+      "name": "hooks-kernel-context",
+      "kind": "file",
+      "source": "hooks/kernel-context.sh",
+      "target": "hooks/kernel-context.sh"
+    },
+    {
+      "name": "hooks-adaptive-context",
+      "kind": "file",
+      "source": "hooks/adaptive-context.sh",
+      "target": "hooks/adaptive-context.sh"
+    },
+    {
+      "name": "hooks-evidence-observer",
+      "kind": "file",
+      "source": "hooks/evidence-observer.sh",
+      "target": "hooks/evidence-observer.sh"
     },
     {
       "name": "hooks-lib",
@@ -147,6 +172,12 @@
         "1a5e10e078343d399565c549b9efabace39caf18474380b498398a18b6279e96",
         "9a2f6989e10c0d08a9e95281af0b9113dd9affae63c6e8facae9d37cd342a313"
       ]
+    },
+    {
+      "name": "hooks-network-admission",
+      "kind": "file",
+      "source": "hooks/network-admission.sh",
+      "target": "hooks/network-admission.sh"
     }
   ],
   "targets": {
@@ -661,6 +692,12 @@
       "name": "do-it-retrospective",
       "source": "skills/do-it/do-it-retrospective",
       "target": "skills/do-it-retrospective",
+      "origin": "do-it"
+    },
+    {
+      "name": "do-it-adaptive",
+      "source": "skills/do-it/do-it-adaptive",
+      "target": "skills/do-it-adaptive",
       "origin": "do-it"
     },
     {

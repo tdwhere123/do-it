@@ -1,25 +1,52 @@
 # Workflow Kernel
 
-Shared finding schema, path map chain, and failure-mode classes. Meaning skills point here — do not duplicate full definitions elsewhere.
+Shared vocabulary for Task Contract, delegation budget, findings, and the
+causal change cone. Meaning skills point here — do not duplicate full
+definitions elsewhere.
 
-## When Forecast And Path Map Help
+## Task Contract
 
-Use a forecast or path map when behavior, interfaces, runtime state, or a
-cross-boundary handoff makes it change the route or proof. Keep it as short as
-the decision needs; do not complete a form for bounded local work.
+The durable work object is Goal / Decisions / Boundary / Acceptance.
+Shape, persist criteria, provenance, and readiness:
+[`task-contract.md`](task-contract.md).
 
-Docs-only or mechanical work with obvious local verification normally skips
-both. A brief `N/A` note is useful only when another worker or session could
-otherwise misread the boundary. Light normally skips unless its assigned slice
-has a real risk boundary.
+Do not store live progress in the contract. Progress comes from git, runtime
+events, and evidence. Cite `core §r-scope` rather than restating it.
 
-### Tier precedents (forecast / path map)
+## Delegation Budget
+<!-- do-it-contract:delegation.zero-default -->
 
-| Work shape | Tier | Forecast / path map |
-| --- | --- | --- |
-| Single-file typo, log copy, or comment-only | Light | Not required |
-| 1–3 file bounded fix, no interface change | Standard | Usually skip; add a one-line local risk only if it changes proof |
-| Cross-package refactor, schema/API, or multi-agent wave | Heavy | Usually map the live path and likely failure modes when they guide ownership or verification |
+Default **0** subagents. At most **one** fresh-context second look, and only
+when at least one holds:
+
+1. a wrong call is expensive and independent evidence could change the route;
+2. the question compresses to a narrow, verifiable, usually read-only slice;
+3. the current context is too anchored to audit its own premise.
+
+"Heavy" is not a dispatch reason. Parallel workers only for disjoint write
+scopes or an explicit user request.
+
+The parent owns integration, shared files, and the completion claim. A worker
+must not commit, merge, push, tag, publish, revert peer work, or expand its
+write scope.
+<!-- do-it-contract:delegation.child-write-boundary -->
+
+Give a worker only: the question or goal, the slice and write/side-effect
+boundary, and the evidence that would help the parent decide. The worker
+returns a compact result and names what it did not check.
+
+## Change Cone
+
+Allowed edits follow causal fallout from the active contract, not adjacency.
+Map the proof path when behavior, interfaces, runtime state, or a
+cross-boundary handoff would change the route or proof:
+
+```text
+producer -> contract/event/schema -> transport/client -> state/query -> surface/operator action -> verification
+```
+
+Bounded local→global walk: [`scope-chain.md`](scope-chain.md). Docs-only or
+mechanical work with obvious local verification normally skips the map.
 
 ## Failure-Mode Forecast Classes
 
@@ -35,16 +62,6 @@ Name concrete classes — not vague "risk":
 | **evidence drift** | Report or pre-merge run older than the branch/worktree being claimed |
 
 If none fit: `failure-mode forecast: none identified` plus why.
-
-## Path Map Chain
-
-Map the proof path before execution:
-
-```text
-producer -> contract/event/schema -> transport/client -> state/query -> surface/operator action -> verification
-```
-
-Use the map to choose tests, reviewers, and verification. Field name `Path Map:` in handoffs. Bounded local→global walk: [`scope-chain.md`](scope-chain.md).
 
 ## Decision Ladder (Restraint)
 
@@ -62,22 +79,6 @@ Never cut safety: trust boundaries, data-loss, security, accessibility, or expli
 ## Evidence-Driven Optimization
 
 Unknown is not impossible, but possibility is not proof. Record the current baseline and success metric, keep the known-correct path available, and probe the breakthrough hypothesis with the cheapest falsifier first. Scale investment only when the observation survives that test and materially improves the baseline.
-
-## Delegation Boundary
-
-The parent owns integration. Delegate when an independent slice is useful; do
-not make a fixed contract or a named role a prerequisite for exploration.
-
-Give a worker only what it needs:
-
-- the goal or question to resolve;
-- the slice and any write/side-effect boundary;
-- the result, uncertainty, or evidence that would help the parent decide.
-
-The worker should return a compact result in its own useful shape and name what
-it did not check. Add explicit facts, proof targets, or stop conditions only
-when the task has a real ambiguity or risk boundary. Workers do not commit,
-merge, revert peer work, or expand into unassigned write boundaries by default.
 
 ## Finding Schema
 
@@ -98,11 +99,10 @@ NOT_CHECKED: explicit list of scope/checks not performed (required even if empty
 skipped: <skill-or-hook> because <reason>
 ```
 
-## Useful Fields (Routing / Planning)
+## Useful Fields
 
-For a handoff or durable plan, record only the fields another worker needs:
-tier, current facts, a forecast/path map when useful, selected capabilities,
-next action, and any real approval boundary.
+For a handoff or durable contract, record only what another executor needs:
+goal, settled decisions, boundary, acceptance, and any real approval limit.
 
-For final delivery, report the changed surface, relevant fresh evidence, and
-residual risk or uncertainty. Do not manufacture a fixed report shape.
+For final delivery, report the changed cone, acceptance evidence, and residual
+risk. Do not manufacture a fixed report shape.

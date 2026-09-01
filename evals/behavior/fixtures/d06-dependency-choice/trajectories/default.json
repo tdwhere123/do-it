@@ -1,0 +1,26 @@
+{
+  "schema": "do-it/behavior-trajectory/v1",
+  "model": "fixture-replay",
+  "condition": "legacy",
+  "steps": [
+    { "type": "read", "path": "docs/constraints.md" },
+    { "type": "read", "path": "docs/candidates.md" },
+    { "type": "write", "path": "src/csv.mjs", "from": "expected/src/csv.mjs" },
+    {
+      "type": "command",
+      "argv": ["node", "--test", "tests/csv.test.mjs"],
+      "execute": true
+    },
+    {
+      "type": "claim",
+      "status": "VERIFIED",
+      "text": "Compared papaparse and csv-parse against MIT/no-native/small-subset constraints; local quoted-split dominates. tests/csv.test.mjs exited 0 after the edit. No dependency added."
+    }
+  ],
+  "cost": {
+    "tokens": 1000,
+    "tool_calls": 5,
+    "wall_ms": 45,
+    "injected_tokens": 80
+  }
+}
