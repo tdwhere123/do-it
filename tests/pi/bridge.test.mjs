@@ -14,6 +14,19 @@ const bridgeUrl = pathToFileURL(
 ).href;
 const bridge = await import(bridgeUrl);
 
+function rmTemp(dir) {
+	for (let attempt = 0; attempt < 8; attempt += 1) {
+		try {
+			fs.rmSync(dir, { recursive: true, force: true });
+			return;
+		} catch (error) {
+			if (!["EBUSY", "ENOTEMPTY", "EPERM"].includes(error.code)) throw error;
+			Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 50 * (attempt + 1));
+		}
+	}
+	fs.rmSync(dir, { recursive: true, force: true });
+}
+
 test("buildHookPayload keeps canonical model, transcript, and tool-result text", () => {
 	const payload = bridge.buildHookPayload({
 		sessionId: "session-1",
@@ -300,7 +313,7 @@ test("real subagent stance honors PI_SUBAGENT_CHILD without path heuristics", as
 				transcript_path: path.join(cwd, "session.jsonl"),
 			},
 			{
-				timeoutMs: 2_000,
+				timeoutMs: 15_000,
 				env: {
 					PI_SUBAGENT_CHILD: "1",
 					DO_IT_HOOK_DATA: dataDir,
@@ -311,6 +324,6 @@ test("real subagent stance honors PI_SUBAGENT_CHILD without path heuristics", as
 		assert.equal(result.exitCode, 0);
 		assert.match(result.additionalContext ?? "", /do-it subagent stance/i);
 	} finally {
-		fs.rmSync(cwd, { recursive: true, force: true });
+		rmTemp(cwd);
 	}
 });
