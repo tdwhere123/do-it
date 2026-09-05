@@ -154,9 +154,9 @@ function helpText() {
 Options:
   --dry-run            Fixture backend only; never call a network model
   --scenario ID[,ID]   Subset of scenarios (default: nine seed ids)
-  --family NAME[,NAME] Filter by family (decision|build|review-verify|recovery|cost|adaptive)
+  --family NAME[,NAME] Filter by family (decision|build|review-verify|recovery|cost)
   --suite release      Seed plus extra corpus (all loaded scenarios)
-  --condition NAME     vanilla | legacy | kernel | adaptive (candidate aliases kernel)
+  --condition NAME     vanilla | legacy | kernel (candidate aliases kernel)
   --samples N          Fresh workspace per sample (default 1)
   --backend NAME       fixture | live (Cursor Grok 4.6 / Pi deepseek-v4-flash)
   --host NAME[,NAME]   live hosts: cursor, pi (default both). Missing creds → NOT_RUN
@@ -218,7 +218,7 @@ export function loadTrajectory(fixtureDir, condition) {
       source: path.relative(fixtureDir, specific).replace(/\\/g, "/")
     };
   }
-  // default.json is the 0.16-style canned replay, not a fake kernel/adaptive run.
+  // default.json is the 0.16-style canned replay, not a fake current-plugin run.
   if (condition === "legacy") {
     const fallback = path.join(dir, "default.json");
     if (fs.existsSync(fallback)) {
@@ -425,6 +425,9 @@ export async function runSuite(options) {
   }
 
   const conditions = options.conditions?.length ? options.conditions : ["legacy"];
+  for (const condition of conditions) {
+    if (!CONDITIONS.includes(condition)) throw new Error(`unknown condition: ${condition}`);
+  }
   const backendName = options.backend ?? "fixture";
   const backendInfo = BACKENDS[backendName];
   const hosts = backendName === "live" ? defaultLiveHosts(options.hosts) : [null];

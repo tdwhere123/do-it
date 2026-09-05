@@ -2,7 +2,7 @@
   "name": "do-it-cursor",
   "displayName": "do-it",
   "version": "0.17.0",
-  "description": "Autonomy-first AI coding workflow for Codex, Claude Code, Cursor, OpenCode, Pi, and Kimi Code: task-fit skills, optional subagents, and evidence-carrying completion.",
+  "description": "Professional coding judgment, independent specialists, compact context, and deterministic checks across agent hosts.",
   "author": {
     "name": "tdwhere123"
   },

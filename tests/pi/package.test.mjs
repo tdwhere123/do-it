@@ -32,6 +32,24 @@ function parseFrontmatter(filePath) {
 	return { text, values };
 }
 
+test("Pi installer accepts the current bundle without retired hooks", { skip: process.platform === "win32" }, () => {
+	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-pi-install-"));
+	try {
+		const binDir = path.join(tempRoot, "bin");
+		fs.mkdirSync(binDir);
+		fs.writeFileSync(path.join(binDir, "pi"), '#!/bin/sh\nprintf "%s\\n" "$@"\n', { mode: 0o755 });
+		const result = spawnSync(process.execPath, [path.join(repoRoot, "scripts/install-pi-global.mjs"), pluginRoot], {
+			cwd: repoRoot,
+			encoding: "utf8",
+			env: { ...process.env, PATH: binDir },
+		});
+		assert.equal(result.status, 0, result.stderr || result.stdout);
+		assert.ok(result.stdout.startsWith(`install\n${pluginRoot}\n`));
+	} finally {
+		fs.rmSync(tempRoot, { recursive: true, force: true });
+	}
+});
+
 test("Pi smoke invokes npm through Node instead of a Windows cmd shim", () => {
 	const execPath = String.raw`C:\hostedtoolcache\node\22\x64\node.exe`;
 	const npmCli = path.win32.join(
@@ -254,7 +272,7 @@ test("independent npm tarball contains Pi runtime assets only", () => {
 		"README.md",
 		"extensions/index.ts",
 		"extensions/bridge.ts",
-		"hooks/router.sh",
+		"hooks/prompt-submit.sh",
 		"hooks/subagent-stance.sh",
 		"skills/do-it-router/SKILL.md",
 		"agents/code-mapper.md",

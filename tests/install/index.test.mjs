@@ -51,7 +51,7 @@ test("build-index-json creates a byte-reproducible skill and agent inventory", (
   const router = index.entries.find((entry) => entry.name === "do-it-router");
   assert.equal(router?.kind, "skill");
   assert.equal(router?.target, "skills/do-it-router");
-  assert.match(router?.description ?? "", /risk|tier|failure/i);
+  assert.match(router?.description ?? "", /compatibility|discovery/i);
 
   const reviewer = index.entries.find((entry) => entry.name === "reviewer");
   assert.equal(reviewer?.kind, "agent");

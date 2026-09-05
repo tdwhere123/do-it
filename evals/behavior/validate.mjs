@@ -21,15 +21,14 @@ export const SEED_SCENARIO_IDS = Object.freeze([
   "C04"
 ]);
 
-export const CONDITIONS = Object.freeze(["vanilla", "legacy", "kernel", "adaptive"]);
+export const CONDITIONS = Object.freeze(["vanilla", "legacy", "kernel"]);
 
 export const FAMILIES = Object.freeze([
   "decision",
   "build",
   "review-verify",
   "recovery",
-  "cost",
-  "adaptive"
+  "cost"
 ]);
 
 export const HARD_GATE_IDS = Object.freeze([
@@ -48,7 +47,6 @@ export const HARD_GATE_IDS = Object.freeze([
   "authority_downstream_only",
   "guessed_professional_fact",
   "speculative_seam",
-  "core_weakened",
   "settled_reopened",
   "source_generated_drift"
 ]);

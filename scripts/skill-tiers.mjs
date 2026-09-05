@@ -2,14 +2,13 @@
 // Single source of truth for core vs extended do-it skills.
 // All six host surfaces (Codex / Claude / Cursor / OpenCode / Pi / Kimi)
 // ship ALL_SKILLS.
-// CORE vs EXTENDED remains a conceptual tier for docs and routing emphasis.
+// Groups organize discovery only; they do not classify tasks.
 // Meaning-centric buckets (not process pipeline): route / code-quality / review /
 // decide / verify + persistence/maintenance.
 
 /** @type {readonly string[]} */
 export const CORE_SKILLS = [
   "do-it-core",
-  "do-it-router",
   "do-it-code-quality",
   "do-it-review",
   "do-it-decide",
@@ -20,7 +19,7 @@ export const CORE_SKILLS = [
 /** On-demand extended skills — deliberately outside the meaning-centric default set. */
 export const EXTENDED_ON_DEMAND = [
   "do-it-retrospective",
-  "do-it-adaptive"
+  "do-it-router"
 ];
 
 export const EXTENDED_MAINTENANCE = [

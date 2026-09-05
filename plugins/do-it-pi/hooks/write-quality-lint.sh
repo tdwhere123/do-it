@@ -113,8 +113,7 @@ if [[ -z "$WQ_ADDED_LINES" ]]; then
   exit 0
 fi
 
-# Added lines are the scan gate. Router tier/dim_* are not consulted: thin
-# sessions have no classifier, and Light/Standard must not skip a real edit.
+# Scan added lines directly, independent of task classification.
 
 PROJECT_ROOT="$(do_it_project_root "$CWD")"
 PROJECT_ROOT="${PROJECT_ROOT%/}"

@@ -150,33 +150,11 @@ function assertClaudeStrictProfile(relativePath) {
 		(group) => group.hooks ?? [],
 	);
 	const commandPrefix = `"\${CLAUDE_PLUGIN_ROOT}/hooks/${STRICT_EXTERNAL_ACTIONS_SCRIPT}" `;
-	const admissionCommand = `\${CLAUDE_PLUGIN_ROOT}/hooks/network-admission.sh`;
 	const strictHandlers = handlers.filter(
 		(handler) =>
 			typeof handler.command === "string" &&
 			handler.command.startsWith(commandPrefix),
 	);
-	const admissionHandlers = handlers.filter(
-		(handler) =>
-			typeof handler.command === "string" &&
-			handler.command === admissionCommand,
-	);
-	if (admissionHandlers.length !== 1) {
-		throw new Error(
-			`${relativePath}: expected one network-admission PreToolUse handler`,
-		);
-	}
-	const admission = admissionHandlers[0];
-	if (
-		admission.type !== "command" ||
-		Object.hasOwn(admission, "if") ||
-		Object.hasOwn(admission, "args") ||
-		admission.timeout !== 10
-	) {
-		throw new Error(
-			`${relativePath}: network-admission handler must be a fail-open Bash PreToolUse command without a narrow if`,
-		);
-	}
 	const actual = strictHandlers.map((handler) => {
 		const action =
 			typeof handler.command === "string" &&
@@ -303,20 +281,6 @@ function main() {
 	if (codexHooksExtra?.source !== "install/codex-hooks.json") {
 		throw new Error(
 			"Codex must install its own PreToolUse-free hook configuration",
-		);
-	}
-	const expansionHandlers = (dataHooks) =>
-		dataHooks.hooks?.UserPromptExpansion ?? [];
-	const claudeExpansion = expansionHandlers(readJson("hooks/hooks.json"));
-	if (
-		claudeExpansion.length !== 1 ||
-		claudeExpansion[0]?.matcher !== "^do-it-retrospective$" ||
-		claudeExpansion[0]?.hooks?.length !== 1 ||
-		claudeExpansion[0].hooks[0]?.command !==
-			"${CLAUDE_PLUGIN_ROOT}/hooks/behavior-feedback.sh"
-	) {
-		throw new Error(
-			"Claude must receive the narrow retrospective slash-expansion recorder",
 		);
 	}
 	assertClaudeStrictProfile("hooks/hooks.json");

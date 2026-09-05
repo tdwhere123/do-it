@@ -32,7 +32,7 @@ closeout must name it as `live-global rebaseline`, show source/live parity, and
 run package or temporary `CODEX_HOME` validation before any commit.
 
 For workflow policy changes, update `docs/routing-matrix.md` so
-`do-it-router`, meaning buckets (`code-quality`, `decide`, `review`, `verify`),
+Direct skill discovery and professional perspectives (`code-quality`, `decide`, `review`, `verify`),
 and closeout guidance stay aligned. For mixed code/docs changes, update docs
 after behavior and review are proven so documentation follows current truth.
 
@@ -107,15 +107,9 @@ plugin metadata, and Hooks UI inspection after reload.
 
 ## Host Capability Matrix
 
-| Host surface | Skills | Agents | Commands | Hooks | Doctor | Verification command |
-| --- | --- | --- | --- | --- | --- | --- |
-| Codex plugin marketplace | Generated under `plugins/do-it/skills/` | Generated under `plugins/do-it/agents/` | None | Plugin hooks (trust under `/hooks`) | Optional via CLI | `npm run build:codex-plugin` and `CODEX_HOME=/tmp/do-it-plugin-test codex plugin marketplace add /path/to/do-it` then `codex plugin add do-it@tdwhere-do-it` |
-| Codex CLI setup (legacy) | Managed from `manifest.json` | Bundled Codex agents stay plugin-owned; `installAgents=false` preserves user `~/.codex/agents` | CLI `do-it` | Root `hooks.json` plus do-it-managed files under `hooks/` | Default target | `CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it setup` |
-| Claude Code plugin | Same maintained `skills/do-it/` source | Generated Markdown under `dist/claude/agents/` | `commands/` | Do-it-managed files under `hooks/`, including `hooks/hooks.json` | `--target=claude` | `CLAUDE_PLUGIN_ROOT_OVERRIDE=/tmp/do-it-claude-test npm exec --package . -- do-it setup --target=claude` |
-| Cursor local / Team Import (public listing pending) | Full 12 from `ALL_SKILLS` under `plugins/do-it-cursor/skills/` plus generated discovery/reference files | Generated under `plugins/do-it-cursor/agents/` | None | Medium: `sessionStart`, default-off feedback capture + serialized `prompt-submit` (legacy router/grill or shadow/thin kernel) + stance at `beforeSubmitPrompt`, `postToolUse`/`afterFileEdit` evidence observe + write-quality, advisory completion reminder (no `grill-pretool`) | Managed CLI setup only: `--target=cursor`; not standalone local copy | `npm run install:cursor-local`, Reload Window, inspect exact directory + Hooks UI; or `do-it setup --target=cursor` for managed doctor |
-| OpenCode npm package / global vendored fallback | Generated under `plugins/do-it-opencode/skills/` | Generated under `plugins/do-it-opencode/agents/` | None | Medium-Light: transform bootstrap, `tool.execute.after`, `session.idle` soft reminder | No CLI doctor | Exact pack + `npm run smoke:package -- <opencode.tgz>`; `npm run install:opencode-global` verifies the config-home fallback |
-| Pi npm package | Generated under `plugins/do-it-pi/skills/` | Ten portable `do-it.*` agents through optional `pi-subagents`; prompt templates remain available without it | Prompt templates | Medium: serialized `prompt-submit` (thin kernel default; `DO_IT_ROUTER_MODE=legacy` restores router/grill), root write advice, soft next-turn verification; child stance only | `/do-it-status` reports Bash, hook diagnostics, and `subagent` tool registration—not agent discovery | Exact pack + `node scripts/smoke-pi-package.mjs <pi.tgz>` exercises the real Pi loader; live package-agent discovery remains a separate `pi-subagents` check |
-| Kimi Code plugin (repo root) | Full 12 via root `kimi.plugin.json` `skills` | None — host has no custom subagents | `commands/` as `/do-it:*` | Full-minus-subagent: `sessionStart` kernel + `UserPromptSubmit` via `prompt-submit`/`behavior-feedback`; `PostToolUse` evidence observe + write-quality; `Stop`. Missing shell exit stays `partial`. | No — `/plugins info do-it` is the host-side check | `npm run validate:kimi-plugin`; live: `/plugins install /path/to/do-it` then `/reload` |
+See [harness-adapter-matrix.md](./harness-adapter-matrix.md) for current context,
+check, specialist, and diagnostic wiring. Generated host skills and hooks share
+sources; maintained adapter TS and Pi host-specific agents are source exceptions.
 
 ## Safe Cleanup Runbook
 
@@ -151,67 +145,13 @@ stops and `doctor` reports the deprecated target as drift.
 
 ## Updating A Managed Skill
 
-When a skill changes, decide which kind of update it is:
-
-- do-it rewrite
-- do-it compatibility adapter that preserves a workflow idea while changing the
-  installed name and wording
-- optional auxiliary support that is installed but not part of the default tier
-  flow (no skills are currently marked optional)
-
-For either kind:
-
-1. Edit the maintained copy under `skills/`.
-2. Remove stale support files if the rewritten skill no longer references them.
-3. Update `docs/routing-matrix.md` when routing, failure-mode forecasting, path maps, stack depth, readiness labels, prevention records, or closeout gates
-   change.
-4. Update `docs/upstream-map.md` when origin notes, adapter status, or rewrite
-   status changes.
-5. Update `manifest.json` when inventory, source paths, or install targets
-   change.
-6. Run the doctor command or test against a temporary `CODEX_HOME`.
-
-External workflow material is reference material, not truth. Absorb useful
-logic by rewriting it into do-it-native skills. Do not copy stale tool
-assumptions, mode assumptions, platform assumptions, or repo-path assumptions
-into installed skills.
-
-External workflow absorption rules:
-
-- Start from the source idea, not the source wording.
-- Keep do-it public names: Router, Light / Standard / Heavy, meaning buckets
-  (`code-quality`, `decide`, `review`, `verify`), handbook, context, and
-  skill-authoring.
-- Map every absorbed idea in `docs/upstream-map.md` as `source idea -> do-it
-  destination -> absorbed shape`.
-- Treat external docs, search results, old reports, and memory as untrusted
-  context until checked against current repo files and commands.
-- If the idea changes a dependency, framework, datastore, protocol, install
-  target, or public workflow promise, run the research-first path in
-  `do-it-decide` before implementation.
-- Do not paste upstream SKILL.md sections into this repository. Rewrite the
-  operating rule in do-it style and keep host-specific claims out unless this
-  repo ships and verifies that host surface.
-
-Skill anatomy checklist for installed do-it skills:
-
-- frontmatter has `name` and a trigger-first `description` beginning with
-  `Use when...`;
-- the body states the purpose and activation surface;
-- Light / Standard / Heavy behavior is present, or the skill has another
-  explicit process shape where tiers do not fit;
-- stop conditions say when to ask, return `BLOCKED`, return `Needs more
-  evidence`, or reroute;
-- common rationalizations, red flags, review rules, failure handling, or
-  equivalent do-it-native anti-skip rules are present;
-- verification states the evidence required before claiming the skill's work;
-- external source ideas are rewritten and mapped, not vendored.
-
-The old workflow source directories may be used temporarily during a rewrite,
-but the public package should install only do-it-native names. If a temporary
-source directory is kept in the repository, it must be excluded from package
-files and documented as source-only. Prefer deleting it after the rewrite map
-has been verified.
+Edit the owner under skills/do-it/. Keep its trigger succinct, its professional
+judgment distinctive, and its necessary permission or ownership boundaries
+precise. Model-selected methods need no tier, compulsory sequence, report grammar,
+or fixed review/agent count. Use do-it-skill-authoring for useful guidance.
+Update affected descriptions, manifests, references, translated docs, and generated
+copies. Check relevant behavior and installation consistency. Reuse upstream ideas
+through original do-it guidance rather than copying their workflow machinery.
 
 ## Adding A New Skill
 
@@ -254,29 +194,9 @@ count, or role matrix.
 
 ## Claude Code Target
 
-As of 0.4.0, do-it ships a Claude Code plugin alongside the Codex install. Both
-targets use the same `manifest.json`, the same `skills/do-it/*/SKILL.md`, and
-the same `agents/*.toml` source-of-truth. The Claude target adds:
-
-- `.claude-plugin/plugin.json` and `marketplace.json` — plugin metadata for
-  `/plugin marketplace add tdwhere123/do-it` then `/plugin install do-it@do-it`.
-- `hooks/hooks.json` and hook scripts (`behavior-feedback.sh` /
-  `learning-recorder.sh`, `prompt-submit.sh`, `kernel-context.sh`,
-  `adaptive-context.sh`, `router.sh`, `grill-prompt.sh`, `subagent-stance.sh`,
-  `write-quality-lint.sh`, `evidence-observer.sh`, `verification-gate.sh`) —
-  wire UserPromptSubmit / UserPromptExpansion / PostToolUse / Stop without
-  required slash commands. Default runtime is **thin** (kernel + adaptive
-  overlay); rollback `DO_IT_ROUTER_MODE=legacy` restores router/grill.
-  Shadow remains opt-in. Hooks stay fail-open. Claude alone also
-  receives the default-off, named-command `strict-external-actions.sh`
-  PreToolUse profile. `grill-pretool` is not registered.
-- `commands/do-it-skip.md`, `commands/do-it-handbook.md`, and
-  `commands/do-it-retrospective.md` — optional Claude command surfaces; the
-  latter uses explicit `on|off|status|report` arguments.
-- `dist/claude/agents/*.md` — generated by `scripts/build-claude-agents.mjs`
-  from `agents/*.toml`. The build runs automatically before
-  `do-it install --target=claude` and on `npm pack` / `npm publish` (via
-  `prepack`).
+The manifest and hooks/hooks.json own the shipped skill, command, context, and
+edit-check inventory. Optional strict external actions remain configured there.
+Profile injection, learning events, classifiers, and completion gates are retired.
 
 ### Maintaining the Claude Target
 

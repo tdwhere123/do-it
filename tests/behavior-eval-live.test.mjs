@@ -184,41 +184,16 @@ test("collectCursorEvent does not meter assistant echoes and still scans later p
   assert.ok(countInjectedTokens(injectedTexts) > 0);
 });
 
-test("captureCursorHookInjections meters thin kernel from local Cursor hooks", () => {
+test("captureCursorHookInjections meters compact context from local Cursor hooks", () => {
   const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-eval-meter-thin-"));
   try {
     const texts = captureCursorHookInjections({
       pluginRoot: path.join(repoRoot, "plugins/do-it-cursor"),
       cwd,
       prompt: "The live ping path is broken. Fix it if you can.",
-      env: { ...process.env, DO_IT_ROUTER_MODE: "thin" }
+      env: { ...process.env }
     });
-    assert.ok(texts.some((text) => /Do-it kernel:/.test(text)));
-    assert.ok(countInjectedTokens(texts) > 0);
-  } finally {
-    fs.rmSync(cwd, { recursive: true, force: true });
-  }
-});
-
-test("captureCursorHookInjections meters legacy bootstrap or router injection", () => {
-  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-eval-meter-legacy-"));
-  try {
-    const texts = captureCursorHookInjections({
-      pluginRoot: path.join(repoRoot, "plugins/do-it-cursor"),
-      cwd,
-      prompt: "The live ping path is broken. Fix it if you can.",
-      env: { ...process.env, DO_IT_ROUTER_MODE: "legacy" }
-    });
-    assert.ok(texts.some((text) => isInjectedText(text)));
-    assert.ok(
-      texts.some(
-        (text) =>
-          /do-it is active/i.test(text) ||
-          /do-it-bootstrap/i.test(text) ||
-          /do-it tier:/i.test(text) ||
-          /do-it grill/i.test(text)
-      )
-    );
+    assert.ok(texts.some((text) => /Do-it:/.test(text)));
     assert.ok(countInjectedTokens(texts) > 0);
   } finally {
     fs.rmSync(cwd, { recursive: true, force: true });
@@ -431,7 +406,7 @@ test("runSuite host probes do not serialize Cursor apiKey or sdk", async () => {
   }
 });
 
-test("runPiPrompt sets MODE and PI_CODING_AGENT_DIR before resourceLoader.reload", async () => {
+test("runPiPrompt isolates settings and clears retired modes before resourceLoader.reload", async () => {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-pi-sdk-order-"));
   const credDir = path.join(home, "cred-agent");
   fs.mkdirSync(credDir, { recursive: true });
@@ -482,7 +457,7 @@ test("runPiPrompt sets MODE and PI_CODING_AGENT_DIR before resourceLoader.reload
       condition: "vanilla",
       importSdk: async () => stubSdk(seen.vanilla)
     });
-    assert.equal(seen.kernel.mode, "thin");
+    assert.equal(seen.kernel.mode, undefined);
     assert.match(String(seen.kernel.agentDir), /do-it-eval-pi-agent-/);
     assert.equal(seen.vanilla.mode, undefined);
     assert.match(String(seen.vanilla.agentDir), /do-it-eval-pi-agent-/);

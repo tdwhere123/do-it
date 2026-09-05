@@ -5,11 +5,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/behavior-feedback.sh",
-            "timeout": 10
-          },
-          {
-            "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/prompt-submit.sh",
             "timeout": 25
           },
@@ -21,27 +16,10 @@
         ]
       }
     ],
-    "UserPromptExpansion": [
-      {
-        "matcher": "^do-it-retrospective$",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/behavior-feedback.sh",
-            "timeout": 10
-          }
-        ]
-      }
-    ],
     "PreToolUse": [
       {
         "matcher": "Bash",
         "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/network-admission.sh",
-            "timeout": 10
-          },
           {
             "type": "command",
             "if": "Bash(git push *)",
@@ -100,34 +78,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/evidence-observer.sh",
-            "timeout": 10
-          },
-          {
-            "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/write-quality-lint.sh",
             "timeout": 15
-          }
-        ]
-      },
-      {
-        "matcher": "Bash|Shell",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/evidence-observer.sh",
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/verification-gate.sh",
-            "timeout": 25
           }
         ]
       }

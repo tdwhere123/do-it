@@ -261,26 +261,6 @@ function containedStateFile(base: string, sessionKey: string): string | null {
   return null;
 }
 
-function readTierFromStateDir(stateDir: string): string {
-  const jsonPath = path.join(stateDir, "state.json");
-  if (fs.existsSync(jsonPath)) {
-    try {
-      const state = JSON.parse(fs.readFileSync(jsonPath, "utf8")) as { tier?: string };
-      if (typeof state.tier === "string") return state.tier;
-    } catch {
-      // Fall through to the jq-less state format.
-    }
-  }
-
-  const kvPath = path.join(stateDir, "state.kv");
-  if (fs.existsSync(kvPath)) {
-    const text = fs.readFileSync(kvPath, "utf8");
-    const match = text.match(/^tier=(.*)$/m);
-    if (match?.[1]) return match[1].trim();
-  }
-
-  return "";
-}
 
 export function resolveSessionStateDir(sessionId: string, cwd: string): string | null {
   // Canonical order: hooks/lib/common.sh do_it_session_dir (keep in sync).
@@ -311,7 +291,6 @@ export function resolveSessionStateDir(sessionId: string, cwd: string): string |
     bases.push(path.join(process.env.CODEX_HOME, "do-it-data", "sessions"));
   }
 
-  bases.push(path.join(cwd, ".do-it", "runtime", "sessions"));
   bases.push(path.join(process.env.TMPDIR ?? "/tmp", "do-it-sessions"));
 
   const sessionKey = safeStateSessionKey(sessionId);
@@ -323,11 +302,7 @@ export function resolveSessionStateDir(sessionId: string, cwd: string): string |
   return null;
 }
 
-export function readSessionTier(sessionId: string, cwd: string): string {
-  const dir = resolveSessionStateDir(sessionId, cwd);
-  if (!dir) return "";
-  return readTierFromStateDir(dir);
-}
+
 
 function configuredTimeout(env: NodeJS.ProcessEnv): number {
   const value = Number(env.DO_IT_HOOK_TIMEOUT_MS);

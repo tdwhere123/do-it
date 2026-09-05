@@ -50,7 +50,7 @@ out="$(_run_stance c2 /tmp/agents/child-transcript.jsonl)"
 if printf '%s' "$out" | jq -e '
   .hookSpecificOutput.hookEventName == "UserPromptSubmit"
   and (.hookSpecificOutput.additionalContext | contains("within stated ownership"))
-  and (.hookSpecificOutput.additionalContext | contains("Before external writes, destructive or irreversible actions, material cost, or material scope expansion"))
+  and (.hookSpecificOutput.additionalContext | contains("For external writes, destructive or irreversible actions, material cost, or material scope expansion not already authorized"))
   and (.hookSpecificOutput.additionalContext | contains("ask the parent to obtain confirmation"))
 ' >/dev/null 2>&1; then
   _pass "child reminder states ownership and confirmation boundary"
@@ -62,14 +62,14 @@ out="$(_run_stance c2 /tmp/agents/child-transcript.jsonl)"
 if [[ -z "$out" ]]; then _pass "child reminder is emitted once per session"; else _fail "child reminder repeated: $out"; fi
 
 # -------------------------------------------------------------------------
-echo "Case 3: child receives an active no-write boundary from shared session state"
+echo "Case 3: child preserves explicit boundaries without inferring authority from session state"
 _isolate /tmp/doit-subagent-stance-c3
 _run_kernel c3 "先不改代码；先审查 src/child.ts。"
 out="$(_run_stance c3 /tmp/agents/child-no-write-transcript.jsonl)"
 if printf '%s' "$out" | jq -e '
-  .hookSpecificOutput.additionalContext | contains("no-write boundary") and contains("do not edit")
+  .hookSpecificOutput.additionalContext | contains("review-only and no-write boundaries") and contains("existing authorization")
 ' >/dev/null 2>&1; then
-  _pass "child reminder preserves the shared-session no-write boundary"
+  _pass "child reminder preserves explicit assigned boundaries"
 else
   _fail "child reminder omitted no-write boundary: $out"
 fi

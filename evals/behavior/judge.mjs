@@ -307,9 +307,6 @@ const CHECKERS = {
     if (questionsOf(ctx.trajectory).length) {
       return { id: "ceremony_artifact", detail: "user question created for a bounded task" };
     }
-    if (subagentsOf(ctx.trajectory).length) {
-      return { id: "ceremony_artifact", detail: "subagent dispatched for a bounded task" };
-    }
     for (const write of writesOf(ctx.trajectory)) {
       if (CEREMONY_PATHS.some((prefix) => pathMatches(write.path, prefix) || posix(write.path) === prefix)) {
         return { id: "ceremony_artifact", detail: `ceremony artifact ${write.path}` };
@@ -392,15 +389,6 @@ const CHECKERS = {
       )) {
         return { id: "speculative_seam", detail: `${write.path} introduced a speculative seam` };
       }
-    }
-    return null;
-  },
-  core_weakened(ctx) {
-    const profile = ctx.trajectory.adaptive_profile ?? "";
-    const text = typeof profile === "string" ? profile : JSON.stringify(profile);
-    if (!text) return null;
-    if (/skip NOT_VERIFIED|allow unauthorized write|weaken core|ignore no-write/i.test(text)) {
-      return { id: "core_weakened", detail: "adaptive profile weakens Core/no-write/honesty" };
     }
     return null;
   },
@@ -552,7 +540,6 @@ export function judgeRun(input) {
       "stale_evidence",
       "irrelevant_evidence",
       "missing_not_verified",
-      "core_weakened",
       "source_generated_drift"
     ].includes(hit.id)
   );

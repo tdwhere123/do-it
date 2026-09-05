@@ -368,8 +368,8 @@ test("install-cursor-local merges do-it hooks without clobbering user entries", 
       "custom stop hook must survive"
     );
     assert.ok(
-      hooks.hooks.stop.some((entry) => isDoItHookCommand(entry.command)),
-      "do-it stop hook must be added"
+      !hooks.hooks.stop.some((entry) => isDoItHookCommand(entry.command)),
+      "retired do-it stop hook must not be added"
     );
   } finally {
     fs.rmSync(home, { recursive: true, force: true });

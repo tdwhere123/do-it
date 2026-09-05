@@ -10,7 +10,7 @@ backpressure, and cache/projection drift — they are not separate skills.
 Build and Architecture consume this file with a one-line trigger; they do
 not copy the faces.
 
-Cite `core §r-recovery` instead of restating it. This scan is the body
+Cite Core instead of restating it. This scan is the body
 behind the workflow-kernel **state-machine gap** class:
 [`workflow-kernel.md`](workflow-kernel.md).
 

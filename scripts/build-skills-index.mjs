@@ -89,7 +89,7 @@ function writeIndex({ coreOnly, orphans }) {
 
   const sections = [
     renderBucket(
-      coreOnly ? "Core" : "Core (router picks from these)",
+      coreOnly ? "Core" : "Professional perspectives",
       mainLine
     ),
     renderBucket("On demand", onDemand),

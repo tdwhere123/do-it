@@ -10,7 +10,7 @@ REM path as a file to open in the editor / "Open with" dialog instead of
 REM executing it. Routing through .cmd makes CMD.exe the entrypoint.
 REM
 REM Usage: run-hook.cmd <script-basename> [args...]
-REM   e.g. run-hook.cmd router
+REM   e.g. run-hook.cmd prompt-submit
 REM        run-hook.cmd session-start
 REM Script may be given with or without a .sh suffix.
 
@@ -36,8 +36,8 @@ REM Source of truth: RUN_HOOK_CMD_ALLOWLIST in scripts/lib/hook-manifest.mjs —
 REM validate-harness-matrix.mjs asserts this list (and the bash half) matches.
 set "ALLOWED=0"
 for %%A in (
-    session-start.sh behavior-feedback.sh learning-recorder.sh prompt-submit.sh kernel-context.sh adaptive-context.sh router.sh grill-prompt.sh subagent-stance.sh
-    write-quality-lint.sh evidence-observer.sh network-admission.sh verification-gate.sh
+    session-start.sh prompt-submit.sh kernel-context.sh subagent-stance.sh
+    write-quality-lint.sh evidence-observer.sh
     anti-patterns-lint.sh comments-lint.sh
 ) do if /i "%SCRIPT_NAME%"=="%%A" set "ALLOWED=1"
 if "%ALLOWED%"=="0" (
@@ -62,10 +62,6 @@ if not exist "%SCRIPT_PATH%" (
     )
     if /i "%SCRIPT_NAME%"=="kernel-context.sh" (
         echo run-hook.cmd: missing kernel-context.sh; skipping >&2
-        exit /b 0
-    )
-    if /i "%SCRIPT_NAME%"=="adaptive-context.sh" (
-        echo run-hook.cmd: missing adaptive-context.sh; skipping >&2
         exit /b 0
     )
     echo run-hook.cmd: missing hook script "%SCRIPT_PATH%" >&2
@@ -129,7 +125,7 @@ esac
 # Source of truth: RUN_HOOK_CMD_ALLOWLIST in scripts/lib/hook-manifest.mjs —
 # validate-harness-matrix.mjs asserts this list (and the cmd half) matches.
 case "$SCRIPT_NAME" in
-  session-start.sh|behavior-feedback.sh|learning-recorder.sh|prompt-submit.sh|kernel-context.sh|adaptive-context.sh|router.sh|grill-prompt.sh|subagent-stance.sh|write-quality-lint.sh|evidence-observer.sh|network-admission.sh|verification-gate.sh|anti-patterns-lint.sh|comments-lint.sh)
+  session-start.sh|prompt-submit.sh|kernel-context.sh|subagent-stance.sh|write-quality-lint.sh|evidence-observer.sh|anti-patterns-lint.sh|comments-lint.sh)
     ;;
   *)
     echo "run-hook.cmd: unknown hook script ${SCRIPT_NAME}" >&2
@@ -149,7 +145,7 @@ fi
 SCRIPT_PATH="${SCRIPT_DIR}/${SCRIPT_NAME}"
 if [ ! -f "$SCRIPT_PATH" ]; then
   case "$SCRIPT_NAME" in
-    evidence-observer.sh|kernel-context.sh|adaptive-context.sh)
+    evidence-observer.sh|kernel-context.sh)
       echo "run-hook.cmd: missing ${SCRIPT_NAME}; skipping" >&2
       exit 0
       ;;

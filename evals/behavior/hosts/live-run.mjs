@@ -13,7 +13,6 @@ import {
   copyWorkspace,
   diffWrites,
   gitInitWorkspace,
-  installAdaptiveProfile,
   loadFixture,
   pluginRootsFor,
   readTreeFiles,
@@ -83,9 +82,6 @@ export async function executeLiveJob(job) {
   const workspaceDir = fs.mkdtempSync(path.join(os.tmpdir(), `do-it-eval-live-${scenario.id}-`));
   const legacyCache = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-eval-legacy-"));
   copyWorkspace(fixture.workspace, workspaceDir);
-  if (condition === "adaptive") {
-    installAdaptiveProfile(workspaceDir, repoRoot);
-  }
   gitInitWorkspace(workspaceDir);
   const originalFiles = readTreeFiles(workspaceDir);
   const plugins = pluginRootsFor(repoRoot, condition, legacyCache);

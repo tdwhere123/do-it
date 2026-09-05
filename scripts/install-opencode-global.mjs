@@ -38,8 +38,8 @@ export function validateOpenCodePlugin(pluginPath) {
   const required = [
     "package.json",
     "dist/index.js",
-    "hooks/router.sh",
-    "hooks/verification-gate.sh",
+    "hooks/prompt-submit.sh",
+    "hooks/kernel-context.sh",
     "skills/do-it-router/SKILL.md"
   ];
   for (const relative of required) {

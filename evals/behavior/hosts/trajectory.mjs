@@ -166,7 +166,7 @@ export function claimFromAssistant(text, { hasWrites = false } = {}) {
 // `<do-it-bootstrap>`. Assistant echoes must not be mixed into `texts`
 // or they inflate the recurring-injection meter.
 export const INJECTED_TEXT_RE =
-  /Do-it kernel:|<\/?system-reminder>|<\/?do-it-bootstrap>|Active do-it contract:|\bdo-it (?:tier|grill|architecture|adaptive|core registry)\b|do-it is active\. Match depth/i;
+  /Do-it:|Do-it kernel:|<\/?system-reminder>|<\/?do-it-bootstrap>|Active do-it contract:|\bdo-it (?:tier|grill|architecture|adaptive|core registry)\b|do-it is active\. Match depth/i;
 
 export function isInjectedText(text) {
   return INJECTED_TEXT_RE.test(String(text ?? ""));

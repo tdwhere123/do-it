@@ -23,7 +23,7 @@ Who breaks if the premise is wrong:
 - Tests, generated outputs, docs, install surfaces
 - Persistence, auth, or concurrency if touched
 
-Cross-package / interface / release policy → escalate tier or review intensity. One module + obvious check → stay Light.
+Cross-package, interface, or release changes need review proportional to their affected contracts. A local change may need only a focused check.
 
 ## Bounded Producer → Consumer Chain
 

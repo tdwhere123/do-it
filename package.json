@@ -1,7 +1,7 @@
 {
   "name": "@tdwhere/do-it",
   "version": "0.17.0",
-  "description": "Autonomy-first AI coding workflow for Codex, Claude Code, Cursor, OpenCode, Pi, and Kimi Code: task-fit skills, optional subagents, and evidence-carrying completion.",
+  "description": "Professional coding judgment, independent specialists, compact context, and deterministic checks across agent hosts.",
   "type": "module",
   "license": "MIT",
   "author": "tdwhere123",
@@ -80,20 +80,17 @@
     "validate:kimi-plugin": "node scripts/validate-kimi-plugin.mjs",
     "validate:quality-families": "node scripts/validate-quality-families.mjs",
     "validate:core-consistency": "node scripts/validate-core-consistency.mjs",
-    "validate:core-skill-boundaries": "node scripts/validate-core-skill-boundaries.mjs",
-    "validate:skill-contracts": "node scripts/validate-skill-contracts.mjs",
-    "validate:skill-budgets": "node scripts/validate-skill-budgets.mjs",
     "eval:behavior:validate": "node evals/behavior/validate.mjs",
     "eval:behavior": "node evals/behavior/runner.mjs --dry-run --scenario D01",
     "validate:legacy-names": "node scripts/validate-legacy-names.mjs",
     "validate:release": "node scripts/validate-release.mjs",
     "smoke:package": "node scripts/smoke-package.mjs",
     "smoke:pi-package": "npm run build:pi-plugin && node scripts/smoke-pi-package.mjs",
-    "prepack": "npm run build:generated && node scripts/build-codex-plugin.mjs && node scripts/build-cursor-plugin.mjs && node scripts/build-opencode-plugin.mjs && node scripts/validate-agent-bundle.mjs && node scripts/validate-cursor-plugin.mjs && node scripts/validate-harness-matrix.mjs && node scripts/validate-kimi-plugin.mjs && node scripts/validate-core-consistency.mjs && node scripts/validate-core-skill-boundaries.mjs && node scripts/validate-skill-contracts.mjs",
+    "prepack": "npm run build:generated && node scripts/build-codex-plugin.mjs && node scripts/build-cursor-plugin.mjs && node scripts/build-opencode-plugin.mjs && node scripts/build-pi-plugin.mjs && node scripts/validate-agent-bundle.mjs && node scripts/validate-cursor-plugin.mjs && node scripts/validate-harness-matrix.mjs && node scripts/validate-kimi-plugin.mjs && node scripts/validate-core-consistency.mjs",
     "do-it": "node bin/do-it.mjs",
     "lint": "bash scripts/lint-hooks.sh",
     "lint-hooks": "bash scripts/lint-hooks.sh",
-    "test-hooks": "bash scripts/test-hooks.sh && bash tests/hooks/behavior-feedback.test.sh && bash tests/hooks/learning-recorder.test.sh && bash tests/retrospective-report.test.sh && bash tests/hooks/strict-external-actions.test.sh && bash tests/hooks/network-admission.test.sh && bash tests/hooks/router.test.sh && bash tests/hooks/routing-golden.test.sh && bash tests/hooks/write-quality-lint.test.sh && bash tests/hooks/comments-lint.test.sh && bash tests/hooks/anti-patterns-lint.test.sh && bash tests/hooks/verification-gate.test.sh && bash tests/hooks/grill-prompt.test.sh && bash tests/hooks/subagent-stance.test.sh && bash tests/hooks/common.test.sh && bash tests/hooks/harness-adapter-evidence.test.sh && bash tests/hooks/kernel-context.test.sh && bash tests/hooks/prompt-submit.test.sh && bash tests/hooks/evidence-observer.test.sh && bash tests/hooks/adaptive-context.test.sh && bash tests/hooks/task-state.test.sh && bash tests/hooks/runtime-events.test.sh && bash tests/hooks/worktree-fingerprint.test.sh",
+    "test-hooks": "bash scripts/test-hooks.sh",
     "test-agent-bundle": "node --test tests/agent-bundle.test.mjs",
     "test-core-consistency": "node --test tests/core-consistency.test.mjs",
     "test-install": "node --test tests/install/*.test.mjs",
@@ -101,7 +98,7 @@
     "test-opencode": "npm run build:opencode-plugin && node --test tests/opencode/*.test.mjs",
     "test-pi": "npm run build:pi-plugin && npm --prefix plugins/do-it-pi test",
     "pack:pi-plugin": "npm run build:pi-plugin && npm --prefix plugins/do-it-pi run pack:check",
-    "test": "npm run build:generated && node scripts/build-codex-plugin.mjs && npm run build:cursor-plugin && npm run validate:agents && npm run validate:cursor-plugin && npm run validate:kimi-plugin && npm run check:skill-links && npm run validate:quality-families && npm run validate:core-consistency && npm run validate:core-skill-boundaries && npm run validate:skill-contracts && npm run validate:skill-budgets && npm run eval:behavior:validate && npm run validate:legacy-names && npm run lint-hooks && npm run test-hooks && npm run test-agent-bundle && npm run test-core-consistency && npm run test-install && npm run test-release && npm run test-opencode && npm run test-pi && node --test tests/behavior-eval-validate.test.mjs tests/behavior-eval-runner.test.mjs tests/behavior-eval-live.test.mjs tests/behavior-eval-judge.test.mjs tests/task-contract.test.mjs tests/handbook-bootstrap.test.mjs tests/skill-contracts/*.test.mjs tests/policy-candidates.test.mjs tests/adaptive-profile.test.mjs"
+    "test": "npm run build:generated && node scripts/build-codex-plugin.mjs && node scripts/build-opencode-plugin.mjs && node scripts/build-pi-plugin.mjs && npm run build:cursor-plugin && npm run validate:agents && npm run validate:cursor-plugin && npm run validate:kimi-plugin && npm run check:skill-links && npm run validate:quality-families && npm run validate:core-consistency && npm run eval:behavior:validate && npm run validate:legacy-names && npm run lint-hooks && npm run test-hooks && npm run test-agent-bundle && npm run test-core-consistency && npm run test-install && npm run test-release && npm run test-opencode && npm run test-pi && node --test tests/behavior-eval-validate.test.mjs tests/behavior-eval-runner.test.mjs tests/behavior-eval-live.test.mjs tests/behavior-eval-judge.test.mjs"
   },
   "engines": {
     "node": ">=18"

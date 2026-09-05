@@ -74,7 +74,7 @@ Loads comment rules from [`causal-change.md`](causal-change.md) § Comments. Fin
 
 ## Research-First Lens (Audit Only)
 
-**When:** Heavy tier and plan/diff introduces new dependency, datastore, framework, runtime, or protocol.
+**When:** The plan or diff introduces new dependency, datastore, framework, runtime, or protocol.
 
 Loads `architecture-strategist` / plan research trail when present. **Audit duty only:** verify the plan's Research trail exists — search action, ≥2 candidates with recency signals, user confirmation or `PENDING USER CONFIRMATION`. Rule body lives in [`decision-resolvers.md`](decision-resolvers.md) § Research-first surfaces; do not re-derive candidate rules here.
 
@@ -91,13 +91,13 @@ formal rebuttal for a clearly inapplicable advisory.
 For a relevant L0 family, emit a finding or a short rebuttal. Family
 definitions: [`write-quality-families.md`](write-quality-families.md).
 
-Loads `code-quality-cleaner` (maintainability + decision ladder from [`workflow-kernel.md`](workflow-kernel.md)). Tags: `delete:` / `stdlib:` / `native:` / `yagni:` / `shrink:` plus `net: -<N> lines possible` or `Lean already. Ship.`
+An independent `code-quality-cleaner` can assess maintainability and necessity.
+Explain useful simplifications with their evidence and practical consequence.
 
 ## Depth (no multi-reviewer pipeline)
 
-Default parent inline review. At most one independent reviewer when
-independence could change the call. No fixed multi-reviewer pipeline and no
-required lens count.
+Use independent contexts when fresh evidence or separate conclusions can improve
+the call. Choose lenses by their concrete value; no fixed reviewer count applies.
 
 For release/workflow/policy work, start with the changed behavior and
 install/release readiness when they fit. Add another lens only for a concrete

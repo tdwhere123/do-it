@@ -3,44 +3,16 @@
 This file records where do-it deliberately absorbs outside workflow ideas. It is
 not an install manifest; `manifest.json` is the install source of truth.
 
-The source version `0.17.0` defines twelve user/runnable do-it-native skill
-names plus one generated discovery entry; this is version metadata, not an
-npm publication claim. The skills are meaning buckets (see the migration
-table in [`CHANGELOG.md`](../CHANGELOG.md)). Default runtime is **thin**
-(unset or `DO_IT_ROUTER_MODE=thin`): compact kernel plus optional adaptive
-overlay; the lexical classifier is skipped. Rollback:
-`DO_IT_ROUTER_MODE=legacy`. This is S16 Phase A, not a tagged 0.19.
+Current product behavior is described in [README](../README.md). The source
+inventory lives in manifest.json. Skills provide professional judgment; Core is
+small, discovery is direct, independent contexts are valuable, and runtime hooks
+supply compact context and deterministic checks. Custom adaptive personalization
+and workflow classification/completion machinery are retired.
 
-**Lineage principle: convergence is not lineage.** Entries below record genuine
-learning or borrowing relationships only. Capabilities do-it evolved
-independently — three-tier routing, review's two axes, claim-specific
-verification — are not retro-mapped onto upstream lookalikes, and sources that
-were not absorbed from get no rows. **Upstream popularity does not prove do-it
-works.** Absorbed mechanisms still have to earn their place in this repo's
-behavior eval.
-
-## Installed Skills
-
-| Installed Skill | Role | Rewrite Notes |
-| --- | --- | --- |
-| `do-it-core` | protocol of record; route tier, then evidence / scope / verify / report | Absorbs compact background-protocol discipline: one rule set quoted verbatim by hooks, cited by satellites. Failure-mode → rule anchoring; hooks never restate rules. |
-| `do-it-router` | front door and three-tier route selection | Absorbs strict skill-selection discipline, task sizing, and parent coordination. Meaning buckets are self-selected — no mandatory chain. Cites `do-it-core`. |
-| `do-it-architecture` | load-bearing architecture governance | Absorbs the eight architecture lenses and four task routes; maps guards to `write-quality-lint` / `do-it-review`, the governed path to router tiers + skip, surfaces to `do-it-code-quality` § Contracts, negative path to `do-it-decide` failure-mode forecast. |
-| `do-it-code-quality` | write defense (main line) | Absorbs TDD, debugging, comments discipline, deep-module / seam vocabulary, interface/architecture contract checks, and worktree isolation into one write-time skill. |
-| `do-it-decide` | pressure-test, diverge, plan, slice | Absorbs grill, brainstorm, planning, and slicing. Standard stays lean; Heavy raises scrutiny when it helps. |
-| `do-it-review` | review + atomic fix / re-review | Absorbs review-loop and fix-loop: findings-first batch, then repair until Blocking/Important clear. |
-| `do-it-verify` | evidence before claims + closeout | Absorbs claim-specific proof and branch-closeout. The `verification-gate` **hook** remains an advisory reminder. |
-| `do-it-context` | canonical terms and model alignment | Absorbs ubiquitous-language / domain-modeling discipline (`.do-it/CONTEXT.md`). |
-| `do-it-handbook` | lean handbook + worklog bootstrap | Seeds `.do-it/handbook/` and worklog templates; promotes stable facts without owning per-task review artifacts. |
-| `do-it-skill-authoring` | skill creation and maintenance | Absorbs progressive-disclosure skill writing and repo-managed skill validation. |
-| `do-it-retrospective` | opt-in local feedback/report loop | Keeps raw incidents local and redacted; turns repeated observations into a proposed, confirmed lesson rather than an automatic rule. |
-| `do-it-adaptive` | fixed interpreter for a personal overlay | Interprets a short, gitignored profile delta. Default off. Never stores secrets or project facts; never weakens Core. |
-
-Delegation has **no installed skill** — bundled agents are optional capability
-experts. The parent gives a worker the goal and any needed ownership or
-side-effect boundary; `subagent-stance` reinforces autonomous work, useful
-evidence or uncertainty, and parent integration. There is no fixed contract,
-agent count, or role matrix.
+The lineage below records historical borrowing, not current mandatory workflow.
+The current authoring source is do-it-skill-authoring: concise triggers, unique
+judgment, tool guidance, and necessary boundaries, without fixed anatomy or
+ceremonial reports. Historical upstream process ideas were selectively simplified.
 
 ## External Idea Map
 
@@ -85,9 +57,9 @@ not as installed skill names or vendored text:
 
 | Source Idea | do-it Destination | Absorbed Shape |
 | --- | --- | --- |
-| Skill anatomy: frontmatter, overview, trigger, workflow, rationalizations, red flags, verification | `do-it-skill-authoring` | Minimum skill anatomy for do-it-native skills. |
+| Concise skill writing and progressive disclosure | `do-it-skill-authoring` | Unique judgment and useful references; fixed workflow anatomy was retired. |
 | Process over prose and progressive disclosure | All `skills/do-it/*/SKILL.md` | Skills stay operational and token-conscious. |
-| Anti-rationalization tables | Core workflow skills | Common excuses rewritten as do-it-native red flags or review rules. |
+| Failure-mode awareness | Professional skills | Useful reasoning prompts without compulsory anti-rationalization tables. |
 | Evidence over assumption | `do-it-verify`, `do-it-review`, `do-it-decide` | Fresh current-worktree evidence and explicit `NOT_VERIFIED` closeout language. |
 | Planning and task breakdown | `do-it-decide` | Assumption/evidence split, HITL/AFK, and task sizing. |
 | Incremental implementation and test-led thin slices | `do-it-code-quality`, `do-it-decide` | Tracer-bullet slices, RED/GREEN per behavior, reproduce-localize-reduce-fix-guard. |

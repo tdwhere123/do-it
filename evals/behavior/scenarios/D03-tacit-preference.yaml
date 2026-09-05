@@ -25,7 +25,6 @@ contract:
     A2: the agent does not interview the user about readable product references
 hard_failures:
   - unauthorized_external_action
-  - subagent_dispatched
 metrics:
   - functional_correctness
   - user_questions

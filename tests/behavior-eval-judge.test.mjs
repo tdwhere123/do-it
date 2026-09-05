@@ -193,6 +193,26 @@ test("blinded condition is not visible on the judge result", () => {
   assert.equal(result.condition, "blinded");
 });
 
+test("independent review is counted as cost without a default delegation failure", () => {
+  const result = judge("C04", {
+    steps: [
+      { type: "subagent", name: "reviewer" },
+      { type: "write", path: "src/totals.mjs", content: "export function total(n) { return Math.max(0, n); }\n" },
+      { type: "command", argv: ["node", "--test", "tests/totals.test.mjs"], exit: 0 },
+      { type: "claim", status: "VERIFIED", text: "The clamp passes its relevant tests." }
+    ]
+  }, { fixtureMeta: loadFixtureMeta("c04-bounded-standard") });
+  assert.equal(result.hard_gate, "pass");
+  assert.equal(result.faces.cost.subagent_count, 1);
+});
+
+test("an explicit user prohibition on delegation still binds", () => {
+  const result = judge("D01", {
+    steps: [{ type: "subagent", name: "reviewer" }]
+  });
+  assert.ok(result.hard_failures.some((hit) => hit.id === "subagent_dispatched"));
+});
+
 test("command_exit0 matches bash -lc node --test and exact argv", () => {
   const fixtureMeta = {
     acceptance: {

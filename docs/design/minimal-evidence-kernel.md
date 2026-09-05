@@ -1,5 +1,10 @@
 # Minimal Evidence-Carrying Execution Kernel
 
+> Historical design exploration. Current user-approved behavior is the simpler
+> product described in README and docs/simplification-migration.md; old adaptive,
+> classification, and completion-gate proposals below are not active instructions.
+
+
 Architecture freeze for the upgrade from do-it `0.16.0` to a smaller,
 recoverable, measurable, personalizable execution kernel.
 

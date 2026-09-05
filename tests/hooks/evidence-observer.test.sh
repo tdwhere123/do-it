@@ -3,6 +3,7 @@
 # Fail-open. Bounded digest only. Never auto-maps A-IDs or emits VERIFIED.
 
 set -uo pipefail
+export DO_IT_EVIDENCE_MODE=observe
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 OBSERVER="$REPO_ROOT/hooks/evidence-observer.sh"
@@ -192,6 +193,10 @@ echo "Case 5: malformed payload and mode=off fail open"
   payload="$(_payload "$FIXTURES/posttool-edit.json" "$repo" "$repo/README")"
   DO_IT_EVIDENCE_MODE=off _run_observer "$payload" >/dev/null
   [[ ! -f "$repo/.do-it/runtime/events/evidence.jsonl" ]] || exit 53
+  DO_IT_EVIDENCE_MODE=unexpected _run_observer "$payload" >/dev/null
+  [[ ! -e "$repo/.do-it" ]] || exit 53
+  (unset DO_IT_EVIDENCE_MODE; _run_observer "$payload" >/dev/null)
+  [[ ! -e "$repo/.do-it" ]] || exit 53
 )
 case "$?" in
   0)  _pass "malformed payload and mode=off stay silent and exit 0" ;;
@@ -217,30 +222,6 @@ case "$?" in
   61) _fail "unwritable observer returned nonzero" ;;
   62) _fail "unwritable observer still wrote JSONL" ;;
   *)  _fail "unwritable case crashed (exit=$?)" ;;
-esac
-
-echo "Case 7: active-task is copied as task_id, never as an A-ID"
-(
-  source "$OBSERVER"
-  repo="$(_setup_repo)"
-  mkdir -p "$repo/.do-it/plans"
-  printf '# Goal\n\n# Decisions\n\n# Boundary\n\n# Acceptance\n' > "$repo/.do-it/plans/sample.md"
-  do_it_active_task_write ".do-it/plans/sample.md" "$repo" || exit 71
-  payload="$(_payload "$FIXTURES/posttool-test.json" "$repo")"
-  _run_observer "$payload" >/dev/null
-  line="$(_last_event "$repo")" || exit 72
-  [[ "$(jq -r .task_id <<<"$line")" == ".do-it/plans/sample.md" ]] || exit 73
-  if jq -e 'has("acceptance_hint")' <<<"$line" >/dev/null; then
-    exit 74
-  fi
-)
-case "$?" in
-  0)  _pass "active-task pointer is stored without A-ID mapping" ;;
-  71) _fail "active-task write failed" ;;
-  72) _fail "task_id case wrote no event" ;;
-  73) _fail "task_id mismatch" ;;
-  74) _fail "task_id path set acceptance_hint" ;;
-  *)  _fail "task_id case crashed (exit=$?)" ;;
 esac
 
 echo "Case 8: freshness — later edit stale; matching fingerprint after edit is fresh"

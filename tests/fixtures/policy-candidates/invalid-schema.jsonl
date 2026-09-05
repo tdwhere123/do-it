@@ -1,1 +1,0 @@
-{"schema":2,"policy_id":"P-schema","status":"candidate","scope":"all","statement":"Prefer fewer clarifying questions on reversible local edits.","target_failure":"interview-overuse","supporting_events":["L-1"],"rollback":"Remove the matching Active bullet if present."}

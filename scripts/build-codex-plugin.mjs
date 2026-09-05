@@ -72,9 +72,9 @@ function buildPluginManifest() {
     hooks: "./hooks/hooks.json",
     interface: {
       displayName: "do-it",
-      shortDescription: "Autonomy-first workflow discipline for Codex.",
+      shortDescription: "Professional judgment and independent specialists for Codex.",
       longDescription:
-        "Install do-it via the Codex plugin marketplace. Skills and bundled agents are selected only when task-fit helps; plugin hooks provide compact routing and evidence reminders. Trust plugin hooks in /hooks after install.",
+        "Install do-it via the Codex plugin marketplace. Skills and bundled agents are selected only when task-fit helps; plugin hooks provide compact context and source-edit checks. Trust plugin hooks in /hooks after install.",
       developerName: "tdwhere123",
       category: "Coding",
       capabilities: ["Skills", "Agents", "Hooks"],

@@ -17,7 +17,7 @@ Look for duplicated logic, stale or unused paths, brittle tests, forwarding wrap
 
 Do not recommend removing trust-boundary validation, loss-preventing error handling, security, accessibility, or explicitly required behavior. Report only findings with a concrete consequence and evidence.
 
-Return severity-ordered findings with location, evidence, impact, and the smallest replacement. Tag each finding as delete, stdlib, native, yagni, or shrink; end with the likely net reduction or `Lean already. Ship.` Include residual risk and NOT_CHECKED.
+Return severity-ordered findings with location, evidence, impact, and the smallest replacement. Include residual risk and NOT_CHECKED.
 
 ## Supervisor coordination
 

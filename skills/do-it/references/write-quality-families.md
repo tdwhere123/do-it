@@ -6,13 +6,10 @@ Authoritative machine list: [`hooks/data/quality-families.tsv`](../../../hooks/d
 Build Kernel (`do-it-code-quality`) cites this registry for comment and
 file-size families and does not copy thresholds into the main skill.
 
-## Enforcement Ladder
+## How to use findings
 
-| Layer | Role |
-|---|---|
-| L0 | This hook — advisory reminder (main defense while writing) |
-| L1 | `do-it-review` — respond to flagged families or rebut |
-| L2 | `verification-gate` hook — advisory reminder to substantiate done claims |
+The hook offers local signals. A model or independent reviewer assesses their
+relevance to the actual change; an advisory is neither a verdict nor proof.
 
 Suppress one advisory family with `write-quality-lint-allow: <family-id> — <reason>` on an added line. `secret-leak` is never suppressible.
 
@@ -59,12 +56,10 @@ Suppress one advisory family with `write-quality-lint-allow: <family-id> — <re
 | `type-escape` | `as any` / `@ts-ignore` / `as unknown as` — bypassing contracts? |
 | `test-fiction` | ≥3 mock helpers in one edit — real contract or fiction? |
 
-## Tier gating
+## Edit surface gating
 
-| Tier | Hook runs when |
+| Edit surface | Hook runs when |
 |---|---|
-| Light | never |
-| Standard | `dim_touches_code=1` OR ≥5 added lines |
-| Heavy | always (still advisory) |
+| Applicable source edit | Scan newly added lines, regardless of task labels |
 
 Subagent context: skipped.

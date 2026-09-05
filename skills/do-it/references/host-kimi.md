@@ -1,101 +1,33 @@
-# Host Adapter: Kimi Code
-
-Near-full hook depth via the repository-root `kimi.plugin.json` — the do-it
-checkout itself is the plugin. No build step, no generated bundle: the manifest
-points straight at `./skills/do-it/`, `./commands/`, and `./hooks/`.
-
-## Install (plugin-first)
-
-From GitHub (any of the four URL forms; this pins the default branch):
+# Kimi Code
 
 ```text
 /plugins install https://github.com/tdwhere123/do-it
 ```
 
-For a local checkout (development / dogfooding):
+Kimi reads kimi.plugin.json, skills, and the three commands. The portable custom
+agent bundle is not installed: Kimi uses its native built-in agent mechanism.
+Kimi context output is plain text; other native hook hosts use their JSON shape.
 
-```text
-/plugins install /path/to/do-it
-```
+## Runtime
 
-Then `/reload` or start a new session. Installs land in
-`$KIMI_CODE_HOME/plugins/managed/do-it/` and run from that managed copy —
-editing the source checkout after install has no effect until you reinstall.
-Plugins are per-user (no project-level scope yet). Installing never executes
-the hooks; they only fire on their events while the plugin is enabled.
+sessionStart and UserPromptSubmit deliver context; PostToolUse checks edits.
+The default path has no task classifier, completion-language scan, profile
+injection, or automatic task selection. The router skill is a compatibility
+alias only. Choose useful skills directly from descriptions.
 
-## What Ships
+Independent specialists gather evidence and form conclusions in scoped contexts.
+Keep read-only and write ownership restrictions explicit; the parent integrates
+and verifies. Host permissions enforce configured access and side effects.
 
-- **12 skills** via `skills: "./skills/do-it/"` (same SKILL.md format; the
-  shared `references/` payload travels inside the plugin root, so relative
-  links keep working). Inventory includes `do-it-adaptive`.
-- **3 commands** via `commands: "./commands/"` — `/do-it:skip`,
-  `/do-it:handbook`, `/do-it:retrospective`. Claude-only frontmatter fields
-  (e.g. `allowed-tools`) are silently ignored by Kimi.
-- **6 `hooks[]` entries** plus top-level `sessionStart` (below). Hook commands
-  run via `sh -c` with cwd = plugin root and receive exactly two extra env
-  vars: `KIMI_CODE_HOME`, `KIMI_PLUGIN_ROOT`.
-- **No agents.** Kimi Code has no custom-subagent mechanism (built-in
-  `coder` / `explore` / `plan` only), so do-it's 10 portable agents are not
-  installed on this host. Delegate to the built-ins and keep the same parent
-  contract: goal, boundary, evidence back.
+## Diagnostics and migration
 
-## Hook Depth
+Diagnostics default off. For Pi/OpenCode, set `DO_IT_EVIDENCE_MODE=observe` in the
+host environment. Other hosts can explicitly register `evidence-observer.sh` on
+the desired tool-result event with that setting, or invoke it manually with a
+host-shaped JSON payload on stdin. Cursor uses `run-hook.cmd evidence-observer`.
+These records are observations, not proof of task acceptance.
 
-**Full-minus-subagent**:
-
-| Kimi event | Kernel script | Notes |
-|---|---|---|
-| `sessionStart` (manifest field, not `hooks[]`) | `kernel-context.sh` | silent in `legacy`; compact kernel in `shadow`/`thin` |
-| `UserPromptSubmit` | `prompt-submit.sh` (thin default: kernel + adaptive, classifier skipped; `legacy` serializes `router.sh` → `grill-prompt.sh`) | Kimi receives plain text |
-| `UserPromptSubmit` | `behavior-feedback.sh` | silent, default off |
-| `PostToolUse` (matcher `Edit\|Write`) | `evidence-observer.sh` then `write-quality-lint.sh` | Kimi's only edit tools are `Edit` and `Write` — no `MultiEdit`/`StrReplace` |
-| `PostToolUse` (matcher `Bash`) | `evidence-observer.sh` | record command facts only when the payload has a reliable result; otherwise `worktree.coverage=partial` |
-| `Stop` | `verification-gate.sh` | advisory reminder; transcript via wire file (below) |
-
-Deliberately not wired: `subagent-stance.sh`. Kimi's `SubagentStart` /
-`SubagentStop` payloads ship an empty `session_id` and the CLI bootstrap cwd
-(observed in kimi-code source, 0.26.0 — likely an upstream bug), so
-session-keyed stance state would be unreliable. Revisit if upstream fixes the
-payload.
-
-## Protocol Notes (verified against kimi-code source + live smoke, 0.26.0)
-
-- stdin base payload: `hook_event_name`, `session_id`, `cwd` plus event fields;
-  all snake_case.
-- `UserPromptSubmit.prompt` is a **ContentPart array**
-  (`[{"type":"text","text":"…"}]`), not a string — extract with
-  `[.prompt[]?.text] | join("\n")`.
-- stdout on exit 0: `{"message":"…"}` or plain text is appended to context,
-  wrapped as `<hook_result hook_event="…">…</hook_result>`.
-  `hookSpecificOutput` honors only `message`, `permissionDecision`,
-  `permissionDecisionReason` — **`additionalContext` is not parsed**. Under
-  Kimi, `hooks/lib/common.sh` emits plain text instead of the Claude JSON
-  envelope.
-- Exit 2 blocks (stderr = reason); any other non-zero exit or timeout fails
-  open. Only `UserPromptSubmit`, `PreToolUse`, `Stop` can block; do-it hooks
-  stay advisory and always exit 0.
-- `Stop` payload is only `{stop_hook_active}` — there is no `transcript_path`
-  anywhere in Kimi's protocol. `verification-gate.sh` locates the session
-  transcript at `$KIMI_CODE_HOME/sessions/*/<session_id>/agents/main/wire.jsonl`.
-- `SessionStart` carries `source: "startup" | "resume"`.
-- Matchers are unanchored JS regexes over the tool name (`PreToolUse` /
-  `PostToolUse`) or submitted text (`UserPromptSubmit`).
-
-## Session State
-
-`$KIMI_CODE_HOME/do-it-data/sessions` (never `KIMI_PLUGIN_ROOT` — the managed
-copy is read-only semantics). Full resolution order: `hooks/lib/common.sh`
-(`do_it_session_dir`).
-
-## Truth Plane
-
-Use `live-kimi` when evidence depends on plugin install, manifest hook firing,
-or Kimi tool events — not repo-only proof.
-
-## Limitations
-
-- No custom subagents — see What Ships.
-- Per-user install only; no project scope.
-- Hook scripts require `sh`; native Windows without a POSIX shell is
-  unsupported (same posture as Codex / OpenCode adapters).
+Existing profiles, memory, task notes, and runtime pointers remain untouched.
+Custom adaptive personalization is retired. Native host instructions or memory
+own preferences. See [migration](../../../docs/simplification-migration.md) and
+[installation details](../../../docs/install.md).

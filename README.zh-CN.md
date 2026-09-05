@@ -2,33 +2,14 @@
 
 [English](./README.md) | [中文](./README.zh-CN.md)
 
-[![CI](https://github.com/tdwhere123/do-it/actions/workflows/ci.yml/badge.svg)](https://github.com/tdwhere123/do-it/actions/workflows/ci.yml)
-[![CodeQL](https://github.com/tdwhere123/do-it/actions/workflows/codeql.yml/badge.svg)](https://github.com/tdwhere123/do-it/actions/workflows/codeql.yml)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+面向 Codex、Claude Code、Cursor、OpenCode、Pi 和 Kimi Code 的专业编程判断插件。
+do-it 提供按需技能、独立专业代理、精简上下文和有用的确定性检查，由模型选择方法。
 
-> 少即是多。最好的工作流，是你感觉不到它——直到它救了你。
+Core 只保留稳定原则：守住用户目标、已定决策和授权边界；依据当前事实并区分假设；
+在必要范围内修复因果归属层；用相关实际证据支持结论并说明缺口。自检问题只是可选
+思考提示，不是强制访谈、工作流或报告。
 
-**do-it 让 agent 的工作带着证据。** 每一次完成声明都要能追溯到目标、已决决策、
-边界、验收，以及当前工作区上的新鲜证据。
-
-大多数 AI 编程工作流在给 agent 加规则。`do-it` 从相反方向出发：
-**什么可以不做？** 小事保持小。没有强制的 brainstorm → grill → plan → review
-链。每一个 skill、每一个子智能体、每一个 hook，都要靠"此刻有用"来赢得存在——
-而不是因为它是流水线的一环。自主优先：用户的直接意图压过 hook 标签。
-
-留下的东西精简而有意：
-
-- **每一行代码，先是负债，后才是资产。** 共享的决策阶梯先问"它需要存在吗"，
-  再问"怎么写"。
-- **"完成"是证据声明，不是信心等级。** 从工作区拿证据，或者说 `NOT_VERIFIED`。
-- **只建议，从不阻塞。** Hook 提醒。Skill 建议。agent 的判断——和你的——赢。
-
-这是我自己每天在真实项目里用的工作流。适合你就用，觉得哪里不对就提 issue、
-发 PR，或者 fork 它。
-
-## 快速上手
-
-### 1. 安装
+## 安装
 
 | 宿主 | 命令 |
 | --- | --- |
@@ -39,209 +20,66 @@
 | Pi | `pi install npm:@tdwhere/do-it-pi` |
 | Kimi Code | `/plugins install https://github.com/tdwhere123/do-it` |
 
-各宿主详细步骤与冒烟测试见 [docs/install.zh-CN.md](./docs/install.zh-CN.md)。
+[安装详情](./docs/install.zh-CN.md)包含宿主配置和冒烟检查。安装后正常表达需求即可。
+无需任务分级、强制 router 入口或 .do-it 脚手架。优先复用已有指令和项目文档，仅在
+有助于连续工作时记录轻量任务说明。
 
-### 2. 正常对话就行
+## 专业视角
 
-do-it 在幕后工作，你不需要调用它——它在合适的生命周期点自动触发：
+按描述直接选择能帮助当前工作的技能：
 
-- **默认运行时是 thin**（未设置或 `DO_IT_ROUTER_MODE=thin`）：注入精简 kernel
-  和可选 adaptive overlay；跳过 lexical classifier。回滚到 0.16 的 router 然后
-  grill：`DO_IT_ROUTER_MODE=legacy`。`shadow` 仍注入 kernel，classifier 只记
-  诊断。这是本 worktree 的 S16 Phase A，不是 tagged 0.19。
-- **写码时**，`write-quality-lint` 标出新代码中的反模式。每文件一条提醒；从不
-  阻塞。`evidence-observer` 记录编辑和命令事实；命令名本身不是证明。
-- **说"完成"之前**，verification gate 要求从当前工作区拿出新鲜证据。
-
-### 3. 建立 `.do-it/`（推荐）
-
-一个小目录，给 agent 跨会话的记忆——项目规则、词汇表、工作笔记。运行：
-
-```
-/do-it-handbook init
-```
-
-这会创建：
-
-```
-.do-it/
-  handbook/            稳定的项目真相
-    invariants.md        总是优先的规则
-    architecture.md      稳定的系统形状
-    glossary.md          长期稳定的词汇表
-  worklog/             日报或目标笔记
-  CONTEXT.md           精炼的术语和关系（自动更新）
-  plans/               挣来的执行合同（不是进度日志）
-```
-
-把 `invariants.md` 和 `glossary.md` 里的占位符换成你项目的真实规则。其余部分
-自行维护。Bootstrap **不会**创建 `brainstorm/` 或 `grill/`。Adaptive profile 和
-运行时事件日志放在 gitignored 的 `.do-it/runtime/`（默认关闭；不要把密钥或项目
-事实写进去）。
-
-### 4. 想跳就跳
-
-`yolo`、`just do it`、`直接做`、`skip do-it` 或 `/do-it-skip` — 整轮跳过。
-`skip grill`、`skip router`、`skip gate` — 部分跳过。
-
-## 它怎么工作
-
-### 合适的体量
-
-在 legacy 回滚路径（`DO_IT_ROUTER_MODE=legacy`）上，router 给每个任务一个建议性的
-风险标签——不是权限门。thin（默认）跳过该 classifier。
-
-| 分级 | 发生什么 |
+| 技能 | 提供的判断 |
 | --- | --- |
-| **Light** | 检查 → 做 → 验证。没有额外仪式。 |
-| **Standard** | 按需加载 skill。没有强制链。 |
-| **Heavy** | 跨边界、发布、安全、不可逆。值得多看一眼。 |
+| `do-it-core` | 目标、事实、因果范围和结论的稳定原则 |
+| `do-it-code-quality` | 因果归属、契约连带变化和有状态失败 |
+| `do-it-architecture` | 权威、边界、兼容、迁移与恢复 |
+| `do-it-decide` | 能改变决策的不确定性和有意义的备选方案 |
+| `do-it-review` | 分别检查需求符合性和实现质量 |
+| `do-it-verify` | 相关证据以及交付结论的实际限制 |
+| `do-it-context` | 项目术语与事实一致性 |
+| `do-it-handbook` | 值得在现有项目文档中保存的稳定知识 |
+| `do-it-retrospective` | 对实际结果按需复盘 |
+| `do-it-skill-authoring` | 简洁触发条件、独特判断和必要边界 |
 
-12 个可运行 skill（另加 1 个生成式发现索引）和 10 个可选 agent。
-Skill 按需加载，不按分级：
+`do-it-router` 仅保留为显式调用的技能发现兼容别名。
 
-| Skill | 时机 |
-| --- | --- |
-| `do-it-core` | 常驻协议蓝本——先定分级，再证据 / 范围 / 验证 / 汇报 |
-| `do-it-router` | 入口——先选 Light / Standard / Heavy，再自选意涵 skill |
-| `do-it-code-quality` | 改代码——范围、TDD、调试、契约 |
-| `do-it-architecture` | 承重架构——权威、契约、边界、切换、防护 |
-| `do-it-decide` | 选项不清、承重前提 |
-| `do-it-review` | diff 需要审视和修复 |
-| `do-it-verify` | done / ready / merge 声明之前 |
-| `do-it-handbook`, `do-it-context` | 项目真相与词汇表 |
-| `do-it-skill-authoring` | 编写 do-it skill |
-| `do-it-retrospective` | 默认关闭的行为报告 |
-| `do-it-adaptive` | 按需个人 overlay（默认关闭；从不削弱 Core） |
+独立代理上下文很重要：它们可以独立收集证据、形成结论，减少继承父代理判断造成的
+锚定。交接目标、范围、已定决策和来源事实；父代理观点应标为假设。专业角色保留
+只读或限定写入范围，父代理负责整合并验证整体变化。根据独立性的具体价值使用代理，
+不设置默认人数配额，也不强制每个任务经过委派。
 
-### 更少的代码，不是更多
+## 运行时
 
-一条决策阶梯贯穿整个写代码过程：
+默认路径提供精简上下文，并对新增源代码行进行有用的质量检查。检查为建议性；
+实际宿主权限机制负责执行已配置的访问和副作用限制。
 
-> 它需要存在吗？→ stdlib 能做？→ 平台原生？→ 已有依赖？→ 一行？→ 才轮到自建。
+任务分类、词法 router/grill 提醒、完成措辞门禁、active-task 自动接管以及自定义
+adaptive 个性化系统均已退出。持久偏好交给原生宿主指令或记忆。现有用户配置、
+记忆、任务文档和运行时指针保持原样。[迁移说明](./docs/simplification-migration.zh-CN.md)
+介绍兼容行为。
 
-这不是事后挂的 linter——它接在三个点上：
+证据收集是显式开启的诊断功能。Pi/OpenCode 仅在 `DO_IT_EVIDENCE_MODE=observe`
+时调用 observer；其他宿主可显式注册或调用。诊断事件不能证明任务验收。结论应说明
+实际相关验证及缺口；测试通过本身不意味着整个用户目标已经实现。
 
-- **写之前**：`do-it-decide` 问必要性。
-- **写之中**：`do-it-code-quality` + `write-quality-lint` 标出应该更简单的
-  东西。（[Family 目录](./skills/do-it/references/write-quality-families.md)。）
-- **写之后**：`do-it-review` 指出可删、可内联、可用 stdlib 替代的。
+代码质量数值覆盖继续作为纯数据放在被编辑仓库的 `.do-it/write-quality.local.tsv`，
+环境变量优先。详见[质量检查项](./skills/do-it/references/write-quality-families.md)。
 
-被砍的永远不是安全。
-
-### 用证据说话
-
-`do-it` 把"完成"当成证据声明。`do-it-core` § Verify（`do-it-verify` 作为清单）
-要求从当前工作区取得新鲜、与声明相关的证明。拿不出证据，诚实的回答就是
-`NOT_VERIFIED` 加下一项检查。
-
-对于外部副作用（git push、npm publish …），do-it 要求 agent 先确认。
-真正的强制只有宿主的 sandbox 能做。
-详见[严格外部操作](./docs/strict-external-actions.md)。
-
-> 提示：描述目标、成功标准和相关约束，然后让 agent 自己规划步骤。
-
-### 需要时委派
-
-十个内置子智能体提供独立的代码地图、审查和专业视角。默认调度是 **0**。最多
-**一次**全新上下文的二次查看，且仅当独立证据可能改变昂贵决策、切片足够窄，
-或当前上下文已经绑死、无法自审时才用。你自己的全局 agent 不受插件更新影响。
-
-## 整体流程
-
-```mermaid
-flowchart TD
-    P[UserPromptSubmit] --> PS[prompt-submit]
-    PS --> M{DO_IT_ROUTER_MODE}
-    M -->|thin 默认 / shadow| K[kernel-context + adaptive-context]
-    M -->|legacy 回滚| R[router 然后 grill]
-    R --> C[do-it-core<br/>协议蓝本]
-    K --> C
-    C --> B{意涵分桶}
-    B --> CQ[do-it-code-quality<br/>写码时]
-    B --> A[do-it-architecture<br/>承重架构]
-    B --> D[do-it-decide<br/>需要决策/计划时]
-    B --> RV[do-it-review<br/>需要审查时]
-    B --> VY[do-it-verify<br/>宣布完成前]
-    CQ --> E[执行]
-    D --> E
-    E --> EO[PostToolUse: evidence-observer]
-    E --> WQ[PostToolUse: write-quality-lint]
-    E --> VG[verification-gate:<br/>建议性完成提醒]
-    VG --> VY
-    RV --> VY
-    VY --> Done[有证据的声明<br/>或 NOT_VERIFIED]
-```
-
-完整策略见 [`docs/routing-matrix.md`](./docs/routing-matrix.md)。
-
-## 项目级覆盖
-
-项目级覆盖放在 `.do-it/` 下，均为**纯数据**——hook 逐行读取，从不 source
-项目文件：
-
-- `keywords.local.tsv`（会话 cwd）扩展 router 关键词表。
-- `write-quality.local.tsv`（被编辑文件的 git 根目录）调整数值型限制，例如
-  `file-size` 的 warn/split 阈值；环境变量 `DO_IT_FILE_SIZE_WARN_LINES` /
-  `DO_IT_FILE_SIZE_SPLIT_LINES` 优先级高于该文件。
-
-Family 目录与抑制语法见
-[`skills/do-it/references/write-quality-families.md`](./skills/do-it/references/write-quality-families.md)。
-
-## 发布说明
-
-已发布主线仍是 **0.16.x**。未发布的 0.17 工作（skill、合同、eval、运行时观察）
-写在 [`CHANGELOG.md`](./CHANGELOG.md)。本 worktree 默认 runtime 为 **thin**
-（S16 Phase A，不是 tagged 0.19）。回滚：`DO_IT_ROUTER_MODE=legacy`。Tag 策略见
-[`docs/release.md`](./docs/release.md)。
-
-## 本地开发
+## 开发
 
 ```bash
-npm run setup            # 可选 CLI 安装
-npm run doctor           # 验证安装
-npm run lint             # shellcheck hooks
-npm test                 # 完整门禁：构建 + 校验 + 全部测试
+npm run build:generated
+npm run lint
+npm test
 ```
 
-Shell wrapper（`./install/install.sh`、`./install/doctor.sh`）委托给同一套
-受管安装逻辑。这个包不会通过 npm lifecycle scripts 自动修改 `~/.codex`。
+技能源文件位于 `skills/do-it/`，代理角色位于 `agents/`，钩子源位于 `hooks/`。
+宿主包通过构建生成；OpenCode 的 `src/`、Pi 的 `extensions/` 和宿主专属代理是
+直接维护的源文件例外。安装、验证、测试和宿主文档位于对应目录。
 
-## 仓库结构
-
-```text
-skills/do-it/    会被安装的 skill 目录（权威来源）
-agents/          可移植的 agent TOML 定义
-hooks/           Host hook 脚本与数据表
-commands/        斜杠命令（Claude / Kimi）
-plugins/         各宿主的生成式插件包（Codex、Cursor、OpenCode、Pi）
-install/         安装器、doctor、shell wrapper
-scripts/         构建、校验、冒烟脚本
-tests/           hook、安装、发布、适配器测试
-docs/            路由、维护、发布、适配器
-```
-
-## 站在前人的肩膀上
-
-`do-it` 借用了
-[`mattpocock/skills`](https://github.com/mattpocock/skills)、
-[`addyosmani/agent-skills`](https://github.com/addyosmani/agent-skills) 和
-[`gsd-build/get-shit-done`](https://github.com/gsd-build/get-shit-done)
-的 **plan / subworker / TDD / review** 范式。
-逐条对照见 [`docs/upstream-map.md`](./docs/upstream-map.md)。
-
-`do-it` 是我自己对同一类问题的解法，来自真实项目里的日常使用。这里吸收的是
-方法，并改写成 do-it 原生的 Router / Tier / Skill 语言；不会 vendor 上游
-skill 原文，也不会安装上游 skill 名称。来源项目不证明 do-it 有效；吸收项仍
-要在本仓库的行为 eval 里验证。
-
-感谢 [Linux.do](https://linux.do) 社区持续的实战反馈。
-
-## 维护
-
-[docs/maintenance.md](./docs/maintenance.md) 覆盖 skill、agent、安装器和包元数据
-的修改规则。
-
-## 贡献
-
-只接受来自真实使用的改动。详见 [CONTRIBUTING.md](./CONTRIBUTING.md)。
+参见[维护说明](./docs/maintenance.md)、[发布规则](./docs/release.md)和
+[贡献规则](./CONTRIBUTING.md)。修改应解决实际遇到的问题。do-it 参考了
+[mattpocock/skills](https://github.com/mattpocock/skills)、
+[addyosmani/agent-skills](https://github.com/addyosmani/agent-skills)和
+[get-shit-done](https://github.com/gsd-build/get-shit-done)的思想，交付自身的专业指导。
+感谢 Linux.do 社区提供真实使用反馈。

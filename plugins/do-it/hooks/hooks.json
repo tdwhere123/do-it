@@ -5,13 +5,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "DO_IT_HOOK_DATA=\"${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-/tmp/do-it-data}}\" \"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-.}}/hooks/behavior-feedback.sh\"",
-            "timeout": 10
-          },
-          {
-            "type": "command",
             "command": "DO_IT_HOOK_DATA=\"${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-/tmp/do-it-data}}\" \"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-.}}/hooks/prompt-submit.sh\"",
-            "timeout": 25
+            "timeout": 10
           },
           {
             "type": "command",
@@ -27,39 +22,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "DO_IT_HOOK_DATA=\"${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-/tmp/do-it-data}}\" \"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-.}}/hooks/evidence-observer.sh\"",
-            "timeout": 10
-          },
-          {
-            "type": "command",
             "command": "DO_IT_HOOK_DATA=\"${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-/tmp/do-it-data}}\" \"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-.}}/hooks/write-quality-lint.sh\"",
             "timeout": 15
-          }
-        ]
-      },
-      {
-        "matcher": "Bash|Shell",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "DO_IT_HOOK_DATA=\"${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-/tmp/do-it-data}}\" \"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-.}}/hooks/evidence-observer.sh\"",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": "DO_IT_HOOK_DATA=\"${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-/tmp/do-it-data}}\" \"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-.}}/hooks/network-admission.sh\"",
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "DO_IT_HOOK_DATA=\"${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-/tmp/do-it-data}}\" \"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-.}}/hooks/verification-gate.sh\"",
-            "timeout": 25
           }
         ]
       }

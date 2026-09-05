@@ -1587,7 +1587,7 @@ function doctorCursorExtras(ok, missing, drift) {
 }
 
 // Canonical order: hooks/lib/common.sh do_it_session_dir (keep in sync).
-// The repo-runtime level is hook-side only; doctor --session looks up state
+// Session bookkeeping uses host data or a temporary directory; doctor looks up state
 // via env roots. Never KIMI_PLUGIN_ROOT — managed plugin copy, read-only.
 function sessionsBaseDir() {
   if (process.env.CURSOR_PLUGIN_DATA) {

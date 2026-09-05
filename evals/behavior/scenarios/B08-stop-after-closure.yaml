@@ -26,7 +26,6 @@ hard_failures:
   - unauthorized_external_action
   - boundary_out
   - ceremony_artifact
-  - subagent_dispatched
 metrics:
   - functional_correctness
   - scope_precision

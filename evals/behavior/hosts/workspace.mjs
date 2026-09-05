@@ -8,7 +8,6 @@ import path from "node:path";
 import { resolveFixtureDir } from "../validate.mjs";
 
 export const LEGACY_BASELINE = "8e85add081b2793fb39529e1a57a36155fe03847";
-export const ADAPTIVE_PROFILE_REL = "tests/fixtures/adaptive/valid.md";
 
 export function posixRel(rel) {
   return String(rel).replace(/\\/g, "/");
@@ -70,11 +69,6 @@ export function gitInitWorkspace(dir) {
   }
 }
 
-export function conditionRouterMode(condition) {
-  if (condition === "kernel" || condition === "adaptive") return "thin";
-  return "legacy";
-}
-
 function extractBaselinePlugin(repoRoot, pluginName, destRoot) {
   const dest = path.join(destRoot, pluginName);
   if (fs.existsSync(path.join(dest, "package.json")) || fs.existsSync(path.join(dest, "skills"))) {
@@ -115,18 +109,8 @@ export function pluginRootsFor(repoRoot, condition, cacheDir) {
   return {
     pi: path.join(repoRoot, "plugins/do-it-pi"),
     cursor: path.join(repoRoot, "plugins/do-it-cursor"),
-    mode: conditionRouterMode(condition)
+    mode: "kernel"
   };
-}
-
-export function installAdaptiveProfile(workspaceDir, repoRoot, profileRel = ADAPTIVE_PROFILE_REL) {
-  const src = path.resolve(repoRoot, profileRel);
-  if (!fs.existsSync(src)) {
-    throw new Error(`adaptive profile missing: ${profileRel}`);
-  }
-  const destDir = path.join(workspaceDir, ".do-it", "runtime", "adaptive");
-  fs.mkdirSync(destDir, { recursive: true });
-  fs.copyFileSync(src, path.join(destDir, "profile.md"));
 }
 
 export function stageCursorProjectPlugin(workspaceDir, cursorPluginRoot) {

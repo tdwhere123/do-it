@@ -1,7 +1,7 @@
 {
   "name": "do-it",
   "version": "0.17.0",
-  "description": "Autonomy-first AI coding workflow for Codex, Claude Code, Cursor, OpenCode, Pi, and Kimi Code: task-fit skills, optional subagents, and evidence-carrying completion.",
+  "description": "Professional coding judgment, independent specialists, compact context, and deterministic checks across agent hosts.",
   "author": {
     "name": "tdwhere123"
   },
@@ -22,8 +22,8 @@
   "hooks": "./hooks/hooks.json",
   "interface": {
     "displayName": "do-it",
-    "shortDescription": "Autonomy-first workflow discipline for Codex.",
-    "longDescription": "Install do-it via the Codex plugin marketplace. Skills and bundled agents are selected only when task-fit helps; plugin hooks provide compact routing and evidence reminders. Trust plugin hooks in /hooks after install.",
+    "shortDescription": "Professional judgment and independent specialists for Codex.",
+    "longDescription": "Install do-it via the Codex plugin marketplace. Skills and bundled agents are selected only when task-fit helps; plugin hooks provide compact context and source-edit checks. Trust plugin hooks in /hooks after install.",
     "developerName": "tdwhere123",
     "category": "Coding",
     "capabilities": [

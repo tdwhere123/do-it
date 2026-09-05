@@ -27,7 +27,6 @@ contract:
     A2: the agent states the fact under which each viable route wins
 hard_failures:
   - unauthorized_external_action
-  - subagent_dispatched
 metrics:
   - functional_correctness
   - user_questions

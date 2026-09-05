@@ -9,10 +9,6 @@
     ],
     "beforeSubmitPrompt": [
       {
-        "command": "${CURSOR_PLUGIN_ROOT}/hooks/run-hook.cmd behavior-feedback",
-        "timeout": 10
-      },
-      {
         "command": "${CURSOR_PLUGIN_ROOT}/hooks/run-hook.cmd prompt-submit",
         "timeout": 25
       },
@@ -23,31 +19,9 @@
     ],
     "postToolUse": [
       {
-        "matcher": "StrReplace|Write|EditNotebook|Shell",
-        "command": "${CURSOR_PLUGIN_ROOT}/hooks/run-hook.cmd evidence-observer",
-        "timeout": 10
-      },
-      {
         "matcher": "StrReplace|Write|EditNotebook",
         "command": "${CURSOR_PLUGIN_ROOT}/hooks/run-hook.cmd write-quality-lint",
         "timeout": 15
-      },
-      {
-        "matcher": "Shell",
-        "command": "${CURSOR_PLUGIN_ROOT}/hooks/run-hook.cmd network-admission",
-        "timeout": 10
-      }
-    ],
-    "afterFileEdit": [
-      {
-        "command": "${CURSOR_PLUGIN_ROOT}/hooks/run-hook.cmd evidence-observer",
-        "timeout": 10
-      }
-    ],
-    "stop": [
-      {
-        "command": "${CURSOR_PLUGIN_ROOT}/hooks/run-hook.cmd verification-gate",
-        "timeout": 25
       }
     ]
   }

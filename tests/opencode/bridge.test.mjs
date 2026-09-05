@@ -23,17 +23,12 @@ const {
   isShellTool,
   normalizeToolName,
   parseHookOutput,
-  readSessionTier,
   resolveBash,
   resolveSessionStateDir,
   spawnHook,
   windowsTaskkill
 } = await import(bridgeUrl);
-const {
-  cleanupStaleVerificationTemps,
-  createVerificationTranscript,
-  safeSessionKey
-} = await import(indexUrl);
+
 
 const payload = {
   session_id: "sess-1",
@@ -221,7 +216,6 @@ test("session state lookup prefers the hook writer's data root", () => {
   fs.writeFileSync(path.join(hookDir, "sessions", sessionID, "state.json"), '{"tier":"Heavy"}\n');
 
   try {
-    assert.equal(readSessionTier(sessionID, cwd), "Heavy");
   } finally {
     if (previousOpenCodeData === undefined) delete process.env.OPENCODE_DATA;
     else process.env.OPENCODE_DATA = previousOpenCodeData;
@@ -244,190 +238,11 @@ test("session state lookup matches the default OpenCode data root", () => {
 
   try {
     assert.equal(resolveSessionStateDir(sessionID, cwd), stateDir);
-    assert.equal(readSessionTier(sessionID, cwd), "Standard");
   } finally {
     if (previousOpenCodeData === undefined) delete process.env.OPENCODE_DATA;
     else process.env.OPENCODE_DATA = previousOpenCodeData;
     if (previousHookData === undefined) delete process.env.DO_IT_HOOK_DATA;
     else process.env.DO_IT_HOOK_DATA = previousHookData;
     fs.rmSync(cwd, { recursive: true, force: true });
-  }
-});
-
-test("verification transcript keeps shell details private and does not satisfy an advisory reminder", () => {
-  const tempParent = fs.mkdtempSync(path.join(os.tmpdir(), "doit-opencode-evidence-"));
-  const transcript = createVerificationTranscript("evidence", {
-    data: [
-      { info: { role: "user" }, parts: [{ type: "text", text: "change it" }] },
-      { info: { role: "assistant" }, parts: [
-        { type: "tool", callID: "edit-1", tool: "edit", state: { status: "completed", input: {} } },
-        { type: "tool", callID: "echo-1", tool: "bash", state: { status: "completed", input: { command: "echo npm test" } } },
-        { type: "tool", callID: "secret-1", tool: "bash", state: { status: "completed", input: { command: "API_TOKEN=supersecret npm test" } } },
-        { type: "text", text: "Done." }
-      ] }
-    ]
-  }, { tempParent });
-
-  try {
-    assert.ok(transcript);
-    const rows = fs.readFileSync(transcript.path, "utf8");
-    assert.doesNotMatch(rows, /echo npm test|supersecret|API_TOKEN|"command":"npm test"/);
-    assert.match(rows, /"name":"Edit"/);
-    assert.doesNotMatch(rows, /"name":"Bash"/);
-
-    const gate = spawnSync("bash", [path.join(repoRoot, "hooks", "verification-gate.sh")], {
-      cwd: repoRoot,
-      encoding: "utf8",
-      input: JSON.stringify({
-        session_id: "opencode-wrapper-evidence",
-        cwd: repoRoot,
-        transcript_path: transcript.path,
-        stop_hook_active: "false"
-      }),
-      env: { ...process.env, DO_IT_HOOK_DATA: path.join(tempParent, "hook-data") }
-    });
-    assert.equal(gate.status, 0, gate.stderr);
-    assert.match(gate.stdout, /fresh relevant evidence/);
-    assert.match(gate.stdout, /does not infer verification from command names/);
-  } finally {
-    transcript?.cleanup();
-    fs.rmSync(tempParent, { recursive: true, force: true });
-  }
-});
-
-test("verification transcript keeps only current-turn fields and remains advisory", () => {
-  const tempParent = fs.mkdtempSync(path.join(os.tmpdir(), "doit-opencode-private-"));
-  const sessionID = "../../outside/secret-session";
-  const transcript = createVerificationTranscript(sessionID, {
-    data: [
-      {
-        info: { role: "user" },
-        parts: [{ type: "text", text: "old private project prompt" }]
-      },
-      {
-        info: { role: "assistant" },
-        parts: [{ type: "text", text: "old assistant transcript" }]
-      },
-      {
-        info: { role: "user" },
-        parts: [{ type: "text", text: "current private project prompt" }]
-      },
-      {
-        info: { role: "assistant" },
-        parts: [
-          {
-            type: "tool",
-            callID: "edit-1",
-            tool: "edit",
-            state: {
-              status: "completed",
-              input: { file_path: "src/private.ts", new_string: "private source" },
-              output: "private edit output"
-            }
-          },
-          {
-            type: "tool",
-            callID: "bash-1",
-            tool: "bash",
-            state: {
-              status: "completed",
-              input: { command: "npm test" },
-              output: "private passing output"
-            }
-          },
-          {
-            type: "tool",
-            callID: "bash-2",
-            tool: "bash",
-            state: {
-              status: "error",
-              input: { command: "npm test -- --secret-token", description: "private metadata" },
-              error: "private test output"
-            }
-          },
-          { type: "text", text: "Done with the requested change." }
-        ]
-      }
-    ]
-  }, { tempParent });
-
-  try {
-    assert.ok(transcript);
-    assert.match(path.basename(path.dirname(transcript.path)), new RegExp(`^do-it-opencode-${safeSessionKey(sessionID)}-`));
-    assert.equal(path.dirname(path.dirname(transcript.path)), tempParent);
-    const rows = fs.readFileSync(transcript.path, "utf8");
-    const records = rows.trimEnd().split("\n").map((row) => JSON.parse(row));
-    const frameIndex = (type, idKey, id) => records.findIndex((record) =>
-      record.message?.content?.some((block) => block.type === type && block[idKey] === id)
-    );
-    assert.ok(frameIndex("tool_result", "tool_use_id", "edit-1") > frameIndex("tool_use", "id", "edit-1"));
-    assert.equal(frameIndex("tool_use", "id", "bash-1"), -1);
-
-    const gate = spawnSync("bash", [path.join(repoRoot, "hooks", "verification-gate.sh")], {
-      cwd: repoRoot,
-      encoding: "utf8",
-      input: JSON.stringify({
-        session_id: "opencode-paired-evidence",
-        cwd: repoRoot,
-        transcript_path: transcript.path,
-        stop_hook_active: "false"
-      }),
-      env: {
-        ...process.env,
-        DO_IT_HOOK_DATA: path.join(tempParent, "hook-data")
-      }
-    });
-    assert.equal(gate.status, 0, gate.stderr);
-    assert.match(gate.stdout, /fresh relevant evidence/);
-    assert.match(gate.stdout, /does not infer verification from command names/);
-
-    assert.match(rows, /"type":"user"/);
-    assert.match(rows, /"name":"Edit"/);
-    assert.doesNotMatch(rows, /"name":"Bash"/);
-    assert.doesNotMatch(rows, /"command":"npm test"/);
-    assert.match(rows, /"type":"tool_result".*"status":"completed"/);
-    assert.match(rows, /"text":"Done\."/);
-    assert.doesNotMatch(rows, /old private|current private|private source|private edit output|private metadata|private test output|secret-token|src\/private/);
-    if (process.platform !== "win32") {
-      assert.equal(fs.statSync(path.dirname(transcript.path)).mode & 0o777, 0o700);
-      assert.equal(fs.statSync(transcript.path).mode & 0o777, 0o600);
-    }
-  } finally {
-    transcript?.cleanup();
-    assert.equal(transcript ? fs.existsSync(path.dirname(transcript.path)) : false, false);
-    fs.rmSync(tempParent, { recursive: true, force: true });
-  }
-});
-
-test("verification temp cleanup prunes only stale adapter directories", () => {
-  const tempParent = fs.mkdtempSync(path.join(os.tmpdir(), "doit-opencode-ttl-"));
-  const staleTranscript = createVerificationTranscript("stale", { data: [
-    { info: { role: "user" }, parts: [{ type: "text", text: "change it" }] },
-    { info: { role: "assistant" }, parts: [{ type: "text", text: "Done." }] }
-  ] }, { tempParent });
-  const freshTranscript = createVerificationTranscript("fresh", { data: [
-    { info: { role: "user" }, parts: [{ type: "text", text: "change it" }] },
-    { info: { role: "assistant" }, parts: [{ type: "text", text: "Done." }] }
-  ] }, { tempParent });
-  assert.ok(staleTranscript);
-  assert.ok(freshTranscript);
-  const stale = path.dirname(staleTranscript.path);
-  const fresh = path.dirname(freshTranscript.path);
-  const forged = fs.mkdtempSync(path.join(tempParent, `do-it-opencode-${safeSessionKey("forged")}-`));
-  fs.writeFileSync(path.join(forged, "keep.txt"), "not owned by the adapter\n");
-  const unrelated = fs.mkdtempSync(path.join(tempParent, "unrelated-"));
-  const now = Date.now();
-  fs.utimesSync(stale, new Date(now - 60_000), new Date(now - 60_000));
-  fs.utimesSync(forged, new Date(now - 60_000), new Date(now - 60_000));
-
-  try {
-    cleanupStaleVerificationTemps(tempParent, now, 10_000);
-    assert.equal(fs.existsSync(stale), false);
-    assert.equal(fs.existsSync(fresh), true);
-    assert.equal(fs.existsSync(forged), true, "prefix and age alone must not authorize recursive deletion");
-    assert.equal(fs.readFileSync(path.join(forged, "keep.txt"), "utf8"), "not owned by the adapter\n");
-    assert.equal(fs.existsSync(unrelated), true);
-  } finally {
-    fs.rmSync(tempParent, { recursive: true, force: true });
   }
 });

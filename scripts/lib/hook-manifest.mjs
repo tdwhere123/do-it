@@ -10,18 +10,11 @@
 
 /** Runtime hook scripts wired on every host (bash). */
 export const HOOK_SCRIPTS = [
-  "behavior-feedback.sh",
-  "learning-recorder.sh",
   "prompt-submit.sh",
   "kernel-context.sh",
-  "adaptive-context.sh",
-  "router.sh",
-  "grill-prompt.sh",
   "subagent-stance.sh",
   "write-quality-lint.sh",
   "evidence-observer.sh",
-  "network-admission.sh",
-  "verification-gate.sh",
   "anti-patterns-lint.sh",
   "comments-lint.sh"
 ];
@@ -62,72 +55,9 @@ function codexHookCommand(scriptName) {
 }
 
 export function codexHooksJson() {
-  return {
-    hooks: {
-      UserPromptSubmit: [
-        {
-          hooks: [
-            {
-              type: "command",
-              command: codexHookCommand("behavior-feedback.sh"),
-              timeout: 10
-            },
-            {
-              type: "command",
-              command: codexHookCommand("prompt-submit.sh"),
-              timeout: 25
-            },
-            {
-              type: "command",
-              command: codexHookCommand("subagent-stance.sh"),
-              timeout: 10
-            }
-          ]
-        }
-      ],
-      PostToolUse: [
-        {
-          matcher: "Edit|Write|MultiEdit|NotebookEdit",
-          hooks: [
-            {
-              type: "command",
-              command: codexHookCommand("evidence-observer.sh"),
-              timeout: 10
-            },
-            {
-              type: "command",
-              command: codexHookCommand("write-quality-lint.sh"),
-              timeout: 15
-            }
-          ]
-        },
-        {
-          matcher: "Bash|Shell",
-          hooks: [
-            {
-              type: "command",
-              command: codexHookCommand("evidence-observer.sh"),
-              timeout: 10
-            },
-            {
-              type: "command",
-              command: codexHookCommand("network-admission.sh"),
-              timeout: 10
-            }
-          ]
-        }
-      ],
-      Stop: [
-        {
-          hooks: [
-            {
-              type: "command",
-              command: codexHookCommand("verification-gate.sh"),
-              timeout: 25
-            }
-          ]
-        }
-      ]
-    }
-  };
+  const command = (script, timeout) => ({ type: "command", command: codexHookCommand(script), timeout });
+  return { hooks: {
+    UserPromptSubmit: [{ hooks: [command("prompt-submit.sh", 10), command("subagent-stance.sh", 10)] }],
+    PostToolUse: [{ matcher: "Edit|Write|MultiEdit|NotebookEdit", hooks: [command("write-quality-lint.sh", 15)] }]
+  } };
 }

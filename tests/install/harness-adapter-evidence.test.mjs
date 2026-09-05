@@ -24,29 +24,10 @@ test("hook-manifest ships evidence-observer on every host bundle list", () => {
 	assert.ok(RUN_HOOK_CMD_ALLOWLIST.includes("evidence-observer.sh"));
 });
 
-test("Claude, Codex, Cursor, and Kimi register evidence-observer", () => {
-	const claude = JSON.stringify(readJson("hooks/hooks.json"));
-	assert.match(claude, /evidence-observer\.sh/);
-	assert.match(claude, /Bash\|Shell/);
-
-	const codex = JSON.stringify(readJson("install/codex-hooks.json"));
-	assert.match(codex, /evidence-observer\.sh/);
-	assert.match(codex, /Bash\|Shell/);
-
-	const cursor = readJson("install/cursor-hooks.json");
-	const post = JSON.stringify(cursor.hooks.postToolUse ?? []);
-	const after = JSON.stringify(cursor.hooks.afterFileEdit ?? []);
-	assert.match(post, /evidence-observer/);
-	assert.match(after, /evidence-observer/);
-	assert.match(post, /Shell/);
-
-	const kimi = readJson("kimi.plugin.json");
-	const observer = (kimi.hooks ?? []).filter(
-		(hook) => hook.command === "./hooks/evidence-observer.sh",
-	);
-	assert.equal(observer.length, 2);
-	assert.ok(observer.some((hook) => hook.matcher === "Edit|Write"));
-	assert.ok(observer.some((hook) => hook.matcher === "Bash"));
+test("default native wiring excludes automatic diagnostics and retired gates", () => {
+  for (const config of ["hooks/hooks.json", "install/codex-hooks.json", "install/cursor-hooks.json", "kimi.plugin.json"]) {
+    assert.doesNotMatch(JSON.stringify(readJson(config)), /evidence-observer|verification-gate|network-admission|adaptive-context|behavior-feedback/);
+  }
 });
 
 test("harness adapter evidence shell suite passes", () => {

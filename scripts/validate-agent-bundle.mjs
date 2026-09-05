@@ -6,12 +6,7 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { ALL_SKILLS } from "./skill-tiers.mjs";
 import { rewriteReferenceMarkdown } from "./lib/rewrite-plugin-ref-links.mjs";
-import {
-  AGENT_CHILD_CONTRACT_ID,
-  AGENT_NOT_DEFAULT_CONTRACT_ID,
-  EXPECTED_AGENT_INVENTORY,
-  NOT_DEFAULT_AGENTS
-} from "./validate-skill-contracts.mjs";
+
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, "..");
@@ -151,15 +146,6 @@ export function validateAgentCapabilityPolicy(relativePath, content, errors) {
     errors.push(`${relativePath}: must name NOT_CHECKED in its return guidance`);
   }
 
-  if (!content.includes(AGENT_CHILD_CONTRACT_ID)) {
-    errors.push(`${relativePath}: must include ${AGENT_CHILD_CONTRACT_ID}`);
-  }
-
-  const agentName = path.basename(relativePath, ".toml");
-  if (NOT_DEFAULT_AGENTS.includes(agentName) && !content.includes(AGENT_NOT_DEFAULT_CONTRACT_ID)) {
-    errors.push(`${relativePath}: must include ${AGENT_NOT_DEFAULT_CONTRACT_ID}`);
-  }
-
   for (const phrase of prohibitedPhrases) {
     if (content.toLowerCase().includes(phrase.toLowerCase())) {
       errors.push(`${relativePath}: must not retain process gate phrase ${phrase}`);
@@ -267,12 +253,6 @@ function validateVersions(pkg, manifest, errors) {
 function validateSourceAgents(manifest, errors) {
   const sourceFiles = listNames("agents", ".toml");
   const sourceNames = sourceFiles.map((file) => file.replace(/\.toml$/, ""));
-
-  if (sourceNames.length !== EXPECTED_AGENT_INVENTORY) {
-    errors.push(
-      `agent inventory must stay at ${EXPECTED_AGENT_INVENTORY}; found ${sourceNames.length}`
-    );
-  }
 
   const manifestAgents = manifest.agents ?? [];
   const manifestNames = manifestAgents.map((agent) => agent.name).sort();

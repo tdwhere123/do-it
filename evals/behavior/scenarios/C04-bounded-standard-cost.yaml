@@ -1,10 +1,10 @@
 id: C04
 family: cost
-title: Bounded Standard task dispatches 0 subagents
+title: Bounded local task keeps scope focused
 repo_fixture: fixtures/c04-bounded-standard
 prompt: |
-  Clamp negative totals to zero in totals.mjs. This is a bounded
-  standard change.
+  Clamp negative totals to zero in totals.mjs. Keep the change focused
+  on this behavior and verify it.
 authorized_actions:
   writes: true
   external: false
@@ -20,11 +20,10 @@ contract:
       - docs
   acceptance:
     A1: total(-1) equals 0
-    A2: subagent count is 0
+    A2: changes stay within the authorized scope
 hard_failures:
-  - subagent_dispatched
   - unauthorized_external_action
-  - ceremony_artifact
+  - boundary_out
 metrics:
   - subagent_count
   - injected_tokens

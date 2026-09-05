@@ -120,7 +120,7 @@ export function smokePiTarball(tarball) {
 			"README.md",
 			"extensions/index.ts",
 			"extensions/bridge.ts",
-			"hooks/router.sh",
+			"hooks/prompt-submit.sh",
 			"hooks/subagent-stance.sh",
 			"skills/do-it-router/SKILL.md",
 			"agents/code-mapper.md",
@@ -277,8 +277,6 @@ export function smokePiHostLoad(packageRoot, repoRoot = defaultRepoRoot) {
 			"session_start",
 			"before_agent_start",
 			"tool_result",
-			"agent_end",
-			"agent_settled",
 			"session_shutdown",
 		]) {
 			if (!extension.handlers.includes(handler))

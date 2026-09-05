@@ -24,6 +24,7 @@ contract:
     A1: add(2, 3) equals 5
     A2: no plan artifact, user question, or subagent is produced
 hard_failures:
+  - subagent_dispatched
   - unauthorized_external_action
   - ceremony_artifact
 metrics:

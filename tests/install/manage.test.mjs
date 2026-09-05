@@ -762,20 +762,9 @@ test("codex and claude targets install into independent state files", () => {
       ),
       "Claude strict profile must stay scoped to its named PreToolUse handlers"
     );
-    assert.ok(
-      preToolHandlers.some(
-        (entry) =>
-          typeof entry.command === "string" &&
-          entry.command.includes("network-admission.sh") &&
-          !Object.hasOwn(entry, "if")
-      ),
-      "Claude PreToolUse must register live-network admission without a narrow if"
-    );
-    assert.equal(
-      claudeHooks.hooks?.UserPromptExpansion?.[0]?.matcher,
-      "^do-it-retrospective$",
-      "Claude must receive a direct slash-command recorder path"
-    );
+    assert.equal(preToolHandlers.length, strictHandlers.length, "only precise configured handlers remain");
+    assert.equal(claudeHooks.hooks?.UserPromptExpansion, undefined, "automatic retrospective recording is retired");
+
   } finally {
     fs.rmSync(codexRoot, { recursive: true, force: true });
     fs.rmSync(claudeRoot, { recursive: true, force: true });
@@ -799,7 +788,7 @@ test("claude install preserves unrelated files in hooks directory", () => {
       "install should not replace the whole hooks directory"
     );
     assert.ok(
-      fs.existsSync(path.join(root, "hooks", "router.sh")),
+      fs.existsSync(path.join(root, "hooks", "prompt-submit.sh")),
       "managed do-it hook should still be installed"
     );
   } finally {
@@ -1064,4 +1053,52 @@ test("cursor target installs plugin bundle with cursor hooks.json", () => {
   } finally {
     fs.rmSync(home, { recursive: true, force: true });
   }
+});
+
+test("simplification upgrade removes owned adaptive package assets and preserves user profiles", () => {
+  const root = freshRoot("adaptive-retirement");
+  try {
+    assert.equal(runManage(["install"], { CODEX_HOME: root }).status, 0);
+    const statePath = path.join(root, ".do-it-install-state.json");
+    const state = JSON.parse(fs.readFileSync(statePath, "utf8"));
+    const retiredSkill = path.join(root, "skills/do-it-adaptive");
+    const retiredHook = path.join(root, "hooks/adaptive-context.sh");
+    fs.mkdirSync(retiredSkill, { recursive: true });
+    fs.writeFileSync(path.join(retiredSkill, "SKILL.md"), "old packaged skill\n");
+    fs.writeFileSync(retiredHook, "old packaged hook\n");
+    state.entries["skills/do-it-adaptive"] = {
+      kind: "skill", name: "do-it-adaptive",
+      hash: fileHash("SKILL.md\0old packaged skill\n\0")
+    };
+    state.entries["hooks/adaptive-context.sh"] = {
+      kind: "extra", name: "hooks-adaptive-context", hash: fileHash("old packaged hook\n")
+    };
+    fs.writeFileSync(statePath, `${JSON.stringify(state)}\n`);
+    const profile = path.join(root, "do-it-data/profiles/personal.md");
+    fs.mkdirSync(path.dirname(profile), { recursive: true });
+    fs.writeFileSync(profile, "user-owned preference\n");
+    const result = runManage(["install"], { CODEX_HOME: root });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(fs.existsSync(retiredSkill), false);
+    assert.equal(fs.existsSync(retiredHook), false);
+    assert.equal(fs.readFileSync(profile, "utf8"), "user-owned preference\n");
+    assert.equal(JSON.parse(fs.readFileSync(statePath, "utf8")).entries["skills/do-it-adaptive"], undefined);
+  } finally { fs.rmSync(root, { recursive: true, force: true }); }
+});
+
+test("simplification upgrade refuses modified adaptive package content", () => {
+  const root = freshRoot("adaptive-preserve-modified");
+  try {
+    assert.equal(runManage(["install"], { CODEX_HOME: root }).status, 0);
+    const statePath = path.join(root, ".do-it-install-state.json");
+    const state = JSON.parse(fs.readFileSync(statePath, "utf8"));
+    const retired = path.join(root, "skills/do-it-adaptive");
+    fs.mkdirSync(retired, { recursive: true });
+    fs.writeFileSync(path.join(retired, "SKILL.md"), "user-modified skill\n");
+    state.entries["skills/do-it-adaptive"] = { kind: "skill", name: "do-it-adaptive", hash: fileHash("SKILL.md\0old skill\n\0") };
+    fs.writeFileSync(statePath, `${JSON.stringify(state)}\n`);
+    const result = runManage(["install"], { CODEX_HOME: root });
+    assert.notEqual(result.status, 0);
+    assert.equal(fs.readFileSync(path.join(retired, "SKILL.md"), "utf8"), "user-modified skill\n");
+  } finally { fs.rmSync(root, { recursive: true, force: true }); }
 });

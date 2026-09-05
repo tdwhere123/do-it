@@ -57,7 +57,7 @@ export function main(installRoot = pluginRoot) {
 			"plugins/do-it-pi is not built — run npm run build:pi-plugin first",
 		);
 	}
-	if (!fs.existsSync(path.join(installRoot, "hooks", "router.sh"))) {
+	if (!fs.existsSync(path.join(installRoot, "hooks", "prompt-submit.sh"))) {
 		throw new Error(
 			"plugins/do-it-pi hooks missing — run npm run build:pi-plugin first",
 		);

@@ -153,291 +153,6 @@ test("do-it-status reports tool registration without inferring agent discovery",
 	}
 });
 
-test("root lifecycle default thin skips bootstrap, preserves ToolResult arrays, and queues verification", async () => {
-	const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-pi-lifecycle-"));
-	const calls = [];
-	const runHook = async (_hooksDir, scriptName, payload) => {
-		calls.push({ scriptName, payload });
-		return {
-			exitCode: 0,
-			stdout: "",
-			stderr: "",
-			additionalContext: `${scriptName}-context`,
-		};
-	};
-	const pi = fakePi();
-	createDoItPiExtension({
-		env: { HOME: cwd },
-		dataDir: path.join(cwd, "data"),
-		runHook,
-	})(pi.api);
-	const ctx = fakeContext(cwd);
-	ctx.model = { provider: "openrouter", id: "claude-sonnet-4" };
-
-	try {
-		await pi.handlers.get("session_start")({}, ctx);
-		const first = await pi.handlers.get("before_agent_start")(
-			{ prompt: "implement feature" },
-			ctx,
-		);
-		assert.doesNotMatch(first.message.content, /<do-it-bootstrap>/);
-		assert.match(first.message.content, /prompt-submit\.sh-context/);
-		assert.doesNotMatch(first.message.content, /router\.sh-context/);
-		assert.doesNotMatch(first.message.content, /grill-prompt\.sh-context/);
-		assert.equal(
-			calls.filter((call) => call.scriptName === "prompt-submit.sh").length,
-			1,
-		);
-		assert.equal(calls.filter((call) => call.scriptName === "router.sh").length, 0);
-		assert.equal(calls.filter((call) => call.scriptName === "grill-prompt.sh").length, 0);
-		assert.equal(
-			calls[0].payload.transcript_path,
-			path.join(cwd, "session-1.jsonl"),
-		);
-		assert.equal(calls[0].payload.model, "openrouter/claude-sonnet-4");
-
-		const second = await pi.handlers.get("before_agent_start")(
-			{ prompt: "continue" },
-			ctx,
-		);
-		assert.doesNotMatch(second.message.content, /<do-it-bootstrap>/);
-
-		const image = { type: "image", data: "abc", mimeType: "image/png" };
-		const toolResult = await pi.handlers.get("tool_result")(
-			{
-				toolName: "edit",
-				input: { path: "src/a.ts" },
-				content: [{ type: "text", text: "edited" }, image],
-				details: { ok: true },
-				isError: false,
-			},
-			ctx,
-		);
-		assert.equal(toolResult.content.length, 3);
-		assert.equal(toolResult.content[1], image);
-		assert.deepEqual(toolResult.details, { ok: true });
-		assert.equal(toolResult.isError, false);
-		assert.ok(
-			calls.some((call) => call.scriptName === "evidence-observer.sh"),
-			"root edit must record a canonical evidence fact",
-		);
-		assert.equal(calls.at(-1).payload.tool_name, "Edit");
-
-		await pi.handlers.get("agent_end")(
-			{
-				messages: [
-					{
-						role: "assistant",
-						content: [{ type: "text", text: "Fixed the feature." }],
-					},
-				],
-			},
-			ctx,
-		);
-		await pi.handlers.get("agent_settled")({}, ctx);
-		assert.ok(
-			calls.some((call) => call.scriptName === "verification-gate.sh"),
-			"settlement must ask the shared gate / ledger, not process-local success flags",
-		);
-		const afterSettled = await pi.handlers.get("before_agent_start")(
-			{ prompt: "next" },
-			ctx,
-		);
-		assert.match(
-			afterSettled.message.content,
-			/verification-gate\.sh-context|fresh relevant evidence/i,
-		);
-	} finally {
-		rmTemp(cwd);
-	}
-});
-
-test("explicit legacy still injects bootstrap once", async () => {
-	const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-pi-legacy-"));
-	const runHook = async (_hooksDir, scriptName) => ({
-		exitCode: 0,
-		stdout: "",
-		stderr: "",
-		additionalContext: `${scriptName}-context`,
-	});
-	const pi = fakePi();
-	createDoItPiExtension({
-		env: { HOME: cwd, DO_IT_ROUTER_MODE: "legacy" },
-		dataDir: path.join(cwd, "data"),
-		runHook,
-	})(pi.api);
-	const ctx = fakeContext(cwd);
-	try {
-		await pi.handlers.get("session_start")({}, ctx);
-		const first = await pi.handlers.get("before_agent_start")(
-			{ prompt: "implement feature" },
-			ctx,
-		);
-		assert.match(first.message.content, /<do-it-bootstrap>/);
-		assert.match(first.message.content, /prompt-submit\.sh-context/);
-		const second = await pi.handlers.get("before_agent_start")(
-			{ prompt: "continue" },
-			ctx,
-		);
-		assert.doesNotMatch(second.message.content, /<do-it-bootstrap>/);
-	} finally {
-		rmTemp(cwd);
-	}
-});
-
-test("shadow and thin skip bootstrap, spawn prompt-submit, and inject the kernel", async () => {
-	for (const mode of ["shadow", "thin"]) {
-		const cwd = fs.mkdtempSync(path.join(os.tmpdir(), `do-it-pi-${mode}-`));
-		const pi = fakePi();
-		createDoItPiExtension({
-			env: {
-				...process.env,
-				HOME: cwd,
-				DO_IT_ROUTER_MODE: mode,
-				// Windows Git Bash + real prompt-submit (shadow still runs router)
-				// exceeds the 15s default hook timeout on hosted runners.
-				DO_IT_HOOK_TIMEOUT_MS: process.platform === "win32" ? "60000" : "15000",
-			},
-			pluginRoot: repoRoot,
-		})(pi.api);
-		const ctx = fakeContext(cwd, `${mode}-session`);
-		ctx.model = { provider: "openrouter", id: "claude-sonnet-4" };
-		try {
-			await pi.handlers.get("session_start")({}, ctx);
-			const first = await pi.handlers.get("before_agent_start")(
-				{ prompt: "Implement src/auth.ts token refresh" },
-				ctx,
-			);
-			assert.ok(first?.message?.content, `${mode} must inject prompt context`);
-			assert.doesNotMatch(first.message.content, /<do-it-bootstrap>/);
-			assert.match(first.message.content, KERNEL_NEEDLE);
-			assert.doesNotMatch(first.message.content, /skill:\/\/do-it-core/);
-			assert.doesNotMatch(first.message.content, /do-it tier:/);
-			if (mode === "thin") {
-				assert.doesNotMatch(first.message.content, /do-it grill/);
-			}
-		} finally {
-			rmTemp(cwd);
-		}
-	}
-});
-
-test("thin set after create without env option skips bootstrap and injects the kernel", async () => {
-	const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-pi-thin-late-"));
-	const previousMode = process.env.DO_IT_ROUTER_MODE;
-	const previousHome = process.env.HOME;
-	const pi = fakePi();
-	createDoItPiExtension({ pluginRoot: repoRoot })(pi.api);
-	process.env.DO_IT_ROUTER_MODE = "thin";
-	process.env.HOME = cwd;
-	const ctx = fakeContext(cwd, "thin-late-env");
-	ctx.model = { provider: "openrouter", id: "claude-sonnet-4" };
-	try {
-		await pi.handlers.get("session_start")({}, ctx);
-		const first = await pi.handlers.get("before_agent_start")(
-			{ prompt: "Implement src/auth.ts token refresh" },
-			ctx,
-		);
-		assert.ok(first?.message?.content, "thin must inject prompt context");
-		assert.doesNotMatch(first.message.content, /<do-it-bootstrap>/);
-		assert.match(first.message.content, KERNEL_NEEDLE);
-	} finally {
-		if (previousMode === undefined) delete process.env.DO_IT_ROUTER_MODE;
-		else process.env.DO_IT_ROUTER_MODE = previousMode;
-		if (previousHome === undefined) delete process.env.HOME;
-		else process.env.HOME = previousHome;
-		rmTemp(cwd);
-	}
-});
-
-test("verification reminders require a same-turn successful edit and shared completion vocabulary", async () => {
-	const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-pi-verify-"));
-	const pi = fakePi();
-	createDoItPiExtension({
-		env: { HOME: cwd },
-		runHook: async (_hooksDir, scriptName) => {
-			if (scriptName === "verification-gate.sh") {
-				return {
-					exitCode: 0,
-					stdout: "",
-					stderr: "",
-					additionalContext:
-						"<system-reminder>map each material acceptance item to fresh relevant evidence from this worktree</system-reminder>",
-				};
-			}
-			return { exitCode: 0, stdout: "", stderr: "" };
-		},
-	})(pi.api);
-	const ctx = fakeContext(cwd);
-	const editResult = (toolName, isError) =>
-		pi.handlers.get("tool_result")(
-			{
-				toolName,
-				input: { path: "src/a.ts" },
-				content: [{ type: "text", text: isError ? "failed" : "edited" }],
-				details: undefined,
-				isError,
-			},
-			ctx,
-		);
-	const settle = async (text) => {
-		await pi.handlers.get("agent_end")(
-			{ messages: [{ role: "assistant", content: text }] },
-			ctx,
-		);
-		await pi.handlers.get("agent_settled")({}, ctx);
-		return pi.handlers.get("before_agent_start")({ prompt: "" }, ctx);
-	};
-
-	try {
-		await pi.handlers.get("before_agent_start")({ prompt: "" }, ctx);
-
-		assert.equal(await settle("Fixed."), undefined, "no edit stays quiet");
-
-		await editResult("edit", true);
-		assert.equal(
-			await settle("Fixed."),
-			undefined,
-			"failed edit stays quiet",
-		);
-
-		await editResult("write", false);
-		assert.equal(
-			await settle("Implemented."),
-			undefined,
-			"Pi-only completion vocabulary stays quiet",
-		);
-		assert.equal(
-			await settle("Fixed."),
-			undefined,
-			"successful edit state is consumed at settlement",
-		);
-
-		await editResult("edit", false);
-		const reminder = await settle("Fixed.");
-		assert.match(reminder.message.content, /fresh relevant evidence/i);
-		assert.equal(
-			await pi.handlers.get("before_agent_start")({ prompt: "" }, ctx),
-			undefined,
-			"queued reminder is consumed once",
-		);
-
-		await editResult("multiedit", false);
-		assert.equal(
-			await settle("Done. NOT_VERIFIED: check unavailable."),
-			undefined,
-			"NOT_VERIFIED stays quiet",
-		);
-		assert.equal(
-			await settle("Done."),
-			undefined,
-			"NOT_VERIFIED settlement consumes edit state",
-		);
-	} finally {
-		rmTemp(cwd);
-	}
-});
-
 test("advisory hook failures become context instead of rejecting Pi lifecycle", async () => {
 	const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-pi-hook-failure-"));
 	const pi = fakePi();
@@ -503,11 +218,8 @@ test("child lifecycle runs only subagent stance", async () => {
 			ctx,
 		);
 		assert.equal(toolResult, undefined);
-		await pi.handlers.get("agent_end")(
-			{ messages: [{ role: "assistant", content: "Implemented." }] },
-			ctx,
-		);
-		await pi.handlers.get("agent_settled")({}, ctx);
+        assert.equal(pi.handlers.has("agent_end"), false);
+        assert.equal(pi.handlers.has("agent_settled"), false);
 		assert.deepEqual(calls, ["subagent-stance.sh"]);
 	} finally {
 		rmTemp(cwd);
@@ -522,7 +234,7 @@ test("root bash results are observed without treating isError as proof", async (
 		return { exitCode: 0, stdout: "", stderr: "" };
 	};
 	const pi = fakePi();
-	createDoItPiExtension({ env: { HOME: cwd }, runHook })(pi.api);
+	createDoItPiExtension({ env: { HOME: cwd, DO_IT_EVIDENCE_MODE: "observe" }, runHook })(pi.api);
 	const ctx = fakeContext(cwd);
 	try {
 		await pi.handlers.get("tool_result")(
@@ -537,7 +249,7 @@ test("root bash results are observed without treating isError as proof", async (
 		);
 		assert.deepEqual(
 			calls.map((call) => call.scriptName),
-			["evidence-observer.sh", "network-admission.sh"],
+			["evidence-observer.sh"],
 		);
 		assert.equal(calls[0].payload.tool_name, "bash");
 		assert.equal(calls[0].payload.tool_input.command, "npm test");
@@ -552,7 +264,7 @@ test("missing evidence observer does not reject Pi tool_result", async () => {
 	const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-pi-observer-missing-"));
 	const pi = fakePi();
 	createDoItPiExtension({
-		env: { HOME: cwd },
+		env: { HOME: cwd, DO_IT_EVIDENCE_MODE: "observe" },
 		runHook: async (_hooksDir, scriptName) => {
 			if (scriptName === "evidence-observer.sh") {
 				return {
@@ -586,4 +298,25 @@ test("missing evidence observer does not reject Pi tool_result", async () => {
 	} finally {
 		rmTemp(cwd);
 	}
+});
+
+test("default Pi runtime delivers context and edit checks without diagnostics or completion scanning", async () => {
+  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-pi-default-"));
+  const calls = [];
+  const pi = fakePi();
+  const runHook = async (_dir, scriptName) => { calls.push(scriptName); return { exitCode: 0, stdout: "", stderr: "", additionalContext: "context" }; };
+  createDoItPiExtension({ env: { HOME: cwd }, runHook })(pi.api);
+  const ctx = fakeContext(cwd);
+  try {
+    await pi.handlers.get("before_agent_start")({ prompt: "fix the helper" }, ctx);
+    const image = { type: "image", data: "abc", mimeType: "image/png" };
+    const content = [{ type: "text", text: "changed" }, image];
+    const result = await pi.handlers.get("tool_result")({ toolName: "edit", input: { path: "a.ts" }, content, details: { kept: true }, isError: false }, ctx);
+    assert.equal(result.content[1], image);
+    assert.equal(result.isError, false);
+    await pi.handlers.get("tool_result")({ toolName: "bash", input: { command: "printf https://example.invalid" }, content: [] }, ctx);
+    assert.deepEqual(calls, ["prompt-submit.sh", "write-quality-lint.sh"]);
+    assert.equal(pi.handlers.has("agent_settled"), false);
+    await pi.handlers.get("session_shutdown")({}, ctx);
+  } finally { rmTemp(cwd); }
 });

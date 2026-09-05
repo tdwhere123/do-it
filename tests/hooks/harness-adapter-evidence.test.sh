@@ -3,6 +3,7 @@
 # Fail-open. Gaps are partial/unavailable, never complete.
 
 set -uo pipefail
+export DO_IT_EVIDENCE_MODE=observe
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 OBSERVER="$REPO_ROOT/hooks/evidence-observer.sh"
@@ -168,33 +169,12 @@ case "$?" in
   *)  _fail "shell schema case failed (exit=$?)" ;;
 esac
 
-echo "Case 3: wiring files register evidence-observer and Cursor afterFileEdit"
-(
-  jq -e '[.hooks.PostToolUse[] | select(.matcher | test("Edit")) | .hooks[].command] | any(test("evidence-observer"))' \
-    "$HOOKS_JSON" >/dev/null || exit 51
-  jq -e '[.hooks.PostToolUse[] | select(.matcher | test("Bash")) | .hooks[].command] | any(test("evidence-observer"))' \
-    "$HOOKS_JSON" >/dev/null || exit 52
-  jq -e '[.hooks.PostToolUse[] | select(.matcher | test("Bash")) | .hooks[].command] | any(test("evidence-observer"))' \
-    "$CODEX_HOOKS" >/dev/null || exit 53
-  jq -e '.hooks.postToolUse[] | select(.command | test("evidence-observer"))' \
-    "$CURSOR_HOOKS" >/dev/null || exit 54
-  jq -e '.hooks.afterFileEdit[] | select(.command | test("evidence-observer"))' \
-    "$CURSOR_HOOKS" >/dev/null || exit 55
-  jq -e '.hooks[] | select(.event=="PostToolUse" and .command=="./hooks/evidence-observer.sh")' \
-    "$KIMI_PLUGIN" >/dev/null || exit 56
-  grep -q 'evidence-observer.sh' "$RUN_HOOK" || exit 57
-)
-case "$?" in
-  0)  _pass "six-host hook wiring includes evidence-observer" ;;
-  51) _fail "Claude edit PostToolUse missing observer" ;;
-  52) _fail "Claude Bash PostToolUse missing observer" ;;
-  53) _fail "Codex Bash/Shell PostToolUse missing observer" ;;
-  54) _fail "Cursor postToolUse missing observer" ;;
-  55) _fail "Cursor afterFileEdit missing observer" ;;
-  56) _fail "Kimi PostToolUse missing observer" ;;
-  57) _fail "run-hook.cmd allowlist missing evidence-observer.sh" ;;
-  *)  _fail "wiring case failed (exit=$?)" ;;
-esac
+echo "Case 3: diagnostic hook remains available without automatic registration"
+if grep -q 'evidence-observer.sh' "$RUN_HOOK" && ! grep -q 'evidence-observer' "$HOOKS_JSON" "$CODEX_HOOKS" "$CURSOR_HOOKS" "$KIMI_PLUGIN"; then
+  _pass "observer available for explicit diagnostics, absent from default native wiring"
+else
+  _fail "diagnostic default wiring drift"
+fi
 
 echo "Case 4: missing evidence-observer fail-open via run-hook.cmd"
 (

@@ -24,8 +24,7 @@ codex plugin add do-it@tdwhere-do-it
 
 `codex plugin marketplace add` only registers the marketplace — it does not
 install the plugin. After install, **trust the plugin hooks** under `/hooks` so
-the default-off feedback recorder, routing, Heavy grill nudge, subagent stance,
-write-quality lint, and the verification reminder are available.
+compact context, independent child stance, and source-edit checks are available.
 
 Local checkout smoke test (use a temp `CODEX_HOME` if needed):
 
@@ -87,17 +86,9 @@ listed there yet**. Until it is submitted/reviewed, use:
 4. **Public listing later:** submit at
    [cursor.com/marketplace/publish](https://cursor.com/marketplace/publish).
 
-Cursor gets the **full 12 skills** (`do-it-core`, `do-it-router`,
-`do-it-code-quality`, `do-it-architecture`, `do-it-review`, `do-it-decide`,
-`do-it-verify`, plus `do-it-handbook`, `do-it-context`,
-`do-it-skill-authoring`, `do-it-adaptive`, and `do-it-retrospective`) with the
-skills index and `references/` — the same set as Codex, Claude, and OpenCode.
-
-Medium hook depth: `sessionStart`, `beforeSubmitPrompt` (serialized router / Heavy
-grill via `prompt-submit`, plus stance), `postToolUse` / `afterFileEdit`
-`evidence-observer` then advisory `write-quality-lint`, and `stop`
-verification gate. See
-[`harness-adapter-matrix.md`](./harness-adapter-matrix.md).
+Cursor ships the full skill inventory, discovery index, references, and scoped
+agents. Context and edit checks use run-hook.cmd; completion gates and automatic
+diagnostics are not registered. See [host matrix](./harness-adapter-matrix.md).
 
 ## OpenCode
 
@@ -165,21 +156,14 @@ export KIMI_CODE_HOME=/tmp/do-it-kimi-test
 #   /reload
 # Then: confirm 12 skills appear, `/do-it:skip` resolves, and a prompt + Edit +
 # stop turn exercises sessionStart/kernel-context, evidence-observer,
-# router / write-quality-lint / verification-gate.
+# compact context and source-edit checks.
 # Or run the packaged validator without a live session:
 npm run validate:kimi-plugin
 ```
 
-Kimi Code ships the **full 12 skills**, the three commands as `/do-it:skip`,
-`/do-it:handbook`, `/do-it:retrospective`, 6 `hooks[]` entries, and top-level
-`sessionStart` → `kernel-context.sh` (silent in legacy; kernel in
-shadow/thin). Manifest hooks: serialized `UserPromptSubmit` via
-`prompt-submit` plus behavior-feedback; `PostToolUse` `evidence-observer` on
-`Edit|Write` and `Bash`, then write-quality-lint on edits; `Stop`
-verification-gate. Kimi Code has no custom-subagent mechanism (built-in `coder` / `explore` / `plan` only), so the
-10 portable agents are **not** installed on this host, and `subagent-stance`
-stays unwired (Kimi's Subagent events carry an empty `session_id`). Protocol
-and limits: [`skills/do-it/references/host-kimi.md`](../skills/do-it/references/host-kimi.md).
+Kimi ships the full skills and three commands, compact session/prompt context,
+and source-edit checks. Its built-in agent mechanism is separate from the portable
+custom agent bundle. See [Kimi details](../skills/do-it/references/host-kimi.md).
 
 ## Optional / legacy: `do-it setup`
 
@@ -203,44 +187,11 @@ targets. Prefer a temporary home (`CODEX_HOME=…`,
 
 ## What It Installs
 
-Runnable skill matrix (tiers in `scripts/skill-tiers.mjs`):
-
-| Host | User/runnable skills | Discovery metadata | Agents |
-| --- | --- | --- | --- |
-| Codex / Claude / Cursor / OpenCode | 12 — 7 core + 5 extended | 1 generated `_index.md` entry (not a thirteenth skill) | 10 |
-| Pi | 12 — 7 core + 5 extended | host-native (extension + skills dir) + prompt templates | 10 `do-it.*` package agents when optional `pi-subagents` is installed; 0 without it |
-| Kimi Code | 12 — 7 core + 5 extended | host-native discovery (no generated index) | 0 — no custom subagents |
-
-- Meaning-bucket skills: `do-it-core` (protocol of record — route the tier,
-  then evidence / scope / verify / report), `do-it-router`, `do-it-code-quality`
-  (write defense), `do-it-architecture` (load-bearing architecture governance),
-  `do-it-review` (review + fix), `do-it-decide` (pressure-test / diverge /
-  plan / slice), `do-it-verify` (evidence + closeout), plus extended
-  `do-it-handbook`, `do-it-context`, `do-it-skill-authoring`, on-demand
-  `do-it-adaptive`, and on-demand `do-it-retrospective`.
-- Ten portable agents: decide lenses (`product-strategist`,
-  `architecture-strategist`, `plan-challenger`), write lenses (`code-mapper`,
-  `code-quality-cleaner`, `tdd-red-writer`), review lenses (`reviewer`,
-  `red-team-reviewer`, `spec-compliance-reviewer`), and
-  `documentation-engineer`.
-- Shared hook set, wired per host: default-off silent `behavior-feedback`;
-  `prompt-submit` (serialized `router` then Heavy-only `grill-prompt` on manifest
-  hosts; adapter hosts preserve the same order); `subagent-stance`; advisory
-  `write-quality-lint`; advisory `verification-gate`; `evidence-observer`;
-  `kernel-context` (`sessionStart` on Kimi; Cursor `session-start`);
-  and Claude's default-off named-command `strict-external-actions` profile. The
-  verification hook is an advisory reminder on every host; `do-it-verify`
-  remains responsible for claim-specific proof. No host registers a
-  `grill-pretool` plan gate.
-- Slash commands under `commands/` (`do-it-skip`, `do-it-handbook`,
-  `do-it-retrospective`) on Claude and — namespaced as `/do-it:*` — Kimi Code;
-  no legacy workflow command aliases.
-- Copy-based installer / `doctor` for optional CLI targets and migration.
-- Root `index.json` for external discovery and coverage checks.
-
-For exact-path, host-specific removal that preserves unrelated plugins and hook
-entries, use the [safe cleanup runbook](./maintenance.md#safe-cleanup-runbook).
-Never recursively delete a host configuration root to remove do-it.
+Professional skills, scoped specialists where supported, compact context, and
+advisory edit checks. No .do-it scaffold is required. See the [host matrix](./harness-adapter-matrix.md)
+and [migration](./simplification-migration.md). Managed upgrades remove retired
+package components only when ownership is proven; user profiles and memory are
+never migrated or deleted.
 
 ## Alternative Install Sources
 

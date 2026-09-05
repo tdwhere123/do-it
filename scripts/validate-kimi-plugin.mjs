@@ -62,13 +62,15 @@ const hookEvents = new Set([
 
 /** Required v1 wiring — silent inventory drift must fail validate. */
 const expectedHooks = [
-  { event: "UserPromptSubmit", command: "./hooks/prompt-submit.sh" },
-  { event: "UserPromptSubmit", command: "./hooks/behavior-feedback.sh" },
-  { event: "PostToolUse", matcher: "Edit|Write", command: "./hooks/evidence-observer.sh" },
-  { event: "PostToolUse", matcher: "Edit|Write", command: "./hooks/write-quality-lint.sh" },
-  { event: "PostToolUse", matcher: "Bash", command: "./hooks/evidence-observer.sh" },
-  { event: "PostToolUse", matcher: "Bash", command: "./hooks/network-admission.sh" },
-  { event: "Stop", command: "./hooks/verification-gate.sh" }
+  {
+    "event": "UserPromptSubmit",
+    "command": "./hooks/prompt-submit.sh"
+  },
+  {
+    "event": "PostToolUse",
+    "matcher": "Edit|Write",
+    "command": "./hooks/write-quality-lint.sh"
+  }
 ];
 
 function readJson(rel) {

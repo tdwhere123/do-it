@@ -6,12 +6,10 @@ import type {
 	ExtensionAPI,
 	ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
-import { BOOTSTRAP_TEXT } from "./bootstrap.ts";
 import {
 	buildHookPayload,
 	isEditTool,
 	isEvidenceTool,
-	isShellTool,
 	resolveBash,
 	spawnHook,
 	terminateActiveProcesses,
@@ -24,11 +22,6 @@ const defaultPluginRoot = path.resolve(
 	path.dirname(fileURLToPath(import.meta.url)),
 	"..",
 );
-const COMPLETION_PATTERN =
-	/(完成|已修|通过|完工|\bdone\b|\bpassed\b|\bfixed\b|\ball set\b|it works|works now|successfully|\bVERIFIED\b|ready to merge|ship it|ready to (ship|publish))/i;
-const VERIFY_REMINDER =
-	"<system-reminder>do-it: previous turn used completion language. Before a done/fixed/passing/ready/install/merge claim, map each material acceptance item to fresh relevant evidence from this worktree; otherwise say NOT_VERIFIED and name the missing proof.</system-reminder>";
-
 type MessagePart = { type?: unknown; text?: unknown };
 type MessageLike = { role?: unknown; content?: unknown };
 type HookRunner = (
@@ -55,14 +48,6 @@ export function resolvePiAgentDir(
 
 export function isPiSubagent(env: NodeJS.ProcessEnv = process.env): boolean {
 	return env.PI_SUBAGENT_CHILD === "1";
-}
-
-export function routerMode(
-	env: NodeJS.ProcessEnv = process.env,
-): "legacy" | "shadow" | "thin" {
-	const mode = (env.DO_IT_ROUTER_MODE ?? "thin").trim();
-	if (mode === "legacy" || mode === "shadow") return mode;
-	return "thin";
 }
 
 export function appendToolResultContext<T>(
@@ -138,11 +123,6 @@ export function createDoItPiExtension(
 		return isPiSubagent(currentEnv());
 	}
 
-	const bootstrappedSessions = new Set<string>();
-	const pendingVerifyReminder = new Map<string, string>();
-	const completionText = new Map<string, string>();
-	const lastAssistantMessages = new Map<string, readonly MessageLike[]>();
-	const observedEdit = new Set<string>();
 	const anonymousSessions = new WeakMap<object, string>();
 	let anonymousSessionSequence = 0;
 	let lastDiagnostic: string | undefined;
@@ -196,50 +176,6 @@ export function createDoItPiExtension(
 			return details as Record<string, unknown>;
 		}
 		return undefined;
-	}
-
-	function writeGateTranscript(
-		_sid: string,
-		messages: readonly MessageLike[],
-		hadEdit: boolean,
-	): { path: string; cleanup(): void } | null {
-		let dir: string | undefined;
-		try {
-			dir = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-pi-gate-"));
-			fs.chmodSync(dir, 0o700);
-			const records: unknown[] = [{ type: "user", message: { content: [] } }];
-			if (hadEdit) {
-				records.push({
-					type: "assistant",
-					message: {
-						content: [
-							{ type: "tool_use", id: "edit-1", name: "Edit", input: {} },
-						],
-					},
-				});
-			}
-			const text = assistantTextFromMessages(messages);
-			if (text) {
-				records.push({
-					type: "assistant",
-					message: { content: [{ type: "text", text }] },
-				});
-			}
-			const transcriptPath = path.join(dir, "gate.jsonl");
-			fs.writeFileSync(
-				transcriptPath,
-				`${records.map((record) => JSON.stringify(record)).join("\n")}\n`,
-				{ encoding: "utf8", mode: 0o600 },
-			);
-			const cleanupDir = dir;
-			return {
-				path: transcriptPath,
-				cleanup: () => fs.rmSync(cleanupDir, { recursive: true, force: true }),
-			};
-		} catch {
-			if (dir) fs.rmSync(dir, { recursive: true, force: true });
-			return null;
-		}
 	}
 
 	async function invokeHook(
@@ -312,7 +248,6 @@ export function createDoItPiExtension(
 		});
 
 		pi.on("before_agent_start", async (event, ctx) => {
-			const sid = sessionId(ctx);
 			const prompt = typeof event.prompt === "string" ? event.prompt : "";
 			const contexts: string[] = [];
 
@@ -325,17 +260,6 @@ export function createDoItPiExtension(
 				const context = resultContext(result);
 				if (context) contexts.push(context);
 			} else {
-				if (routerMode(currentEnv()) === "legacy" && !bootstrappedSessions.has(sid)) {
-					contexts.push(BOOTSTRAP_TEXT);
-					bootstrappedSessions.add(sid);
-				}
-
-				const pending = pendingVerifyReminder.get(sid);
-				if (pending !== undefined) {
-					pendingVerifyReminder.delete(sid);
-					contexts.push(pending);
-				}
-
 				if (prompt.trim()) {
 					const payload = basePayload(ctx, { prompt });
           for (const scriptName of ["prompt-submit.sh"]) {
@@ -360,8 +284,7 @@ export function createDoItPiExtension(
 
 		pi.on("tool_result", async (event, ctx) => {
 			if (childProcess()) return undefined;
-			const sid = sessionId(ctx);
-			if (isEvidenceTool(event.toolName)) {
+			if (currentEnv().DO_IT_EVIDENCE_MODE === "observe" && isEvidenceTool(event.toolName)) {
 				await invokeHook(
 					"evidence-observer.sh",
 					basePayload(ctx, {
@@ -373,27 +296,7 @@ export function createDoItPiExtension(
 					ctx,
 				);
 			}
-			if (isShellTool(event.toolName)) {
-				const result = await invokeHook(
-					"network-admission.sh",
-					basePayload(ctx, {
-						toolName: event.toolName,
-						input: event.input,
-						content: event.content,
-						details: detailsRecord(event.details),
-					}),
-					ctx,
-				);
-				const context = resultContext(result);
-				if (!context) return undefined;
-				return {
-					content: appendToolResultContext(event.content, context),
-					details: event.details,
-					isError: event.isError,
-				};
-			}
 			if (!isEditTool(event.toolName)) return undefined;
-			if (event.isError === false) observedEdit.add(sid);
 
 			const result = await invokeHook(
 				"write-quality-lint.sh",
@@ -415,59 +318,7 @@ export function createDoItPiExtension(
 			};
 		});
 
-		pi.on("agent_end", async (event, ctx) => {
-			if (childProcess()) return;
-			const sid = sessionId(ctx);
-			completionText.set(sid, assistantTextFromMessages(event.messages));
-			lastAssistantMessages.set(sid, event.messages ?? []);
-		});
-
-		pi.on("agent_settled", async (_event, ctx) => {
-			if (childProcess()) return;
-			const sid = sessionId(ctx);
-			const text = completionText.get(sid) ?? "";
-			completionText.delete(sid);
-			const messages = lastAssistantMessages.get(sid) ?? [];
-			lastAssistantMessages.delete(sid);
-			const edited = observedEdit.delete(sid);
-			if (
-				!edited ||
-				!COMPLETION_PATTERN.test(text) ||
-				/\bNOT_VERIFIED\b/i.test(text)
-			)
-				return;
-
-			const transcript = writeGateTranscript(sid, messages, true);
-			if (!transcript) {
-				pendingVerifyReminder.set(sid, VERIFY_REMINDER);
-				return;
-			}
-			try {
-				const result = await invokeHook(
-					"verification-gate.sh",
-					basePayload(ctx, {
-						transcriptPath: transcript.path,
-						stopHookActive: false,
-					}),
-					ctx,
-				);
-				if (result.unavailable || result.exitCode !== 0) {
-					pendingVerifyReminder.set(sid, VERIFY_REMINDER);
-					return;
-				}
-				const reminder = result.additionalContext ?? result.blockReason;
-				if (reminder) pendingVerifyReminder.set(sid, reminder);
-			} finally {
-				transcript.cleanup();
-			}
-		});
-
 		pi.on("session_shutdown", async () => {
-			bootstrappedSessions.clear();
-			pendingVerifyReminder.clear();
-			completionText.clear();
-			lastAssistantMessages.clear();
-			observedEdit.clear();
 			terminateActiveProcesses();
 		});
 	};

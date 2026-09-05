@@ -1,4 +1,0 @@
-{"schema":1,"event_id":"L-o1","recorded_at":"2026-08-31T10:00:00Z","kind":"edit","source":"observed","host":"cursor","session_hash":"222222222222","privacy":"metadata-only","signals":["scope-creep"],"summary":"edit outside active contract"}
-{"schema":1,"event_id":"L-o2","recorded_at":"2026-08-31T10:01:00Z","kind":"edit","source":"observed","host":"cursor","session_hash":"333333333333","privacy":"metadata-only","signals":["scope-creep"],"summary":"edit outside active contract"}
-{"schema":1,"event_id":"L-o3","recorded_at":"2026-08-31T10:02:00Z","kind":"review","source":"observed","host":"claude","session_hash":"444444444444","privacy":"metadata-only","signals":["review-blocking"],"summary":"review blocking"}
-{"schema":1,"event_id":"L-o4","recorded_at":"2026-08-31T10:03:00Z","kind":"review","source":"observed","host":"claude","session_hash":"555555555555","privacy":"metadata-only","signals":["review-blocking"],"summary":"review blocking"}

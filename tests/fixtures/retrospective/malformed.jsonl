@@ -1,3 +1,0 @@
-{"schema":1,"event_id":"L-ok","recorded_at":"2026-08-31T09:00:00Z","kind":"user_feedback","source":"user","host":"claude","session_hash":"ffffffffffff","privacy":"redacted-excerpt","signals":["behavior"],"summary":"explicit user feedback","prompt_excerpt":"ok"}
-this is not json
-{"schema":1,"event_id":"L-bad-kind","recorded_at":"2026-08-31T09:01:00Z","kind":"not-a-kind","source":"user","host":"claude","session_hash":"111111111111","privacy":"metadata-only","signals":[],"summary":"drop me"}

@@ -23,10 +23,10 @@ if ! declare -F do_it_runtime_event_append >/dev/null 2>&1; then
 fi
 
 do_it_evidence_mode_off() {
-  case "${DO_IT_EVIDENCE_MODE:-observe}" in
-    off|OFF|0|false|FALSE) return 0 ;;
+  case "${DO_IT_EVIDENCE_MODE:-off}" in
+    observe) return 1 ;;
+    *) return 0 ;;
   esac
-  return 1
 }
 
 # Classify a shell command into test|build|command. Never maps to A-IDs.
@@ -204,7 +204,7 @@ _do_it_observer_edit_deduped() {
 # object and returns 0. status: fresh|stale|none|malformed. Never proof.
 do_it_evidence_freshness() {
   local cwd="${1:-.}" active="" log="" current="" json
-  active="$(do_it_active_task_read "$cwd" 2>/dev/null || true)"
+  active=""
   log="$(do_it_evidence_log_path "$cwd" 2>/dev/null || true)"
   current="$(do_it_worktree_fingerprint "$cwd" 2>/dev/null | head -n1 || true)"
   case "$current" in
@@ -330,7 +330,7 @@ do_it_evidence_observe_payload() {
     return 0
   fi
 
-  task="$(do_it_active_task_read "$cwd" 2>/dev/null || true)"
+  task=""
   if [[ -n "$task" ]]; then
     export DO_IT_EVENT_TASK_ID="$task"
   fi

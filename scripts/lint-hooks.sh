@@ -35,18 +35,15 @@ if [[ "${1:-}" == "--strict" ]]; then
 fi
 
 entry_points=(
-  hooks/behavior-feedback.sh
-  hooks/learning-recorder.sh
+  hooks/kernel-context.sh
+  hooks/prompt-submit.sh
+  hooks/evidence-observer.sh
   hooks/strict-external-actions.sh
-  hooks/router.sh
-  hooks/grill-prompt.sh
   hooks/session-start.sh
   hooks/subagent-stance.sh
-  hooks/verification-gate.sh
   hooks/write-quality-lint.sh
   hooks/anti-patterns-lint.sh
   hooks/comments-lint.sh
-  hooks/network-admission.sh
 )
 
 # `-x` lets shellcheck follow `# shellcheck source=...` lines so the lib files

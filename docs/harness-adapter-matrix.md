@@ -1,210 +1,34 @@
 # Harness Adapter Matrix
 
-do-it ships one **workflow kernel** (skills, hooks, agents) and six **host
-adapters** that map the same advisory signals to each runtime's hook surface. Adapters are
-honest about capability gaps — we do not copy the full Claude hook stack onto
-every host.
+All hosts discover professional skills directly. Task groups organize the index;
+they do not classify tasks or select workflows.
 
-## Six Platforms
-
-| Platform | Distribution | Hook depth | Notes |
+| Host | Context | Deterministic edit checks | Specialist integration |
 | --- | --- | --- | --- |
-| **Codex** | marketplace-first; `do-it setup` optional/legacy | Full | Trust plugin hooks under `/hooks`; session state via plugin data or `CODEX_HOME/do-it-data` |
-| **Claude Code** | marketplace-first | Full | `${CLAUDE_PLUGIN_ROOT}` hooks; `${CLAUDE_PLUGIN_DATA}` session state |
-| **Cursor** | local / Team Import today; public listing pending | Medium | Official [marketplace](https://cursor.com/marketplace) exists; **do-it not listed yet**. No Claude `/plugin` commands. |
-| **OpenCode** | independent `@tdwhere/do-it-opencode` npm package; global vendor fallback | Medium | TS plugin: transform bootstrap; `tool.execute.after`; `session.idle` soft reminder |
-| **Pi** | independent `@tdwhere/do-it-pi` package or local path | Medium | TS extension events; skills/prompts always available; namespaced `do-it.*` agents require optional `pi-subagents` |
-| **Kimi Code** | repo-root plugin via `/plugins install` (per-user) | Full-minus-subagent | `kimi.plugin.json` at repo root — no build step. No custom subagents: agents not shipped, `subagent-stance` unwired |
+| Claude Code | UserPromptSubmit | PostToolUse | Generated Markdown agents |
+| Codex | UserPromptSubmit | PostToolUse | Portable TOML agents |
+| Cursor | sessionStart, beforeSubmitPrompt | postToolUse via run-hook.cmd | Generated agents |
+| OpenCode | chat.message | tool.execute.after | Preserves user agent registrations |
+| Pi | before_agent_start | root tool_result | Optional pi-subagents; child stance only |
+| Kimi Code | sessionStart, UserPromptSubmit | PostToolUse | Native built-in agents |
 
-Workflow logic lives once in `skills/do-it/` and `hooks/`. Host-specific install
-paths, tool names, and hook event names live in
-[`skills/do-it/references/host-vocabulary.md`](../skills/do-it/references/host-vocabulary.md)
-and the per-host sheets below.
+Hook payloads and responses follow the host protocol. Advisory hooks fail open
+on malformed input or unavailable tooling. Native permissions enforce configured
+access and side effects; hooks do not infer user authorization from prose.
+The optional Claude strict external-action profile retains precise configured
+operation checks. No URL-content policing hook is installed.
 
-## Runtime modes
+There is no completion scan, forced review, automatic task-pointer recovery,
+lexical classification, or custom adaptive personalization. Session state only
+supports compact-context deduplication and edit-check bookkeeping. Without a
+host data directory, session bookkeeping uses a temporary directory rather than
+creating a project .do-it scaffold.
 
-Prompt injection is selected by `DO_IT_ROUTER_MODE`. Default is **thin**:
-compact kernel plus optional adaptive overlay; the lexical classifier is
-skipped. Rollback to 0.16 router-then-grill is `DO_IT_ROUTER_MODE=legacy`.
-Shadow remains opt-in. Hooks stay fail-open if a kernel or adaptive script
-is missing. This worktree default is S16 Phase A, not a tagged 0.19;
-package version is `0.17.0` (source metadata; not a git tag or npm publish).
+Evidence collection defaults off. Pi/OpenCode invoke evidence-observer only when
+DO_IT_EVIDENCE_MODE=observe. Native hook hosts can explicitly register or invoke
+the packaged observer with that setting and host JSON input. The observer's
+filesystem, redaction, and malformed-input protections remain tested; records
+never establish task acceptance automatically.
 
-| Mode | Enable | Injects | Lexical classifier |
-| --- | --- | --- | --- |
-| **thin** (default) | unset or `thin` | compact kernel + adaptive overlay | skipped |
-| **shadow** | `DO_IT_ROUTER_MODE=shadow` | compact kernel + adaptive overlay; classifier still runs for diagnostics | records only |
-| **legacy** | `DO_IT_ROUTER_MODE=legacy` | `router.sh` then Heavy `grill-prompt.sh` | live |
-
-SessionStart on Cursor (and Kimi `sessionStart`) uses the same compact kernel
-when not in legacy. Children get `subagent-stance` only — not the full kernel
-or adaptive profile.
-
-## Routing Tiers
-
-Hooks and skills share three routing tiers. In **legacy** mode, tier is an
-advisory input; boolean dimensions (`dim_*`) narrow intensity without changing
-it. Direct user intent and model judgment take precedence over router labels.
-Shadow/thin do not treat `dim_*` as a workflow.
-
-| Tier | Router output | write-quality-lint | grill-prompt | Completion reminder |
-| --- | --- | --- | --- | --- |
-| **Light** | state-only, quiet | advisory on added lines; extra families from path, not `tier`/`dim_*` | skipped | advisory only when relevant |
-| **Standard** | state + model-adaptive core guidance: inline rule sentences or one `do-it-core` pointer | advisory on added lines; extra families from path, not `tier`/`dim_*` | skipped (Heavy-only) | advisory only when relevant |
-| **Heavy** | state-only by default; one `do-it-architecture` pointer for action-shaped interface/schema, migration/cutover, or security-boundary work | advisory on added lines; extra families from path, not `tier`/`dim_*` | full grill body when warranted | advisory only when relevant |
-
-Subagent contexts skip write-quality-lint (parent owns integration).
-`grill-pretool` is removed on all hosts.
-
-## Hook Mapping
-
-| Signal | Script | Codex / Claude | Cursor | OpenCode | Pi | Kimi Code |
-| --- | --- | --- | --- | --- | --- | --- |
-| Opt-in feedback capture | `learning-recorder.sh` (`behavior-feedback.sh` wrapper) | `UserPromptSubmit` plus narrow `UserPromptExpansion`, silent and default off | `beforeSubmitPrompt`, silent and default off | `chat.message`, silent and default off; only a confirmed root session is eligible | not wired | `UserPromptSubmit`, silent and default off |
-| Compact kernel | `kernel-context.sh` | via `prompt-submit` in shadow/thin; silent in legacy | `sessionStart` + `prompt-submit` prefix in shadow/thin | `prompt-submit.sh` prefix in shadow/thin; bootstrap is legacy-only | serialized `prompt-submit.sh` prefix in shadow/thin; bootstrap is legacy-only; children never get it | `sessionStart` + `prompt-submit` prefix in shadow/thin |
-| Adaptive overlay | `adaptive-context.sh` | via `prompt-submit` in shadow/thin; missing profile = 0 tokens | same, through `prompt-submit` | same | root only; children get stance only | same; default off |
-| Classify prompt | `router.sh` | `UserPromptSubmit` (legacy/shadow; skipped in thin) | `beforeSubmitPrompt` (legacy/shadow; skipped in thin) | `chat.message` (legacy/shadow; skipped in thin) | root `before_agent_start` (legacy/shadow; skipped in thin) | `UserPromptSubmit` (legacy/shadow; skipped in thin) |
-| Grill nudge (Heavy) | `grill-prompt.sh` | `UserPromptSubmit` (legacy/shadow) | `beforeSubmitPrompt` (legacy/shadow) | `chat.message` (Heavy/explicit, advisory) | root `before_agent_start` (Heavy/explicit, advisory) | `UserPromptSubmit` (Heavy/explicit, advisory) |
-| Subagent stance | `subagent-stance.sh` | `UserPromptSubmit` | `beforeSubmitPrompt` | bootstrap guidance only | child `before_agent_start` when `PI_SUBAGENT_CHILD=1` | not wired — Subagent events carry empty `session_id`; host has no custom subagents |
-| Write-time quality | `write-quality-lint.sh` | `PostToolUse` (Edit\|Write\|MultiEdit\|NotebookEdit) | `postToolUse` / `afterFileEdit` | `tool.execute.after` (bash bridge) | root `tool_result` (`edit`/`write`) | `PostToolUse` (Edit\|Write — the only Kimi edit tools) |
-| Evidence observe | `evidence-observer.sh` | `PostToolUse` Edit* + `Bash`/`Shell` | `postToolUse` (`StrReplace`/`Write`/`EditNotebook`/`Shell`) and `afterFileEdit` (deduped) | `tool.execute.after` edit + shell facts; command names are not proof | root `tool_result` (`edit`/`write`/`bash`); reminder uses ledger freshness | `PostToolUse` Edit\|Write + `Bash`; missing shell exit is `partial`, never `complete` |
-| Done claim | `verification-gate.sh` | `Stop` | `stop` | `session.idle` soft reminder from serialized host messages | root `agent_end` capture + `agent_settled` reminder on the next turn | `Stop`; transcript read from session `wire.jsonl` (no `transcript_path` on this host) |
-
-`router.sh` emits Standard core guidance inline for weak/unknown models and as a
-single `do-it-core` pointer for strong models (`DO_IT_ADVISORY_MODE` overrides).
-For Heavy turns it emits a `do-it-architecture` pointer only when the prompt
-requests an interface/schema change, migration/cutover execution, or a
-security-boundary change; informational questions and ordinary release/publish
-operations do not receive that pointer.
-`verification-gate.sh` quotes the canonical `r-verify` sentence from
-`hooks/data/execution-failure-modes.tsv` on every host — one voice, never
-per-host copies (`validate:core-consistency` enforces it).
-
-`evidence-observer.sh` records observed edit/command facts and worktree
-coverage. It never maps acceptance IDs and never emits `VERIFIED`. Missing
-shell exit is `partial`, never `complete`. Kimi stays honest about partial
-observability when the payload has no reliable result.
-
-Adaptive is **default-off and private**: no profile file means 0 tokens;
-profiles live in gitignored `.do-it/runtime/adaptive/` or `~/.do-it/adaptive/`
-and must not store secrets, paths, transcripts, or project architecture.
-Adaptive never weakens Core, no-write, or the active contract.
-
-Default subagent dispatch is **0**; at most **one** fresh-context second look.
-The parent owns the contract and the completion claim.
-
-Legacy `comments-lint.sh` and `anti-patterns-lint.sh` exec into
-`write-quality-lint.sh`; new installs register only the merged script.
-
-## Authorization Enforcement
-
-No current do-it hook is a universal permission veto. The router, grill,
-subagent stance, quality lint, and verification gate are workflow guidance;
-they must not be described as hard confirmation.
-
-- In Codex, a plugin hook can add context but cannot veto a `PreToolUse` or
-  `PermissionRequest` call. Use the host's sandbox, approval policy, and
-  command rules for a hard boundary; `--yolo` / bypass modes deliberately
-  remove that protection. See the [Codex hooks](https://learn.chatgpt.com/docs/hooks)
-  and [approval guidance](https://learn.chatgpt.com/docs/agent-approvals-security).
-- Claude Code has a default-off, narrow `PreToolUse` profile for named remote
-  publication and infrastructure-apply commands. `DO_IT_STRICT_EXTERNAL_ACTIONS=ask`
-  requests a true host confirmation; `deny` stops those named commands. It is
-  not a universal network or MCP guard. See
-  [`strict-external-actions.md`](strict-external-actions.md).
-- Cursor, OpenCode, and Pi keep the same advisory workflow contract; configure
-  their native permissions separately when an operation needs enforcement.
-- Kimi Code keeps the same advisory contract: do-it hooks always exit 0 and
-  only add context (`PreToolUse`/`Stop` can block on this host, but no do-it
-  hook uses that). Configure Kimi's native permission rules for a hard
-  boundary.
-
-Per-host install paths and tool mapping:
-[`host-codex.md`](../skills/do-it/references/host-codex.md),
-[`host-claude.md`](../skills/do-it/references/host-claude.md),
-[`host-cursor.md`](../skills/do-it/references/host-cursor.md),
-[`host-opencode.md`](../skills/do-it/references/host-opencode.md),
-[`host-pi.md`](../skills/do-it/references/host-pi.md),
-[`host-kimi.md`](../skills/do-it/references/host-kimi.md).
-
-## Quality Evidence Ladder
-
-Quality is supported in layers. Higher layers do not replace lower ones — they
-add context when cheaper checks cannot prove a claim.
-
-```
-L0  write-time hook (advisory)  →  one system-reminder per file per turn; scoped family suppression with a reason (never secrets)
-L1  do-it-review                →  Blocking / Important finding; YAGNI + comments lenses respond to L0 families
-L2  verification-gate           →  edited completion claims receive an advisory reminder quoting the r-verify rule; it does not infer proof from command names
-L3  do-it-core (§ Verify) + do-it-verify closeout →  claim-specific evidence rollup; `NOT_VERIFIED` and residual risk stay visible
-```
-
-| Layer | Owner | Blocks write? | Blocks done claim? |
-| --- | --- | --- | --- |
-| L0 `write-quality-lint` | hook | No | No |
-| L1 `do-it-review` | skill / subagent | No | No — unresolved findings shape the final claim |
-| L2 `verification-gate` | hook | No | No — advisory reminder only |
-| L3 closeout | `do-it-core` (§ Verify) + `do-it-verify` | No | Claim wording follows available proof |
-
-Family definitions and suppress syntax:
-[`skills/do-it/references/write-quality-families.md`](../skills/do-it/references/write-quality-families.md).
-
-## Hook Token Budget
-
-UserPromptSubmit (plus Cursor `beforeSubmitPrompt` and Pi
-`before_agent_start`) injection is the main recurring token cost. Targets after simplification:
-
-| Component | Standard turn target | When skipped |
-| --- | --- | --- |
-| `behavior-feedback.sh` | 0 tokens; no stdout/context | disabled by default; ordinary prompts and unverified child sessions |
-| `router.sh` | Standard: inline ≈ 6 lines / pointer ≈ 1 line; architecture-risk Heavy: 1 pointer | Light and Heavy without architecture risk |
-| `grill-prompt.sh` | 0 unless Heavy or explicit | Light; Standard without an explicit grill |
-| `subagent-stance.sh` | one compact line once per subagent session | parent context and later child turns |
-| **Combined Standard implementation turn** | **only task-relevant advisory context** | no fixed workflow injection |
-
-PostToolUse quality reminders:
-
-- At most **one** `system-reminder` per `session_id` + `file_path` + user turn
-  (dedup in session state).
-- Reminder lists matched family IDs only; full regex detail lives in
-  `write-quality-families.md` (L3 progressive disclosure).
-- Light tier: hook does not run — zero post-edit injection.
-
-Bundled agents are optional capability experts. Default dispatch is 0; at most
-one targeted second look. The parent gives a delegated slice its goal and any
-needed ownership or side-effect boundary; workers inspect independently, return
-useful evidence or uncertainty, and the parent integrates. There is no fixed
-role matrix.
-
-## Session State Resolution
-
-Hooks resolve per-session state through the canonical search order in
-`hooks/lib/common.sh` (`do_it_session_dir`):
-
-1. `$CURSOR_PLUGIN_DATA/sessions`
-2. `$CLAUDE_PLUGIN_DATA/sessions`
-3. `$PLUGIN_DATA/sessions`
-4. `$DO_IT_HOOK_DATA/sessions`
-5. `$OPENCODE_DATA/sessions`
-6. `$KIMI_CODE_HOME/do-it-data/sessions`
-7. `$CODEX_HOME/do-it-data/sessions`
-8. `<repo>/.do-it/runtime/sessions`
-9. `${TMPDIR}/do-it-sessions`
-
-`install/manage.mjs` (`sessionsBaseDir`) and the OpenCode bridge
-(`resolveSessionStateDir`) mirror this order. `KIMI_PLUGIN_ROOT` is never used
-for state — it is a managed plugin copy with read-only semantics.
-
-Missing state degrades to minimal advisory behavior — hooks never block on
-absence.
-
-State is keyed only by the host-supplied session ID. A child assigned a
-different session ID does not automatically inherit a parent's no-write
-boundary; an adapter must pass or verify that relationship explicitly before
-claiming cross-session inheritance.
-
-## Related Docs
-
-- Public routing policy: [`routing-matrix.md`](routing-matrix.md)
-- Shared references: [`skills/do-it/references/`](../skills/do-it/references/)
-- Hook sources: [`hooks/`](../hooks/)
+See [installation](./install.md), [migration](./simplification-migration.md),
+and [strict external actions](./strict-external-actions.md).

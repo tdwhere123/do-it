@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
-# Repo-local runtime pointer helpers. Source from hook libraries:
+# Filesystem helpers for opt-in runtime diagnostics. Source from hook libraries:
 #   source "${SCRIPT_DIR}/lib/task-state.sh"
 #
-# `.do-it/runtime/active-task` stores one repo-relative Task Contract path.
 # Missing or unwritable runtime never crashes the caller.
 
 set -uo pipefail
@@ -112,7 +111,7 @@ _do_it_runtime_prepare() {
   runtime="${root}/.do-it/runtime"
   old_umask="$(umask)"
   umask 077
-  if ! mkdir -p "${runtime}/events" "${runtime}/adaptive" 2>/dev/null; then
+  if ! mkdir -p "${runtime}/events" 2>/dev/null; then
     umask "$old_umask"
     return 1
   fi
@@ -129,96 +128,4 @@ _do_it_runtime_warn() {
   [[ -n "${_DO_IT_RUNTIME_WARNED:-}" ]] && return 0
   _DO_IT_RUNTIME_WARNED=1
   printf 'do-it: %s\n' "${1:-runtime write failed}" >&2
-}
-
-# Canonicalize a contract pointer. Rejects absolute paths, `..`, extra
-# segments, control bytes, and symlink escape out of `.do-it/plans/`.
-# Args: <path> [cwd]. Prints the canonical repo-relative path on success.
-do_it_active_task_validate() {
-  local raw="${1:-}" cwd="${2:-.}" rel rest stem root real_root real_file real_plans np
-  rel="$(_do_it_trim "$raw")"
-  rel="${rel#./}"
-  [[ -n "$rel" ]] || return 1
-  case "$rel" in
-    /*|~*|\\*|[A-Za-z]:*) return 1 ;;
-    *..*) return 1 ;;
-  esac
-  case "$rel" in
-    .do-it/plans/*.md) ;;
-    *) return 1 ;;
-  esac
-  rest="${rel#.do-it/plans/}"
-  [[ "$rest" != "$rel" ]] || return 1
-  [[ "$rest" == *.md ]] || return 1
-  [[ "$rest" != */* && "$rest" != *\\* ]] || return 1
-  stem="${rest%.md}"
-  [[ -n "$stem" ]] || return 1
-  case "$stem" in
-    .*|*..*) return 1 ;;
-  esac
-  np="$(printf '%s' "$stem" | LC_ALL=C tr -d '[:print:]' | wc -c | tr -d ' ')"
-  [[ "${np:-0}" -eq 0 ]] || return 1
-
-  root="$(do_it_git_root "$cwd")"
-  [[ -n "$root" ]] || return 1
-  real_root="$(_do_it_realpath "$root")" || return 1
-  if [[ -e "${root}/.do-it/plans" || -L "${root}/.do-it/plans" ]]; then
-    real_plans="$(_do_it_realpath "${root}/.do-it/plans")" || return 1
-    _do_it_path_is_under "$real_plans" "$real_root" || return 1
-  fi
-  if [[ -e "${root}/${rel}" || -L "${root}/${rel}" ]]; then
-    real_file="$(_do_it_realpath "${root}/${rel}")" || return 1
-    _do_it_path_is_under "$real_file" "$real_root" || return 1
-    if [[ -n "${real_plans:-}" ]]; then
-      _do_it_path_is_under "$real_file" "$real_plans" || return 1
-    fi
-    [[ -d "$real_file" ]] && return 1
-  fi
-  printf '%s' "$rel"
-}
-
-do_it_active_task_read() {
-  local cwd="${1:-.}" runtime pointer rel
-  runtime="$(do_it_runtime_root "$cwd")"
-  [[ -n "$runtime" ]] || return 0
-  pointer="${runtime}/active-task"
-  [[ -f "$pointer" && -r "$pointer" ]] || return 0
-  rel="$(_do_it_trim "$(cat "$pointer" 2>/dev/null || true)")"
-  [[ -n "$rel" ]] || return 0
-  rel="$(do_it_active_task_validate "$rel" "$cwd")" || return 0
-  printf '%s' "$rel"
-}
-
-do_it_active_task_write() {
-  local raw="${1:-}" cwd="${2:-.}" rel runtime pointer tmp old_umask
-  rel="$(do_it_active_task_validate "$raw" "$cwd")" || return 1
-  _do_it_runtime_prepare "$cwd" || return 1
-  runtime="$(do_it_runtime_root "$cwd")"
-  [[ -n "$runtime" && -w "$runtime" ]] || return 1
-  pointer="${runtime}/active-task"
-  old_umask="$(umask)"
-  umask 077
-  tmp="${pointer}.${BASHPID:-$$}.${RANDOM}.tmp"
-  if ! printf '%s\n' "$rel" > "$tmp" 2>/dev/null; then
-    umask "$old_umask"
-    rm -f "$tmp" 2>/dev/null || true
-    return 1
-  fi
-  if ! mv -f "$tmp" "$pointer" 2>/dev/null; then
-    umask "$old_umask"
-    rm -f "$tmp" 2>/dev/null || true
-    return 1
-  fi
-  umask "$old_umask"
-  chmod 600 "$pointer" 2>/dev/null || true
-  return 0
-}
-
-do_it_active_task_clear() {
-  local cwd="${1:-.}" runtime pointer
-  runtime="$(do_it_runtime_root "$cwd")"
-  [[ -n "$runtime" ]] || return 0
-  pointer="${runtime}/active-task"
-  rm -f "$pointer" 2>/dev/null || true
-  return 0
 }

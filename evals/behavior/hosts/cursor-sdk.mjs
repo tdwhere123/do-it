@@ -7,7 +7,7 @@ import os from "node:os";
 import path from "node:path";
 
 import { pushInjectedText } from "./trajectory.mjs";
-import { conditionRouterMode, liveBlockedByCi, liveTimeoutMs } from "./workspace.mjs";
+import { liveBlockedByCi, liveTimeoutMs } from "./workspace.mjs";
 
 export const CURSOR_MODEL_NEEDLE = /grok-4\.6|grok 4\.6/i;
 
@@ -201,7 +201,7 @@ function meterSessionId() {
 }
 
 // Spawn the Cursor prompt-path hooks against a throwaway session_id.
-// The live Agent must not share that id: prompt-submit writes kernel_hash
+// The live Agent must not share that id: prompt-submit records delivered context
 // and would silence the real hook on the same session.
 export function captureCursorHookInjections({
   pluginRoot,
@@ -270,12 +270,13 @@ export async function runCursorPrompt(job) {
   if (!picked.ok) throw new Error(picked.reason);
 
   const previous = {
-    CURSOR_PLUGIN_ROOT: env.CURSOR_PLUGIN_ROOT,
-    DO_IT_ROUTER_MODE: env.DO_IT_ROUTER_MODE
+    CURSOR_PLUGIN_ROOT: process.env.CURSOR_PLUGIN_ROOT,
+    DO_IT_ROUTER_MODE: process.env.DO_IT_ROUTER_MODE
   };
   if (pluginRoot) process.env.CURSOR_PLUGIN_ROOT = pluginRoot;
-  if (condition === "vanilla") delete process.env.DO_IT_ROUTER_MODE;
-  else process.env.DO_IT_ROUTER_MODE = conditionRouterMode(condition);
+  // Only the frozen 0.16 baseline uses a classifier mode.
+  if (condition === "legacy") process.env.DO_IT_ROUTER_MODE = "legacy";
+  else delete process.env.DO_IT_ROUTER_MODE;
 
   const settingSources = condition === "vanilla" || !pluginRoot ? [] : ["project"];
   const events = [];

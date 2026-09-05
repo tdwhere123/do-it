@@ -40,6 +40,7 @@ test("parseArgs still throws on unknown flags and unknown suite/family", () => {
   assert.throws(() => parseArgs(["--suite", "nightly"]), /unknown suite: nightly/);
   assert.throws(() => parseArgs(["--family", "nope"]), /unknown family: nope/);
   assert.throws(() => parseArgs(["--condition", "candidate-x"]), /unknown condition: candidate-x/);
+  assert.throws(() => parseArgs(["--condition", "adaptive"]), /unknown condition: adaptive/);
 });
 
 test("publicHostProbe strips credentials from live host probes", () => {
@@ -164,16 +165,16 @@ test("family and release suite select extra corpus without dropping seeds", asyn
   const family = await runSuite({
     behaviorRoot: path.join(repoRoot, "evals/behavior"),
     repoRoot,
-    families: ["adaptive"],
+    families: ["decision"],
     conditions: ["legacy"],
     backend: "fixture",
     dryRun: true,
     outDir: path.join(outDir, "family")
   });
   const ids = family.runs.map((run) => run.scenario_id).sort();
-  assert.ok(ids.includes("C02"), ids.join(","));
-  assert.ok(ids.includes("C03"), ids.join(","));
-  assert.equal(family.runs.every((run) => run.family === "adaptive"), true);
+  assert.ok(ids.includes("D03"), ids.join(","));
+  assert.ok(ids.includes("D06"), ids.join(","));
+  assert.equal(family.runs.every((run) => run.family === "decision"), true);
 
   const release = await runSuite({
     behaviorRoot: path.join(repoRoot, "evals/behavior"),
@@ -186,19 +187,19 @@ test("family and release suite select extra corpus without dropping seeds", asyn
   });
   const releaseIds = new Set(release.runs.map((run) => run.scenario_id));
   assert.ok(releaseIds.has("D01"));
-  assert.ok(releaseIds.has("C02"));
-  assert.ok(releaseIds.has("C03"));
+  assert.ok(releaseIds.has("D03"));
+  assert.ok(releaseIds.has("D06"));
   assert.ok(releaseIds.has("A01"));
   fs.rmSync(outDir, { recursive: true, force: true });
 });
 
-test("kernel and adaptive without canned trajectories are NOT_RUN, not faked", async () => {
+test("conditions without canned trajectories are NOT_RUN, not faked", async () => {
   const outDir = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-eval-notrun-"));
   const suite = await runSuite({
     behaviorRoot: path.join(repoRoot, "evals/behavior"),
     repoRoot,
     scenarios: ["D01"],
-    conditions: ["kernel", "adaptive"],
+    conditions: ["kernel", "vanilla"],
     backend: "fixture",
     dryRun: true,
     outDir

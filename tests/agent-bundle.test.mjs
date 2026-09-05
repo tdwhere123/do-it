@@ -10,12 +10,7 @@ import {
   validateAgentInstructionLinks,
   validatePortableAgentPolicy
 } from "../scripts/validate-agent-bundle.mjs";
-import {
-  AGENT_CHILD_CONTRACT_ID,
-  AGENT_NOT_DEFAULT_CONTRACT_ID,
-  EXPECTED_AGENT_INVENTORY,
-  NOT_DEFAULT_AGENTS
-} from "../scripts/validate-skill-contracts.mjs";
+
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -53,35 +48,6 @@ test("capability agents stay concise, safe, and free of process gates", () => {
   assert.ok(errors.includes("agents/incomplete.toml: sandbox_mode must be read-only or workspace-write"));
   assert.ok(errors.includes("agents/incomplete.toml: must name NOT_CHECKED in its return guidance"));
   assert.ok(errors.includes("agents/incomplete.toml: must not retain process gate phrase Delegation Contract"));
-});
-
-test("capability agents must carry the child-contract anchor", () => {
-  const errors = [];
-  validateAgentCapabilityPolicy(
-    "agents/no-contract.toml",
-    capabilityAgent.replace("<!-- do-it-contract:agent.child-contract -->", ""),
-    errors
-  );
-  assert.ok(errors.includes(`agents/no-contract.toml: must include ${AGENT_CHILD_CONTRACT_ID}`));
-});
-
-test("expensive agents must carry the not-default anchor", () => {
-  const errors = [];
-  validateAgentCapabilityPolicy("agents/plan-challenger.toml", capabilityAgent, errors);
-  assert.ok(
-    errors.includes(`agents/plan-challenger.toml: must include ${AGENT_NOT_DEFAULT_CONTRACT_ID}`)
-  );
-});
-
-test("plugin-owned agent inventory stays at 10", () => {
-  const files = fs
-    .readdirSync(path.join(repoRoot, "agents"))
-    .filter((name) => name.endsWith(".toml"))
-    .sort();
-  assert.equal(files.length, EXPECTED_AGENT_INVENTORY);
-  for (const name of NOT_DEFAULT_AGENTS) {
-    assert.ok(files.includes(`${name}.toml`), name);
-  }
 });
 
 test("agent instruction links reject broken local paths in link, code, or bare forms", () => {

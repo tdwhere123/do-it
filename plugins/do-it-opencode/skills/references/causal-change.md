@@ -3,8 +3,7 @@
 Detail behind the Build Kernel loop in `do-it-code-quality`. Load this when
 the hot path is not enough: cone vs adjacency, Patch-or-Prepare, depth,
 feedback construction, comments, worktrees, merges, mocks, or optimization.
-Cite `core §r-scope`, `core §r-evidence`, `core §r-verify`, and
-`core §r-recovery` instead of restating them.
+These details supplement the principles in do-it-core.
 
 ## Causal Cone
 
@@ -80,7 +79,7 @@ TDD is how feedback is built at a real seam, not a ceremony.
 - Mechanical or docs-only edits may skip RED; say why.
 
 Debugging is Trace then Locate: symptom → reproduce → one hypothesis →
-smallest falsifier → fix the cause → regression proof (`core §r-recovery`).
+smallest falsifier → fix the cause → regression proof (Core).
 
 ## Consolidation and Stop
 
@@ -88,7 +87,7 @@ After Prove, settle only accidental complexity that sits on a natural
 boundary inside the changed cone and is cheap to prove behavior-preserving.
 Once causal closure is proven, stop (B08). Do not tour adjacent cleanup.
 
-Default **0** subagents. Parent owns integration and the completion claim.
+Use independent specialists when their evidence or conclusions can improve the work. The parent integrates and verifies.
 
 ## Comments
 

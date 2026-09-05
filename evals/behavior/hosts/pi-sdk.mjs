@@ -6,7 +6,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { collectInjectedTexts, pushInjectedText, textFromMessage } from "./trajectory.mjs";
-import { conditionRouterMode, liveBlockedByCi, liveTimeoutMs } from "./workspace.mjs";
+import { liveBlockedByCi, liveTimeoutMs } from "./workspace.mjs";
 
 export const PI_MODEL = Object.freeze({
   provider: "deepseek",
@@ -218,12 +218,13 @@ export async function runPiPrompt(job) {
   }
 
   const previous = {
-    PI_CODING_AGENT_DIR: env.PI_CODING_AGENT_DIR,
-    DO_IT_ROUTER_MODE: env.DO_IT_ROUTER_MODE
+    PI_CODING_AGENT_DIR: process.env.PI_CODING_AGENT_DIR,
+    DO_IT_ROUTER_MODE: process.env.DO_IT_ROUTER_MODE
   };
   process.env.PI_CODING_AGENT_DIR = agentDir;
-  if (condition === "vanilla") delete process.env.DO_IT_ROUTER_MODE;
-  else process.env.DO_IT_ROUTER_MODE = conditionRouterMode(condition);
+  // Only the frozen 0.16 baseline uses a classifier mode.
+  if (condition === "legacy") process.env.DO_IT_ROUTER_MODE = "legacy";
+  else delete process.env.DO_IT_ROUTER_MODE;
 
   const events = [];
   const injectedTexts = [];

@@ -1,14 +1,18 @@
 {
-  "public_api": ["export function sum"],
-  "relevant_tests": ["tests/sum.test.mjs"],
+  "public_api": [
+    "export function sum"
+  ],
+  "relevant_tests": [
+    "tests/sum.test.mjs"
+  ],
   "acceptance": {
     "A1": {
       "type": "command_exit0",
-      "argv": ["node", "--test", "tests/sum.test.mjs"]
-    },
-    "A2": {
-      "type": "metric_zero",
-      "metric": "subagent_count"
+      "argv": [
+        "node",
+        "--test",
+        "tests/sum.test.mjs"
+      ]
     }
   }
 }

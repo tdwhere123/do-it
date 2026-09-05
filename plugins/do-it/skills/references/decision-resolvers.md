@@ -1,8 +1,6 @@
 # Decision Resolvers
 
-Unknown types, resolver examples, research-first surfaces, and prototype
-routing. The five-step algorithm lives in `do-it-decide`. Do not copy Core
-rule sentences here; cite `core §r-evidence` and `core §r-uncertainty`.
+Choose an evidence source that can resolve the actual decision-changing unknown.
 
 ## Unknown types
 
@@ -14,27 +12,18 @@ Name the unknown by what a wrong answer would change:
 | Blind spot the user did not think to consider | Short pass over failure modes / axes, then one decision |
 | Tacit preference (recognize, cannot name) | Reference, two live options, or cheapest prototype |
 | User-owned choice | One question, recommended default |
-| Permanent external surface | Repo constraints + ≥2 candidates + primary sources |
-| Load-bearing premise | Falsify locally, then one second look only if costly |
+| Permanent external surface | Repo constraints and relevant primary sources |
+| Load-bearing premise | A falsifier or independent premise challenge |
 
 Helper names, local splits, and cheap-to-discover implementation detail are
 not decision-changing. Resolve them in execution.
 
-## Resolver ladder
+## Useful resolvers
 
-Stop at the first rung that is reliable enough:
-
-1. **Repo evidence** — files, tests, git, runtime (`core §r-evidence`).
-2. **Reference** — existing product behavior, handbook, or a concrete example
-   the user can recognize.
-3. **One user decision** — only for a material choice the environment cannot
-   provide. Ask **one** question; wait.
-4. **Research** — official docs and source repos over summaries.
-5. **Experiment / prototype** — the cheapest artifact that makes the choice
-   visible.
-6. **One fresh-context second look** — last, not default. Subagents are last.
-
-Never skip to interview or workers because the task feels large.
+Repository evidence, references, user decisions, research, prototypes, and
+independent contexts are complementary methods. Choose by the uncertainty and
+the cost of being wrong, not a prescribed order. Independent evidence gathering
+is especially useful when current reasoning may be anchored.
 
 ## Taught decision
 
@@ -57,8 +46,7 @@ which each viable route wins. Scoring a pros/cons average is not a boundary.
 ## Research-first surfaces
 
 For a new dependency, datastore, framework/runtime, protocol, or other
-permanent external surface: inspect repository constraints, compare at least
-two viable candidates, and record compatibility, maintenance/activity,
+permanent external surface: inspect repository constraints, compare viable candidates when the choice is open, and record compatibility, maintenance/activity,
 license, operational fit, and a recommendation. Ask the user only when a
 preference changes the selected route; never memory-pick a permanent
 dependency. Cite primary sources (official docs, the source repo) over

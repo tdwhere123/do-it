@@ -10,7 +10,7 @@ CLI setup path:
 3. Cursor — local copy or Team Import today; public marketplace listing is
    pending. The bundle has medium-depth hooks.
 4. OpenCode — independent `@tdwhere/do-it-opencode` npm package with a global
-   vendored fallback. The TypeScript plugin has per-message routing and selective
+   vendored fallback. The TypeScript plugin has compact per-message context and selective
    bridges.
 5. Pi — independent `@tdwhere/do-it-pi` npm package or local-path install. One TypeScript extension, full skills,
    prompts, and optional namespaced `do-it.*` package agents via `pi-subagents`.
@@ -24,7 +24,7 @@ CLI setup path:
 
 | Plane | Current repository evidence |
 | --- | --- |
-| Source/package | `package.json`, manifest, and plugin metadata declare `0.17.0`; inventory is 12 user/runnable skills + 1 generated discovery entry + 10 agents. Thin is the default runtime (S16 Phase A, not a tagged 0.19). Rollback: `DO_IT_ROUTER_MODE=legacy`. This is source metadata, not an npm publish. |
+| Source/package | `package.json`, manifest, and plugin metadata declare `0.17.0`; inventory is 11 runnable skills (including the discovery compatibility alias), 1 generated discovery entry, and 10 agents. The default runtime delivers compact context and edit checks. This is source metadata, not an npm publish. |
 | Git tag | A `0.17.0` GitHub/npm release still requires `v0.17.0`; version metadata alone is not a release. |
 | Marketplace/npm | The release workflow publishes separate `@tdwhere/do-it`, `@tdwhere/do-it-opencode`, and `@tdwhere/do-it-pi` artifacts. Only post-workflow registry queries prove publication. Cursor marketplace listing remains pending. |
 | Live host | Only host install/inspection evidence proves an active version. Source, package, tag, and live host may differ. |
@@ -124,20 +124,16 @@ CODEX_HOME=/tmp/do-it-plugin-test codex plugin marketplace add /path/to/do-it
 CODEX_HOME=/tmp/do-it-plugin-test codex plugin add do-it@tdwhere-do-it
 ```
 
-Plugin hooks are the primary enforcement path. Global `do-it setup` is optional
+Native host permissions are the enforcement path; plugin hooks deliver advisory context and checks. Global `do-it setup` is optional
 for doctor and migration — do not require pairing it with marketplace install.
 
 ## Host Capability Matrix
 
-| Host surface | Skills | Agents | Commands | Hooks | Doctor | Verification command |
-| --- | --- | --- | --- | --- | --- | --- |
-| Codex plugin marketplace | Yes, under `plugins/do-it/skills/` | Yes, under `plugins/do-it/agents/` | No slash command surface | Yes, plugin hooks (trust under `/hooks`) | Optional via CLI | `npm run build:codex-plugin` then `CODEX_HOME=/tmp/do-it-plugin-test codex plugin marketplace add /path/to/do-it` and `codex plugin add do-it@tdwhere-do-it` |
-| Codex CLI setup (legacy) | Yes, from `manifest.json` | No — bundled agents are plugin-owned; legacy CLI only supports safe migration | CLI `do-it` only | Yes, root `hooks.json` plus `hooks/` | Yes, default target | `CODEX_HOME=/tmp/do-it-codex-test npm exec --package . -- do-it setup` |
-| Claude Code plugin | Yes, from `skills/do-it/` | Yes, under `dist/claude/agents/` | Yes, `commands/` | Yes, plugin `hooks/hooks.json` | Yes, `--target=claude` | `CLAUDE_PLUGIN_ROOT_OVERRIDE=/tmp/do-it-claude-test npm exec --package . -- do-it setup --target=claude` |
-| Cursor local / Team Import (public listing pending) | Full 12 (`ALL_SKILLS`) plus generated discovery/reference files | Yes, under `plugins/do-it-cursor/agents/` | No | Medium: `sessionStart`, `beforeSubmitPrompt`, `postToolUse`/`afterFileEdit` (evidence observe + write-quality), advisory-evidence `stop` | Managed CLI setup only; not standalone local copy | `npm run install:cursor-local`, Reload Window, inspect exact directory + Hooks UI; or `do-it setup --target=cursor` for managed doctor |
-| OpenCode plugin | Yes, under `plugins/do-it-opencode/skills/` | Yes, under `plugins/do-it-opencode/agents/` | No | Medium-Light: transform bootstrap, `tool.execute.after`, `session.idle` soft reminder | No CLI doctor | `npm run build:opencode-plugin && npm run test-opencode` |
-| Pi package | Yes, under `plugins/do-it-pi/skills/` | Ten `do-it.*` package agents when optional `pi-subagents` is installed; prompts remain available without it | Prompt templates | Medium: serialized `prompt-submit` (thin kernel default; `DO_IT_ROUTER_MODE=legacy` restores router/grill), root write advice, soft next-turn verification reminder; child stance only | `/do-it-status` | `npm run build:pi-plugin && npm --prefix plugins/do-it-pi test && node scripts/smoke-pi-package.mjs`; live: `/reload`, `/do-it-status`, and package-agent discovery |
-| Kimi Code plugin (repo root) | Full 12 via root `kimi.plugin.json` `skills` | No — host has no custom subagents | Yes, `/do-it:*` namespaced | Full-minus-subagent: `sessionStart` kernel + manifest `hooks[]` (`UserPromptSubmit`×2 via `prompt-submit`/`behavior-feedback`; `PostToolUse` evidence observe + write-quality; `Stop`). Missing shell exit stays `partial`. | No — `/plugins info do-it` is the host-side check | `npm run validate:kimi-plugin`; live: `/plugins install /path/to/do-it` then `/reload` |
+The current [host matrix](./harness-adapter-matrix.md) owns runtime and specialist
+capabilities. Release verification exercises built packages, host protocols,
+installation ownership and rollback, and applicable local behavior. Native
+permissions remain authoritative; advisory context and diagnostics do not prove
+acceptance. The version-specific sections below describe historical releases.
 
 ## 0.14.0
 
@@ -263,7 +259,7 @@ a release artifact.
 8. Smoke Codex plugin marketplace + trust hooks under `/hooks`.
 9. Optional: run isolated managed CLI setup and doctor checks for Codex, Claude,
    and Cursor.
-10. Smoke advisory hook behavior: router, write-quality, verification, and
+10. Smoke advisory hook behavior: context delivery, write-quality, and
     child stance. No host contains `grill-pretool`; only Claude may contain the
     named, default-off strict external-action profile.
 11. In a reloaded Pi session, run `/do-it-status` for Bash, hook diagnostics,
@@ -274,11 +270,11 @@ a release artifact.
     version fields as well as the other host metadata.
 13. Run `npm run smoke:package` for root/OpenCode and smoke the independently
     packed Pi tarball.
-14. Confirm `manifest.json` matches the on-disk inventory (12 user/runnable
+14. Confirm `manifest.json` matches the on-disk inventory (11 user/runnable
     skills + 1 generated discovery entry, 10 agents). Source metadata is
     `0.17.0`; do not tag or npm-publish until those are authorized. Default
-    runtime is thin (S16 Phase A, not a tagged 0.19); rollback is
-    `DO_IT_ROUTER_MODE=legacy`.
+    runtime provides compact context and source-edit checks; classification and
+    completion reminder gates are retired.
 15. Confirm root tarball contents remain separate from `plugins/do-it-pi`, and
     the Pi tarball contains only its README/license/runtime assets.
 16. Confirm temporary files, machine-local settings, `node_modules`, test build

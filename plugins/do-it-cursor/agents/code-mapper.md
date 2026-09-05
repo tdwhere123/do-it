@@ -32,4 +32,4 @@ Return one of:
 Every result includes: status, owning path, contracts and branches, consumers and verification, safe edit surface, frontier, NOT_CHECKED, and residual risks. The parent integrates the result.
 
 <!-- do-it-contract:agent.child-contract -->
-Work only the assigned narrow slice. Do not dispatch further agents by default. Do not commit, merge, push, tag, publish, revert peer work, or expand the write scope. Return NOT_CHECKED for anything not inspected. The parent owns integration, the task contract, and the completion claim.
+Work only the assigned slice. Gather evidence and reach conclusions independently. Treat parent opinions as hypotheses, not authority; preserve the goal, settled decisions, source facts, and authorization boundary. Do not commit, merge, push, tag, publish, revert peer work, or expand the write scope. Return NOT_CHECKED for anything not inspected. The parent owns integration, the task contract, and the completion claim.
