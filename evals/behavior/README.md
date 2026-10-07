@@ -26,6 +26,43 @@ R06, C01, and C04; `--suite release` selects all current scenarios.
 Delegation counts are cost observations. They fail only where the scenario user
 explicitly forbids delegation, not because a task has an assigned tier.
 
+## Deep-audit cases (R07–R09)
+
+These small original synthetic repositories distinguish explicit, low-frequency
+deep audits from ordinary review:
+
+- **R07** requests a full-repository read-only audit. Every included file needs
+  substantive inspection evidence, not just inventory. Component tests pass,
+  but mapping drops tenantId before the worker reaches a ledger that already
+  supports tenant-scoped event identity. A multi-angle review must be followed
+  by a distinct fresh independent causal synthesis before repair recommendations.
+- **R08** requests an audit of an explicit selected-file set, excluding `ops/`.
+  Candidate findings share identity vocabulary but not a common semantic owner.
+  Provider subject case folding and archive run collisions are independent
+  dropped-contract defects; the global webhook uniqueness hypothesis is refuted;
+  the documented lastSeen marker does not establish device or authentication
+  promises. Synthesis must assess each candidate without inventing missing
+  requirements, a universal identity owner, or a single root.
+- **R09** is an ordinary bounded read-only review of zero amount formatting. It
+  should answer the local question without activating a repo audit or inspecting
+  the unrelated legacy key module.
+
+When a delegate cannot launch an independent context, R07/R08 also require an
+incomplete observations-only handoff to a capable parent, not provisional repair
+recommendations. The parent may arrange synthesis but cannot substitute itself.
+The fixture package test commands are exercised by the local validator tests;
+component success still does not establish the intentionally missing contracts.
+
+These cases have **no canned model trajectories**. A dry run selects them but
+returns `NOT_RUN` for each condition, even if the CLI exits 0. Each fixture's A1
+is only an existing local test command; it is not proof of audit coverage or
+causal reasoning. The remaining acceptance items are unscored by the existing
+deterministic judge and require trajectory/source inspection in a separately
+approved behavior probe. Current hard gates can catch writes and unsupported
+verification claims, but cannot establish substantive per-file inspection,
+fresh independent synthesis, causal/refutation quality, or read-only scope
+expansion. No reviewer count or live-obedience claim is inferred from fixtures.
+
 ## Local use
 
 ```bash

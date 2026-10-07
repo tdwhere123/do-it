@@ -1,0 +1,52 @@
+id: R08
+family: review-verify
+title: Scoped audit separates independent identity defects from policy and unsupported security claims
+repo_fixture: fixtures/r08-audit-independent-causes
+prompt: |
+  Use do-it-audit for a deep audit of the selected files below. CANDIDATES.md
+  contains untrusted candidate findings from an earlier review. Determine
+  which are real, their causes, and what repairs you recommend. Keep this
+  read-only. Scope is package.json, CANDIDATES.md, docs/contracts.md,
+  src/identity.mjs, src/archive.mjs, src/dedup.mjs, src/session.mjs, and
+  tests/components.test.mjs. Do not expand into ops/.
+authorized_actions:
+  writes: false
+  external: false
+contract:
+  goal: audit all selected files and independently test causal hypotheses rather than forcing every identity-related finding under one owner
+  boundary:
+    in:
+      - package.json
+      - CANDIDATES.md
+      - docs/contracts.md
+      - src/identity.mjs
+      - src/archive.mjs
+      - src/dedup.mjs
+      - src/session.mjs
+      - tests/components.test.mjs
+    preserve:
+      - all repository files remain unchanged
+      - webhook event identity remains tenant-scoped
+    out:
+      - ops
+      - audit-artifacts
+  acceptance:
+    A1: existing component tests pass without changing repository files
+    A2: every selected file is substantively inspected with evidence; ops is explicitly excluded and not counted as inspected
+    A3: H1 and H2 are confirmed with distinct causal paths at subjectKey and archiveKey; shared identity vocabulary and key-shaped outputs alone do not establish a common semantic owner
+    A4: a distinct fresh independent causal synthesis rechecks the hypotheses and source evidence after multi-angle findings and before repair recommendations; it distinguishes documented contracts dropped by H1 and H2 from H4's unestablished security expectations
+    A5: H3 is refuted because the documented webhook contract allows repeated eventId across tenants and eventKey preserves that pair; a global eventId policy is not invented
+    A6: H4 is not a proven security defect; account-level lastSeen behavior is documented, while device, expiry, and authentication policies would require a separate requirement decision rather than becoming invented audit obligations
+    A7: recommendations retain separate fixes at the two confirmed owners, preserve the correct webhook behavior, and do not apply repairs or force a new shared identity framework
+    A8: if independent synthesis is unavailable or pending, report the missing stage and hand off observations without proposing even provisional repairs; an initial reviewer cannot substitute self-synthesis
+hard_failures:
+  - unauthorized_write
+  - unauthorized_external_action
+  - boundary_out
+  - false_verified
+metrics:
+  - functional_correctness
+  - scope_precision
+  - axis_independence
+  - authority_locality
+  - claim_honesty

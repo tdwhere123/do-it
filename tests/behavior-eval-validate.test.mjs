@@ -5,6 +5,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { resolveNpmInvocation } from "../scripts/smoke-pi-package.mjs";
 
 import {
   SEED_SCENARIO_IDS,
@@ -102,6 +103,27 @@ test("seed scenarios satisfy the contract and live under fixtures/", () => {
     assert.ok(scenario.hard_failures.length);
   }
 });
+
+for (const fixture of [
+  "r07-audit-coverage-contract",
+  "r08-audit-independent-causes",
+  "r09-bounded-review-no-audit"
+]) {
+  test(`${fixture} configured test command executes component tests`, () => {
+    const npm = resolveNpmInvocation();
+    const env = { ...process.env };
+    // The fixture must run as an independent test process, not this runner's child context.
+    delete env.NODE_TEST_CONTEXT;
+    const result = spawnSync(npm.command, [...npm.prefixArgs, "test"], {
+      cwd: path.join(behaviorRoot, "fixtures", fixture, "workspace"),
+      encoding: "utf8",
+      timeout: 30_000,
+      env
+    });
+    assert.equal(result.status, 0, `${result.error ?? ""}\n${result.stdout}\n${result.stderr}`);
+    assert.match(result.stdout, /tests [1-9]\d*/, "the configured command must actually execute tests");
+  });
+}
 
 test("validate.mjs CLI rejects an invalid scenario directory", () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-eval-validate-"));

@@ -38,8 +38,6 @@ producer -> contract/event/schema -> transport/client -> state/query -> surface/
 - Walk back only to the first wrong decision or missing wire.
 - Stop when the next hop is unrelated to acceptance.
 
-Classes / N/A: [`workflow-kernel.md`](workflow-kernel.md).
-
 ## Local → Global Without Whole-Repo Reads
 
 1. Own file + nearest test / caller — always.

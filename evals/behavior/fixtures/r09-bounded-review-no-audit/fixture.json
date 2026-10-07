@@ -1,0 +1,7 @@
+{
+  "public_api": ["export function formatCents"],
+  "relevant_tests": ["tests/amount.test.mjs"],
+  "acceptance": {
+    "A1": { "type": "command_exit0", "argv": ["node", "--test", "tests/amount.test.mjs"] }
+  }
+}

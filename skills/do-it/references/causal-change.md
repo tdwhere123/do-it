@@ -17,8 +17,7 @@ Map only the hops that can change this outcome:
 producer -> contract/event/schema -> transport/client -> state/query -> surface/operator action -> verification
 ```
 
-Bounded walk: [`scope-chain.md`](scope-chain.md). Shared vocabulary:
-[`workflow-kernel.md`](workflow-kernel.md) § Change Cone.
+Bounded causal walk: [`scope-chain.md`](scope-chain.md).
 
 ## Smallest Structurally Correct Change
 
@@ -33,7 +32,7 @@ root cause / semantic authority
 Prefer existing depth before a new abstraction. One adapter is a hypothetical
 seam; two adapters are a real one. Inline thin wrappers and Phase-2
 scaffolding. Reuse a live path before forking a second home for the same
-truth (B03).
+truth.
 
 **Phases, not piles:** keep compute, apply/persist, and audit/side-effect in
 separate phases when mixing them would block a local durable change.
@@ -63,14 +62,14 @@ Prepare first only when:
 - the same symptom has already been patched and recurred.
 
 Prepare keeps behavior. Change alters acceptance. Do not mix them in one
-unverifiable step (B02).
+unverifiable step.
 
 ## Feedback Construction
 
 TDD is how feedback is built at a real seam, not a ceremony.
 
 - Behavior changes and a durable public seam is cheap → RED before GREEN,
-  one vertical slice (B04).
+  one vertical slice.
 - No correct seam → best available probe, and name the proof gap.
 - Tests observe public behavior. Expected truth must not be computed by the
   same algorithm under test.
@@ -85,7 +84,7 @@ smallest falsifier → fix the cause → regression proof (Core).
 
 After Prove, settle only accidental complexity that sits on a natural
 boundary inside the changed cone and is cheap to prove behavior-preserving.
-Once causal closure is proven, stop (B08). Do not tour adjacent cleanup.
+Once causal closure is proven, stop. Do not tour adjacent cleanup.
 
 Use independent specialists when their evidence or conclusions can improve the work. The parent integrates and verifies.
 
@@ -109,9 +108,11 @@ integration.
 
 Resolve merge conflicts hunk by hunk, by intent: trace each side to its
 source and preserve both intents where they do not collide; where they do,
-follow the merge's stated goal and note the trade-off. Do not escape via
-`--abort` or wholesale `--ours`/`--theirs`. Finish the operation, then run
-the project's checks.
+follow the merge's stated goal and note the trade-off. Do not resolve
+indiscriminately with wholesale `--ours`/`--theirs`. If intent, authorization,
+or a safe resolution is unavailable, pause for clarification or abort when
+authorized and safe, preserving unrelated local work. Complete the operation
+only when the resolution is justified, then run the project's checks.
 
 ## Optimization
 
@@ -119,5 +120,4 @@ Unknown is not impossible, but possibility is not proof. Measure a baseline,
 keep a correct fallback, and run the cheapest falsifier before investing.
 Promote only when observed results beat the baseline on the metric that
 matters. A production-bound feature is not done until its evidence surface
-(log, metric, or trace) is named. Detail:
-[`workflow-kernel.md`](workflow-kernel.md) § Evidence-Driven Optimization.
+(log, metric, or trace) is named.

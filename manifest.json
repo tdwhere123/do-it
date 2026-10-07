@@ -10,6 +10,7 @@
       "do-it-architecture"
     ],
     "extended": [
+      "do-it-audit",
       "do-it-retrospective",
       "do-it-handbook",
       "do-it-context",
@@ -660,6 +661,12 @@
       "name": "do-it-verify",
       "source": "skills/do-it/do-it-verify",
       "target": "skills/do-it-verify",
+      "origin": "do-it"
+    },
+    {
+      "name": "do-it-audit",
+      "source": "skills/do-it/do-it-audit",
+      "target": "skills/do-it-audit",
       "origin": "do-it"
     },
     {

@@ -1,11 +1,11 @@
 # Invariants
 
-Rules that always win over lower-level docs and per-task convenience.
-A change to this file is a project-shape decision, not a routine edit.
+Project-owned rules, interpreted under the project's actual authority and
+change process. Load-bearing invariant changes deserve explicit decisions.
 
-> Replace the placeholder sections below with the project's actual
-> invariants. Keep the file short — invariants are load-bearing, not
-> aspirational.
+> Optional examples: use only the sections that fit the project, following
+> its conventions and existing documentation owners. Replace placeholders
+> with actual invariants, not aspirations.
 
 ## Architecture
 
@@ -37,10 +37,9 @@ A change to this file is a project-shape decision, not a routine edit.
 
 ## How To Add Or Change An Invariant
 
-- Open a task card. Invariant changes are not back-channel edits.
-- Reference the invariant by number in the card and in the PR.
-- Add the change reason in `glossary.md` if the new invariant
-  introduces a term.
-- After landing, sweep the codebase for places that contradict the new
-  invariant and either fix them or open a backlog issue with a close
-  condition.
+- Follow the project's decision and review conventions; make the affected
+  invariant and reason for changing it clear.
+- If a new term needs a definition, use the single existing terms owner
+  rather than creating a second glossary or automatically promoting it.
+- Check affected code and documentation for contradictions; fix them within
+  scope or record the remaining work through the project's usual mechanism.

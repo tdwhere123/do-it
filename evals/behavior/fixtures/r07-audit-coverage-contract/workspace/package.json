@@ -1,0 +1,6 @@
+{
+  "name": "synthetic-credit-queue",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node --test" }
+}

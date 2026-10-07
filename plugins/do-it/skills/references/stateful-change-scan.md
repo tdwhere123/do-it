@@ -4,15 +4,13 @@ On-demand scan for production failure modes on stateful, asynchronous,
 retried, cached, queued, externally effectful, or cross-boundary work.
 Skip local, single-shot, reversible edits.
 
-Five faces only: Identity, Interleaving, Commit, Amplification, Copies &
-Recovery. They absorb idempotency, races, retry storms, partial commit,
-backpressure, and cache/projection drift — they are not separate skills.
-Build and Architecture consume this file with a one-line trigger; they do
-not copy the faces.
+The lenses below cover Identity, Interleaving, Commit, Amplification, and
+Copies & Recovery: idempotency, races, retry storms, partial commit,
+backpressure, and cache/projection drift. They are not separate skills or an
+exhaustive classification. Code Quality and Architecture can load this detail
+when those mechanisms matter, rather than copying it.
 
-Cite Core instead of restating it. This scan is the body
-behind the workflow-kernel **state-machine gap** class:
-[`workflow-kernel.md`](workflow-kernel.md).
+Cite Core instead of restating it.
 
 ## Owners vs mechanism
 
@@ -157,9 +155,8 @@ terminal invariant; evidence that planted drift is repaired or escalated.
 
 This is not a required pass on every task. Scan only applicable faces.
 
-- Docs-only, pure-function, or local rename work skips this file. If no
-  face triggers: `failure-mode forecast: none identified` plus why
-  ([`workflow-kernel.md`](workflow-kernel.md)).
+- Docs-only, pure-function, or local rename work generally does not need
+  this scan; no forecast artifact is required when no mechanism applies.
 - Do not import saga, outbox, two-phase commit, quorum, or other
   database/distributed ritual unless that mechanism is already in the
   change cone.
@@ -175,7 +172,7 @@ fixtures or a preferred mechanism.
 
 ### Webhook duplicate
 
-Provider delivers payment event `E` twice (B05). Identity is `E` (or
+Provider delivers payment event `E` twice. Identity is `E` (or
 provider + event id), owned by billing — not the HTTP request, not the
 worker attempt. The second delivery observes the first commit and stops.
 An inbox row is mechanism and replaceable; the identity key is not.
@@ -184,7 +181,7 @@ Failure without Identity: each redelivery charges again.
 
 ### Read-modify-write
 
-Two workers read `count=3` and both write `4` (B06). The atomic unit is a
+Two workers read `count=3` and both write `4`. The atomic unit is a
 version or compare-and-swap at the semantic owner of `count`, not "we
 saw 3". A timeout is not a rollback. A lost-ack retry must use the same
 identity so Commit can tell replay from a new intent.
@@ -194,7 +191,7 @@ retries double-apply.
 
 ### Multi-layer retry
 
-Client retries 3×, the worker 5×, the SDK 3× on the same POST (B07).
+Client retries 3×, the worker 5×, the SDK 3× on the same POST.
 Retry owner is the layer that owns the operation identity and deadline;
 other layers must not multiply independently. Cap and backpressure sit
 with that owner.

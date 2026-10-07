@@ -1,11 +1,14 @@
 # Worklog Template
 
-Copy this shape into `.do-it/worklog/YYYY-MM-DD.md` for daily logs or
-`.do-it/worklog/<goal-slug>.md` for a goal-focused log. Worklogs are append-only
-working memory; promote only stable terms or invariants into the handbook.
+Optional working-memory shape; use the project's existing log location and
+conventions. Possible locations include `.do-it/worklog/YYYY-MM-DD.md` for a
+daily log or `.do-it/worklog/<goal-slug>.md` for a goal-focused log. Update or
+summarize entries as useful, keeping historical evidence distinguishable from
+current facts.
 
-Progress belongs here, not in `.do-it/plans/`. Plans are execution contracts
-(Goal / Decisions / Boundary / Acceptance), not construction logs.
+Keep task progress distinguishable from settled decisions without imposing a
+plan format or location. Put durable definitions in the single existing terms
+owner only when needed; do not automatically promote log entries.
 
 ## Goal
 

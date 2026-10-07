@@ -1,19 +1,18 @@
 # Architecture Rationale
 
-SKILL.md states five decision surfaces. This file keeps the original eight
-lenses as progressive detail, plus the failure mode each surface exists to
-close. A surface or lens is retired by checking whether its failure mode
-still operates, not by vote or by feel.
+This file offers deeper lenses and concrete failure mechanisms behind
+architectural questions. Use the detail that can change the design; the
+headings are navigation aids, not a required or exhaustive decision model.
 
 Negative-path body for stateful, async, retried, cached, queued, or
 cross-boundary work lives in
 [`../../references/stateful-change-scan.md`](../../references/stateful-change-scan.md).
 Failure & Recovery points at that scan; it does not copy the five faces.
 
-## Surfaces absorb lenses
+## Optional navigation map
 
-Keep this map true in both directions: a failure mode with no surface, or a
-surface with no mechanism here, is drift.
+These groupings help locate relevant lens detail. They do not require a
+project surface map or bidirectional map maintenance.
 
 | Surface | Absorbs | Stop / finding the surface must still catch |
 | --- | --- | --- |
@@ -25,7 +24,7 @@ surface with no mechanism here, is drift.
 
 ## Progressive lens detail
 
-Apply from the matching surface when the short question is not enough.
+Use a relevant lens when the short question is not enough.
 
 | Lens | Question | Closure |
 | --- | --- | --- |

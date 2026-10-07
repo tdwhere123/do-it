@@ -1,0 +1,6 @@
+{
+  "name": "synthetic-amount-formatting",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node --test" }
+}

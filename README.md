@@ -39,6 +39,7 @@ Choose a skill directly when its description helps the work:
 | `do-it-architecture` | Authority, boundaries, compatibility, migration, and recovery |
 | `do-it-decide` | Decision-changing uncertainty and meaningful alternatives |
 | `do-it-review` | Requirements and implementation quality as distinct lenses |
+| `do-it-audit` | Explicit deep audits with file coverage and independent causal synthesis |
 | `do-it-verify` | Relevant evidence and the practical limits of delivery claims |
 | `do-it-context` | Project terminology and factual consistency |
 | `do-it-handbook` | Stable knowledge worth preserving in existing project docs |
@@ -53,6 +54,21 @@ settled decisions, and source facts; label parent opinions as hypotheses.
 Meaningful specialist roles retain read-only or scoped-write restrictions. The
 parent integrates results and verifies the combined work. Use independence when
 it adds concrete value, with no blanket worker quota or forced delegation stage.
+
+## Deep audit on request
+
+Explicitly request `do-it-audit` through the host\'s native skill entry or ask,
+for example: "Use do-it-audit for the whole repository" or "Deep-audit the
+storage subsystem for recovery and data integrity." Scope and risk focus are
+separate choices; already stated choices do not require another interview.
+
+The audit accounts for every included file, unread sections, exclusions, and
+cross-module contracts. Complementary reviews are followed by a fresh independent
+causal synthesis before repair recommendations. It can reject a proposed shared
+root or a false positive; missing coverage or synthesis remains incomplete.
+Inspection is read-only by default, with no automatic fixes or report files.
+Ordinary review keeps its existing scope. This is skill guidance, not a new
+command framework or runtime permission gate.
 
 ## Runtime
 

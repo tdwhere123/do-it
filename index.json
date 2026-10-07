@@ -3,8 +3,8 @@
   "package": "@tdwhere/do-it",
   "repository": "https://github.com/tdwhere123/do-it",
   "domain": "agentic-workflow",
-  "total_skills": 11,
-  "total_capabilities": 11,
+  "total_skills": 12,
+  "total_capabilities": 12,
   "total_discovery_entries": 1,
   "total_agents": 10,
   "coverage": {
@@ -12,7 +12,7 @@
       "index": 1,
       "mainline": 6,
       "maintenance": 3,
-      "on-demand": 2
+      "on-demand": 3
     },
     "optional_skills": []
   },
@@ -96,6 +96,16 @@
       "group": "mainline",
       "source": "skills/do-it/do-it-verify",
       "target": "skills/do-it-verify"
+    },
+    {
+      "kind": "skill",
+      "name": "do-it-audit",
+      "description": "Use when the user explicitly requests a deep repository or scoped audit; not for ordinary diff review.",
+      "origin": "do-it",
+      "optional": false,
+      "group": "on-demand",
+      "source": "skills/do-it/do-it-audit",
+      "target": "skills/do-it-audit"
     },
     {
       "kind": "skill",

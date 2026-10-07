@@ -18,6 +18,7 @@ export const CORE_SKILLS = [
 
 /** On-demand extended skills — deliberately outside the meaning-centric default set. */
 export const EXTENDED_ON_DEMAND = [
+  "do-it-audit",
   "do-it-retrospective",
   "do-it-router"
 ];

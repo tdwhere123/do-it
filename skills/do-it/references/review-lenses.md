@@ -44,7 +44,7 @@ Finding classes:
 
 These are correctness findings when they make work wrong, unused, or unverifiable.
 
-Path chain definition: [`workflow-kernel.md`](workflow-kernel.md) § Change Cone.
+Bounded causal walk: [`scope-chain.md`](scope-chain.md).
 
 ## Change Sizing
 
@@ -70,15 +70,15 @@ comment review ritual for unrelated code changes.
 
 Loads comment rules from [`causal-change.md`](causal-change.md) § Comments. Finding shape: severity / location / cause class / required fix. Cause classes: `what` / `history` / `task-ref` / `tombstone` / `orphan-todo` / `fix-narrative` / `stale-invariant` / `broken-reference`.
 
-`comments-lint.sh` is advisory pre-filter; lens is source of truth even when hook is clean.
+`write-quality-lint.sh` is an advisory pre-filter; the lens is source of truth even when the hook is clean.
 
 ## Research-First Lens (Audit Only)
 
 **When:** The plan or diff introduces new dependency, datastore, framework, runtime, or protocol.
 
-Loads `architecture-strategist` / plan research trail when present. **Audit duty only:** verify the plan's Research trail exists — search action, ≥2 candidates with recency signals, user confirmation or `PENDING USER CONFIRMATION`. Rule body lives in [`decision-resolvers.md`](decision-resolvers.md) § Research-first surfaces; do not re-derive candidate rules here.
+Loads `architecture-strategist` / plan research trail when present. **Audit duty only:** verify evidence of repository constraints, compatibility, maintenance/activity, license, operational fit, and the recommendation, using relevant primary sources. Compare viable candidates when the choice is open; ask the user only when a preference changes the selected route. The owner is [`decision-resolvers.md`](decision-resolvers.md#research-first-surfaces); no candidate quota or universal confirmation requirement applies.
 
-Findings use standard shape. Memory-pick without fresh search is `Blocking`.
+Report unsupported recommendations or material evidence gaps. Severity follows the risk, not whether a search action or report artifact exists.
 
 ## YAGNI Lens
 
@@ -119,7 +119,7 @@ Create external issues only when user asks or repo workflow owns creation.
 
 ## Review Rules (Lens-Level)
 
-- Missing/stale forecast, path map, readiness target, or final evidence is a finding when it can hide live-path, state, contract, operator, or evidence-drift bugs.
+- Missing or stale evidence of the live path, applicable stateful failures, readiness, or final verification is a finding when it can hide contract, operator, or evidence-drift bugs.
 - Missing decision coverage: user decision, requirement, or named contract item absent without deferral or evidence. Grill / brainstorm leftovers are not required Spec sources.
 - Unreachable new code is a finding even if unit tests pass.
 - Partially wired producer → contract → transport → consumer → surface is a finding.

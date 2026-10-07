@@ -283,6 +283,7 @@ export function smokePiHostLoad(packageRoot, repoRoot = defaultRepoRoot) {
 				throw new Error(`installed Pi extension did not register ${handler}`);
 		}
 		for (const skill of [
+			"do-it-audit",
 			"do-it-code-quality",
 			"do-it-context",
 			"do-it-decide",
