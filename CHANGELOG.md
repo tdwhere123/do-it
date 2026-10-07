@@ -2,7 +2,41 @@
 
 ## Unreleased
 
+## 0.18.0
+
+### Explicit deep audits and task-fit judgment
+
+- **`do-it-audit`:** new opt-in deep repository or scoped audit skill. Scope
+  and review angles are separate choices; coverage accounts for every included
+  file, unread sections, exclusions, and cross-module contracts.
+- **Independent synthesis:** a fresh context challenges the combined evidence
+  before repair recommendations. It distinguishes undefined semantics, dropped
+  established contracts, independent defects, and refutations without forcing a
+  common root. Missing synthesis means an incomplete observations-only handoff,
+  with no provisional repair recommendations. Ordinary review stays bounded.
+- **Simplified foundation:** Core supplies concise professional judgment rather
+  than a prescribed workflow. Lexical router/grill reminders, completion gates,
+  automatic task takeover, and adaptive personalization are retired. Existing
+  user memory, profiles, task documents, and pointers remain untouched; evidence
+  collection is opt-in diagnostics, not acceptance proof. See
+  [`docs/simplification-migration.md`](docs/simplification-migration.md).
+- **Reference cleanup:** remove unconditional merge-completion rules, fixed
+  candidate/confirmation requirements, mandatory handbook templates, and stale
+  references while preserving the existing skills' professional responsibilities.
+- **Regression coverage:** add synthetic audit coverage, independent-causes,
+  and bounded-review scenarios. Fixture test subprocesses clear inherited
+  `NODE_TEST_CONTEXT` and must report executed tests instead of silently passing.
+  Restore Node 18 test path compatibility and replace the retired Windows keyword
+  smoke with positive and negative checks of live subagent detection.
+- **Delivery:** 12 runnable skills (including the router compatibility alias),
+  one generated discovery entry, and 10 specialists across the existing host
+  bundles. Root, OpenCode, and Pi remain independently published npm packages;
+  this release does not add an OMP or Grok-specific adapter.
+
 ## 0.17.0
+
+Historical source tag: its npm publication failed. The runtime described below
+belongs to that tag, not the simplified 0.18.0 runtime.
 
 ### Minimal evidence-carrying kernel
 

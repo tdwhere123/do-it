@@ -282,22 +282,27 @@ jobs:
           npm run doctor:cursor
           if ($LASTEXITCODE -ne 0) { throw "doctor:cursor failed" }
 
-      - name: Keyword match smoke under Git Bash
+      - name: Subagent detection smoke under Git Bash
         shell: bash
         run: |
-          set -uo pipefail
+          set -euo pipefail
           source hooks/lib/common.sh
-          export MSYSTEM=MINGW64
-          # Force MSYS path even though the runner is Git Bash-capable.
-          if ! do_it_prompt_has_word "please implement the fix now" "implement"; then
-            echo "expected implement match" >&2
+          unset PI_SUBAGENT_CHILD CLAUDE_AGENT_CONTEXT CLAUDE_SUBAGENT
+          unset CURSOR_SUBAGENT CURSOR_AGENT_CONTEXT transcript_path
+          # Keyword routing was removed; check the live Windows-path contract.
+          if ! do_it_in_subagent_context 'C:\Users\runner\.pi\subagents\child.jsonl'; then
+            echo "expected Windows subagent path match" >&2
             exit 1
           fi
-          if do_it_prompt_has_word "prefix only" "fix"; then
-            echo "fix must not match prefix" >&2
+          if do_it_in_subagent_context 'C:\Users\runner\subagents-project\parent.jsonl'; then
+            echo "subagent names must match a full path segment" >&2
             exit 1
           fi
-          echo "ok: msys keyword match"
+          if ! PI_SUBAGENT_CHILD=1 do_it_in_subagent_context ""; then
+            echo "expected Pi child environment match" >&2
+            exit 1
+          fi
+          echo "ok: Git Bash subagent detection"
 
   package-smoke:
     name: Package smoke

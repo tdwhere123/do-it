@@ -24,8 +24,8 @@ CLI setup path:
 
 | Plane | Current repository evidence |
 | --- | --- |
-| Source/package | `package.json`, manifest, and plugin metadata declare `0.17.0`; inventory is 11 runnable skills (including the discovery compatibility alias), 1 generated discovery entry, and 10 agents. The default runtime delivers compact context and edit checks. This is source metadata, not an npm publish. |
-| Git tag | A `0.17.0` GitHub/npm release still requires `v0.17.0`; version metadata alone is not a release. |
+| Source/package | `package.json`, manifest, and plugin metadata declare `0.18.0`; inventory is 12 runnable skills (including the discovery compatibility alias), 1 generated discovery entry, and 10 agents. Deep audit is explicit opt-in; the default runtime delivers compact context and edit checks. This is source metadata, not an npm publish. |
+| Git tag | `v0.18.0` identifies this release candidate. The older `v0.17.0` tag belongs to a different commit whose npm publication failed; do not move or reuse it. Version metadata or a tag alone does not prove npm publication. |
 | Marketplace/npm | The release workflow publishes separate `@tdwhere/do-it`, `@tdwhere/do-it-opencode`, and `@tdwhere/do-it-pi` artifacts. Only post-workflow registry queries prove publication. Cursor marketplace listing remains pending. |
 | Live host | Only host install/inspection evidence proves an active version. Source, package, tag, and live host may differ. |
 
@@ -34,7 +34,7 @@ CLI setup path:
 - Every release ends with a `vX.Y.Z` git tag on the release commit — the tag is
   what triggers `.github/workflows/release.yml` (verify → pack → optional npm
   publish). A version bump without a tag is not a release.
-- After a release, `main` bumps to the next patch version (e.g. `0.16.0`)
+- After a release, `main` bumps to the next patch version (e.g. `0.18.1`)
   promptly, so a checkout never claims a published version it has already
   moved past.
 - Historical gap: `0.6.1`–`0.14.0` shipped without tags (latest tag was
@@ -92,7 +92,7 @@ npm install -g https://github.com/tdwhere123/do-it/archive/refs/heads/main.tar.g
 do-it setup
 ```
 
-After `npm view @tdwhere/do-it@0.16.0 version` succeeds, the root registry
+After `npm view @tdwhere/do-it@0.18.0 version` succeeds, the root registry
 package provides the optional managed CLI. Before publication, use the GitHub
 or checkout-local path above.
 
@@ -196,7 +196,7 @@ Set `CODEX_HOME=/path/to/codex-home` to test or install into a temporary target.
 Prefer publishing the exact tarballs that already passed release validation:
 
 ```bash
-VERSION=0.16.0
+VERSION=0.18.0
 npm run validate:release -- "v${VERSION}"
 npm run build:opencode-plugin
 npm run build:pi-plugin
@@ -218,7 +218,7 @@ npm publish "$PI_TARBALL" --access public
 ```
 
 Keep the root package scoped and keep `do-it` as its bin. Install from the
-registry only after `npm view @tdwhere/do-it@0.16.0 version` succeeds; before
+registry only after `npm view @tdwhere/do-it@0.18.0 version` succeeds; before
 publication, use the exact local tarball from the verified pack step.
 
 ```bash
@@ -232,7 +232,7 @@ Publishing one must not select another package's tarball by a broad wildcard.
 ### Option 2: Pack And Test Locally
 
 ```bash
-VERSION=0.16.0
+VERSION=0.18.0
 npm pack --ignore-scripts
 npm run smoke:package -- "./tdwhere-do-it-${VERSION}.tgz"
 ```
@@ -270,9 +270,9 @@ a release artifact.
     version fields as well as the other host metadata.
 13. Run `npm run smoke:package` for root/OpenCode and smoke the independently
     packed Pi tarball.
-14. Confirm `manifest.json` matches the on-disk inventory (11 user/runnable
+14. Confirm `manifest.json` matches the on-disk inventory (12 user/runnable
     skills + 1 generated discovery entry, 10 agents). Source metadata is
-    `0.17.0`; do not tag or npm-publish until those are authorized. Default
+    `0.18.0`; do not tag or npm-publish until those are authorized. Default
     runtime provides compact context and source-edit checks; classification and
     completion reminder gates are retired.
 15. Confirm root tarball contents remain separate from `plugins/do-it-pi`, and
