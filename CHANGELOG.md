@@ -28,6 +28,9 @@
   `NODE_TEST_CONTEXT` and must report executed tests instead of silently passing.
   Restore Node 18 test path compatibility and replace the retired Windows keyword
   smoke with positive and negative checks of live subagent detection.
+- **Dependency security:** refresh the locked transitive TOML runtime dependency
+  to 4.3.0, beyond the 4.2.0 fix for uncontrolled recursion. The existing compatible
+  dependency range and host engine requirements remain unchanged.
 - **Delivery:** 12 runnable skills (including the router compatibility alias),
   one generated discovery entry, and 10 specialists across the existing host
   bundles. Root, OpenCode, and Pi remain independently published npm packages;
