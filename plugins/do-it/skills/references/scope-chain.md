@@ -1,8 +1,8 @@
 # Scope Chain
 
-Bound work without reading the whole repo. Used by `do-it-code-quality`
-Trace/Locate and by path maps. The edit set is the **causal cone**, not
-adjacency; change-loop detail: [`causal-change.md`](causal-change.md).
+Bound work to the causal owner and affected contracts without reading the whole
+repo. Used by `do-it-code-quality` and path maps. The edit set is the **causal
+cone**, not adjacency; causal change detail: [`causal-change.md`](causal-change.md).
 
 Leading words: **premise**, **blast radius**, **bounded chain**.
 
@@ -45,13 +45,16 @@ producer -> contract/event/schema -> transport/client -> state/query -> surface/
 3. Package or interface boundary — when crossing one.
 4. Repo-wide search — rename, shared invariant, or `@anchor` / term grep — never as the default first move.
 
-Prefer one bounded chain over a package tour. No consumer in-task → do not invent the API.
+Prefer one bounded chain over a package tour. Add APIs for evidenced delivery
+contracts, including external or dynamic consumers, rather than hypothetical use.
 Targeted reads: locate the symbol or section first. Whole-file reads on files
 over ~500 lines / 30 KB burn context and blur the chain.
 
 ## Quick Checks
 
-- New export/route/event with no in-task consumer? Treat it as an unused surface
-  unless the user explicitly asked for the extension point.
+- New export/route/event with no in-task consumer? Check package delivery,
+  external callers, dynamic registration, generated consumers, and explicit
+  extension contracts before calling it unused. Local search absence is not
+  proof of an unconsumed surface.
 - Tests mock away the chain under proof? Test fiction — tighten or add a real-path check.
 - Docs/generated output disagree with the contract? Fix both sides or defer explicitly.

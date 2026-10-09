@@ -2,6 +2,70 @@
 
 ## Unreleased
 
+## 0.18.1 (unreleased)
+
+### Shared ownership and native host delivery
+
+- **Canonical ownership:** generate hook Core from the marked skill excerpt and
+  preserve full descriptions in the portable index. Parse specialist TOML
+  centrally and render host-specific agents, including Pi metadata and coordination.
+- **Codex:** use `.codex-plugin/plugin.json`; remove root manifest and plugin
+  agents. Codex 0.162.0 discovered no hooks through the root manifest in the
+  isolated comparison. The final native repository-bundle read returned twelve
+  skills and three hook declarations with Skills/Hooks capabilities. Native roles install separately with
+  `do-it setup --target=codex --only=agents`; discovery is not execution proof.
+  Collision checks ignore comments and instruction examples, preserve unrelated
+  roles, and resolve aliases before writing managed native files.
+- **Claude and Cursor:** quote plugin paths; explicit native strict validation of
+  `.claude-plugin/plugin.json` passed, separately from root marketplace validation. Eight
+  Claude reader roles deny Edit, Write, and NotebookEdit, while Bash remains
+  available. Cursor renders canonical TOML directly with native `readonly: true`.
+- **Grok Build:** add the separate `do-it-grok` bundle to avoid the observed
+  Claude discovery collision. UserPromptSubmit updates turn state only; Core
+  arrives through PostToolUse after the first completed tool. Native 1.0.46
+  discovery reported twelve skills and ten specialists; live hook behavior
+  and permission enforcement require separate evidence.
+- **Pi:** update development dependencies to 1.1.0, recognize Agent/subagent,
+  and distinguish in-process children using manager, parent-session, and missing
+  delegation-tool signals. A fresh-process native child probe verified one stance
+  message per request, no Core or root hooks, and an unchanged `pwd` result.
+- **Maintained hosts:** Claude Code, Codex, Cursor, Pi, and Grok Build. Retire
+  repository OpenCode/Kimi support without removing local apps or user settings.
+- **Source comparison:** record pinned findings from google/skills, getsentry/skills,
+  trailofbits/skills, github/spec-kit, and vercel-labs/agent-skills. Adopt concrete
+  reference loading conditions, trigger maintenance guidance, causal verification,
+  and control-to-impact security evidence without importing a workflow framework.
+
+### Focused deep audits with reusable evidence
+
+- **Initial independent review:** an explicit deep audit on a capable host now
+  initiates complementary correctness, architecture, and maintainability work
+  after scope and inventory. Existing specialist roles receive bounded slices
+  and their own lens; no fixed worker count, model, or audit runtime is added.
+- **Coverage quality:** distinguish inventory and assignment from substantive
+  inspection and cross-file contract checks. Reuse current evidence; check
+  generated copies, lockfiles, and assets through appropriate consistency and
+  integrity evidence. The parent keeps compact coverage state and targets gaps
+  instead of restarting full reads or requiring duplicate ledgers.
+- **Safe simplification:** dead code, redundant mechanisms, needless abstraction,
+  and concrete maintenance costs are first-class findings even without a runtime
+  failure. Necessary security, compatibility, and business contracts remain
+  protected; cosmetic preferences do not become defects.
+- **Independent synthesis:** a fresh context tests findings, causal ownership,
+  counterevidence, and supported cleanup opportunities through targeted checks.
+  It does not repeat the whole audit. Missing capability or synthesis remains an
+  honest incomplete handoff; ordinary review retains its bounded scope.
+- **Reference precision:** remove retired workflow names and blanket wrapper or
+  consumer-count heuristics from shared code-quality guidance. Incomplete reviews
+  keep a resumable frontier; skill references state when to load them, and
+  architecture rationale focuses on affected load-bearing paths.
+- **Regression evidence:** extend the existing audit behavior scenarios and
+  fixture checks. Deterministic tests establish fixture and delivery contracts;
+  model delegation, coverage judgment, and causal synthesis require separately
+  inspected live trajectories.
+- **Delivery:** synchronize package and host metadata to `0.18.1`. npm publication
+  is deferred; this source update does not create a release tag.
+
 ## 0.18.0
 
 ### Explicit deep audits and task-fit judgment

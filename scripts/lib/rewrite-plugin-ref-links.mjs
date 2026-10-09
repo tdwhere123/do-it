@@ -13,7 +13,7 @@ const GITHUB_TREE = "https://github.com/tdwhere123/do-it/blob/main";
 /**
  * @param {string} text
  * @param {{ hasHooksJson?: boolean }} [opts]
- *   When false (OpenCode), install/hooks.json links go to GitHub instead of a
+ *   When false (Pi), install/hooks.json links go to GitHub instead of a
  *   missing ../../hooks/hooks.json.
  */
 export function rewriteReferenceMarkdown(text, opts = {}) {

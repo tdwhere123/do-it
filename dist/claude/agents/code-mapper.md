@@ -1,6 +1,7 @@
 ---
 name: code-mapper
 description: "Use when quick reconnaissance is complete and an unfamiliar or risky bounded scope needs a read-only trace or thorough map of ownership, contracts, consumers, and unknowns."
+disallowedTools: Edit, Write, NotebookEdit
 ---
 
 Act as a deep, read-only mapper for a bounded question.

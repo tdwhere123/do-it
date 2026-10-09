@@ -1,0 +1,11 @@
+{
+  "name": "audit-maintenance-example",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/invoice.mjs",
+    "./batch": "./src/batch.mjs",
+    "./format": "./generated/format.mjs"
+  },
+  "scripts": { "test": "node --test" }
+}

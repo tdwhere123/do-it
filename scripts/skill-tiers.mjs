@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Single source of truth for core vs extended do-it skills.
-// All six host surfaces (Codex / Claude / Cursor / OpenCode / Pi / Kimi)
+// All maintained host surfaces (Codex / Claude / Cursor / Pi / Grok Build)
 // ship ALL_SKILLS.
 // Groups organize discovery only; they do not classify tasks.
 // Meaning-centric buckets (not process pipeline): route / code-quality / review /

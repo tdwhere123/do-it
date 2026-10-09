@@ -26,7 +26,7 @@ R06, C01, and C04; `--suite release` selects all current scenarios.
 Delegation counts are cost observations. They fail only where the scenario user
 explicitly forbids delegation, not because a task has an assigned tier.
 
-## Deep-audit cases (R07–R09)
+## Deep-audit cases (R07–R10)
 
 These small original synthetic repositories distinguish explicit, low-frequency
 deep audits from ordinary review:
@@ -47,7 +47,20 @@ deep audits from ordinary review:
   should answer the local question without activating a repo audit or inspecting
   the unrelated legacy key module.
 
-When a delegate cannot launch an independent context, R07/R08 also require an
+- **R10** requests an audit of a passing maintenance fixture. Unreachable private
+  code, duplicate totals mechanisms, and a single-use identity pipeline have
+  independent maintenance costs. The external formatter export and its validation
+  wrapper are intentional. An exact generated copy permits consistency evidence
+  without redundant inspection by every delegate. Public-path tests and temporary
+  removal/drift probes check these fixture facts, not model judgment.
+
+On a capable host, R07/R08/R10 require actual independent multiview delegation
+following scope and inventory. Reviewer, architecture, and cleaner perspectives
+receive their own context and assigned module or contract slices. Assigned files,
+inspected files, cross-file checks, and synthesis are distinct; reusable inspection
+is valid. No fixed agent/model/round count or persistent report ledger is required.
+
+When a delegate cannot launch an independent context, R07/R08/R10 also require an
 incomplete observations-only handoff to a capable parent, not provisional repair
 recommendations. The parent may arrange synthesis but cannot substitute itself.
 The fixture package test commands are exercised by the local validator tests;
@@ -61,7 +74,10 @@ deterministic judge and require trajectory/source inspection in a separately
 approved behavior probe. Current hard gates can catch writes and unsupported
 verification claims, but cannot establish substantive per-file inspection,
 fresh independent synthesis, causal/refutation quality, or read-only scope
-expansion. No reviewer count or live-obedience claim is inferred from fixtures.
+expansion. The [manual trajectory rubric](rubrics/audit-trajectories.md) gives
+positive and negative criteria, including an actual unavailable-capability variant.
+That variant requires host capability evidence and is not a simulated orchestration
+test. No reviewer count or live-obedience claim is inferred from fixtures.
 
 ## Local use
 

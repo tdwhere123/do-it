@@ -11,7 +11,7 @@
 
 `/do-it-retrospective` 现在只按需复盘，不启用自动学习事件。`/do-it-skip` 仅提供
 兼容说明。`DO_IT_ROUTER_MODE` 不再选择运行路径。证据收集默认关闭；显式设置
-`DO_IT_EVIDENCE_MODE=observe` 可在 Pi/OpenCode 启用诊断，其他宿主可显式注册或
+`DO_IT_EVIDENCE_MODE=observe` 可在 Pi 启用诊断，其他宿主可显式注册或
 调用 observer。诊断事件只是观察记录，不能证明任务验收。
 
 宿主权限负责执行访问和副作用限制。宽泛的 URL 网络探测钩子已移除：打印 URL

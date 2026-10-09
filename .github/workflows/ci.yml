@@ -81,29 +81,33 @@ jobs:
       - name: Build Claude agents
         run: npm run build:claude-agents
 
-      - name: Ensure generated index and Claude agents are committed
-        run: git diff --exit-code -- index.json dist/claude
+      - name: Ensure generated index, Core context, and Claude agents are committed
+        run: |
+          git diff --exit-code -- index.json hooks/data/core-context.txt dist/claude
+          test -z "$(git ls-files --others --exclude-standard -- index.json hooks/data/core-context.txt dist/claude)"
 
       - name: Build Codex plugin
         run: npm run build:codex-plugin
 
       - name: Ensure generated Codex plugin is committed
-        run: git diff --exit-code -- .agents/plugins plugins/do-it
+        run: |
+          git diff --exit-code -- .agents/plugins plugins/do-it
+          test -z "$(git ls-files --others --exclude-standard -- .agents/plugins plugins/do-it)"
 
       - name: Build Cursor plugin
         run: npm run build:cursor-plugin
 
       - name: Ensure generated Cursor plugin is committed
-        run: git diff --exit-code -- plugins/do-it-cursor .cursor-plugin
+        run: |
+          git diff --exit-code -- plugins/do-it-cursor .cursor-plugin
+          test -z "$(git ls-files --others --exclude-standard -- plugins/do-it-cursor .cursor-plugin)"
 
-      - name: Build OpenCode plugin
-        run: npm run build:opencode-plugin
-
-      - name: Ensure generated OpenCode plugin is committed
-        run: git diff --exit-code -- plugins/do-it-opencode
-
-      - name: Validate Kimi plugin manifest (root-mounted, no build)
-        run: npm run validate:kimi-plugin
+      - name: Build and check Grok Build plugin
+        run: |
+          npm run build:grok-plugin
+          npm run test-grok
+          git diff --exit-code -- plugins/do-it-grok
+          test -z "$(git ls-files --others --exclude-standard -- plugins/do-it-grok)"
 
       - name: Smoke Cursor local install (real copy, no external symlink)
         env:
@@ -169,8 +173,11 @@ jobs:
       - name: Build Pi plugin
         run: npm run build:pi-plugin
 
-      - name: Ensure generated Pi skills and hooks are committed
-        run: git diff --exit-code -- plugins/do-it-pi/skills plugins/do-it-pi/hooks
+      - name: Ensure generated Pi bundle is committed
+        shell: bash
+        run: |
+          git diff --exit-code -- plugins/do-it-pi
+          test -z "$(git ls-files --others --exclude-standard -- plugins/do-it-pi)"
 
       - name: Smoke local Pi installer on Unix
         if: runner.os != 'Windows'
@@ -322,7 +329,7 @@ jobs:
       - name: Install system test tools
         run: sudo apt-get update && sudo apt-get install -y jq shellcheck
 
-      - name: Smoke packed root and OpenCode packages
+      - name: Smoke packed root package
         env:
           NPM_CONFIG_CACHE: ${{ runner.temp }}/npm-cache
         run: npm run smoke:package

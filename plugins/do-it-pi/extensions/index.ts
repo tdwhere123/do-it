@@ -46,8 +46,22 @@ export function resolvePiAgentDir(
 	return path.join(home, ".pi", "agent");
 }
 
-export function isPiSubagent(env: NodeJS.ProcessEnv = process.env): boolean {
-	return env.PI_SUBAGENT_CHILD === "1";
+function hasSubagentTool(pi: Pick<ExtensionAPI, "getAllTools">): boolean {
+	return pi.getAllTools().some((tool) => tool.name === "Agent" || tool.name === "subagent");
+}
+
+export function isPiSubagent(
+	env: NodeJS.ProcessEnv = process.env,
+	pi?: Pick<ExtensionAPI, "getAllTools">,
+	ctx?: Pick<ExtensionContext, "sessionManager">,
+): boolean {
+	if (env.PI_SUBAGENT_CHILD === "1") return true;
+	// @tintinweb/pi-subagents 0.19 loads child extensions but omits its Agent
+	// tool. Its process-wide manager alone is not a child marker; ordinary
+	// forks also have parentSession. Require all three signals at event time.
+	const manager = Reflect.get(globalThis, Symbol.for("pi-subagents:manager"));
+	if (!manager || !pi || !ctx || hasSubagentTool(pi)) return false;
+	return Boolean(ctx.sessionManager.getHeader()?.parentSession);
 }
 
 export function appendToolResultContext<T>(
@@ -119,10 +133,6 @@ export function createDoItPiExtension(
 		return path.join(agentDir(), "do-it-data");
 	}
 
-	function childProcess(): boolean {
-		return isPiSubagent(currentEnv());
-	}
-
 	const anonymousSessions = new WeakMap<object, string>();
 	let anonymousSessionSequence = 0;
 	let lastDiagnostic: string | undefined;
@@ -185,7 +195,12 @@ export function createDoItPiExtension(
 	): Promise<HookResult> {
 		try {
 			const result = await runHook(hooksDir, scriptName, payload, {
-				env: hookEnvironment(),
+				// The shell hook also checks child identity. Scope the inferred flag
+				// to this invocation; in-process siblings share process.env.
+				env: {
+					...hookEnvironment(),
+					...(scriptName === "subagent-stance.sh" ? { PI_SUBAGENT_CHILD: "1" } : {}),
+				},
 				signal: ctx.signal,
 			});
 			if (result.diagnostic) lastDiagnostic = result.diagnostic;
@@ -221,21 +236,23 @@ export function createDoItPiExtension(
 	}
 
 	return function doItPiExtension(pi: ExtensionAPI): void {
+		function childSession(ctx: ExtensionContext): boolean {
+			return isPiSubagent(currentEnv(), pi, ctx);
+		}
+
 		pi.registerCommand("do-it-status", {
 			description: "Show do-it Pi adapter status and last hook diagnostic.",
 			handler: async (_args, ctx) => {
-				const hasSubagentRuntime = pi
-					.getAllTools()
-					.some((tool) => tool.name === "subagent");
+				const hasSubagentRuntime = hasSubagentTool(pi);
 				const status = [
 					`do-it Pi adapter: active`,
-					`session role: ${childProcess() ? "subagent" : "root"}`,
+					`session role: ${childSession(ctx) ? "subagent" : "root"}`,
 					`hooks directory: ${hooksDir}`,
 					`data directory: ${dataDir()}`,
 					`Bash hook runner: ${resolveBash(currentEnv()) ? "available" : "unavailable"}`,
 					hasSubagentRuntime
 						? "subagent tool: registered; this command does not verify do-it.* package-agent discovery"
-						: "subagent tool: not registered (optional pi-subagents missing; extension, skills, and prompts remain active)",
+						: "subagent tool: not registered in this session; extension, skills, and prompts remain active",
 					`last hook diagnostic: ${lastDiagnostic ?? "none"}`,
 				].join("\n");
 				if (ctx.hasUI)
@@ -251,7 +268,7 @@ export function createDoItPiExtension(
 			const prompt = typeof event.prompt === "string" ? event.prompt : "";
 			const contexts: string[] = [];
 
-			if (childProcess()) {
+			if (childSession(ctx)) {
 				const result = await invokeHook(
 					"subagent-stance.sh",
 					basePayload(ctx, { prompt }),
@@ -283,7 +300,7 @@ export function createDoItPiExtension(
 		});
 
 		pi.on("tool_result", async (event, ctx) => {
-			if (childProcess()) return undefined;
+			if (childSession(ctx)) return undefined;
 			if (currentEnv().DO_IT_EVIDENCE_MODE === "observe" && isEvidenceTool(event.toolName)) {
 				await invokeHook(
 					"evidence-observer.sh",

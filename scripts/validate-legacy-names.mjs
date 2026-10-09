@@ -20,12 +20,12 @@ const retired = [
 const pattern = new RegExp(`\\b(?:${retired.join("|")})\\b`, "g");
 const roots = [
   "agents", "commands", "hooks", "skills/do-it", "scripts",
-  "plugins/do-it", "plugins/do-it-cursor", "plugins/do-it-opencode",
+  "plugins/do-it", "plugins/do-it-cursor", "plugins/do-it-pi",
   "dist/claude", ".claude-plugin", ".cursor-plugin"
 ];
 const ignored = new Set([
-  "plugins/do-it-opencode/node_modules",
-  "plugins/do-it-opencode/dist"
+  "plugins/do-it-pi/node_modules",
+  "plugins/do-it-pi/.test-dist"
 ]);
 const allowed = new Set([
   "hooks/verification-gate.sh"

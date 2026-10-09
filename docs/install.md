@@ -4,14 +4,16 @@
 
 Delivery is host-specific. Codex and Claude Code are **marketplace-first**;
 Cursor is **local copy or Team Import today, with public listing pending**;
-OpenCode and Pi ship as **independent npm packages**; and Kimi Code reads the
-**repository root as the plugin** — no build step. Plugin bundles ship skills,
-agents, and hooks together.
+Pi ships as an **independent npm package**. Skills, specialists, and runtime
+checks use the host-specific delivery paths below. Grok Build uses its generated
+`do-it-grok` bundle.
+OpenCode and Kimi Code repository support is retired; this does not remove local
+applications or user configuration.
 
 | Truth plane | What this repository can claim |
 | --- | --- |
-| Source/package metadata | This checkout declares `0.17.0`, 12 user/runnable skills + 1 generated discovery entry, and 10 agents. |
-| Git tag | A `0.17.0` npm/GitHub release still requires `v0.17.0`; version metadata alone is not a release tag. |
+| Source/package metadata | This checkout declares `0.18.1`, 12 user/runnable skills + 1 generated discovery entry, and 10 agents. |
+| Git tag | A `0.18.1` npm/GitHub release still requires `v0.18.1`; version metadata alone is not a release tag. |
 | Marketplace / npm | Coordinates and publish paths are documented; only post-workflow `npm view` proves registry publication. Cursor marketplace listing remains pending. |
 | Live host | Only an install/inspection on that host proves what is active there; do not infer it from source or a packed artifact. |
 
@@ -23,8 +25,9 @@ codex plugin add do-it@tdwhere-do-it
 ```
 
 `codex plugin marketplace add` only registers the marketplace — it does not
-install the plugin. After install, **trust the plugin hooks** under `/hooks` so
-compact context, independent child stance, and source-edit checks are available.
+install the plugin. Inspect and trust configured plugin hooks under `/hooks`.
+Manifest validation and skill discovery do not prove hooks execute in the active
+host; verify that separately before relying on context or edit checks.
 
 Local checkout smoke test (use a temp `CODEX_HOME` if needed):
 
@@ -35,12 +38,31 @@ CODEX_HOME=/tmp/do-it-plugin-test codex plugin add do-it@tdwhere-do-it
 
 The Codex plugin bundle lives at `plugins/do-it/` (generated from
 `manifest.json`): 12 user/runnable skills, 1 generated `_index.md` discovery
-entry, and 10 agents, plus plugin-local hooks.
+entry, plus plugin-local hooks. Native agents are installed separately below.
 
-Modern Codex plugins own those bundled do-it agents.
-`manifest.targets.codex.installAgents=false` keeps `~/.codex/agents` for
-user-defined agents; legacy migration removes only confirmed old do-it
-duplicates.
+The bundle uses `.codex-plugin/plugin.json`. In an isolated `codex 0.162.0`
+`plugin/read` comparison, root `plugin.json` yielded zero hooks while the Codex
+manifest exposed hooks. The builder removes the root manifest and plugin
+`agents/` directory. A native read of the final repository bundle returned
+12 skills and 3 hook declarations with Skills/Hooks capabilities. Discovery
+still does not prove live hook execution.
+
+**Named specialists require native agent installation.** Codex loads
+`.codex/agents/*.toml` or explicit configured roles; plugin `agents` metadata
+and cached files do not register those roles. From this checkout, install only
+the canonical native agents using the same ownership and replacement guards:
+
+```bash
+node bin/do-it.mjs setup --target=codex --only=agents
+node bin/do-it.mjs doctor --target=codex --only=agents
+```
+
+The default destination is `~/.codex/agents`; set `CODEX_HOME` to use an isolated
+home. This path does not install a second skills/hooks mirror or edit user configuration. It retains
+current canonical agents during legacy migration and preserves unrelated
+user-defined agents. Doctor proves managed file/state consistency; separately
+verify live named-role discovery and the role's sandbox behavior. See
+[architecture](./architecture.md) for the pinned host contract and evidence limits.
 
 ## Claude Code
 
@@ -48,6 +70,11 @@ duplicates.
 /plugin marketplace add tdwhere123/do-it
 /plugin install do-it@do-it
 ```
+
+For checkout validation, `claude plugin validate --strict .claude-plugin/plugin.json`
+checks the plugin manifest and passed for this source update. Validating the
+repository root checks the marketplace and does not replace this check. Neither
+command proves live hook execution.
 
 ## Cursor
 
@@ -90,28 +117,9 @@ Cursor ships the full skill inventory, discovery index, references, and scoped
 agents. Context and edit checks use run-hook.cmd; completion gates and automatic
 diagnostics are not registered. See [host matrix](./harness-adapter-matrix.md).
 
-## OpenCode
-
-OpenCode loads plugins from the `"plugin"` array in `opencode.json`. After
-`npm view @tdwhere/do-it-opencode@0.16.0 version` succeeds, install the
-independent npm package:
-
-```bash
-opencode plugin @tdwhere/do-it-opencode -g
-```
-
-Before registry publication, for checkout development, or during registry
-outages, `npm run install:opencode-global` builds and vendors a copy under
-OpenCode's config home. Do not point a live host at a mutable git checkout. See
-[`plugins/do-it-opencode/docs/README.opencode.md`](../plugins/do-it-opencode/docs/README.opencode.md).
-
-```bash
-npm run test-opencode
-```
-
 ## Pi
 
-After `npm view @tdwhere/do-it-pi@0.16.0 version` succeeds, install the
+After `npm view @tdwhere/do-it-pi@0.18.1 version` succeeds, install the
 independent Pi package from npm:
 
 ```bash
@@ -129,41 +137,41 @@ pi install npm:pi-subagents
 ```
 
 Use `/do-it-status` to check Bash, Git Bash on Windows, hook diagnostics, and
-optional package-agent availability. Build and package checks are available as
+`Agent`/`subagent` tool registration. Check the runtime’s actual `do-it.*` role
+list separately; a registered tool alone does not establish package-agent
+discovery in that session or a child fork. A fresh Pi 1.1.0 process verified
+stance-only context and no root hooks for a persisted native child running `pwd`.
+Build and package checks are available as
 `npm run test-pi` and `npm run smoke:pi-package`. See
 [`plugins/do-it-pi/README.md`](../plugins/do-it-pi/README.md).
 
-## Kimi Code
+## Grok Build
 
-Kimi Code reads the repository root as the plugin — no build step, no generated
-bundle. The root `kimi.plugin.json` points straight at `./skills/do-it/`,
-`./commands/`, and `./hooks/`:
-
-```text
-/plugins install https://github.com/tdwhere123/do-it
-```
-
-Then `/reload` (or a new session). Installs are per-user under
-`$KIMI_CODE_HOME/plugins/managed/do-it/` and run from that managed copy;
-reinstall to pick up updates.
-
-Isolated local smoke (does not touch your real Kimi home):
+Use the generated `plugins/do-it-grok/` bundle, named `do-it-grok`. The repository
+root can collide with a Claude marketplace plugin named `do-it`; it is not the
+Grok installation target. With the bundle generated, run from the checkout:
 
 ```bash
-export KIMI_CODE_HOME=/tmp/do-it-kimi-test
-# From a Kimi Code session pointed at this checkout:
-#   /plugins install /path/to/do-it
-#   /reload
-# Then: confirm 12 skills appear, `/do-it:skip` resolves, and a prompt + Edit +
-# stop turn exercises sessionStart/kernel-context, evidence-observer,
-# compact context and source-edit checks.
-# Or run the packaged validator without a live session:
-npm run validate:kimi-plugin
+npm run build:generated
+node scripts/build-grok-plugin.mjs
+agent plugin validate plugins/do-it-grok
+agent plugin install "$(pwd)/plugins/do-it-grok" --trust
+agent inspect --json
 ```
 
-Kimi ships the full skills and three commands, compact session/prompt context,
-and source-edit checks. Its built-in agent mechanism is separate from the portable
-custom agent bundle. See [Kimi details](../skills/do-it/references/host-kimi.md).
+These commands use the native Grok Build `agent` executable (verified host
+version: 1.0.46). Reload the Plugins tab or start a new session. Inspect the
+loaded source paths and actual skill/agent names under `do-it-grok`: a plugin
+list entry alone does not prove which source won discovery. The bundle carries
+12 canonical skills and 10 generated Markdown specialists.
+
+UserPromptSubmit only updates turn state and emits no Core context.
+Grok's hook protocol differs from Claude's: prompt/session hook context is not
+proof of model-visible bootstrap context. PostToolUse can deliver context after
+a tool result. The adapter delivers Core after the first completed tool, not
+before the first action; live execution still needs separate evidence.
+The Claude strict external-action profile is not copied to Grok. See
+[Grok host details](../skills/do-it/references/host-grok.md).
 
 ## Optional / legacy: `do-it setup`
 
@@ -171,7 +179,8 @@ CLI setup remains for doctor checks, temp-home smoke tests, and migration from
 older global installs. It is **not** the recommended first install. Prefer the
 plugin marketplace; use setup only to mirror or migrate — do not run plugin
 install and a live, do-it-managed legacy mirror at the same time. User-defined
-global agents can remain separate.
+global agents can remain separate. The agent-only Codex command above is the
+complement to plugin delivery, not a legacy skills/hooks mirror.
 
 ```bash
 npm install -g https://github.com/tdwhere123/do-it/archive/refs/heads/main.tar.gz
@@ -199,6 +208,6 @@ For a packed local release artifact:
 
 ```bash
 npm pack
-npm install -g ./tdwhere-do-it-0.16.0.tgz
+npm install -g ./tdwhere-do-it-0.18.1.tgz
 do-it setup   # optional / legacy global copy
 ```

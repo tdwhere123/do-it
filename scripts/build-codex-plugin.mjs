@@ -28,8 +28,8 @@ function basenameFromTarget(target, expectedPrefix) {
   return name;
 }
 
-function copyManagedDir(entries, kind) {
-  const targetDir = path.join(pluginRoot, kind === "skill" ? "skills" : "agents");
+function copySkills(entries) {
+  const targetDir = path.join(pluginRoot, "skills");
   fs.rmSync(targetDir, { recursive: true, force: true });
   fs.mkdirSync(targetDir, { recursive: true });
 
@@ -39,9 +39,7 @@ function copyManagedDir(entries, kind) {
       throw new Error(`Manifest source missing for ${entry.name}: ${entry.source}`);
     }
 
-    const targetName = kind === "skill"
-      ? basenameFromTarget(entry.target, "skills")
-      : basenameFromTarget(entry.target, "agents");
+    const targetName = basenameFromTarget(entry.target, "skills");
     const targetPath = path.join(targetDir, targetName);
     fs.cpSync(sourcePath, targetPath, { recursive: true });
   }
@@ -68,19 +66,18 @@ function buildPluginManifest() {
       "do-it"
     ],
     skills: "./skills/",
-    agents: "./agents/",
     hooks: "./hooks/hooks.json",
     interface: {
       displayName: "do-it",
       shortDescription: "Professional judgment and independent specialists for Codex.",
       longDescription:
-        "Install do-it via the Codex plugin marketplace. Skills and bundled agents are selected only when task-fit helps; plugin hooks provide compact context and source-edit checks. Trust plugin hooks in /hooks after install.",
+        "The plugin delivers task-fit skills, compact context, and source-edit checks. Install named specialists separately with do-it setup --target=codex --only=agents. Trust plugin hooks in /hooks after install.",
       developerName: "tdwhere123",
       category: "Coding",
-      capabilities: ["Skills", "Agents", "Hooks"],
+      capabilities: ["Skills", "Hooks"],
       websiteURL: "https://github.com/tdwhere123/do-it",
       defaultPrompt: [
-        "Work autonomously: choose do-it skills or bundled agents only when task-fit helps; honor direct user intent, keep external/destructive actions confirmed, and report task-relevant evidence."
+        "Work autonomously: choose do-it skills when task-fit helps; honor direct user intent and existing authorization, and report task-relevant evidence."
       ],
       brandColor: "#2563EB"
     }
@@ -114,12 +111,14 @@ function main() {
   assertVersionParity(manifest, pkg);
 
   const skills = manifest.skills ?? [];
-  const agents = manifest.agents ?? [];
   const optionalSkills = skills.filter((entry) => entry.optional).map((entry) => entry.name);
 
   fs.mkdirSync(pluginManifestDir, { recursive: true });
-  copyManagedDir(skills, "skill");
-  copyManagedDir(agents, "agent");
+  copySkills(skills);
+  // Codex 0.162.0 skips hooks for root plugin.json and does not discover plugin agents.
+  // Native roles are installed separately from the canonical package agents/ source.
+  fs.rmSync(path.join(pluginRoot, "plugin.json"), { force: true });
+  fs.rmSync(path.join(pluginRoot, "agents"), { recursive: true, force: true });
 
   const refsSource = path.join(repoRoot, "skills", "do-it", "references");
   if (!fs.existsSync(refsSource)) {
@@ -148,7 +147,7 @@ function main() {
 
   console.log(
     `built Codex plugin -> ${path.relative(repoRoot, pluginRoot)} ` +
-      `(${skills.length} skills, ${agents.length} agents, hooks: yes, optional: ${optionalSkills.join(", ") || "none"})`
+      `(${skills.length} skills, hooks: yes, optional: ${optionalSkills.join(", ") || "none"})`
   );
 }
 

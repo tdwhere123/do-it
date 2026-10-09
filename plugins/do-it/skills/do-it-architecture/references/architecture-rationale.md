@@ -28,7 +28,7 @@ Use a relevant lens when the short question is not enough.
 
 | Lens | Question | Closure |
 | --- | --- | --- |
-| **L1 Spine** | Which entry, mutation, accepted-state, visible-effect, completion, and recovery points are load-bearing? | Smallest repository-named spine; every new/omitted point justified; changed path or retired path named. |
+| **L1 Spine** | Which entry, mutation, accepted-state, visible-effect, completion, and recovery points are load-bearing? | Smallest repository-named spine; explain changed or risky load-bearing points and affected retired paths, without an exhaustive justification artifact. |
 | **L2 Surfaces** | Is each surface public, persisted, cross-boundary, or private? | Narrowest compatibility promise; consumers and cutover/deprecation known before a break. |
 | **L3 Authority** | Per fact and jurisdiction, who decides truth and who may write through which route? | Fact/decision authority, owner, admission, partition/replica, commit/conflict, projection, and recovery dimensions kept independent where applicable. |
 | **L4 Ownership** | Who owns each fact, contract, boundary decision, and lifecycle? | Owner, decision rights, escalation, non-ownership, and public/assembly crossing identified; no shared layer merely because two consumers exist. |

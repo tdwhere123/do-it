@@ -8,9 +8,11 @@ import { fileURLToPath } from "node:url";
 import {
   validateAgentCapabilityPolicy,
   validateAgentInstructionLinks,
+  validateCodexEntry,
   validatePortableAgentPolicy
 } from "../scripts/validate-agent-bundle.mjs";
 import { parseFrontmatter } from "../scripts/build-index-json.mjs";
+import { parseAgentToml } from "../scripts/lib/agent-source.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -26,7 +28,7 @@ Stay on the assigned narrow slice. The parent owns integration.
 
 const auditSkillName = "do-it-audit";
 const auditSourceDir = `skills/do-it/${auditSkillName}`;
-const auditBundles = ["plugins/do-it", "plugins/do-it-cursor", "plugins/do-it-opencode", "plugins/do-it-pi"];
+const auditBundles = ["plugins/do-it", "plugins/do-it-cursor", "plugins/do-it-pi", "plugins/do-it-grok"];
 
 function readRepoFile(relativePath) {
   assert.ok(fs.existsSync(path.join(repoRoot, relativePath)), `missing ${relativePath}`);
@@ -48,7 +50,7 @@ test("do-it-audit is an extended skill registered in canonical and host discover
   assert.ok(manifest.skillTiers.extended.includes(auditSkillName));
   assert.ok(!manifest.skillTiers.core.includes(auditSkillName), "deep audit is not daily Core");
 
-  // Claude and Kimi use canonical skills; the other hosts receive directory copies.
+  // Claude uses canonical skills; the other hosts receive directory copies.
   const source = readRepoFile(`${auditSourceDir}/SKILL.md`);
   const frontmatter = parseFrontmatter(source);
   assert.equal(frontmatter.name, auditSkillName);
@@ -57,8 +59,8 @@ test("do-it-audit is an extended skill registered in canonical and host discover
   assert.ok(index.entries.some((entry) =>
     entry.kind === "skill" && entry.name === auditSkillName && entry.group === "on-demand"
   ));
-  // Pi loads SKILL.md natively; a Claude-style _index.md is not a Pi skill.
-  const indexedBundles = auditBundles.filter((root) => root !== "plugins/do-it-pi");
+  // Pi and Grok discover native SKILL.md files without a separate index.
+  const indexedBundles = ["plugins/do-it", "plugins/do-it-cursor"];
   for (const root of ["dist/claude", ...indexedBundles]) {
     assert.match(readRepoFile(`${root}/skills/_index.md`), /\*\*do-it-audit\*\*/);
   }
@@ -93,6 +95,36 @@ test("do-it-audit local reference links survive each host bundle", () => {
       if (!target.startsWith("..")) pending.push(target);
     }
   }
+});
+
+test("Codex entry preserves native hook discovery without claiming plugin agent registration", () => {
+  const plugin = JSON.parse(readRepoFile("plugins/do-it/.codex-plugin/plugin.json"));
+  const hasRootManifest = fs.existsSync(path.join(repoRoot, "plugins/do-it/plugin.json"));
+  const errors = [];
+  validateCodexEntry(plugin, hasRootManifest, errors);
+  assert.deepEqual(errors, []);
+  assert.ok(fs.existsSync(path.join(repoRoot, "plugins/do-it", plugin.hooks)));
+  assert.equal(fs.existsSync(path.join(repoRoot, "plugins/do-it/agents")), false);
+  for (const [candidate, rootManifest] of [
+    [plugin, true],
+    [{ ...plugin, hooks: undefined }, false],
+    [{ ...plugin, agents: "./agents/" }, false],
+    [{ ...plugin, interface: { capabilities: ["Agents"] } }, false]
+  ]) {
+    const failures = [];
+    validateCodexEntry(candidate, rootManifest, failures);
+    assert.ok(failures.length > 0, "disabled hooks or unsupported agent registration must fail validation");
+  }
+});
+
+test("shared canonical agent parser preserves multiline policy and rejects ambiguous source", () => {
+  const parsed = parseAgentToml(capabilityAgent);
+  assert.equal(parsed.name, "example");
+  assert.equal(parsed.sandbox_mode, "read-only");
+  assert.match(parsed.developer_instructions, /Return evidence and NOT_CHECKED\.\n<!-- do-it-contract:agent.child-contract -->/);
+  assert.throws(() => parseAgentToml(`${capabilityAgent}\nmodel = "host-private"`), /unsupported Codex TOML key model/);
+  assert.throws(() => parseAgentToml(`${capabilityAgent}\nname = "duplicate"`), /duplicate agent key name/);
+  assert.throws(() => parseAgentToml('name = "unterminated'), /unterminated string/);
 });
 
 test("portable agent policy remains model-agnostic", () => {

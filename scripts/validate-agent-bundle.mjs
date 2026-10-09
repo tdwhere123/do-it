@@ -4,6 +4,8 @@ import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
+import { parseAgentToml } from "./lib/agent-source.mjs";
+import { parseFrontmatter } from "./build-index-json.mjs";
 import { ALL_SKILLS } from "./skill-tiers.mjs";
 import { rewriteReferenceMarkdown } from "./lib/rewrite-plugin-ref-links.mjs";
 
@@ -224,12 +226,25 @@ function compareSets(label, expected, actual, errors) {
   }
 }
 
+export function validateCodexEntry(plugin, hasRootManifest, errors) {
+  if (hasRootManifest) {
+    errors.push("Codex 0.162.0 skips plugin hooks when root plugin.json is present; use the verified .codex-plugin entry");
+  }
+  if (plugin.hooks !== "./hooks/hooks.json") {
+    errors.push("Codex plugin must declare the generated hooks/hooks.json");
+  }
+  if (Object.hasOwn(plugin, "agents") || plugin.interface?.capabilities?.includes("Agents")) {
+    errors.push("Codex plugins do not register native agents; install the canonical roles separately");
+  }
+}
+
 function validateVersions(pkg, manifest, errors) {
   if (pkg.version !== manifest.version) {
     errors.push(`package.json version ${pkg.version} does not match manifest.json ${manifest.version}`);
   }
 
   const codexPlugin = readJson("plugins/do-it/.codex-plugin/plugin.json");
+  validateCodexEntry(codexPlugin, fs.existsSync(repoPath("plugins/do-it/plugin.json")), errors);
   const codexPluginBaseVersion = String(codexPlugin.version ?? "").split("+", 1)[0];
   if (codexPluginBaseVersion !== pkg.version) {
     errors.push(`plugins/do-it/.codex-plugin/plugin.json base version ${codexPluginBaseVersion || "<missing>"} does not match package.json ${pkg.version}`);
@@ -297,37 +312,35 @@ function validateSourceAgents(manifest, errors) {
 }
 
 function validateGeneratedAgents(sourceNames, errors) {
-  const pluginAgentFiles = listNames("plugins/do-it/agents", ".toml");
-  const pluginAgentNames = pluginAgentFiles.map((file) => file.replace(/\.toml$/, ""));
-  compareSets("plugins/do-it/agents", sourceNames, pluginAgentNames, errors);
-
-  for (const name of sourceNames) {
-    const sourcePath = repoPath(`agents/${name}.toml`);
-    const pluginPath = repoPath(`plugins/do-it/agents/${name}.toml`);
-    if (!fs.existsSync(pluginPath)) continue;
-    if (!sameFile(sourcePath, pluginPath)) {
-      errors.push(`plugins/do-it/agents/${name}.toml is not byte-equal to agents/${name}.toml`);
-    }
+  if (fs.existsSync(repoPath("plugins/do-it/agents"))) {
+    errors.push("plugins/do-it/agents is not a Codex discovery path; remove stale bundled roles");
   }
-
-  const claudeAgentFiles = listNames("dist/claude/agents", ".md");
-  const claudeAgentNames = claudeAgentFiles.map((file) => file.replace(/\.md$/, ""));
-  compareSets("dist/claude/agents", sourceNames, claudeAgentNames, errors);
-
-  for (const name of sourceNames) {
-    const claudePath = repoPath(`dist/claude/agents/${name}.md`);
-    if (!fs.existsSync(claudePath)) continue;
-    const content = fs.readFileSync(claudePath, "utf8");
-    if (!content.startsWith("---\n")) {
-      errors.push(`dist/claude/agents/${name}.md missing frontmatter`);
+  for (const [directory, readOnlyField] of [
+    ["dist/claude/agents", "disallowedTools: Edit, Write, NotebookEdit"],
+    ["plugins/do-it-cursor/agents", "readonly: true"],
+    ["plugins/do-it-grok/agents", null]
+  ]) {
+    const names = listNames(directory, ".md").map((file) => file.replace(/\.md$/, ""));
+    compareSets(directory, sourceNames, names, errors);
+    for (const name of sourceNames) {
+      const relativePath = `${directory}/${name}.md`;
+      if (!fs.existsSync(repoPath(relativePath))) continue;
+      const content = fs.readFileSync(repoPath(relativePath), "utf8");
+      const parts = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/.exec(content);
+      const source = parseAgentToml(fs.readFileSync(repoPath(`agents/${name}.toml`), "utf8"));
+      if (!parts || parseFrontmatter(content).name !== name) {
+        errors.push(`${relativePath}: missing or mismatched agent frontmatter`);
+        continue;
+      }
+      if (parts[2].trim() !== source.developer_instructions.trim()) {
+        errors.push(`${relativePath}: specialist instructions drifted from canonical TOML`);
+      }
+      if (readOnlyField && parts[1].split("\n").includes(readOnlyField) !== (source.sandbox_mode === "read-only")) {
+        errors.push(`${relativePath}: native read-only policy does not match canonical scope`);
+      }
+      if (/^model:/m.test(parts[1])) errors.push(`${relativePath}: must inherit the host model`);
+      validatePortableAgentPolicy(relativePath, content, errors);
     }
-    if (!content.includes(`\nname: ${name}\n`)) {
-      errors.push(`dist/claude/agents/${name}.md frontmatter name mismatch`);
-    }
-    if (content.includes("\nmodel:")) {
-      errors.push(`dist/claude/agents/${name}.md must inherit the host model; omit model frontmatter`);
-    }
-    validatePortableAgentPolicy(`dist/claude/agents/${name}.md`, content, errors);
   }
 }
 
@@ -356,10 +369,6 @@ function validateGeneratedSkills(manifest, errors) {
     errors.push("plugins/do-it/skills/references is not generated from skills/do-it/references");
   }
 
-  const codexPlugin = readJson("plugins/do-it/.codex-plugin/plugin.json");
-  if (codexPlugin.agents !== "./agents/") {
-    errors.push('plugins/do-it/.codex-plugin/plugin.json must declare agents: "./agents/"');
-  }
 }
 
 function validateIndexJson(pkg, manifest, errors) {
@@ -450,23 +459,6 @@ function validateCursorPlugin(pkg, errors) {
     errors.push(
       `${cursorPluginPath} version ${cursorPlugin.version} does not match package.json ${pkg.version}`
     );
-  }
-
-  const claudeAgentFiles = listNames("dist/claude/agents", ".md");
-  const cursorAgentFiles = listNames("plugins/do-it-cursor/agents", ".md");
-  const claudeAgentNames = claudeAgentFiles.map((file) => file.replace(/\.md$/, ""));
-  const cursorAgentNames = cursorAgentFiles.map((file) => file.replace(/\.md$/, ""));
-  compareSets("plugins/do-it-cursor/agents", claudeAgentNames, cursorAgentNames, errors);
-
-  for (const name of claudeAgentNames) {
-    const claudePath = repoPath(`dist/claude/agents/${name}.md`);
-    const cursorPath = repoPath(`plugins/do-it-cursor/agents/${name}.md`);
-    if (!fs.existsSync(cursorPath)) continue;
-    if (!sameFile(claudePath, cursorPath)) {
-      errors.push(
-        `plugins/do-it-cursor/agents/${name}.md is not byte-equal to dist/claude/agents/${name}.md`
-      );
-    }
   }
 
   const allowedSkillDirs = [...ALL_SKILLS, "references", "_index.md"].sort();

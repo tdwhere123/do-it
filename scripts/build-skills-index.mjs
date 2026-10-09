@@ -36,21 +36,6 @@ function readSkillEntry(name) {
   };
 }
 
-function shortenDescription(desc) {
-  if (!desc) return "(no description)";
-  let text = desc.trim();
-  text = text.replace(/[.。]+$/, "");
-  text = text
-    .replace(/^Use when\s+/i, "")
-    .replace(/^Use this\s+(to|when|as)?\s*/i, "")
-    .replace(/^使用\s*/, "")
-    .replace(/^用于\s*/, "");
-  if (text.length > 80) {
-    text = text.slice(0, 78).trimEnd() + "…";
-  }
-  return text;
-}
-
 function renderBucket(title, names) {
   if (!names.length) return "";
   const lines = [`## ${title}`, ""];
@@ -60,7 +45,7 @@ function renderBucket(title, names) {
       lines.push(`- **${name}** — (missing SKILL.md)`);
       continue;
     }
-    lines.push(`- **${entry.name}** — ${shortenDescription(entry.description)}`);
+    lines.push(`- [**${entry.name}**](./${entry.name}/SKILL.md) — ${entry.description || "(no description)"}`);
   }
   lines.push("");
   return lines.join("\n");
@@ -81,9 +66,9 @@ function writeIndex({ coreOnly, orphans }) {
     "",
     "# do-it skills index",
     "",
-    coreOnly
-      ? "Core-only listing (docs/diffs) — load on demand with the Skill tool + skill name."
-      : "Load on demand with the Skill tool + skill name. Do not read every skill up front.",
+    coreOnly ? "Core-only listing (docs/diffs)." : "Discover skills from their descriptions below.",
+    "Read only the matching skill bodies as needed, using the host's skill loader or the linked SKILL.md files. Do not read every skill up front.",
+    "Links resolve beside this index in the installed or packaged skills directory. The generated dist/claude/skills index is a staging artifact; canonical bodies live in skills/do-it/<name>/SKILL.md.",
     ""
   ].join("\n");
 

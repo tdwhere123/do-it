@@ -1,32 +1,32 @@
 # Release Notes
 
-This workflow bundle has six host delivery surfaces plus an optional managed
-CLI setup path:
+The maintained host set is Claude Code, Codex, Cursor, Pi, and Grok Build:
 
-1. Codex — marketplace-first, with skills, agents, and plugin hooks (trust under
-   `/hooks`).
-2. Claude Code — marketplace-first, with Claude-native hooks, commands, and
-   generated agents.
-3. Cursor — local copy or Team Import today; public marketplace listing is
-   pending. The bundle has medium-depth hooks.
-4. OpenCode — independent `@tdwhere/do-it-opencode` npm package with a global
-   vendored fallback. The TypeScript plugin has compact per-message context and selective
-   bridges.
-5. Pi — independent `@tdwhere/do-it-pi` npm package or local-path install. One TypeScript extension, full skills,
-   prompts, and optional namespaced `do-it.*` package agents via `pi-subagents`.
-6. Kimi Code — repo-root `kimi.plugin.json` installed via `/plugins install`
-   (per-user). Skills, commands, and manifest hooks; no custom subagents on
-   this host, so agents are not shipped.
-7. Optional / legacy: `do-it setup` for managed doctor, temp-home smoke, and
-   migration from older global installs.
+1. Codex — marketplace skills and plugin hook configuration; native specialist
+   roles are installed separately. See [installation](./install.md).
+2. Claude Code — marketplace hooks, commands, and generated agents.
+3. Cursor — local copy or Team Import; public marketplace listing is pending.
+4. Pi — independent `@tdwhere/do-it-pi` npm package or local install, with a
+   maintained extension and generated agents executed through optional `pi-subagents`.
+5. Grok Build — generated `plugins/do-it-grok/` local bundle, installed as
+   `do-it-grok`; inspect loaded source paths and names after native validation.
+
+OpenCode and Kimi Code repository support is retired. Historical version notes
+below remain unchanged. No local application or user configuration removal is
+part of this support change. Managed CLI setup remains available for doctor,
+isolated smoke checks, and legacy migration; Codex agent-only setup complements
+the plugin installation without duplicating its skills/hooks.
+
+The [0.18.1 verification record](./release-evidence/0.18.1-unreleased.md) separates
+builds, native discovery, actual model probes, and remaining unverified behavior.
 
 ## Current Truth Planes
 
 | Plane | Current repository evidence |
 | --- | --- |
-| Source/package | `package.json`, manifest, and plugin metadata declare `0.18.0`; inventory is 12 runnable skills (including the discovery compatibility alias), 1 generated discovery entry, and 10 agents. Deep audit is explicit opt-in; the default runtime delivers compact context and edit checks. This is source metadata, not an npm publish. |
-| Git tag | `v0.18.0` identifies this release candidate. The older `v0.17.0` tag belongs to a different commit whose npm publication failed; do not move or reuse it. Version metadata or a tag alone does not prove npm publication. |
-| Marketplace/npm | The release workflow publishes separate `@tdwhere/do-it`, `@tdwhere/do-it-opencode`, and `@tdwhere/do-it-pi` artifacts. Only post-workflow registry queries prove publication. Cursor marketplace listing remains pending. |
+| Source/package | `package.json`, manifest, and plugin metadata declare `0.18.1`; inventory is 12 runnable skills (including the discovery compatibility alias), 1 generated discovery entry, and 10 agents. This patch improves explicit deep-audit delegation, coverage reuse, and maintainability review, consolidates Core/bootstrap and specialist ownership, and updates host support. It is an unpublished source update; npm publication is deferred. |
+| Git tag | The existing `v0.18.0` tag identifies the preceding version. This source update does not create `v0.18.1`. The older `v0.17.0` tag belongs to a different commit whose npm publication failed; do not move or reuse it. Version metadata or a tag alone does not prove npm publication. |
+| Marketplace/npm | The release workflow publishes separate `@tdwhere/do-it` and `@tdwhere/do-it-pi` artifacts. Only post-workflow registry queries prove publication. Cursor marketplace listing remains pending. |
 | Live host | Only host install/inspection evidence proves an active version. Source, package, tag, and live host may differ. |
 
 ## Tag Policy
@@ -61,7 +61,9 @@ CLI setup path:
 # Codex
 codex plugin marketplace add tdwhere123/do-it
 codex plugin add do-it@tdwhere-do-it
-# then trust plugin hooks under /hooks
+# inspect/trust configured hooks under /hooks; live execution needs separate proof
+# from a checkout, add native specialists:
+node bin/do-it.mjs setup --target=codex --only=agents
 
 # Claude Code
 # /plugin marketplace add tdwhere123/do-it && /plugin install do-it@do-it
@@ -71,18 +73,11 @@ codex plugin add do-it@tdwhere-do-it
 # then Developer: Reload Window. Or: do-it setup --target=cursor
 # Team Import from Repo / public marketplace when listed
 
-# OpenCode — use npm only after `npm view ... version` succeeds
-# opencode plugin @tdwhere/do-it-opencode -g
-# npm run install:opencode-global  # pre-publication/outage fallback
-
 # Pi — use npm only after `npm view ... version` succeeds
 # pi install npm:@tdwhere/do-it-pi
 # npm run install:pi-global  # pre-publication/development, then /reload
 # optional executable package agents: pi install npm:pi-subagents
 
-# Kimi Code — repo-root plugin, no build step:
-# /plugins install https://github.com/tdwhere123/do-it  (then /reload)
-# local checkout smoke: /plugins install /path/to/do-it
 ```
 
 Optional CLI (legacy / doctor / migration):
@@ -92,7 +87,7 @@ npm install -g https://github.com/tdwhere123/do-it/archive/refs/heads/main.tar.g
 do-it setup
 ```
 
-After `npm view @tdwhere/do-it@0.18.0 version` succeeds, the root registry
+After `npm view @tdwhere/do-it@0.18.1 version` succeeds, the root registry
 package provides the optional managed CLI. Before publication, use the GitHub
 or checkout-local path above.
 
@@ -106,9 +101,8 @@ do-it setup
 The Codex plugin marketplace files follow the repo-local marketplace shape:
 
 - `.agents/plugins/marketplace.json`
-- `plugins/do-it/.codex-plugin/plugin.json`
+- `plugins/do-it/.codex-plugin/plugin.json` — generated native Codex manifest
 - `plugins/do-it/skills/`
-- `plugins/do-it/agents/`
 - `plugins/do-it/hooks/` (plugin-local hooks; trust under `/hooks`)
 
 Regenerate the bundle from `manifest.json`:
@@ -124,8 +118,16 @@ CODEX_HOME=/tmp/do-it-plugin-test codex plugin marketplace add /path/to/do-it
 CODEX_HOME=/tmp/do-it-plugin-test codex plugin add do-it@tdwhere-do-it
 ```
 
-Native host permissions are the enforcement path; plugin hooks deliver advisory context and checks. Global `do-it setup` is optional
-for doctor and migration — do not require pairing it with marketplace install.
+Native host permissions are the enforcement path. Plugin hook configuration
+is separate from proof of execution. Full global `do-it setup` remains optional;
+`--only=agents` installs native specialist roles without a skills/hooks mirror.
+The isolated native `codex 0.162.0` comparison found no hooks with root
+`plugin.json` and found hooks with `.codex-plugin/plugin.json`. The builder
+prunes the root manifest and plugin agents; discovery still does not prove
+execution. The final native repository-bundle read returned twelve skills,
+three hook declarations, and Skills/Hooks capabilities. Claude's explicit
+`claude plugin validate --strict .claude-plugin/plugin.json` passed; root
+marketplace validation passed separately. See [architecture](./architecture.md).
 
 ## Host Capability Matrix
 
@@ -135,28 +137,28 @@ installation ownership and rollback, and applicable local behavior. Native
 permissions remain authoritative; advisory context and diagnostics do not prove
 acceptance. The version-specific sections below describe historical releases.
 
-## 0.14.0
+## 0.14.0 (historical)
 
 - Meaning-centric skill buckets; migration table in CHANGELOG.
 - Agents: 10 retained after merges.
 - Hooks: Heavy-only `grill-prompt`; `grill-pretool` removed; quality families
   overhaul; Codex plugin bundles hooks.
-- Host-native delivery: marketplace-first for Codex / Claude; local copy or Team Import for Cursor pending public listing; global vendor / package-name registration for OpenCode pending npm publication.
+- Host-native delivery: marketplace-first for Codex / Claude; local copy or Team Import for Cursor pending public listing; at that release, OpenCode used global vendor / package-name registration while npm publication was pending.
 
-## 0.13.1
+## 0.13.1 (historical)
 
 - Hotfix on the four-host line: safer `verification-gate` turn slicing, hardened
   write-quality scan edge cases, corrected skill `references/` links.
-- OpenCode build requires `tsc`; `prepack` expands Cursor and OpenCode plugin builds.
+- At that release, OpenCode required `tsc`; `prepack` included Cursor and OpenCode builds. These OpenCode build paths are now retired.
 
-## 0.13.0
+## 0.13.0 (historical)
 
-- Four-host adapter matrix: Codex, Claude, Cursor, OpenCode share one workflow kernel.
+- That release used a four-host matrix: Codex, Claude, Cursor, and OpenCode shared one workflow kernel.
 - Merged advisory `write-quality-lint` replaces dual PostToolUse `comments-lint` +
   `anti-patterns-lint` (legacy wrappers exec into merged script for one release).
 - UserPromptSubmit chain compressed for Standard turns; tier/DIM gates write-quality.
 - Skills `references/` sheets externalized; harness matrix at `docs/harness-adapter-matrix.md`.
-- Cursor bundle and OpenCode TS plugin source ship from `plugins/`; shipping source does not prove Cursor public listing or OpenCode npm publication.
+- That release shipped Cursor and OpenCode TypeScript plugin sources from `plugins/`; this did not prove marketplace listing or npm publication. OpenCode is no longer a maintained target.
 
 ## Local Checkout Surface
 
@@ -187,38 +189,38 @@ Set `CODEX_HOME=/path/to/codex-home` to test or install into a temporary target.
   `npm run smoke:package`, and dedicated Linux/Windows Pi build, test, Git Bash,
   discovery, and dependency-absent package smoke jobs on Node 22.
 - **Release** (`.github/workflows/release.yml`): on `v*` tags or manual
-  dispatch — full verify, `npm run validate:release`, exact root/OpenCode/Pi
+  dispatch — full verify, `npm run validate:release`, exact root/Pi
   package smoke, then separate verified tarballs and independent publish jobs
-  for all three npm packages.
+  for both npm packages.
 
 ### Option 1: Publish To npm
 
 Prefer publishing the exact tarballs that already passed release validation:
 
 ```bash
-VERSION=0.18.0
+VERSION=0.18.1
 npm run validate:release -- "v${VERSION}"
-npm run build:opencode-plugin
+npm run build:generated
+npm run build:codex-plugin
+npm run build:cursor-plugin
 npm run build:pi-plugin
+node scripts/build-grok-plugin.mjs
 npm --prefix plugins/do-it-pi test
 
 npm pack --ignore-scripts
-(cd plugins/do-it-opencode && npm pack --ignore-scripts --pack-destination ../..)
 (cd plugins/do-it-pi && npm pack --ignore-scripts --pack-destination ../..)
 
 ROOT_TARBALL="./tdwhere-do-it-${VERSION}.tgz"
-OPENCODE_TARBALL="./tdwhere-do-it-opencode-${VERSION}.tgz"
 PI_TARBALL="./tdwhere-do-it-pi-${VERSION}.tgz"
-npm run smoke:package -- "$ROOT_TARBALL" "$OPENCODE_TARBALL"
+npm run smoke:package -- "$ROOT_TARBALL"
 node scripts/smoke-pi-package.mjs "$PI_TARBALL"
 
 npm publish "$ROOT_TARBALL" --access public
-npm publish "$OPENCODE_TARBALL" --access public
 npm publish "$PI_TARBALL" --access public
 ```
 
 Keep the root package scoped and keep `do-it` as its bin. Install from the
-registry only after `npm view @tdwhere/do-it@0.18.0 version` succeeds; before
+registry only after `npm view @tdwhere/do-it@0.18.1 version` succeeds; before
 publication, use the exact local tarball from the verified pack step.
 
 ```bash
@@ -226,20 +228,21 @@ npm install -g @tdwhere/do-it
 do-it setup   # optional / legacy
 ```
 
-The release workflow produces separate root, OpenCode, and Pi artifacts.
+The release workflow produces separate root and Pi artifacts.
 Publishing one must not select another package's tarball by a broad wildcard.
 
 ### Option 2: Pack And Test Locally
 
 ```bash
-VERSION=0.18.0
+VERSION=0.18.1
 npm pack --ignore-scripts
 npm run smoke:package -- "./tdwhere-do-it-${VERSION}.tgz"
 ```
 
-With one or more `.tgz` arguments, `smoke:package` installs and exercises those
-artifacts and does not repack from checkout. With no arguments it packs both the
-root and OpenCode packages from the working tree, then smokes them (CI default).
+With exactly one root `.tgz` argument, `smoke:package` installs and exercises
+that artifact without repacking. With no arguments it packs the root package
+from the working tree, then smokes it (CI default). Pi has its separate smoke
+command above.
 
 Use the generated tarball with `npm install --global` or
 `npm exec --package "./tdwhere-do-it-${VERSION}.tgz" -- do-it setup` when testing
@@ -249,30 +252,34 @@ a release artifact.
 
 1. Run `git diff --check` and inspect the intended diff.
 2. Run `npm test`.
-3. Run `npm run validate:agents` and `npm run validate:core-skill-boundaries`.
-4. Build Claude, Codex, Cursor, and OpenCode artifacts and check generated drift.
+3. Run `npm run validate:agents` and `npm run validate:core-consistency`.
+4. Build Claude, Codex, Cursor, Pi, and Grok Build artifacts and check generated drift.
 5. Run `npm run build:pi-plugin`, `npm --prefix plugins/do-it-pi test`, and an
    exact-tarball `node scripts/smoke-pi-package.mjs <pi.tgz>` check.
 6. On Windows, require Git Bash and prove Pi hook execution plus timeout/abort
    process-tree cleanup; do not skip Bash-dependent tests.
-7. Run `npm run validate:kimi-plugin` (the Kimi root manifest ships unbuilt).
-8. Smoke Codex plugin marketplace + trust hooks under `/hooks`.
+7. Run `agent plugin validate plugins/do-it-grok`; install the absolute bundle
+   path with `--trust` in the intended test environment and inspect actual loaded
+   sources and names. A list entry alone does not establish correct discovery.
+8. Smoke Codex plugin marketplace and native agent-only installation separately;
+   verify live named-role discovery, sandbox behavior, and hook execution before
+   claiming those capabilities. Trust settings or cache files alone are insufficient.
 9. Optional: run isolated managed CLI setup and doctor checks for Codex, Claude,
    and Cursor.
 10. Smoke advisory hook behavior: context delivery, write-quality, and
     child stance. No host contains `grill-pretool`; only Claude may contain the
     named, default-off strict external-action profile.
 11. In a reloaded Pi session, run `/do-it-status` for Bash, hook diagnostics,
-    and `subagent` tool registration. Separately use `pi-subagents` discovery to
+    and `Agent`/`subagent` tool registration. Separately use the active runtime’s role list to
     confirm `do-it.*` agents are executable; without it, confirm extension,
     skills, and prompts remain available with explicit degradation.
 12. Run `npm run validate:release -- vX.Y.Z`; it must check both Pi lockfile
     version fields as well as the other host metadata.
-13. Run `npm run smoke:package` for root/OpenCode and smoke the independently
+13. Run `npm run smoke:package` for root and smoke the independently
     packed Pi tarball.
 14. Confirm `manifest.json` matches the on-disk inventory (12 user/runnable
     skills + 1 generated discovery entry, 10 agents). Source metadata is
-    `0.18.0`; do not tag or npm-publish until those are authorized. Default
+    `0.18.1`; do not tag or npm-publish until those are authorized. Default
     runtime provides compact context and source-edit checks; classification and
     completion reminder gates are retired.
 15. Confirm root tarball contents remain separate from `plugins/do-it-pi`, and

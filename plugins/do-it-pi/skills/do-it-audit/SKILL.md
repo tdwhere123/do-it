@@ -5,80 +5,100 @@ description: "Use when the user explicitly requests a deep repository or scoped 
 
 # Deep Audit
 
-This is an explicitly requested big check, not the default review path. An audit
-request alone authorizes inspection and diagnosis, not project edits or repairs.
-Any implementation authorization remains bounded by its granted scope and takes
+An explicit deep audit authorizes inspection and diagnosis, not project edits.
+Implementation authorization remains bounded by its granted scope and takes
 effect after synthesis. Ordinary review, debugging, and small changes do not
 inherit this skill's coverage or independent-synthesis requirements.
 
-## Scope and depth
+## Scope and independent inspection
 
-Separate **where to inspect** from **which risks to investigate**. Use the user's
-stated scope: the full repository, selected subsystems or paths, or a change and
-its affected contracts. If scope is missing, offer those choices; ask about a
-specialist focus only when it changes the examination. Do not repeat settled
-choices or require a language/output-format interview.
+Separate **where to inspect** from **which perspective to apply**. Use the user's
+scope: repository, selected subsystems or paths, or a change and its affected
+contracts. If missing, clarify scope without reopening settled choices.
 
-Establish the checkout and file inventory. Every included file needs substantive
-inspection, including relevant tests, configuration, scripts, and documentation;
-listing paths or searching for patterns does not count as reading them. Track
-read sections, remaining sections, exclusions with reasons, and cross-file
-checks using the [coverage guidance](references/coverage.md). Do not quietly
-replace a large audit with hotspot sampling. Unread included files mean partial
-coverage, even if the examined files yielded no findings.
+After a bounded checkout and inventory pass, a host capable of delegation must
+initiate independent professional review; do not finish a parent-only audit
+before inviting reviewers. Prefer parallel independent work where dependencies
+allow. Default substantive perspectives are correctness (`reviewer`), architecture
+(`architecture-strategist`), and maintainability (`code-quality-cleaner`). Add
+red-team, security, state, performance, or spec perspectives where relevant.
+These are responsibilities, not a fixed worker count, model roster, or tool.
 
-Use complementary perspectives appropriate to the selected risks. Reuse the
-judgment in Review, Architecture, Code Quality, and Verify; the
-[audit lenses](references/lenses.md) add deeper questions where applicable.
-Divide large scopes into owned slices without losing their interactions. Choose
-specialists and models for the work, not a fixed roster, quota, or tool framework.
-Initial reviews should establish evidence and violated contracts, deferring
-patch proposals until the finding batch has been examined together.
+Map module/file and contract slices separately from perspectives. Every included
+file has a base inspection owner; target overlapping specialist inspection at
+risky cross-module contracts rather than making everyone read everything. Give
+delegates the common scope, read-only boundary, settled constraints, and source
+facts, their own lens, and only necessary project contracts. They need neither
+all skill references nor the full repository or conversation. Label parent
+hypotheses as hypotheses. The parent selects and excerpts only assigned lens
+questions from the [audit lenses](references/lenses.md); do not hand every child
+an all-role directory or section list. References are optional aids for concrete
+questions, not instructions to transitively load the whole reference tree.
+
+Delegates independently inspect their slices and return compact verified
+findings, counterevidence, inspected scope, and gaps. Establish consequences and
+violated contracts, or concrete maintenance costs and supported simplification
+opportunities; defer repair proposals until independent synthesis. Keep slices
+read-only, including probes and commands.
+
+All maintained source in scope needs substantive inspection appropriate to its
+file type and risks, including relevant tests, scripts, configuration, and
+contract documentation. Inventory, assignment, searches, and hotspot sampling
+do not establish full coverage. Use [coverage guidance](references/coverage.md)
+for alternative integrity evidence on generated copies, locks, and assets and
+for a compact parent-owned record of inspection and cross-file contracts.
 
 ## Independent causal synthesis
 
-After collecting the multi-angle findings, assign synthesis to a **fresh,
-independent agent context**, not the parent or one of the initial reviewers.
-An existing architecture-strategist role can serve; no new agent type is needed.
-Give it the scope, coverage gaps, settled requirements, source locations and
-observations, the complete finding batch, and rejected or disputed candidates.
-Parent interpretations and existing repair proposals remain hypotheses, not an
-authoritative diagnosis. The synthesizer must be able to inspect original evidence.
+After independent initial findings and parent deduplication, assign the evidence
+batch to a **fresh, independent agent context**, distinct from the parent and
+initial reviewers. An existing architecture-strategist role can serve; no new
+agent type is needed. Supply scope and coverage evidence, settled requirements,
+source locations, findings, counterevidence, and rejected or disputed candidates.
+Parent interpretations and repair ideas are hypotheses, not authority. Preserve
+access to original evidence, but target verification of findings, causes, owners,
+and refutations; do not rerun the whole audit.
 
-Its task is to challenge the proposed relationships:
+The synthesizer must distinguish:
 
-- Do the findings share a causal owner, legal-state definition, authority, or
-  producer-consumer contract, or merely similar vocabulary?
-- Is meaning genuinely undefined or contradictory, or is an already-defined
-  distinction lost in implementation, serialization, admission, or classification?
-- Which findings are independent local defects, accepted policy, or false positives?
-- Would a proposed repair act on the wrong layer, suppress valid work, or break
-  another established requirement? What evidence would disprove the explanation?
+- Confirmed contract defects and independent local defects from risks or false
+  positives; similar vocabulary does not establish a common cause.
+- Genuinely undefined or contradictory semantics from established distinctions
+  dropped in implementation, serialization, admission, or classification.
+- Supported maintenance and simplification opportunities from optional taste;
+  a concrete maintenance cost does not require a proven runtime bug.
+- Causal groups and their narrowest responsible owners, counterevidence and
+  refuted explanations, and uncertainty needing a discriminating check.
 
-Return supported causal groups and their narrowest responsible owners, findings
-that must remain separate, refuted hypotheses that must not drive repairs, and
-minimal discriminating checks for uncertainty. "No common root established" is
-a valid result; a shared label is not a reason to redesign a subsystem.
+Challenge whether a repair would act on the wrong layer, suppress valid work,
+or break an established requirement. "No common root established" is valid.
+The parent reconciles the synthesis and coverage before recommending repairs.
 
-The parent reconciles this analysis and coverage gaps before proposing repairs.
-If a delegate cannot launch agents, hand the evidence batch back to a capable
-parent to arrange the fresh context; the parent may coordinate, not replace it.
-While independent synthesis is unavailable or pending, return observations,
-coverage gaps, and that handoff only. Keep the audit incomplete and withhold
-repair recommendations, including ones labeled provisional; neither parent
-self-review nor a renamed findings summary fulfills this stage. New material
-findings require revisiting the affected synthesis, not a fixed review count.
+If independent contexts are unavailable, explicitly report the capability
+limitation and return an observations-only incomplete handoff to a capable
+parent or native delegation mechanism. A delegate unable to launch agents hands
+the batch back to the parent to arrange the fresh context. The parent cannot
+self-substitute. While synthesis is unavailable or pending, withhold all repair
+recommendations, including provisional ones; a renamed summary is not independence.
+
+Reuse valid inspection and synthesis evidence across rounds and new synthesizers.
+Follow up bounded gaps, critical uncertainty, conflicts, or new evidence/scope;
+do not silently abandon agreed pending work. Revisit affected synthesis only for
+a material new finding or causal change. There is no fixed round count and no
+reread, reset, or loop merely to obtain a formal completion label. If completion
+is impossible, report an honest partial result and the remaining work.
 
 ## Delivery
 
-Present the diagnosis, supporting evidence, consequences, scope actually covered,
-remaining uncertainty, and repair priorities justified by the synthesis. Preserve
-refutations and distinguish observed behavior from suspected mechanisms. Do not
-inflate finding severity or confidence from a suspicious name, TODO, or file size.
+Report in this order: scope, completion and evidence; functional/contract bugs;
+architecture and responsibilities; maintainability and cleanup; then disputes,
+causes, priorities, and gaps. Distinguish confirmed bugs, risks, maintenance
+costs, and optional improvements. Preserve counterevidence and refutations;
+do not inflate severity from a suspicious name, TODO, style, or file size.
 
-Completion requires inspection of all included files and applicable cross-slice
-contracts, plus independent synthesis. Explicit exclusions are not inspected
-files. A coverage-complete audit is neither a defect-free guarantee nor runtime
-verification: name which checks actually ran and what they establish. Use the
-conversation unless the user requests a saved report; no score dashboard, HTML,
-fixed issue-card format, or persistent audit system is required.
+Completion requires substantive coverage of all included files, applicable
+cross-file contracts, and fresh independent synthesis. Exclusions are not
+inspected files. Coverage completion is neither a defect-free guarantee nor
+runtime verification: name checks actually run and their limits. Use the
+conversation unless the user requests a saved report; no mandatory Markdown
+ledger, score dashboard, or persistent audit system is needed.

@@ -31,12 +31,8 @@ do_it_runtime_host() {
   fi
   if [[ -n "${CURSOR_PLUGIN_ROOT:-}" || -n "${CURSOR_VERSION:-}" ]]; then
     printf 'cursor'
-  elif [[ -n "${OPENCODE_DATA:-}" ]]; then
-    printf 'opencode'
   elif [[ -n "${CLAUDE_PLUGIN_ROOT:-}" ]]; then
     printf 'claude'
-  elif [[ -n "${KIMI_PLUGIN_ROOT:-}" || -n "${KIMI_CODE_HOME:-}" ]]; then
-    printf 'kimi'
   elif [[ -n "${PLUGIN_ROOT:-}" || -n "${CODEX_HOME:-}" ]]; then
     printf 'codex'
   else

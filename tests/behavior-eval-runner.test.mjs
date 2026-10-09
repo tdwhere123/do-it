@@ -146,6 +146,29 @@ test("dry-run fixture backend records model, condition, commit, permissions, cos
   fs.rmSync(outDir, { recursive: true, force: true });
 });
 
+test("audit scenarios without model trajectories remain NOT_RUN for every condition", async () => {
+  const outDir = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-audit-not-run-"));
+  try {
+    const suite = await runSuite({
+      behaviorRoot: path.join(repoRoot, "evals/behavior"),
+      repoRoot,
+      scenarios: ["R07", "R08", "R09", "R10"],
+      conditions: ["vanilla", "legacy", "kernel"],
+      samples: 1,
+      backend: "fixture",
+      dryRun: true,
+      outDir
+    });
+    assert.equal(suite.runs.length, 12);
+    for (const run of suite.runs) {
+      assert.equal(run.status, "NOT_RUN", `${run.scenario_id}/${run.condition}`);
+      assert.equal(run.judge, null);
+    }
+  } finally {
+    fs.rmSync(outDir, { recursive: true, force: true });
+  }
+});
+
 test("dry-run CLI executes D01 without a network model", () => {
   const outDir = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-eval-cli-"));
   const result = spawnSync(

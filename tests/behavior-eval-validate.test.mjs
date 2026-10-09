@@ -107,7 +107,8 @@ test("seed scenarios satisfy the contract and live under fixtures/", () => {
 for (const fixture of [
   "r07-audit-coverage-contract",
   "r08-audit-independent-causes",
-  "r09-bounded-review-no-audit"
+  "r09-bounded-review-no-audit",
+  "r10-audit-maintenance-economy"
 ]) {
   test(`${fixture} configured test command executes component tests`, () => {
     const npm = resolveNpmInvocation();
@@ -124,6 +125,44 @@ for (const fixture of [
     assert.match(result.stdout, /tests [1-9]\d*/, "the configured command must actually execute tests");
   });
 }
+
+test("maintenance fixture discriminates private removal, public export loss, and copy drift", () => {
+  const source = path.join(behaviorRoot, "fixtures/r10-audit-maintenance-economy/workspace");
+  const env = { ...process.env };
+  delete env.NODE_TEST_CONTEXT;
+  const cases = [
+    {
+      name: "unreachable private module removal preserves public behavior",
+      mutate: (dir) => fs.unlinkSync(path.join(dir, "src/retired.mjs")),
+      passes: true
+    },
+    {
+      name: "removing externally consumed formatter breaks public behavior",
+      mutate: (dir) => fs.unlinkSync(path.join(dir, "generated/format.mjs")),
+      passes: false
+    },
+    {
+      name: "behavior-preserving copy drift still fails consistency",
+      mutate: (dir) => fs.appendFileSync(path.join(dir, "generated/format.mjs"), "\n// drift\n"),
+      passes: false
+    }
+  ];
+  for (const probe of cases) {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-maintenance-fact-"));
+    try {
+      fs.cpSync(source, dir, { recursive: true });
+      probe.mutate(dir);
+      const result = spawnSync(process.execPath, ["--test", "tests/public.test.mjs"], {
+        cwd: dir, encoding: "utf8", timeout: 30_000, env
+      });
+      assert.ifError(result.error);
+      assert.equal(result.status, probe.passes ? 0 : 1,
+        `${probe.name}\n${result.stdout}\n${result.stderr}`);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  }
+});
 
 test("validate.mjs CLI rejects an invalid scenario directory", () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-eval-validate-"));

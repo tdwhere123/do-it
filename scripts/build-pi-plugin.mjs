@@ -3,7 +3,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
-import { spawnSync } from "node:child_process";
+import { parseAgentToml } from "./lib/agent-source.mjs";
+import { renderPiAgent } from "./lib/pi-agent-adapter.mjs";
 import { fileURLToPath } from "node:url";
 import { rewritePluginReferenceLinks } from "./lib/rewrite-plugin-ref-links.mjs";
 import {
@@ -11,7 +12,7 @@ import {
 	assertVersionParity,
 	copyHookScripts,
 } from "./lib/plugin-build.mjs";
-import { OPENCODE_HOOK_SCRIPTS } from "./lib/hook-manifest.mjs";
+import { HOOK_SCRIPTS as PI_HOOK_SCRIPTS } from "./lib/hook-manifest.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, "..");
@@ -20,11 +21,9 @@ const pkg = readJson(path.join(repoRoot, "package.json"));
 
 const pluginRoot = path.join(repoRoot, "plugins", "do-it-pi");
 const skillsSource = path.join(repoRoot, "skills", "do-it");
-const agentsSource = path.join(repoRoot, "dist", "claude", "agents");
+const agentsSource = path.join(repoRoot, "agents");
 const hooksSource = path.join(repoRoot, "hooks");
 
-/** Same advisory hook set as OpenCode (no session-start / run-hook.cmd). */
-const PI_HOOK_SCRIPTS = [...OPENCODE_HOOK_SCRIPTS];
 const PORTABLE_AGENT_TOOLS = new Set([
 	"read",
 	"bash",
@@ -168,35 +167,32 @@ function copySkills() {
 	// _index.md here: Pi would parse it as a malformed skill before exclusions.
 }
 
-function copyAgents() {
-	// Pi package agents are host-specific portable baselines. Local user agents
-	// may add richer providers, but published agents must remain install-safe.
-	const agentsDir = path.join(pluginRoot, "agents");
-	if (!fs.existsSync(agentsDir)) {
-		throw new Error(
-			`Pi agents missing at ${path.relative(repoRoot, agentsDir)} — maintain host-specific agents there`,
-		);
-	}
-	const agentCount = fs
-		.readdirSync(agentsDir)
-		.filter((name) => name.endsWith(".md")).length;
-	if (agentCount === 0) {
-		throw new Error(
-			`no Pi agent markdown under ${path.relative(repoRoot, agentsDir)}`,
-		);
-	}
-	assertPortableAgents(agentsDir);
-	// Keep agentsSource referenced so generated Claude agents still run when needed elsewhere.
-	if (!fs.existsSync(agentsSource)) {
-		const gen = spawnSync("npm", ["run", "build:generated"], {
-			cwd: repoRoot,
-			encoding: "utf8",
-			shell: true,
+export function generatePiAgents(sourceDir, agentsDir) {
+	// Render and validate the complete inventory before replacing generated files.
+	const rendered = fs.readdirSync(sourceDir)
+		.filter((name) => name.endsWith(".toml"))
+		.sort()
+		.map((name) => {
+			const agent = parseAgentToml(fs.readFileSync(path.join(sourceDir, name), "utf8"));
+			if (agent.name !== name.slice(0, -5)) {
+				throw new Error(`Pi agent name does not match source filename: ${name}`);
+			}
+			return [name.replace(/\.toml$/, ".md"), renderPiAgent(agent)];
 		});
-		if (gen.status !== 0) {
-			throw new Error(`build:generated failed: ${gen.stderr || gen.stdout}`);
-		}
+	if (rendered.length === 0) throw new Error(`no canonical agents under ${sourceDir}`);
+	fs.mkdirSync(agentsDir, { recursive: true });
+	for (const name of fs.readdirSync(agentsDir).filter((name) => name.endsWith(".md"))) {
+		fs.rmSync(path.join(agentsDir, name));
 	}
+	for (const [name, content] of rendered) {
+		fs.writeFileSync(path.join(agentsDir, name), content);
+	}
+}
+
+function copyAgents() {
+	const agentsDir = path.join(pluginRoot, "agents");
+	generatePiAgents(agentsSource, agentsDir);
+	assertPortableAgents(agentsDir);
 }
 
 function copyHooks() {
@@ -227,4 +223,6 @@ function main() {
 	);
 }
 
-main();
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+	main();
+}

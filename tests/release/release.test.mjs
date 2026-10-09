@@ -7,10 +7,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { validateRelease } from "../../scripts/validate-release.mjs";
-import {
-	classifyTarball,
-	resolveSmokeTarballs,
-} from "../../scripts/smoke-package.mjs";
+import { resolveSmokeTarballs } from "../../scripts/smoke-package.mjs";
 import { targetExtras } from "../../scripts/lib/manifest-extras.mjs";
 
 const repoRoot = path.resolve(
@@ -178,14 +175,12 @@ function copyReleaseMetadata() {
 		"package.json",
 		"manifest.json",
 		"index.json",
-		"kimi.plugin.json",
 		"CHANGELOG.md",
 		".claude-plugin/plugin.json",
 		".claude-plugin/marketplace.json",
 		"plugins/do-it/.codex-plugin/plugin.json",
+		"plugins/do-it-grok/.grok-plugin/plugin.json",
 		"plugins/do-it-cursor/.cursor-plugin/plugin.json",
-		"plugins/do-it-opencode/package.json",
-		"plugins/do-it-opencode/package-lock.json",
 		"plugins/do-it-pi/package.json",
 		"plugins/do-it-pi/package-lock.json",
 	]) {
@@ -200,41 +195,23 @@ const releaseVersion = JSON.parse(
 	fs.readFileSync(path.join(repoRoot, "package.json"), "utf8"),
 ).version;
 
-test("OpenCode package engine matches its strict transitive runtime", () => {
-	const manifest = JSON.parse(
-		fs.readFileSync(
-			path.join(repoRoot, "plugins/do-it-opencode/package.json"),
-			"utf8",
-		),
-	);
-	const lock = JSON.parse(
-		fs.readFileSync(
-			path.join(repoRoot, "plugins/do-it-opencode/package-lock.json"),
-			"utf8",
-		),
-	);
-	assert.equal(
-		manifest.engines.node,
-		lock.packages["node_modules/ini"].engines.node,
-	);
-});
-
 test("release guard accepts a matching tag, metadata set, and changelog entry", () => {
 	const result = validateRelease(`v${releaseVersion}`, repoRoot);
 	assert.equal(result.version, releaseVersion);
-	assert.equal(result.checkedVersions, 14);
+	assert.equal(result.checkedVersions, 11);
 });
 
 test("release guard accepts a local Codex cachebuster on the matching base version", () => {
 	const tempRoot = copyReleaseMetadata();
 	try {
-		const codexPath = path.join(
-			tempRoot,
+		for (const relativePath of [
 			"plugins/do-it/.codex-plugin/plugin.json",
-		);
-		const codex = JSON.parse(fs.readFileSync(codexPath, "utf8"));
-		codex.version = `${releaseVersion}+codex.local-20260716`;
-		fs.writeFileSync(codexPath, `${JSON.stringify(codex, null, 2)}\n`);
+		]) {
+			const codexPath = path.join(tempRoot, relativePath);
+			const codex = JSON.parse(fs.readFileSync(codexPath, "utf8"));
+			codex.version = `${releaseVersion}+codex.local-20260716`;
+			fs.writeFileSync(codexPath, `${JSON.stringify(codex, null, 2)}\n`);
+		}
 
 		assert.equal(
 			validateRelease(`v${releaseVersion}`, tempRoot).version,
@@ -303,67 +280,95 @@ test("release guard reports metadata and changelog drift together", () => {
 	}
 });
 
-test("classifyTarball distinguishes root and opencode npm-pack names", () => {
-	assert.equal(classifyTarball("./tdwhere-do-it-0.14.0.tgz"), "root");
-	assert.equal(
-		classifyTarball("/tmp/tdwhere-do-it-opencode-0.14.0.tgz"),
-		"opencode",
-	);
-});
-
-test("resolveSmokeTarballs packs from checkout when no .tgz args", () => {
-	let packedRoot = 0;
-	let packedOpen = 0;
+test("resolveSmokeTarballs packs the root package when no artifact is supplied", () => {
+	let packed = 0;
 	const result = resolveSmokeTarballs(["--keep"], {
 		packRoot: () => {
-			packedRoot += 1;
+			packed += 1;
 			return "/tmp/packed-root.tgz";
 		},
-		packOpenCode: () => {
-			packedOpen += 1;
-			return "/tmp/packed-opencode.tgz";
-		},
 	});
-	assert.equal(result.source, "packed");
-	assert.equal(result.rootTarball, "/tmp/packed-root.tgz");
-	assert.equal(result.openCodeTarball, "/tmp/packed-opencode.tgz");
-	assert.equal(packedRoot, 1);
-	assert.equal(packedOpen, 1);
+	assert.deepEqual(result, {
+		source: "packed",
+		rootTarball: "/tmp/packed-root.tgz",
+	});
+	assert.equal(packed, 1);
 });
 
-test("resolveSmokeTarballs uses CLI .tgz paths and skips packers", () => {
-	const tempRoot = fs.mkdtempSync(
-		path.join(os.tmpdir(), "do-it-smoke-resolve-"),
-	);
+test("resolveSmokeTarballs uses a supplied root artifact without repacking", () => {
+	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-smoke-resolve-"));
 	try {
-		const root = path.join(tempRoot, "tdwhere-do-it-0.14.0.tgz");
-		const openCode = path.join(tempRoot, "tdwhere-do-it-opencode-0.14.0.tgz");
+		const root = path.join(tempRoot, "tdwhere-do-it-0.18.1.tgz");
 		fs.writeFileSync(root, "root");
-		fs.writeFileSync(openCode, "opencode");
+		const result = resolveSmokeTarballs([root, "--keep"], {
+			packRoot: () => assert.fail("must not repack a supplied artifact"),
+		});
+		assert.deepEqual(result, { source: "cli", rootTarball: root });
+	} finally {
+		fs.rmSync(tempRoot, { recursive: true, force: true });
+	}
+});
 
-		let packed = 0;
-		const packers = {
-			packRoot: () => {
-				packed += 1;
-				return "/should-not-pack-root.tgz";
-			},
-			packOpenCode: () => {
-				packed += 1;
-				return "/should-not-pack-opencode.tgz";
-			},
-		};
+test("resolveSmokeTarballs rejects retired, unrelated, missing, and invalid inputs without packing", () => {
+	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-smoke-reject-"));
+	const packers = {
+		packRoot: () => assert.fail("invalid input must not cause packing"),
+	};
+	try {
+		for (const input of [
+			"tdwhere-do-it-opencode-0.18.1.tgz",
+			"tdwhere-do-it-kimi-0.18.1.tgz",
+			"tdwhere-do-it-pi-0.18.1.tgz",
+			"unrelated.tgz",
+			"--unknown",
+			"package.zip",
+		]) {
+			assert.throws(
+				() => resolveSmokeTarballs([input], packers),
+				/expects a @tdwhere\/do-it npm-pack tarball/,
+			);
+		}
+		const root = path.join(tempRoot, "tdwhere-do-it-0.18.1.tgz");
+		assert.throws(
+			() => resolveSmokeTarballs([root], packers),
+			/smoke tarball missing/,
+		);
+		assert.throws(
+			() => resolveSmokeTarballs([root, root], packers),
+			/exactly one root package tarball/,
+		);
+		fs.mkdirSync(root);
+		assert.throws(
+			() => resolveSmokeTarballs([root], packers),
+			/smoke tarball is not a file/,
+		);
+	} finally {
+		fs.rmSync(tempRoot, { recursive: true, force: true });
+	}
+});
 
-		const both = resolveSmokeTarballs([root, openCode], packers);
-		assert.equal(both.source, "cli");
-		assert.equal(both.rootTarball, path.resolve(root));
-		assert.equal(both.openCodeTarball, path.resolve(openCode));
-		assert.equal(packed, 0);
-
-		const rootOnly = resolveSmokeTarballs([root, "--keep"], packers);
-		assert.equal(rootOnly.source, "cli");
-		assert.equal(rootOnly.rootTarball, path.resolve(root));
-		assert.equal(rootOnly.openCodeTarball, undefined);
-		assert.equal(packed, 0);
+test("root smoke rejects a retired package disguised with a root tarball name before installation", () => {
+	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-smoke-identity-"));
+	try {
+		fs.mkdirSync(path.join(tempRoot, "package"));
+		fs.writeFileSync(
+			path.join(tempRoot, "package/package.json"),
+			JSON.stringify({ name: "@tdwhere/do-it-opencode", version: "0.18.1" }),
+		);
+		const tarball = path.join(tempRoot, "tdwhere-do-it-0.18.1.tgz");
+		const packed = spawnSync(
+			"tar",
+			["-czf", tarball, "-C", tempRoot, "package"],
+			{ encoding: "utf8" },
+		);
+		assert.equal(packed.status, 0, packed.stderr);
+		const result = spawnSync(
+			process.execPath,
+			[path.join(repoRoot, "scripts/smoke-package.mjs"), tarball],
+			{ encoding: "utf8" },
+		);
+		assert.equal(result.status, 1);
+		assert.match(result.stderr, /smoke:package only supports @tdwhere\/do-it/);
 	} finally {
 		fs.rmSync(tempRoot, { recursive: true, force: true });
 	}

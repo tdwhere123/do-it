@@ -22,7 +22,7 @@ there is no file:
 Optional deep checks (not a second ranking axis):
 
 - **Correctness:** wrong behavior on real inputs, state, timing, failure paths
-- **Maintainability:** avoidable coupling, dead code, duplicate logic, unclear ownership, single-use abstractions the decision ladder would inline (`do-it-code-quality` for module depth; YAGNI lens for over-engineering)
+- **Maintainability:** concrete reasoning or change costs from avoidable coupling, dead code, redundant mechanisms, unclear ownership, or abstractions that scatter a single change across layers. Support simplification with consumer and contract evidence; a single consumer alone does not justify inlining or removal.
 
 ## Proof Path Coverage
 
@@ -48,7 +48,10 @@ Bounded causal walk: [`scope-chain.md`](scope-chain.md).
 
 ## Change Sizing
 
-Large diffs mixing policy, behavior, generated output, docs, and cleanup: identify reviewable units first. If a unit cannot be reviewed with available context, return `Needs more evidence` instead of loose scanning.
+Large diffs mixing policy, behavior, generated output, docs, and cleanup need
+reviewable units. If a unit cannot be reviewed with available context, identify
+the remaining scope, the missing evidence, and the next discriminating check.
+Reuse valid current evidence so a follow-up can continue without restarting.
 
 ## Verify The Verification
 
@@ -127,10 +130,3 @@ Create external issues only when user asks or repo workflow owns creation.
 - Do not review from commit messages alone; do not auto-fix on review-only request.
 - Dependency changes need research-first trail or current package/source evidence.
 - Dead-code removal must prove old path not referenced by runtime, install, generated, or docs surfaces.
-
-## Common Rationalizations And Red Flags
-
-- *"Tests pass, review can be shallow."* — Still check Spec and Standards independently: scope, contracts, stateful failures, proof quality.
-- *"Obviously dead cleanup."* — Need reference or runtime evidence across install/plugin surfaces.
-- *"Standards look clean, so Spec can be assumed."* — Axes do not substitute for each other.
-- Review quotes commits not diff; style-only while contract risk unexamined; never checks reachability from user goal; broad diff reviewed as one blob; dependency without source evidence; accepts stale, other-worktree, irrelevant, or mock-only evidence as final proof.

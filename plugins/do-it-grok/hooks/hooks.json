@@ -1,0 +1,36 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "DO_IT_EVENT_HOST=grok bash \"${GROK_PLUGIN_ROOT}/hooks/grok-adapter.sh\" user-turn",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "DO_IT_EVENT_HOST=grok bash \"${GROK_PLUGIN_ROOT}/hooks/grok-adapter.sh\" core",
+            "timeout": 15
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit|search_replace",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "DO_IT_EVENT_HOST=grok bash \"${GROK_PLUGIN_ROOT}/hooks/grok-adapter.sh\" write-quality",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -5,12 +5,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "DO_IT_HOOK_DATA=\"${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-/tmp/do-it-data}}\" \"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-.}}/hooks/prompt-submit.sh\"",
+            "command": "DO_IT_EVENT_HOST=codex DO_IT_HOOK_DATA=\"${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-/tmp/do-it-data}}\" \"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-.}}/hooks/prompt-submit.sh\"",
             "timeout": 10
           },
           {
             "type": "command",
-            "command": "DO_IT_HOOK_DATA=\"${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-/tmp/do-it-data}}\" \"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-.}}/hooks/subagent-stance.sh\"",
+            "command": "DO_IT_EVENT_HOST=codex DO_IT_HOOK_DATA=\"${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-/tmp/do-it-data}}\" \"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-.}}/hooks/subagent-stance.sh\"",
             "timeout": 10
           }
         ]
@@ -18,11 +18,11 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+        "matcher": "apply_patch|Edit|Write|MultiEdit|NotebookEdit|StrReplace|EditNotebook",
         "hooks": [
           {
             "type": "command",
-            "command": "DO_IT_HOOK_DATA=\"${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-/tmp/do-it-data}}\" \"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-.}}/hooks/write-quality-lint.sh\"",
+            "command": "DO_IT_EVENT_HOST=codex DO_IT_HOOK_DATA=\"${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-/tmp/do-it-data}}\" \"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-.}}/hooks/codex-post-tool.sh\"",
             "timeout": 15
           }
         ]

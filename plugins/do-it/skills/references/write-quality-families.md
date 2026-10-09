@@ -3,8 +3,8 @@
 Closed-set registry for `hooks/write-quality-lint.sh` (L0 advisory). Scans
 **newly-added lines only**, emits at most one reminder per file per user turn.
 Authoritative machine list: [`hooks/data/quality-families.tsv`](../../hooks/data/quality-families.tsv).
-Build Kernel (`do-it-code-quality`) cites this registry for comment and
-file-size families and does not copy thresholds into the main skill.
+Code Quality (`do-it-code-quality`) references this registry through its causal
+change guidance for comment and file-size families; thresholds stay here.
 
 ## How to use findings
 

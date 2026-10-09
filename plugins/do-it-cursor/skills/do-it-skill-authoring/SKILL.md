@@ -7,12 +7,14 @@ description: "Use when creating or revising a do-it skill so its trigger and uni
 
 Start with the observed problem and the professional judgment the skill adds.
 Write a succinct description that lets the model recognize when that judgment
-helps. Avoid triggers that make every task load the skill.
+helps. Avoid triggers that make every task load the skill. Where confusion is
+likely, distinguish nearby tasks that do not need this skill's judgment.
 
 Give the reader the distinctive questions, distinctions, examples, or tool
 pitfalls needed to work well. State necessary ownership, permission, and side
 effect boundaries precisely. Put deeper specialist material in references when
-it improves readability.
+it improves readability. Give reference links concrete loading conditions;
+follow them for the question at hand, not to transitively load a whole tree.
 
 Let the model choose methods and sequence. Do not recreate task tiers, compulsory
 step chains, arbitrary worker or review counts, stop-status taxonomies, mandatory

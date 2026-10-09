@@ -1,0 +1,12 @@
+{
+  "name": "do-it-grok",
+  "version": "0.18.1",
+  "description": "Professional coding judgment, independent specialists, compact context, and deterministic checks across agent hosts.",
+  "author": {
+    "name": "tdwhere123"
+  },
+  "license": "MIT",
+  "skills": "./skills",
+  "agents": "./agents",
+  "hooks": "./hooks/hooks.json"
+}

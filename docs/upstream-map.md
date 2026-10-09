@@ -14,6 +14,15 @@ The current authoring source is do-it-skill-authoring: concise triggers, unique
 judgment, tool guidance, and necessary boundaries, without fixed anatomy or
 ceremonial reports. Historical upstream process ideas were selectively simplified.
 
+The [architecture comparison](./architecture.md#upstream-comparison) records
+the five additional repositories reviewed for 0.18.1, with pinned sources and
+the limits of the ideas adopted. Concrete current applications include explicit
+reference loading conditions, natural-language and negative trigger checks in
+maintenance guidance, causal-path verification that rejects empty validator
+passes, and red-team tracing from caller control through a reachable operation
+to impact. These are guidance and evidence boundaries, not a new runtime or
+mandatory artifact framework.
+
 ## External Idea Map
 
 The do-it skills are rewrites, not vendored copies. Useful ideas from
@@ -121,7 +130,7 @@ systems checklist into ordinary tasks.
 
 ## Installed Agents
 
-Ten agents in `0.16.0` (none deleted in the Unreleased kernel line):
+Ten canonical specialist bodies in `agents/*.toml`:
 
 | Agent | do-it Role | Notes |
 | --- | --- | --- |
@@ -143,8 +152,9 @@ retained set or retired from the default install.
 ## Adapter Notes
 
 - Host-native delivery is primary: Codex and Claude Code are marketplace-first;
-  Cursor uses local copy / Team Import while public listing is pending; OpenCode
-  and Pi ship independent npm packages with local or vendored fallbacks.
+  Cursor uses local copy / Team Import while public listing is pending;
+  Pi ships an independent npm package with a local fallback; Grok Build uses
+  the distinct generated `do-it-grok` bundle. OpenCode and Kimi are retired.
   Optional CLI `do-it setup` remains for managed doctor / migration.
 - Each host should reuse the same do-it roles and translate only mechanics:
   skill invocation, subagent dispatch, file tools, sandbox controls, and

@@ -1,5 +1,5 @@
 {
-  "version": "0.18.0",
+  "version": "0.18.1",
   "package": "@tdwhere/do-it",
   "repository": "https://github.com/tdwhere123/do-it",
   "domain": "agentic-workflow",
@@ -150,7 +150,7 @@
     {
       "kind": "agent",
       "name": "architecture-strategist",
-      "description": "Use when an architectural choice or stage boundary needs a read-only view of invariants, ownership, extension seams, and proof.",
+      "description": "Use when a design or scoped audit needs a read-only view of module boundaries, dependencies, interfaces, state lifecycle, ownership, and structural costs.",
       "origin": "do-it",
       "optional": false,
       "source": "agents/architecture-strategist.toml",
@@ -168,7 +168,7 @@
     {
       "kind": "agent",
       "name": "code-quality-cleaner",
-      "description": "Use when a diff needs a read-only maintainability review for dead code, duplication, needless abstraction, reinvented primitives, and safe simplification.",
+      "description": "Use when a diff or scoped audit needs a read-only maintainability review for dead code, duplication, needless abstraction, reinvented primitives, and safe simplification.",
       "origin": "do-it",
       "optional": false,
       "source": "agents/code-quality-cleaner.toml",

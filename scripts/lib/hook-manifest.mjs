@@ -1,14 +1,14 @@
 /**
  * Single source of truth for the shipped hook scripts and per-host wiring.
  *
- * The three plugin build scripts (build-codex/cursor/opencode-plugin.mjs)
- * copy their script lists from here, and validate-harness-matrix.mjs asserts
+ * Host plugin builders copy their script lists from here, and
+ * validate-harness-matrix.mjs asserts
  * that the hooks/run-hook.cmd polyglot allowlists (cmd + bash halves) match
  * RUN_HOOK_CMD_ALLOWLIST. Adding a hook script means editing this file (and,
  * for Cursor, the two allowlist halves in hooks/run-hook.cmd).
  */
 
-/** Runtime hook scripts wired on every host (bash). */
+/** Shared hook scripts available to host adapters (bash). */
 export const HOOK_SCRIPTS = [
   "prompt-submit.sh",
   "kernel-context.sh",
@@ -32,9 +32,9 @@ export const STRICT_EXTERNAL_ACTIONS_SCRIPT = "strict-external-actions.sh";
 export const RUN_HOOK_CMD_ALLOWLIST = [SESSION_START_SCRIPT, ...HOOK_SCRIPTS];
 
 /** Hook files copied into each plugin bundle (bundles also get hooks/lib + hooks/data). */
-export const CODEX_HOOK_FILES = ["hooks.json", ...HOOK_SCRIPTS, SESSION_START_SCRIPT];
+export const CODEX_HOOK_FILES = ["hooks.json", ...HOOK_SCRIPTS, SESSION_START_SCRIPT, "codex-post-tool.sh"];
 export const CURSOR_HOOK_FILES = [SESSION_START_SCRIPT, ...HOOK_SCRIPTS, RUN_HOOK_CMD];
-export const OPENCODE_HOOK_SCRIPTS = [...HOOK_SCRIPTS];
+export const GROK_HOOK_FILES = ["grok-adapter.sh", "write-quality-lint.sh"];
 
 /** Source hooks.json each managed install target ships (manifest.json extras). */
 export const TARGET_HOOKS_JSON = {
@@ -51,13 +51,13 @@ export const TARGET_HOOKS_JSON = {
 /** Codex hook command: prefer PLUGIN_ROOT, then CLAUDE_PLUGIN_ROOT, then `.`
  *  so an empty expansion cannot silently become `/hooks/...`. */
 function codexHookCommand(scriptName) {
-  return `DO_IT_HOOK_DATA="\${PLUGIN_DATA:-\${CLAUDE_PLUGIN_DATA:-/tmp/do-it-data}}" "\${PLUGIN_ROOT:-\${CLAUDE_PLUGIN_ROOT:-.}}/hooks/${scriptName}"`;
+  return `DO_IT_EVENT_HOST=codex DO_IT_HOOK_DATA="\${PLUGIN_DATA:-\${CLAUDE_PLUGIN_DATA:-/tmp/do-it-data}}" "\${PLUGIN_ROOT:-\${CLAUDE_PLUGIN_ROOT:-.}}/hooks/${scriptName}"`;
 }
 
 export function codexHooksJson() {
   const command = (script, timeout) => ({ type: "command", command: codexHookCommand(script), timeout });
   return { hooks: {
     UserPromptSubmit: [{ hooks: [command("prompt-submit.sh", 10), command("subagent-stance.sh", 10)] }],
-    PostToolUse: [{ matcher: "Edit|Write|MultiEdit|NotebookEdit", hooks: [command("write-quality-lint.sh", 15)] }]
+    PostToolUse: [{ matcher: "apply_patch|Edit|Write|MultiEdit|NotebookEdit|StrReplace|EditNotebook", hooks: [command("codex-post-tool.sh", 15)] }]
   } };
 }

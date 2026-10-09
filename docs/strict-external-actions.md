@@ -49,29 +49,13 @@ No other do-it adapter claims the same interception.
 |---|---|---|
 | Codex | Host sandbox and approval policy | Keep workspace-write with network disabled unless needed; use --ask-for-approval on-request (or the corresponding config/UI setting) for a fresh host approval when an action leaves that boundary. |
 | Cursor | Native Agent security / Auto-Run and sandbox settings | Configure it in the active Cursor host; do-it does not register an experimental shell veto. |
-| OpenCode | Native permission rules | Merge explicit bash ask rules into your own opencode.json; do-it's template stays unchanged. |
 
 Codex's official [approvals and sandboxing guidance](https://learn.chatgpt.com/docs/agent-approvals-security)
 describes the workspace and network boundary. --yolo, full-access modes, or
 disabled/untrusted hooks deliberately weaken host safeguards; no plugin can
 truthfully promise to override them.
 
-For OpenCode, merge rather than replace your current permissions. Its rules are
-evaluated in order with the last matching entry winning:
 
-    {
-      "permission": {
-        "bash": {
-          "git push *": "ask",
-          "gh pr merge *": "ask",
-          "npm publish *": "ask",
-          "pnpm publish *": "ask",
-          "yarn npm publish *": "ask",
-          "kubectl apply *": "ask",
-          "terraform apply *": "ask"
-        }
-      }
-    }
-
-See [OpenCode permissions](https://opencode.ai/docs/permissions) for the
-host's full matching and approval behavior.
+Pi role tool lists and read-only instructions do not provide an OS sandbox.
+No Pi or Grok Build do-it adapter is claimed here to implement the Claude
+ask/deny profile. Check the active host’s actual permission controls.

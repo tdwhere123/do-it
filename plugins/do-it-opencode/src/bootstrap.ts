@@ -1,1 +1,0 @@
-export const BOOTSTRAP_TEXT = "do-it offers task-fit professional skills and independent specialists. Preserve user intent and authorization, use current facts, fix causal owners, and report relevant evidence and gaps.";

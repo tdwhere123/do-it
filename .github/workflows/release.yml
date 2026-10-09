@@ -10,10 +10,6 @@ on:
         description: "Publish @tdwhere/do-it to npm (requires NPM_TOKEN secret)"
         type: boolean
         default: false
-      publish_opencode_npm:
-        description: "Publish @tdwhere/do-it-opencode to npm (requires NPM_TOKEN secret)"
-        type: boolean
-        default: false
       publish_pi_npm:
         description: "Publish @tdwhere/do-it-pi to npm (requires NPM_TOKEN secret)"
         type: boolean
@@ -62,14 +58,14 @@ jobs:
           npm run build:claude-agents
           npm run build:codex-plugin
           npm run build:cursor-plugin
-          npm run build:opencode-plugin
           npm run build:pi-plugin
-          npm run validate:kimi-plugin
+          npm run build:grok-plugin
           npm --prefix plugins/do-it-pi test
 
       - name: Ensure generated artifacts are committed and unchanged by build
         run: |
-          git diff --exit-code -- index.json dist/claude .agents/plugins plugins/do-it plugins/do-it-cursor plugins/do-it-opencode plugins/do-it-pi .cursor-plugin
+          git diff --exit-code -- index.json hooks/data/core-context.txt dist/claude .agents/plugins plugins/do-it plugins/do-it-cursor plugins/do-it-grok plugins/do-it-pi .cursor-plugin
+          test -z "$(git ls-files --others --exclude-standard -- index.json hooks/data/core-context.txt dist/claude .agents/plugins plugins/do-it plugins/do-it-cursor plugins/do-it-grok plugins/do-it-pi .cursor-plugin)"
 
       - name: Pack release tarball
         env:
@@ -84,21 +80,6 @@ jobs:
         run: |
           ROOT_TARBALL=$(jq -r '.[0].filename' "${{ runner.temp }}/pack.json")
           npm run smoke:package -- "./${ROOT_TARBALL}"
-
-      - name: Pack OpenCode release tarball
-        env:
-          NPM_CONFIG_CACHE: ${{ runner.temp }}/npm-cache
-        run: |
-          cd plugins/do-it-opencode
-          npm pack --json --ignore-scripts --pack-destination "${{ runner.temp }}" | tee "${{ runner.temp }}/pack-opencode.json"
-          jq -e '.[0].filename' "${{ runner.temp }}/pack-opencode.json"
-
-      - name: Smoke verified OpenCode tarball
-        env:
-          NPM_CONFIG_CACHE: ${{ runner.temp }}/npm-cache
-        run: |
-          OPENCODE_TARBALL=$(jq -r '.[0].filename' "${{ runner.temp }}/pack-opencode.json")
-          npm run smoke:package -- "${{ runner.temp }}/${OPENCODE_TARBALL}"
 
       - name: Pack Pi release tarball
         env:
@@ -120,13 +101,6 @@ jobs:
         with:
           name: npm-pack-root
           path: "*.tgz"
-          if-no-files-found: error
-
-      - name: Upload OpenCode pack artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: npm-pack-opencode
-          path: "${{ runner.temp }}/*do-it-opencode*.tgz"
           if-no-files-found: error
 
       - name: Upload Pi pack artifact
@@ -179,52 +153,6 @@ jobs:
             exit 1
           fi
           TARBALL=$(find . -maxdepth 1 -name '*do-it-[0-9]*.tgz' -print -quit)
-          test -n "${TARBALL}"
-          npm publish "${TARBALL}" --access public
-
-  publish-opencode-npm:
-    name: Publish OpenCode npm package (optional)
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    needs: verify
-    if: >-
-      github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-      || (github.event_name == 'workflow_dispatch' && inputs.publish_opencode_npm == true)
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Setup Node
-        uses: actions/setup-node@v7
-        with:
-          node-version: 22.x
-          registry-url: https://registry.npmjs.org
-
-      - name: Validate release tag and metadata
-        run: |
-          if [ "${GITHUB_EVENT_NAME}" = "push" ]; then
-            RELEASE_TAG="${GITHUB_REF_NAME}"
-          else
-            RELEASE_VERSION=$(node -p "require('./plugins/do-it-opencode/package.json').version")
-            RELEASE_TAG="v${RELEASE_VERSION}"
-          fi
-          npm run validate:release -- "${RELEASE_TAG}"
-
-      - name: Download verified OpenCode package
-        uses: actions/download-artifact@v8
-        with:
-          name: npm-pack-opencode
-
-      - name: Publish OpenCode package
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          if [ -z "${NODE_AUTH_TOKEN}" ]; then
-            echo "NPM_TOKEN secret is required to publish @tdwhere/do-it-opencode" >&2
-            exit 1
-          fi
-          TARBALL=$(find . -maxdepth 1 -name '*do-it-opencode*.tgz' -print -quit)
           test -n "${TARBALL}"
           npm publish "${TARBALL}" --access public
 

@@ -2,17 +2,27 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { HOOK_SCRIPTS, SESSION_START_SCRIPT, RUN_HOOK_CMD } from "./lib/hook-manifest.mjs";
+import { coreContextPath, renderCoreContext } from "./build-core-context.mjs";
+import { HOOK_SCRIPTS, CODEX_HOOK_FILES, CURSOR_HOOK_FILES, GROK_HOOK_FILES } from "./lib/hook-manifest.mjs";
 const defaultRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 export function validateCoreConsistency(root = defaultRoot) {
   const errors = [];
+  try {
+    if (fs.readFileSync(path.join(root, coreContextPath), "utf8") !== renderCoreContext(root)) {
+      errors.push(`${coreContextPath}: stale generated Core context; run node scripts/build-core-context.mjs`);
+    }
+  } catch (error) {
+    errors.push(`${coreContextPath}: missing or invalid generated Core context: ${error.message}`);
+  }
   const pairs = [];
-  for (const host of ["do-it", "do-it-cursor", "do-it-opencode", "do-it-pi"]) {
+  for (const [host, scripts] of [
+    ["do-it", CODEX_HOOK_FILES.filter((file) => file !== "hooks.json")],
+    ["do-it-cursor", CURSOR_HOOK_FILES],
+    ["do-it-pi", HOOK_SCRIPTS],
+    ["do-it-grok", GROK_HOOK_FILES]
+  ]) {
     const bundle = `plugins/${host}`;
     pairs.push(["skills/do-it/do-it-core/SKILL.md", `${bundle}/skills/do-it-core/SKILL.md`]);
-    const scripts = [...HOOK_SCRIPTS];
-    if (host === "do-it" || host === "do-it-cursor") scripts.push(SESSION_START_SCRIPT);
-    if (host === "do-it-cursor") scripts.push(RUN_HOOK_CMD);
     for (const script of scripts) pairs.push([`hooks/${script}`, `${bundle}/hooks/${script}`]);
     for (const dir of ["lib", "data"]) {
       for (const file of fs.readdirSync(path.join(root, "hooks", dir))) {

@@ -249,19 +249,21 @@ function main() {
 		allSkills,
 	);
 	assertEqualSets(
-		"OpenCode skill bundle",
-		listSkillDirs("plugins/do-it-opencode/skills"),
-		allSkills,
-	);
-	assertEqualSets(
 		"Pi skill bundle",
 		listSkillDirs("plugins/do-it-pi/skills"),
 		allSkills,
 	);
 
+	const grokPlugin = readJson("plugins/do-it-grok/.grok-plugin/plugin.json");
+	if (grokPlugin.name !== "do-it-grok" || grokPlugin.version !== manifest.version) {
+		throw new Error("Grok native identity/version drift");
+	}
+	assertEqualSets("Grok skill bundle", listSkillDirs("plugins/do-it-grok/skills"), allSkills);
+
 	for (const hooksJson of [
 		...Object.values(TARGET_HOOKS_JSON),
 		"plugins/do-it-cursor/hooks/hooks.json",
+		"plugins/do-it-grok/hooks/hooks.json",
 	]) {
 		const raw = JSON.stringify(readJson(hooksJson));
 		if (raw.includes("grill-pretool")) {
@@ -291,23 +293,12 @@ function main() {
 	if (!fs.existsSync(matrixPath))
 		throw new Error("missing docs/harness-adapter-matrix.md");
 
-	const opencodePkg = readJson("plugins/do-it-opencode/package.json");
 	const piPkg = readJson("plugins/do-it-pi/package.json");
 	const rootPkg = readJson("package.json");
-	if (opencodePkg.version !== rootPkg.version) {
-		throw new Error(
-			`OpenCode version ${opencodePkg.version} does not match root ${rootPkg.version}`,
-		);
-	}
 	if (piPkg.version !== rootPkg.version) {
 		throw new Error(
 			`Pi version ${piPkg.version} does not match root ${rootPkg.version}`,
 		);
-	}
-	if (
-		!fs.existsSync(path.join(repoRoot, "plugins/do-it-opencode/dist/index.js"))
-	) {
-		throw new Error("OpenCode compiled dist/index.js missing");
 	}
 	if (piPkg.pi?.extensions?.[0] !== "./extensions/index.ts") {
 		throw new Error("Pi package extension entrypoint missing");
@@ -317,7 +308,7 @@ function main() {
 	}
 
 	console.log(
-		"validate-harness-matrix: inventories, hook maps, OpenCode, and Pi parity OK",
+		"validate-harness-matrix: maintained host inventories, hook maps, and versions OK",
 	);
 }
 

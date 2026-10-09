@@ -1,7 +1,6 @@
 /**
- * Shared helpers for the three plugin build scripts
- * (build-codex/cursor/opencode-plugin.mjs). Kept to the pieces that were
- * genuinely duplicated; per-host copy routines stay in their build scripts.
+ * Shared file and version operations for host plugin builders.
+ * Host-specific resource selection stays in the individual builders.
  */
 
 import fs from "node:fs";
@@ -41,22 +40,9 @@ export function assertVersionParity(manifest, pkg) {
   }
 }
 
-/** Copy dist/claude/agents into a plugin bundle (Cursor, OpenCode). */
-export function copyAgentsDir(agentsSource, targetDir) {
-  if (!fs.existsSync(agentsSource)) {
-    throw new Error(
-      "dist/claude/agents missing — run `npm run build:generated` first " +
-        "(build-claude-agents.mjs emits agent markdown from agents/*.toml)"
-    );
-  }
-
-  fs.rmSync(targetDir, { recursive: true, force: true });
-  fs.cpSync(agentsSource, targetDir, { recursive: true });
-}
-
 /**
  * Copy the given hook scripts plus hooks/lib and hooks/data into a plugin
- * bundle (Cursor, OpenCode). Scripts are chmod 755 best-effort.
+ * bundle. Scripts are chmod 755 best-effort.
  */
 export function copyHookScripts({ repoRoot, hooksSource, targetDir, scripts }) {
   fs.rmSync(targetDir, { recursive: true, force: true });

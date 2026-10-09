@@ -11,18 +11,21 @@ Working rule:
 1. Edit the maintained repository copy.
 2. Use the host's current path: marketplace-first for Codex / Claude, local copy
    or Team Import for Cursor while public listing is pending, and the independent
-   OpenCode npm package with the vendored config-home fallback. Treat registry
+   Pi npm package with its local checkout fallback. Grok Build uses the
+   generated `do-it-grok` bundle. Treat registry
    availability as unverified until `npm view` succeeds.
-3. Use `do-it setup` only for managed CLI doctor / migration. Ordinary `doctor`
+3. Use `do-it setup` for managed CLI installation / migration, including
+   Codex native agents with `--target=codex --only=agents`. Ordinary `doctor`
    verifies that managed state; it does not verify Cursor's standalone local-copy
-   installer or OpenCode registration.
+   installer or Pi runtime load.
 4. Avoid hand-editing deployed files under host configuration roots.
 
-For modern Codex installs, the plugin owns bundled do-it agents.
-`manifest.targets.codex.installAgents=false` deliberately leaves
-`~/.codex/agents` as user-owned space rather than a second plugin mirror. A
-legacy migration may remove only exact, confirmed old do-it duplicates; it must
-not overwrite, delete, or classify user-defined global agents as do-it state.
+Codex plugin skills and hook configuration are separate from native specialist
+registration. The host loads native role files from `.codex/agents` (or explicit
+configured roles); a plugin `agents` field does not register them. Keep current
+canonical native agents during legacy migration and preserve user-owned files.
+See [installation](./install.md) for the agent-only managed path. File parity or
+`doctor` does not prove live role discovery or sandbox enforcement.
 
 Exception: for an intentional live-global rebaseline, copy only
 manifest-managed targets from `~/.codex` back into this repository, then run the
@@ -31,9 +34,9 @@ only when the operator explicitly asks for live-first workflow changes. The
 closeout must name it as `live-global rebaseline`, show source/live parity, and
 run package or temporary `CODEX_HOME` validation before any commit.
 
-For workflow policy changes, update `docs/routing-matrix.md` so
-Direct skill discovery and professional perspectives (`code-quality`, `decide`, `review`, `verify`),
-and closeout guidance stay aligned. For mixed code/docs changes, update docs
+For workflow policy changes, keep `docs/routing-matrix.md` aligned with direct
+skill discovery, professional perspectives (`code-quality`, `decide`, `review`,
+`verify`), and closeout guidance. For mixed code/docs changes, update docs
 after behavior and review are proven so documentation follows current truth.
 
 ## Package And CLI Coordination
@@ -43,7 +46,9 @@ managed CLI setup for doctor and migration. Keep docs honest:
 
 - use marketplace-first language for Codex and Claude Code
 - describe Cursor as local copy / Team Import until its public listing is verified
-- describe OpenCode as an independent npm package plus vendored fallback; label registry availability unverified until `npm view` succeeds
+- describe Pi as an independent npm package with a local fallback; verify registry availability with `npm view`
+- describe Grok Build as the distinct generated `do-it-grok` bundle
+- keep OpenCode/Kimi references explicitly historical; repository support is retired
 - demote `do-it setup` / GitHub tarball + setup to optional/legacy
 - mention `npm install -g @tdwhere/do-it` only as the registry path after
   registry publication is verified
@@ -52,7 +57,7 @@ managed CLI setup for doctor and migration. Keep docs honest:
 - keep `do-it install` and `do-it doctor` documented as the underlying split
   commands for CI, debugging, or partial checks
 - do not require pairing Codex plugin install with global setup for hooks
-- keep user-defined `~/.codex/agents` separate from plugin-owned bundled agents
+- install Codex native roles separately from plugin skills/hooks and preserve user-defined agents
 - do not invent package.json scripts or release coordinates that are not present
 - make future package commands delegate to the same installer and doctor logic
 
@@ -61,8 +66,6 @@ Current validation commands:
 ```bash
 npm test
 npm run validate:agents
-npm run validate:core-skill-boundaries
-npm run validate:skill-contracts
 npm run eval:behavior:validate
 npm run build:claude-agents
 npm run build:codex-plugin
@@ -109,12 +112,16 @@ plugin metadata, and Hooks UI inspection after reload.
 
 See [harness-adapter-matrix.md](./harness-adapter-matrix.md) for current context,
 check, specialist, and diagnostic wiring. Generated host skills and hooks share
-sources; maintained adapter TS and Pi host-specific agents are source exceptions.
+sources. Specialist bodies belong only in `agents/*.toml`; Pi metadata and
+coordination wording belong in `scripts/lib/pi-agent-adapter.mjs`. Pi extension
+TypeScript remains maintained source. Core bootstrap context is generated by
+`scripts/build-core-context.mjs` from the marked excerpt in Core; do not edit
+`hooks/data/core-context.txt` directly. See [architecture](./architecture.md).
 
 ## Safe Cleanup Runbook
 
 Cleanup is host-owned and exact-path only. Back up any shared JSON before editing;
-never delete an entire `~/.codex`, `~/.claude`, `~/.cursor`, `~/.kimi-code`,
+never delete an entire `~/.codex`, `~/.claude`, `~/.cursor`,
 project config, or plugin directory tree just to remove do-it.
 
 | Host / install path | Safe cleanup |
@@ -123,17 +130,15 @@ project config, or plugin directory tree just to remove do-it.
 | Claude Code marketplace | Remove only `do-it@do-it` through `/plugin` management. Remove the marketplace registration only when no other installed entry depends on it. Do not recursively delete `~/.claude`. |
 | Cursor local copy | Close Cursor, back up `~/.cursor/hooks.json`, remove only hook objects whose `command` path contains `do-it-cursor/hooks/`, and then remove exactly `~/.cursor/plugins/local/do-it-cursor`. On native Windows use the corresponding `%USERPROFILE%\.cursor\...` paths; on WSL clean only the caller's mirrored profile. Reload and confirm the do-it entries disappeared while unrelated hooks remain. |
 | Cursor Team Import | Remove the imported do-it plugin in the Team dashboard. If a local copy was also installed, clean it separately with the preceding row; do not delete all team plugins. |
-| OpenCode local registration | Back up the applicable project or user `opencode.json`, remove only the do-it absolute-path entry from its `"plugin"` array, restart OpenCode, and confirm unrelated entries still load. Do not delete the project config or the checkout. |
 | Pi package | Use `pi remove` with the exact local or `npm:@tdwhere/do-it-pi` package source, then `/reload`. Remove only `~/.pi/agent/do-it-data/` if its session state is no longer needed. `pi-subagents` is independent; do not remove it when other package agents use it. |
-| Kimi Code plugin | `/plugins remove do-it` (deletes the install record only). The managed copy stays on disk by host design: remove exactly `$KIMI_CODE_HOME/plugins/managed/do-it/` by hand, then `/reload`. Session state under `$KIMI_CODE_HOME/do-it-data/` is do-it-owned and safe to delete. Do not delete the whole `~/.kimi-code`. |
 | Managed CLI setup | There is no broad uninstall command. Use the target's `.do-it-install-state*.json` as an ownership inventory and remove only entries proven do-it-managed; preserve unmarked/user-owned files. Prefer testing and abandoning a temporary home over manually cleaning a shared live home. |
 
 If ownership is unclear, stop and restore the backup rather than using a glob,
 recursive home-directory deletion, or `DO_IT_FORCE=1` as cleanup.
 
 For Codex legacy migration, compare against the known do-it-managed inventory
-and remove only confirmed stale do-it duplicates. `~/.codex/agents` is otherwise
-user-owned; never use a broad agent-directory cleanup to make plugin state look
+and remove only confirmed retired do-it targets. Current canonical native
+agents must remain installed; never use a broad agent-directory cleanup to make plugin state look
 tidy.
 
 Deprecated legacy skill targets use the same safety rule: install removes them
@@ -152,6 +157,13 @@ or fixed review/agent count. Use do-it-skill-authoring for useful guidance.
 Update affected descriptions, manifests, references, translated docs, and generated
 copies. Check relevant behavior and installation consistency. Reuse upstream ideas
 through original do-it guidance rather than copying their workflow machinery.
+
+For trigger changes, inspect ordinary natural-language requests and nearby
+requests that should not select the skill. Explicit skill invocation proves a
+different path from implicit discovery. Check reference loading conditions and
+full descriptions in the generated index. Deterministic fixtures do not prove
+live model selection. The [pinned upstream comparison](./architecture.md#upstream-comparison)
+records the evidence behind these maintenance practices.
 
 ## Adding A New Skill
 
@@ -213,13 +225,11 @@ Profile injection, learning events, classifiers, and completion gates are retire
   `agents/*.toml`. Claude generated agents omit `model:` by default and inherit
   the running host model; only use a uniform `model: inherit` compatibility
   fallback if a tested Claude Code version requires the field.
-- **Hook keyword change:** edit `hooks/data/*.tsv` and keep
-  `hooks/data/SCHEMA.md` aligned. End users extend known tables through the
-  data-only `<cwd>/.do-it/keywords.local.tsv` format documented there. The
-  legacy executable `.do-it/keywords.local.sh` path is ignored. Numeric
-  hook limits (e.g. `file-size` thresholds) are overridden through the
-  data-only `<git-root of edited file>/.do-it/write-quality.local.tsv`,
-  also documented in `hooks/data/SCHEMA.md`.
+- **Quality data change:** edit the maintained `hooks/data/*.tsv` tables and
+  keep `hooks/data/SCHEMA.md` aligned. Numeric hook limits (e.g. `file-size`
+  thresholds) use the data-only
+  `<git-root of edited file>/.do-it/write-quality.local.tsv`. Retired classifier
+  keyword configuration does not control the default runtime.
 - **Hook behavior change:** edit the relevant `hooks/*.sh`. Hook scripts must
   remain portable bash with no nonstandard runtime dependency and degrade
   silently (exit 0) on unexpected input.
@@ -238,7 +248,7 @@ target installs the **full** skill inventory (`ALL_SKILLS`) and adds:
   and the skills index via extras.
 - `plugins/do-it-cursor/agents/` — generated agent bundle for the Cursor host.
 - `plugins/do-it-cursor/hooks/` — Cursor event mapping (`sessionStart`,
-  `beforeSubmitPrompt`, `postToolUse`/`afterFileEdit`, `stop`). No
+  `beforeSubmitPrompt`, `postToolUse`/`afterFileEdit`). No
   `grill-pretool` / `preToolUse` plan gate.
 - `scripts/build-cursor-plugin.mjs` — the only supported way to refresh the
   generated Cursor bundle; both local copy and managed CLI setup install the
@@ -246,8 +256,8 @@ target installs the **full** skill inventory (`ALL_SKILLS`) and adds:
 
 ### Maintaining the Cursor Target
 
-- **Core vs extended change:** edit `scripts/skill-tiers.mjs` and keep
-  `manifest.skillTiers` in sync, then run `npm run build:cursor-plugin`.
+- **Index change:** preserve full skill descriptions and the complete inventory;
+  host-neutral discovery groups are not a task pipeline.
 - **Inventory or wording change:** edit source under `skills/do-it/` or
   `agents/`, then run `npm run build:cursor-plugin`. Do not hand-edit
   `plugins/do-it-cursor/skills/` or `plugins/do-it-cursor/agents/`.
@@ -261,31 +271,34 @@ target installs the **full** skill inventory (`ALL_SKILLS`) and adds:
   `do-it setup --target=cursor` / `CURSOR_PLUGIN_ROOT_OVERRIDE=…`, `setup` runs
   managed install plus doctor; later `do-it doctor --target=cursor` is valid.
 
-## OpenCode Plugin Target
+## Grok Build Target
 
-As of 0.13.0, do-it also ships an OpenCode TypeScript plugin. It shares the
-same skill and agent sources but maps hooks through OpenCode events instead of
-Claude/Codex shell hooks.
+`node scripts/build-grok-plugin.mjs` projects canonical skills and agent bodies
+into `plugins/do-it-grok/`, with `.grok-plugin/plugin.json` named `do-it-grok`.
+Run `npm run build:generated` first to refresh the shared Core excerpt.
+`hooks/grok-adapter.sh` owns camelCase normalization, state-only
+UserPromptSubmit turn counting, and PostToolUse context;
+it does not copy Claude's strict external-action profile. Core is delivered
+after the first completed tool, not before the first action.
 
-- `plugins/do-it-opencode/` — generated skills, agents, and TS plugin bridge.
-- `scripts/build-opencode-plugin.mjs` — the only supported way to refresh the
-  OpenCode bundle.
-- Operators may need to register the plugin manually in project or user
-  `opencode.json` — see
-  [`plugins/do-it-opencode/docs/README.opencode.md`](../plugins/do-it-opencode/docs/README.opencode.md)
-  and [`skills/do-it/references/host-opencode.md`](../skills/do-it/references/host-opencode.md).
-  Medium hook depth: transform bootstrap, `tool.execute.after` write-quality,
-  `session.idle` soft verification (no `grill-pretool`).
+Validate with `agent plugin validate plugins/do-it-grok`. Install the absolute
+bundle path with `--trust`, then inspect loaded sources and actual names with
+`agent inspect --json`. Do not install the repository root or treat a plugin
+list entry as proof of which source loaded. See [Grok](../skills/do-it/references/host-grok.md).
 
-### Maintaining the OpenCode Target
+## Pi Target
 
-- **Inventory or wording change:** edit source skills/agents, then run
-  `npm run build:opencode-plugin`.
-- **Hook bridge change:** edit `plugins/do-it-opencode/` sources and kernel
-  scripts under `hooks/`; rerun `npm run build:opencode-plugin &&
-  npm run test-opencode`.
-- **Install verification:** `npm run build:opencode-plugin && npm run
-  test-opencode` (no CLI doctor target yet).
+`plugins/do-it-pi/extensions/*.ts` is maintained adapter source. Generated
+`plugins/do-it-pi/agents/*.md` combines canonical `agents/*.toml` bodies with
+`scripts/lib/pi-agent-adapter.mjs` metadata and supervisor coordination.
+Regenerate with `npm run build:pi-plugin`. Test with `npm run test-pi` and
+`npm run smoke:pi-package`; a live `pi-subagents` invocation is separate proof
+of specialist discovery. Reader tool lists still include Bash: read-only role
+instructions are not an operating-system sandbox. The development dependencies
+target Pi 1.1.0. Detection accepts either `Agent` or `subagent`; in-process child
+detection combines manager presence, parent-session lineage, and absence of
+both delegation tools. Isolated proof without the older loaded extension
+remains pending; see [Pi runtime boundaries](../skills/do-it/references/host-pi.md).
 
 ## Codex Plugin Target
 
@@ -294,10 +307,12 @@ surface generated from the same maintained manifest:
 
 - `.agents/plugins/marketplace.json` — repo-local marketplace entry pointing
   `do-it` at `./plugins/do-it`.
-- `plugins/do-it/.codex-plugin/plugin.json` — plugin metadata with version
-  parity to `package.json`.
+- `plugins/do-it/.codex-plugin/plugin.json` — native Codex manifest. The builder
+  removes root `plugin.json`: Codex 0.162.0 found zero hooks with that portable
+  entry in the isolated comparison, while the native entry exposed hooks.
 - `plugins/do-it/skills/` — generated from every `manifest.skills[]` entry.
-- `plugins/do-it/agents/` — generated from every `manifest.agents[]` entry.
+- `agents/*.toml` — installed separately into native `.codex/agents`; the
+  builder removes plugin `agents/` output because it does not register roles.
 - `scripts/build-codex-plugin.mjs` — the only supported way to refresh the
   generated plugin bundle.
 
@@ -310,24 +325,26 @@ surface generated from the same maintained manifest:
   Codex plugin build fails if they drift.
 - **Skill wording change:** edit source skills under `skills/do-it/`, then
   regenerate. Do not edit `plugins/do-it/skills/` directly.
-- **Agent change:** edit `agents/*.toml`, then regenerate. Do not merge Claude
-  `.md` generation into the Codex plugin build.
+- **Agent change:** edit `agents/*.toml`, regenerate host projections, and
+  validate the separate Codex agent-only install. Do not add agents to the
+  Codex plugin manifest as a substitute for native registration.
 - **Hook change:** ship hooks inside the Codex plugin bundle and document trust
   under `/hooks`. Global CLI setup remains optional for doctor / migration —
   do not treat `plugin_hooks=false` as a reason to require paired global setup.
 
 Generated artifact rules:
 
-- Do not hand-edit `plugins/do-it/skills/`, `plugins/do-it/agents/`,
+- Do not hand-edit `plugins/do-it/skills/`,
   `plugins/do-it/.codex-plugin/plugin.json`, `.agents/plugins/marketplace.json`,
   `plugins/do-it-cursor/skills/`, `plugins/do-it-cursor/agents/`,
-  `plugins/do-it-opencode/skills/`, `plugins/do-it-opencode/agents/`,
+  `plugins/do-it-pi/agents/`, `plugins/do-it-grok/`,
   `dist/claude/agents/`, or `dist/claude/skills/_index.md`.
 - Skill source is `skills/do-it/`; Codex plugin output is regenerated with
   `npm run build:codex-plugin`.
 - Claude agent output is regenerated with `npm run build:claude-agents`.
 - Cursor plugin output is regenerated with `npm run build:cursor-plugin`.
-- OpenCode plugin output is regenerated with `npm run build:opencode-plugin`.
+- Pi plugin output is regenerated with `npm run build:pi-plugin`.
+- Grok plugin output is regenerated with `npm run build:grok-plugin`.
 - The lazy skill index is regenerated by install preflight or
   `node scripts/build-skills-index.mjs`; package/install checks should catch
   stale generated inventory.
@@ -351,9 +368,9 @@ git diff --check
 npm test
 npm run validate:agents
 npm run build:claude-agents
-# Codex (default): byte-equal with prior versions except for deprecated/optional skills
-CODEX_HOME=/tmp/cx do-it install
-diff -r --exclude='.do-it-install-state*' /tmp/cx /tmp/cx-old   # against worktree of v0.3.x
+# Codex native specialists, isolated from live configuration
+CODEX_HOME=/tmp/do-it-codex-agents-test node bin/do-it.mjs setup --target=codex --only=agents
+CODEX_HOME=/tmp/do-it-codex-agents-test node bin/do-it.mjs doctor --target=codex --only=agents
 
 # Claude target
 CLAUDE_PLUGIN_ROOT_OVERRIDE=/tmp/cl do-it setup --target=claude
@@ -398,8 +415,6 @@ Recommended checks before committing workflow changes. For live-first rebaseline
 git diff --check
 npm test
 npm run validate:agents
-npm run validate:core-skill-boundaries
-npm run validate:skill-contracts
 npm run eval:behavior:validate
 npm run build:claude-agents
 npm run build:codex-plugin

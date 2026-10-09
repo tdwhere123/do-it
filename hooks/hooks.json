@@ -5,12 +5,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/prompt-submit.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/prompt-submit.sh\"",
             "timeout": 25
           },
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/subagent-stance.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/subagent-stance.sh\"",
             "timeout": 10
           }
         ]
@@ -78,7 +78,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/write-quality-lint.sh",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/write-quality-lint.sh\"",
             "timeout": 15
           }
         ]

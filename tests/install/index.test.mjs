@@ -84,27 +84,25 @@ test("removed install migration note is not referenced by shipped docs", () => {
   }
 });
 
-test("agent templates and generated Claude agents do not pin models", () => {
+test("canonical and generated native agents inherit host model choices", () => {
   const concreteModel = /\b(?:gpt-[A-Za-z0-9_.-]+|sonnet|opus|haiku)\b/i;
   const hostPrivate = /\b(?:model_reasoning_effort|claude_model|output_budget)\b/;
 
-  for (const dir of ["agents", "plugins/do-it/agents"]) {
-    for (const fileName of fs.readdirSync(path.join(repoRoot, dir))) {
-      if (!fileName.endsWith(".toml")) continue;
+  for (const [dir, extension] of [
+    ["agents", ".toml"],
+    ["dist/claude/agents", ".md"],
+    ["plugins/do-it-cursor/agents", ".md"],
+    ["plugins/do-it-grok/agents", ".md"],
+    ["plugins/do-it-pi/agents", ".md"]
+  ]) {
+    const files = fs.readdirSync(path.join(repoRoot, dir)).filter((file) => file.endsWith(extension));
+    assert.ok(files.length > 0, `${dir} must contain native agents`);
+    for (const fileName of files) {
       const relativePath = `${dir}/${fileName}`;
       const text = fs.readFileSync(path.join(repoRoot, relativePath), "utf8");
-      assert.doesNotMatch(text, /^model\s*=/m, `${relativePath} should not set model`);
+      assert.doesNotMatch(text, /^\s*model\s*[:=]/m, `${relativePath} should inherit host model`);
       assert.doesNotMatch(text, hostPrivate, `${relativePath} should not contain host-private model policy`);
       assert.doesNotMatch(text, concreteModel, `${relativePath} should not name concrete models`);
     }
-  }
-
-  const claudeDir = path.join(repoRoot, "dist/claude/agents");
-  for (const fileName of fs.readdirSync(claudeDir)) {
-    if (!fileName.endsWith(".md")) continue;
-    const relativePath = `dist/claude/agents/${fileName}`;
-    const text = fs.readFileSync(path.join(repoRoot, relativePath), "utf8");
-    assert.doesNotMatch(text, /^\s*model:/m, `${relativePath} should inherit host model`);
-    assert.doesNotMatch(text, concreteModel, `${relativePath} should not name concrete models`);
   }
 });

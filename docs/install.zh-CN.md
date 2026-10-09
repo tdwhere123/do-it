@@ -3,14 +3,15 @@
 [English](./install.md) | [中文](./install.zh-CN.md)
 
 交付方式按宿主区分：Codex 与 Claude Code **marketplace 优先**；Cursor
-目前走**本地拷贝或 Team Import，公开上架待完成**；OpenCode 与 Pi 使用
-**独立 npm 包**；Kimi Code 则**直接把仓库根当作插件**
-（`kimi.plugin.json`），无需构建。插件包同时携带 skills、agents 和 hooks。
+目前走**本地拷贝或 Team Import，公开上架待完成**；Pi 使用**独立 npm 包**。
+技能、专业代理和运行时检查按下文的宿主路径交付。Grok Build 使用生成的
+`do-it-grok` 插件包。OpenCode 和 Kimi Code 的仓库支持已退役；
+这不会移除本机应用或用户配置。
 
 | 真相平面 | 本仓库可以声明的内容 |
 | --- | --- |
-| 源码 / 包元数据 | 当前 checkout 声明 `0.17.0`、12 个用户可运行 skill + 1 个生成式发现入口、10 个 agent。 |
-| Git tag | `0.17.0` 的 GitHub/npm 发布仍需要 `v0.17.0`；版本元数据不等于发布 tag。 |
+| 源码 / 包元数据 | 当前 checkout 声明 `0.18.1`、12 个用户可运行 skill + 1 个生成式发现入口、10 个 agent。 |
+| Git tag | `0.18.1` 的 GitHub/npm 发布仍需要 `v0.18.1`；版本元数据不等于发布 tag。 |
 | Marketplace / npm | 文档记录坐标与发布路径；只有 workflow 之后的 `npm view` 才能证明已发布到 registry。Cursor 公开上架仍待完成。 |
 | Live host | 只有在对应宿主安装并检查，才能证明那里实际启用了什么；不能从源码或 tarball 推断。 |
 
@@ -21,7 +22,7 @@ codex plugin marketplace add tdwhere123/do-it
 codex plugin add do-it@tdwhere-do-it
 ```
 
-`codex plugin marketplace add` 只注册 marketplace，**不会**安装插件。安装后请在 `/hooks` **信任插件 hooks**，以便提供精简上下文、独立子代理姿态和源代码编辑检查。
+`codex plugin marketplace add` 只注册 marketplace，**不会**安装插件。安装后请在 `/hooks` 检查并信任已配置的插件 hooks。清单验证和技能发现不证明当前宿主实际执行钩子；依赖上下文或编辑检查前需单独验证。
 
 本地 checkout 冒烟（可用临时 `CODEX_HOME`）：
 
@@ -31,10 +32,26 @@ CODEX_HOME=/tmp/do-it-plugin-test codex plugin add do-it@tdwhere-do-it
 ```
 
 Codex plugin bundle 位于 `plugins/do-it/`（由 `manifest.json` 生成）：
-12 个用户可运行 skill、1 个生成式 `_index.md` 发现入口、10 个 agent，以及插件内 hooks。
-现代 Codex 插件拥有这些 do-it agent；`manifest.targets.codex.installAgents=false`
-会保留 `~/.codex/agents` 给用户自己定义的 agent。旧版迁移只会移除已确认的 do-it
-重复项。
+12 个用户可运行 skill、1 个生成式 `_index.md` 发现入口及插件内 hooks；
+原生代理按下文单独安装。插件使用 `.codex-plugin/plugin.json`。隔离环境中的
+`codex 0.162.0` `plugin/read` 对比发现：根 `plugin.json` 未发现任何 hook，
+而 Codex 清单能发现 hooks。因此构建器移除根清单和插件内 `agents/` 目录。
+对最终仓库插件包的原生读取返回 12 个技能、3 个 hook 声明及 Skills/Hooks
+能力字段。发现配置仍不证明实际执行钩子。
+
+**具名专业代理需要原生 agent 安装。** Codex 从 `.codex/agents/*.toml`
+或显式角色配置加载角色；插件 `agents` 字段和缓存文件不等于角色注册。
+在本 checkout 中使用同一套所有权和替换保护，仅安装原生代理：
+
+```bash
+node bin/do-it.mjs setup --target=codex --only=agents
+node bin/do-it.mjs doctor --target=codex --only=agents
+```
+
+默认目标为 `~/.codex/agents`；用 `CODEX_HOME` 指定隔离 home。此路径不会再安装
+一份 skills/hooks 镜像，也不编辑用户配置。旧版迁移保留当前规范代理及无关的用户自定义代理。
+Doctor 只证明受管文件和状态一致；具名角色发现与沙箱行为需在实际宿主中另行验证。
+参见[架构说明（英文）](./architecture.md)中的固定版本宿主契约及证据边界。
 
 ## Claude Code
 
@@ -42,6 +59,10 @@ Codex plugin bundle 位于 `plugins/do-it/`（由 `manifest.json` 生成）：
 /plugin marketplace add tdwhere123/do-it
 /plugin install do-it@do-it
 ```
+
+在 checkout 中用 `claude plugin validate --strict .claude-plugin/plugin.json`
+验证插件清单；本次源码更新已通过此检查。验证仓库根目录检查的是 marketplace，
+不能代替明确的插件清单检查；两者都不证明实际执行钩子。
 
 ## Cursor
 
@@ -77,27 +98,9 @@ Cursor **有**官方公开市场（[cursor.com/marketplace](https://cursor.com/m
 Cursor 安装完整技能、发现索引、参考文档和限定范围的代理。精简上下文和编辑检查
 通过 run-hook.cmd 运行，不注册完成措辞门禁和自动诊断。详见[宿主矩阵](./harness-adapter-matrix.md)。
 
-## OpenCode
-
-OpenCode 从 `opencode.json` 的 `"plugin"` 数组加载插件。确认
-`npm view @tdwhere/do-it-opencode@0.16.0 version` 成功后，再安装独立 npm 包：
-
-```bash
-opencode plugin @tdwhere/do-it-opencode -g
-```
-
-registry 尚未发布、checkout 开发或 registry 故障时，可用
-`npm run install:opencode-global` 构建并
-vendor 到 OpenCode 配置目录。日常宿主不要直接指向可变的 git checkout。详见
-[`plugins/do-it-opencode/docs/README.opencode.md`](../plugins/do-it-opencode/docs/README.opencode.md)。
-
-```bash
-npm run test-opencode
-```
-
 ## Pi
 
-确认 `npm view @tdwhere/do-it-pi@0.16.0 version` 成功后，再安装独立的 Pi npm 包：
+确认 `npm view @tdwhere/do-it-pi@0.18.1 version` 成功后，再安装独立的 Pi npm 包：
 
 ```bash
 pi install npm:@tdwhere/do-it-pi
@@ -113,46 +116,47 @@ registry 尚未发布或开发该包时可使用本地 checkout：运行
 pi install npm:pi-subagents
 ```
 
-用 `/do-it-status` 检查 Bash、Windows Git Bash、hook 诊断和可选 package-agent
-运行时。构建与独立打包验证使用 `npm run test-pi` 和
+用 `/do-it-status` 检查 Bash、Windows Git Bash、hook 诊断及 `Agent`/`subagent`
+工具注册。实际 `do-it.*` 角色列表需另行检查；工具已注册不代表当前会话或子 fork
+已经发现 package agents。全新 Pi 1.1.0 进程中的原生持久化子会话已通过 `pwd`
+探针验证：只收到子代理职责提示，没有 Core 或主会话 hook。
+构建与独立打包验证使用 `npm run test-pi` 和
 `npm run smoke:pi-package`。详见
 [`plugins/do-it-pi/README.md`](../plugins/do-it-pi/README.md)。
 
-## Kimi Code
+## Grok Build
 
-Kimi Code 直接把仓库根当作插件——无需构建、无生成式插件包。根目录
-`kimi.plugin.json` 直接引用 `./skills/do-it/`、`./commands/` 与 `./hooks/`：
-
-```text
-/plugins install https://github.com/tdwhere123/do-it
-```
-
-然后 `/reload`（或开新会话）。安装为 per-user，落在
-`$KIMI_CODE_HOME/plugins/managed/do-it/` 并以该受管副本运行；更新需重新安装。
-
-隔离本地冒烟（不碰真实 Kimi home）：
+使用生成的 `plugins/do-it-grok/`，插件名为 `do-it-grok`。仓库根可能与 Claude
+marketplace 中名为 `do-it` 的插件冲突，因此不是 Grok 的安装目标。生成插件包后，
+在 checkout 根目录运行：
 
 ```bash
-export KIMI_CODE_HOME=/tmp/do-it-kimi-test
-# 在指向本 checkout 的 Kimi Code 会话中：
-#   /plugins install /path/to/do-it
-#   /reload
-# 确认 12 个 skill 可见、`/do-it:skip` 可用，并用一轮 prompt + Edit + stop
-# 触发 sessionStart/kernel-context、evidence-observer、
-# 精简上下文和源代码编辑检查。
-# 无实机会话时至少跑：
-npm run validate:kimi-plugin
+npm run build:generated
+node scripts/build-grok-plugin.mjs
+agent plugin validate plugins/do-it-grok
+agent plugin install "$(pwd)/plugins/do-it-grok" --trust
+agent inspect --json
 ```
 
-Kimi 提供完整技能和三个命令、精简上下文及编辑检查。内置代理机制与便携自定义
-代理包不同。详见[Kimi 说明](../skills/do-it/references/host-kimi.md)。
+上述命令使用 Grok Build 原生 `agent` 可执行文件（已核实的宿主版本为 1.0.46）。
+刷新 Plugins 页或启动新会话，检查 `do-it-grok` 下实际加载的来源路径、技能名和
+代理名；仅在插件列表中出现不能证明发现时哪个来源生效。插件包包含 12 个规范技能
+和 10 个生成式 Markdown 专业代理。
+
+UserPromptSubmit 仅更新轮次状态，不输出 Core 上下文。
+Grok 钩子协议与 Claude 不同：prompt/session 钩子的输出不能证明模型收到引导上下文。
+PostToolUse 可在工具结果之后传递上下文。适配器在首个工具完成后交付 Core，
+并非首个动作之前；实际宿主执行仍需独立证据。
+Grok 不复制 Claude 的严格外部操作配置。详见
+[Grok 宿主说明（英文）](../skills/do-it/references/host-grok.md)。
 
 ## 可选 / 遗留：`do-it setup`
 
 CLI setup 仍可用于 doctor、临时 home 冒烟，以及从旧全局安装迁移。**不是**
 推荐的首选安装方式。优先走插件 marketplace；setup 只做镜像或迁移——不要同时
 启用插件安装与一套仍存活的、受 do-it 管理的遗留全局镜像。用户自己定义的全局
-agent 可以独立保留。
+agent 可以独立保留。上面的 Codex agent-only 命令是插件交付的补充，
+不会建立遗留的 skills/hooks 镜像。
 
 ```bash
 npm install -g https://github.com/tdwhere123/do-it/archive/refs/heads/main.tar.gz
@@ -177,6 +181,6 @@ do-it doctor
 
 ```bash
 npm pack
-npm install -g ./tdwhere-do-it-0.16.0.tgz
+npm install -g ./tdwhere-do-it-0.18.1.tgz
 do-it setup   # 可选 / 遗留全局拷贝
 ```

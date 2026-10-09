@@ -11,7 +11,6 @@ VALIDATOR="$REPO_ROOT/scripts/validate-runtime-events.mjs"
 HOOKS_JSON="$REPO_ROOT/hooks/hooks.json"
 CODEX_HOOKS="$REPO_ROOT/install/codex-hooks.json"
 CURSOR_HOOKS="$REPO_ROOT/install/cursor-hooks.json"
-KIMI_PLUGIN="$REPO_ROOT/kimi.plugin.json"
 RUN_HOOK="$REPO_ROOT/hooks/run-hook.cmd"
 
 PASS=0
@@ -75,7 +74,7 @@ _assert_schema() {
   return 0
 }
 
-echo "Case 1: Claude/Cursor/Pi/Kimi edit payloads share schema 1"
+echo "Case 1: Claude/Cursor/Pi edit payloads share schema 1"
 (
   _observe_edit() {
     local repo payload
@@ -89,7 +88,6 @@ echo "Case 1: Claude/Cursor/Pi/Kimi edit payloads share schema 1"
   _observe_edit '{session_id:"claude",cwd:$cwd,tool_name:"Edit",tool_input:{file_path:$file}}' || exit $?
   _observe_edit '{conversation_id:"cursor",cwd:$cwd,hook_event_name:"afterFileEdit",file_path:$file}' || exit $?
   _observe_edit '{session_id:"pi",cwd:$cwd,tool_name:"Edit",tool_input:{path:$file}}' || exit $?
-  _observe_edit '{session_id:"kimi",cwd:$cwd,hook_event_name:"PostToolUse",tool_name:"Write",tool_input:{file_path:$file}}' || exit $?
 
   repo="$(_setup_repo)"
   file="$repo/README"
@@ -115,22 +113,19 @@ echo "Case 2: shell/test payloads share schema; missing exit is partial"
   repo="$(_setup_repo)"
   claude="$(jq -nc --arg cwd "$repo" \
     '{session_id:"s2",cwd:$cwd,tool_name:"Bash",tool_input:{command:"npm test"},tool_response:{exit_code:0,stdout:"ok"}}')"
-  opencode="$(jq -nc --arg cwd "$repo" \
-    '{session_id:"s2",cwd:$cwd,tool_name:"Bash",tool_input:{command:"npm test"},tool_response:{exit_code:0,output:"ok"}}')"
   pi="$(jq -nc --arg cwd "$repo" \
     '{session_id:"s2",cwd:$cwd,tool_name:"bash",tool_input:{command:"npm test"},tool_response:{exit_code:0,output:"ok"}}')"
-  kimi="$(jq -nc --arg cwd "$repo" \
+  missing="$(jq -nc --arg cwd "$repo" \
     '{session_id:"s2",cwd:$cwd,hook_event_name:"PostToolUse",tool_name:"Bash",tool_input:{command:"npm test"}}')"
   printf '%s\n' "$claude" | DO_IT_EVENT_HOST=claude bash "$OBSERVER" >/dev/null
-  printf '%s\n' "$opencode" | DO_IT_EVENT_HOST=opencode bash "$OBSERVER" >/dev/null
   printf '%s\n' "$pi" | DO_IT_EVENT_HOST=pi bash "$OBSERVER" >/dev/null
-  printf '%s\n' "$kimi" | DO_IT_EVENT_HOST=kimi bash "$OBSERVER" >/dev/null
+  printf '%s\n' "$missing" | DO_IT_EVENT_HOST=claude bash "$OBSERVER" >/dev/null
   log="$repo/.do-it/runtime/events/evidence.jsonl"
-  [[ "$(_event_count "$repo")" == "4" ]] || exit 31
+  [[ "$(_event_count "$repo")" == "3" ]] || exit 31
   kinds="$(jq -r .kind "$log" | tr '\n' ' ')"
-  [[ "$kinds" == "test test test test " ]] || exit 32
+  [[ "$kinds" == "test test test " ]] || exit 32
   hosts="$(jq -r .host "$log" | tr '\n' ' ')"
-  [[ "$hosts" == "claude opencode pi kimi " ]] || exit 33
+  [[ "$hosts" == "claude pi claude " ]] || exit 33
   last="$(tail -n1 "$log")"
   _assert_schema "$last" test || exit $((40 + $?))
   jq -e 'has("exit_code")' <<<"$last" >/dev/null && exit 34
@@ -139,7 +134,7 @@ echo "Case 2: shell/test payloads share schema; missing exit is partial"
   nojq_repo="$(_setup_repo)"
   nojq="$(jq -nc --arg cwd "$nojq_repo" \
     '{session_id:"s2",cwd:$cwd,hook_event_name:"PostToolUse",tool_name:"Bash",tool_input:{command:"npm test"}}')"
-  printf '%s\n' "$nojq" | DO_IT_FORCE_NO_JQ=1 DO_IT_EVENT_HOST=kimi bash "$OBSERVER" >/dev/null
+  printf '%s\n' "$nojq" | DO_IT_FORCE_NO_JQ=1 DO_IT_EVENT_HOST=claude bash "$OBSERVER" >/dev/null
   nojq_last="$(_last_event "$nojq_repo")" || exit 91
   jq -e 'has("exit_code")' <<<"$nojq_last" >/dev/null && exit 92
   [[ "$(jq -r .worktree.coverage <<<"$nojq_last")" == "partial" ]] || exit 93
@@ -153,13 +148,13 @@ echo "Case 2: shell/test payloads share schema; missing exit is partial"
   node "$VALIDATOR" "$log" >/dev/null || exit 39
 )
 case "$?" in
-  0)  _pass "shell facts share schema; Kimi missing exit is partial, never complete" ;;
+  0)  _pass "shell facts share schema; missing exit is partial, never complete" ;;
   31) _fail "shell event count mismatch" ;;
   32) _fail "shell kinds mismatch" ;;
   33) _fail "shell hosts mismatch" ;;
-  34) _fail "Kimi missing exit invented exit_code" ;;
-  35) _fail "Kimi missing exit did not record partial coverage" ;;
-  36) _fail "Kimi missing exit summary was not unavailable" ;;
+  34) _fail "missing exit invented exit_code" ;;
+  35) _fail "missing exit did not record partial coverage" ;;
+  36) _fail "missing exit summary was not unavailable" ;;
   91) _fail "no-jq missing exit did not write a row" ;;
   92) _fail "no-jq missing exit invented exit_code" ;;
   93) _fail "no-jq missing exit coverage was not partial" ;;
@@ -170,7 +165,7 @@ case "$?" in
 esac
 
 echo "Case 3: diagnostic hook remains available without automatic registration"
-if grep -q 'evidence-observer.sh' "$RUN_HOOK" && ! grep -q 'evidence-observer' "$HOOKS_JSON" "$CODEX_HOOKS" "$CURSOR_HOOKS" "$KIMI_PLUGIN"; then
+if grep -q 'evidence-observer.sh' "$RUN_HOOK" && ! grep -q 'evidence-observer' "$HOOKS_JSON" "$CODEX_HOOKS" "$CURSOR_HOOKS"; then
   _pass "observer available for explicit diagnostics, absent from default native wiring"
 else
   _fail "diagnostic default wiring drift"

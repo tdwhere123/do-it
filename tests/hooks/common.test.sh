@@ -310,25 +310,25 @@ case "$?" in
 esac
 
 # -------------------------------------------------------------------------
-echo "Case 5b: KIMI_CODE_HOME session root sits between OPENCODE_DATA and CODEX_HOME"
+echo "Case 5b: explicit adapter data precedes the Codex session root"
 (
   _isolate_env ""
-  unset DO_IT_HOOK_DATA CURSOR_PLUGIN_DATA CLAUDE_PLUGIN_DATA PLUGIN_DATA OPENCODE_DATA
-  export KIMI_CODE_HOME=/tmp/doit-test-kimi-home
+  unset CURSOR_PLUGIN_DATA CLAUDE_PLUGIN_DATA PLUGIN_DATA
+  export DO_IT_HOOK_DATA=/tmp/doit-test-adapter-data
   export CODEX_HOME=/tmp/doit-test-codex-home
-  rm -rf "$KIMI_CODE_HOME" "$CODEX_HOME"
+  rm -rf "$DO_IT_HOOK_DATA" "$CODEX_HOME"
   source "$COMMON"
-  d="$(do_it_session_dir kimi-level)"
-  [[ "$d" == "$KIMI_CODE_HOME/do-it-data/sessions/kimi-level" ]] || exit 55
-  unset KIMI_CODE_HOME
-  d="$(do_it_session_dir kimi-level)"
-  [[ "$d" == "$CODEX_HOME/do-it-data/sessions/kimi-level" ]] || exit 56
-  rm -rf /tmp/doit-test-kimi-home /tmp/doit-test-codex-home
+  d="$(do_it_session_dir adapter-level)"
+  [[ "$d" == "$DO_IT_HOOK_DATA/sessions/adapter-level" ]] || exit 55
+  unset DO_IT_HOOK_DATA
+  d="$(do_it_session_dir adapter-level)"
+  [[ "$d" == "$CODEX_HOME/do-it-data/sessions/adapter-level" ]] || exit 56
+  rm -rf /tmp/doit-test-adapter-data /tmp/doit-test-codex-home
 )
 case "$?" in
-  0)  _pass "KIMI_CODE_HOME wins over CODEX_HOME; CODEX_HOME applies after unset" ;;
-  55) _fail "KIMI_CODE_HOME level not used for session dir" ;;
-  56) _fail "CODEX_HOME fallback after KIMI_CODE_HOME unset broken" ;;
+  0)  _pass "adapter data wins over CODEX_HOME; CODEX_HOME applies after unset" ;;
+  55) _fail "adapter data level not used for session dir" ;;
+  56) _fail "CODEX_HOME fallback after adapter data unset broken" ;;
   *)  _fail "subshell crashed (exit=$?)" ;;
 esac
 
@@ -377,34 +377,31 @@ case "$?" in
 esac
 
 # -------------------------------------------------------------------------
-echo "Case 16: Kimi protocol helpers (prompt array + plain-text emit)"
+echo "Case 16: structured prompt text and explicitly selected output format"
 (
-  _isolate_env "/tmp/doit-test-kimi-proto"
+  _isolate_env "/tmp/doit-test-context-proto"
   source "$COMMON"
-  # Kimi Code sends prompt as a ContentPart array; other hosts send a string.
   arr='{"prompt":[{"type":"text","text":"line one"},{"type":"text","text":"line two"}]}'
   got="$(do_it_json_get_prompt "$arr")"
   [[ "$got" == $'line one\nline two' ]] || exit 161
   [[ "$(do_it_json_get_prompt '{"prompt":"plain prompt"}')" == "plain prompt" ]] || exit 162
   [[ -z "$(do_it_json_get_prompt '{}')" ]] || exit 163
-  # Emit: Kimi gets plain text (its stdout goes verbatim into context);
-  # Claude-shaped hosts keep the hookSpecificOutput JSON envelope.
-  export KIMI_CODE_HOME="/tmp/doit-test-kimi-proto/home"
-  out_kimi="$(do_it_emit_context UserPromptSubmit "kimi note")"
-  [[ "$out_kimi" == "kimi note" ]] || exit 164
-  unset KIMI_CODE_HOME
+  export DO_IT_CONTEXT_OUTPUT=plain
+  out_plain="$(do_it_emit_context UserPromptSubmit "plain note")"
+  [[ "$out_plain" == "plain note" ]] || exit 164
+  unset DO_IT_CONTEXT_OUTPUT
   out_json="$(do_it_emit_context UserPromptSubmit "json note")"
   printf '%s' "$out_json" | jq -e '.hookSpecificOutput.additionalContext == "json note"' >/dev/null || exit 165
   exit 0
 )
 case "$?" in
-  0)   _pass "prompt array extracts; emit switches plain text vs JSON envelope" ;;
+  0)   _pass "prompt array extracts; explicit output format selects plain text or JSON" ;;
   161) _fail "ContentPart array prompt not extracted" ;;
   162) _fail "plain string prompt broke" ;;
   163) _fail "missing prompt not empty" ;;
-  164) _fail "kimi emit not plain text" ;;
-  165) _fail "non-kimi emit lost JSON envelope" ;;
-  *)   _fail "kimi proto case crashed (exit=$?)" ;;
+  164) _fail "explicit plain output lost its format" ;;
+  165) _fail "default output lost JSON envelope" ;;
+  *)   _fail "context protocol case crashed (exit=$?)" ;;
 esac
 
 # -------------------------------------------------------------------------

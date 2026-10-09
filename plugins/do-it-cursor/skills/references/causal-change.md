@@ -1,9 +1,9 @@
 # Causal Change
 
-Detail behind the Build Kernel loop in `do-it-code-quality`. Load this when
-the hot path is not enough: cone vs adjacency, Patch-or-Prepare, depth,
-feedback construction, comments, worktrees, merges, mocks, or optimization.
-These details supplement the principles in do-it-core.
+Detail behind the causal ownership and evidence guidance in `do-it-code-quality`.
+Load this when a concrete question needs more detail on scope, structural
+preparation, feedback construction, comments, worktrees, merges, mocks, or
+optimization. These details supplement the principles in do-it-core.
 
 ## Causal Cone
 
@@ -29,10 +29,12 @@ root cause / semantic authority
 + the feedback path that can prove the change
 ```
 
-Prefer existing depth before a new abstraction. One adapter is a hypothetical
-seam; two adapters are a real one. Inline thin wrappers and Phase-2
-scaffolding. Reuse a live path before forking a second home for the same
-truth.
+Prefer existing capabilities before a new abstraction. Judge adapters and
+wrappers by the contracts they preserve and the reasoning or change costs they
+add, not their consumer count. Preserve necessary compatibility, validation,
+and ownership boundaries; remove unsupported scaffolding or forwarding layers
+only when evidence supports simplification. Reuse a live path before forking a
+second home for the same truth.
 
 **Phases, not piles:** keep compute, apply/persist, and audit/side-effect in
 separate phases when mixing them would block a local durable change.
@@ -77,13 +79,14 @@ TDD is how feedback is built at a real seam, not a ceremony.
   tighten or add a real-path check.
 - Mechanical or docs-only edits may skip RED; say why.
 
-Debugging is Trace then Locate: symptom → reproduce → one hypothesis →
-smallest falsifier → fix the cause → regression proof (Core).
+For debugging, reproduce the symptom and trace the earliest causal divergence.
+Use a discriminating observation to test the explanation, repair the responsible
+owner, and verify the affected contract with regression evidence.
 
 ## Consolidation and Stop
 
-After Prove, settle only accidental complexity that sits on a natural
-boundary inside the changed cone and is cheap to prove behavior-preserving.
+Once evidence supports the correction, settle only accidental complexity on a
+natural boundary inside the changed cone that is cheap to prove behavior-preserving.
 Once causal closure is proven, stop. Do not tour adjacent cleanup.
 
 Use independent specialists when their evidence or conclusions can improve the work. The parent integrates and verifies.

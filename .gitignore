@@ -15,6 +15,5 @@
 !/dist/claude/skills/
 !/dist/claude/skills/**
 node_modules/
-plugins/do-it-opencode/node_modules/
 plugins/do-it-pi/node_modules/
 plugins/do-it-pi/.test-dist/

@@ -5,7 +5,44 @@ investigation, not a quota of findings or a requirement to apply every category
 to every file. Existing [review lenses](../../references/review-lenses.md),
 [architecture judgment](../../do-it-architecture/SKILL.md), and the
 [stateful scan](../../references/stateful-change-scan.md) remain the owners of
-their general guidance.
+their general guidance. The parent dispatches only the questions needed for each
+assigned lens, excerpting the relevant passages rather than asking each delegate
+to read this entire file. Do not distribute an all-role directory or section list
+to every child. Follow a reference only to answer a concrete question; links do
+not require transitive loading of the reference tree.
+
+## Architecture and structural costs
+
+Inspect module responsibilities, dependency direction, coupling, interfaces, and
+abstraction levels against actual producers and consumers. Do boundaries hide
+volatile details or merely force coordinated edits across modules? Trace data
+and state from creation through mutation, persistence, projection, and retirement;
+identify lifecycle ownership and conflicting sources of truth. Establish actual
+structural costs such as change propagation, dependency cycles, interface leakage,
+or difficult isolated verification. A preferred layering pattern alone is not a
+finding; preserve required behavior and compatibility when assessing structure.
+
+## Maintainability and safe simplification
+
+Treat maintainability as a substantive default perspective alongside correctness
+and architecture. Find dead or unreachable code and unconsumed exports, checking
+dynamic registration, reflection, plugins, package exports, generated consumers,
+and externally delivered APIs before calling them unused. Search absence alone
+is insufficient evidence for deletion.
+
+Look for redundant mechanisms and parallel implementations of the same rule;
+unnecessary abstractions, forwarding wrappers, speculative configuration, state,
+and obsolete compatibility paths; and hand-rolled behavior existing primitives
+can replace. Judge split and control-flow cost by how many places a maintainer
+must understand or change together. Naming, types, errors, and tests matter when
+they obscure contracts, hide failures, or make safe changes harder.
+
+Support deletion, merge, or reuse opportunities with concrete consumer/contract
+evidence and maintenance costs; a runtime defect is not required. Preserve
+security and trust validation, business behavior, accessibility, error guarantees,
+and actual compatibility commitments. Size, TODOs, style preference, or a single
+consumer alone do not establish needless complexity. Initial reviewers report
+opportunities and evidence, withholding repair prescriptions until synthesis.
 
 ## Meaning, identity, and authority
 
@@ -75,14 +112,13 @@ For frontends, inspect the owner of user-visible state, stale async completions,
 cancellation, optimistic recovery, and whether derived UI state hides a domain
 failure. Apply only the parts relevant to the application.
 
-## Dependencies, delivery, and maintainability
+## Dependencies and delivery
 
 Look beyond unused imports: consider execution privileges, transitive weight,
 maintenance and license fit, upgrade constraints, and the actual build artifact.
 Trace installation, configuration defaults, migrations, rollback, and which
 shipped copy a user executes. Distinguish source tests from package integration.
 
-Judge duplication by whether it permits competing meanings or missed updates,
-not syntax alone. Check documentation against current contracts and examples.
-A long file or TODO does not establish a defect; identify the concrete reasoning,
-change, or operating risk before recommending a structural change.
+Check documentation against current contracts and examples. Investigate copied
+implementations through their shared rule and actual shipped consumers, using
+the maintainability perspective above.

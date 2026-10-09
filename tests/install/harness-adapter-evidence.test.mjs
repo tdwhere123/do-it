@@ -25,7 +25,7 @@ test("hook-manifest ships evidence-observer on every host bundle list", () => {
 });
 
 test("default native wiring excludes automatic diagnostics and retired gates", () => {
-  for (const config of ["hooks/hooks.json", "install/codex-hooks.json", "install/cursor-hooks.json", "kimi.plugin.json"]) {
+  for (const config of ["hooks/hooks.json", "install/codex-hooks.json", "install/cursor-hooks.json"]) {
     assert.doesNotMatch(JSON.stringify(readJson(config)), /evidence-observer|verification-gate|network-admission|adaptive-context|behavior-feedback/);
   }
 });

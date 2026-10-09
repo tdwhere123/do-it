@@ -43,16 +43,11 @@ export function validateRelease(tag, repoRoot = defaultRepoRoot) {
 	}
 
 	const expectedVersion = match[1];
-	const openCodeLock = readJson(
-		repoRoot,
-		"plugins/do-it-opencode/package-lock.json",
-	);
 	const piLock = readJson(repoRoot, "plugins/do-it-pi/package-lock.json");
 	const versions = [
 		["package.json", readJson(repoRoot, "package.json").version],
 		["manifest.json", readJson(repoRoot, "manifest.json").version],
 		["index.json", readJson(repoRoot, "index.json").version],
-		["kimi.plugin.json", readJson(repoRoot, "kimi.plugin.json").version],
 		[
 			"Claude plugin metadata",
 			readJson(repoRoot, ".claude-plugin/plugin.json").version,
@@ -67,16 +62,14 @@ export function validateRelease(tag, repoRoot = defaultRepoRoot) {
 			readJson(repoRoot, "plugins/do-it/.codex-plugin/plugin.json").version,
 		],
 		[
+			"Grok Build plugin metadata",
+			readJson(repoRoot, "plugins/do-it-grok/.grok-plugin/plugin.json").version,
+		],
+		[
 			"Cursor plugin metadata",
 			readJson(repoRoot, "plugins/do-it-cursor/.cursor-plugin/plugin.json")
 				.version,
 		],
-		[
-			"OpenCode package metadata",
-			readJson(repoRoot, "plugins/do-it-opencode/package.json").version,
-		],
-		["OpenCode package lock", openCodeLock.version],
-		["OpenCode package lock root", openCodeLock.packages?.[""]?.version],
 		[
 			"Pi package metadata",
 			readJson(repoRoot, "plugins/do-it-pi/package.json").version,

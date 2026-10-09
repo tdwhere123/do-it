@@ -104,8 +104,7 @@ do_it_json_get() {
   fi
 }
 
-# Get the submitted prompt text. Hosts disagree on shape: Claude/Codex/Cursor/
-# OpenCode send a plain string; Kimi Code sends a ContentPart array.
+# Get submitted prompt text from a string or structured text content.
 do_it_json_get_prompt() {
   local json="$1"
   if [[ "$DO_IT_HAVE_JQ" == "1" ]]; then
@@ -183,19 +182,15 @@ _do_it_ensure_runtime_git_exclude() {
 }
 
 # Compute a session-scoped data dir. Caller is responsible for mkdir.
-# Canonical resolution order — mirrored by install/manage.mjs
-# (sessionsBaseDir), plugins/do-it-opencode/src/bridge.ts
-# (resolveSessionStateDir), and docs/harness-adapter-matrix.md; keep all
-# four in sync:
-#   1. $CURSOR_PLUGIN_DATA/sessions   (Cursor plugin data)
-#   2. $CLAUDE_PLUGIN_DATA/sessions   (host-provided plugin data)
-#   3. $PLUGIN_DATA/sessions          (Codex plugin data; also set via DO_IT_HOOK_DATA in hooks.json)
-#   4. $DO_IT_HOOK_DATA/sessions      (explicit override / wrapped PLUGIN_DATA)
-#   5. $OPENCODE_DATA/sessions        (OpenCode plugin data)
-#   6. $KIMI_CODE_HOME/do-it-data/sessions  (Kimi Code; never KIMI_PLUGIN_ROOT — managed, read-only)
-#   7. $CODEX_HOME/do-it-data/sessions
-#   8. ${TMPDIR:-/tmp}/do-it-sessions
-# A writable check guards (1)–(7) so an unwritable mount silently falls
+# Canonical resolution order — mirrored by install/manage.mjs (sessionsBaseDir)
+# and docs/harness-adapter-matrix.md; keep all three in sync:
+#   1. $CURSOR_PLUGIN_DATA/sessions
+#   2. $CLAUDE_PLUGIN_DATA/sessions
+#   3. $PLUGIN_DATA/sessions          (native plugin data)
+#   4. $DO_IT_HOOK_DATA/sessions      (adapter override)
+#   5. $CODEX_HOME/do-it-data/sessions
+#   6. ${TMPDIR:-/tmp}/do-it-sessions
+# A writable check guards (1)–(5) so an unwritable mount silently falls
 # through. The repo-root path also ensures `.do-it/runtime/` is gitignored.
 do_it_session_dir() {
   local session_id_in="${1:-}"
@@ -274,18 +269,6 @@ do_it_session_dir() {
       base="$candidate"
     fi
   fi
-  if [[ -z "$base" && -n "${OPENCODE_DATA:-}" ]]; then
-    candidate="${OPENCODE_DATA%/}/sessions"
-    if mkdir -p "$candidate" 2>/dev/null && [[ -w "$candidate" ]]; then
-      base="$candidate"
-    fi
-  fi
-  if [[ -z "$base" && -n "${KIMI_CODE_HOME:-}" ]]; then
-    candidate="${KIMI_CODE_HOME%/}/do-it-data/sessions"
-    if mkdir -p "$candidate" 2>/dev/null && [[ -w "$candidate" ]]; then
-      base="$candidate"
-    fi
-  fi
   if [[ -z "$base" && -n "${CODEX_HOME:-}" ]]; then
     candidate="${CODEX_HOME%/}/do-it-data/sessions"
     if mkdir -p "$candidate" 2>/dev/null && [[ -w "$candidate" ]]; then
@@ -301,7 +284,11 @@ do_it_session_dir() {
 
 # Compact context delivery. Native host policy owns permissions.
 do_it_kernel_body() {
-  printf '%s' 'Do-it: preserve the user goal, settled decisions, and authorization boundary, including review-only and no-write scope; prior authorization remains valid; work from current facts and distinguish assumptions; fix the causal owner with necessary scope; support claims with relevant actual evidence and name gaps. Choose useful skills directly. Independent contexts can test assumptions; the parent integrates and verifies.'
+  local context_file="${BASH_SOURCE[0]%/*}/../data/core-context.txt" body
+  [[ -f "$context_file" && -r "$context_file" ]] || return 1
+  body="$(cat -- "$context_file" 2>/dev/null)" || return 1
+  [[ -n "$body" ]] || return 1
+  printf '%s' "$body"
 }
 
 # Deliver once per session. User intent remains in the conversation; this helper
@@ -309,7 +296,7 @@ do_it_kernel_body() {
 do_it_kernel_context_collect() {
   local session_id="${1:-}" transcript="${4:-}" kernel_body last_kernel
   if do_it_in_subagent_context "$transcript"; then return 0; fi
-  kernel_body="$(do_it_kernel_body)"
+  kernel_body="$(do_it_kernel_body)" || return 0
   last_kernel="$(do_it_session_state_get "$session_id" kernel_text)"
   if [[ "$last_kernel" != "$kernel_body" ]]; then
     printf '%s' "$kernel_body"
@@ -852,13 +839,10 @@ _do_it_json_escape() {
 }
 
 # Emit additionalContext system-reminder via JSON. Args: <event-name> <text>.
-# Kimi Code does not parse hookSpecificOutput.additionalContext: stdout is
-# appended to context verbatim (wrapped in <hook_result>). Emit plain text on
-# that host; the JSON envelope is for Claude-shaped hosts.
+# Adapters can explicitly request plain text; otherwise use host-shaped JSON.
 do_it_emit_context() {
   local event="$1" text="$2"
-  if [[ "${DO_IT_CONTEXT_OUTPUT:-}" == "plain" \
-     || -n "${KIMI_CODE_HOME:-}" || -n "${KIMI_PLUGIN_ROOT:-}" ]]; then
+  if [[ "${DO_IT_CONTEXT_OUTPUT:-}" == "plain" ]]; then
     printf '%s\n' "$text"
     return 0
   fi

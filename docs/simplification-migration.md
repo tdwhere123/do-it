@@ -17,7 +17,7 @@ pointers also remain untouched and inert.
 it does not enable learning events. `/do-it-skip` is a compatibility notice.
 `DO_IT_ROUTER_MODE` no longer selects a runtime. Evidence collection defaults to
 off; `DO_IT_EVIDENCE_MODE=observe` enables explicitly requested diagnostics in
-Pi/OpenCode. Other hosts can explicitly register or invoke the observer. Event
+Pi. Other hosts can explicitly register or invoke the observer. Event
 records are observations, not proof of task acceptance.
 
 Host permissions remain authoritative for enforced access and side effects. The

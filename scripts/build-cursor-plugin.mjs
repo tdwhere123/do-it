@@ -4,12 +4,12 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { ALL_SKILLS } from "./skill-tiers.mjs";
+import { parseAgentToml } from "./lib/agent-source.mjs";
 import { rewritePluginReferenceLinks } from "./lib/rewrite-plugin-ref-links.mjs";
 import {
   readJson,
   writeJsonAtomic,
   assertVersionParity,
-  copyAgentsDir,
   copyHookScripts
 } from "./lib/plugin-build.mjs";
 import { CURSOR_HOOK_FILES } from "./lib/hook-manifest.mjs";
@@ -22,7 +22,7 @@ const pkg = readJson(path.join(repoRoot, "package.json"));
 const pluginRoot = path.join(repoRoot, "plugins", "do-it-cursor");
 const pluginManifestDir = path.join(pluginRoot, ".cursor-plugin");
 const skillsSource = path.join(repoRoot, "skills", "do-it");
-const agentsSource = path.join(repoRoot, "dist", "claude", "agents");
+const agentsSource = path.join(repoRoot, "agents");
 const hooksSource = path.join(repoRoot, "hooks");
 const cursorHooksSource = path.join(repoRoot, "install", "cursor-hooks.json");
 
@@ -60,7 +60,23 @@ function copySkills() {
 }
 
 function copyAgents() {
-  copyAgentsDir(agentsSource, path.join(pluginRoot, "agents"));
+  const targetDir = path.join(pluginRoot, "agents");
+  fs.rmSync(targetDir, { recursive: true, force: true });
+  fs.mkdirSync(targetDir, { recursive: true });
+  for (const file of fs.readdirSync(agentsSource).filter((name) => name.endsWith(".toml")).sort()) {
+    const agent = parseAgentToml(fs.readFileSync(path.join(agentsSource, file), "utf8"));
+    const content = [
+      "---",
+      `name: ${agent.name}`,
+      `description: ${JSON.stringify(agent.description ?? "")}`,
+      ...(agent.sandbox_mode === "read-only" ? ["readonly: true"] : []),
+      "---",
+      "",
+      (agent.developer_instructions ?? "").trimEnd(),
+      ""
+    ].join("\n");
+    fs.writeFileSync(path.join(targetDir, file.replace(/\.toml$/, ".md")), content);
+  }
 }
 
 function copyHooks() {
@@ -123,7 +139,7 @@ function main() {
 
   console.log(
     `built Cursor plugin -> ${path.relative(repoRoot, pluginRoot)} ` +
-      `(${skillCount} skills, ${agentCount} agents; agents require npm run build:generated)`
+      `(${skillCount} skills, ${agentCount} agents)`
   );
 }
 

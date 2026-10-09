@@ -5,15 +5,16 @@ description: "Use when repository work needs a shared baseline for intent, facts
 
 # Do-It Core
 
-Preserve the user's goal, settled decisions, and authorization boundary. Work
-from current facts and keep assumptions distinguishable. Fix the causal owner
-with the scope necessary to close the problem. Support claims with relevant
-actual evidence and name the gaps.
-
-Choose methods that fit the task. Specialist skills offer professional judgment;
-they do not prescribe a workflow. Use native host permissions where access or side-effect enforcement is needed. User authorization already given remains valid within its scope.
-A review, diagnosis, or planning request authorizes inspection and reporting,
-not implementation. An explicit no-write request also applies to delegated work.
+<!-- do-it:core-context:start -->
+Preserve the user's goal, settled decisions, and authorization boundary. Prior
+authorization remains valid within its scope. Review, diagnosis, and planning
+authorize inspection and reporting, not implementation; explicit no-write scope
+also applies to delegates. Use native host permissions for enforcement. Work from
+current facts and distinguish assumptions. Fix the causal owner with necessary
+scope. Support claims with relevant actual evidence and name gaps. Choose useful
+skills and methods for the task, without prescribed workflow phases. Independent
+contexts gather evidence and test assumptions; the parent integrates and verifies.
+<!-- do-it:core-context:end -->
 
 Optional questions to guide reasoning:
 

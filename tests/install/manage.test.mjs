@@ -30,7 +30,9 @@ const manifest = JSON.parse(
 const MANIFEST_VERSION = manifest.version;
 const CODEX_PLUGIN_VERSION = JSON.parse(
   fs.readFileSync(
-    path.join(repoRoot, "plugins", "do-it", ".codex-plugin", "plugin.json"),
+    fs.existsSync(path.join(repoRoot, "plugins", "do-it", "plugin.json"))
+      ? path.join(repoRoot, "plugins", "do-it", "plugin.json")
+      : path.join(repoRoot, "plugins", "do-it", ".codex-plugin", "plugin.json"),
     "utf8"
   )
 ).version;
@@ -184,12 +186,13 @@ function enableDoItPlugin(
     "do-it",
     version
   );
-  fs.mkdirSync(path.join(bundleRoot, ".codex-plugin"), { recursive: true });
-  fs.copyFileSync(
-    path.join(sourceRoot, ".codex-plugin", "plugin.json"),
-    path.join(bundleRoot, ".codex-plugin", "plugin.json")
-  );
-  fs.cpSync(path.join(sourceRoot, "agents"), path.join(bundleRoot, "agents"), {
+  for (const relative of ["plugin.json", ".codex-plugin/plugin.json"]) {
+    const source = path.join(sourceRoot, relative);
+    if (!fs.existsSync(source)) continue;
+    fs.mkdirSync(path.dirname(path.join(bundleRoot, relative)), { recursive: true });
+    fs.copyFileSync(source, path.join(bundleRoot, relative));
+  }
+  fs.cpSync(path.join(repoRoot, "agents"), path.join(bundleRoot, "agents"), {
     recursive: true
   });
 }
@@ -207,16 +210,16 @@ function createCachebusterPackageFixture(root) {
     { recursive: true }
   );
 
-  const pluginManifestPath = path.join(
-    packageRoot,
-    "plugins",
-    "do-it",
-    ".codex-plugin",
-    "plugin.json"
-  );
+  const pluginRoot = path.join(packageRoot, "plugins", "do-it");
+  const pluginManifestPath = fs.existsSync(path.join(pluginRoot, "plugin.json"))
+    ? path.join(pluginRoot, "plugin.json")
+    : path.join(pluginRoot, ".codex-plugin", "plugin.json");
   const pluginManifest = JSON.parse(fs.readFileSync(pluginManifestPath, "utf8"));
   pluginManifest.version = `${MANIFEST_VERSION}+codex.test-cachebuster`;
-  fs.writeFileSync(pluginManifestPath, `${JSON.stringify(pluginManifest, null, 2)}\n`);
+  for (const relative of ["plugin.json", ".codex-plugin/plugin.json"]) {
+    const dest = path.join(pluginRoot, relative);
+    if (fs.existsSync(dest)) fs.writeFileSync(dest, `${JSON.stringify(pluginManifest, null, 2)}\n`);
+  }
 
   return { packageRoot, pluginVersion: pluginManifest.version };
 }
@@ -263,26 +266,21 @@ test("install populates a fresh codex root with a versioned state file", () => {
   }
 });
 
-test("Codex legacy install leaves canonical agents to the marketplace plugin", () => {
+test("Codex install delivers canonical agents to native discovery", () => {
   const root = freshRoot("codex-plugin-agents");
   try {
-    assert.equal(
-      manifest.targets.codex.installAgents,
-      false,
-      "manifest must make the plugin the only canonical Codex agent source"
-    );
     const result = runManage(["install"], { CODEX_HOME: root });
     assert.equal(result.status, 0, result.stderr);
     assert.ok(
-      !fs.existsSync(path.join(root, "agents", "code-mapper.toml")),
-      "optional global install must not recreate plugin-owned agents"
+      fs.existsSync(path.join(root, "agents", "code-mapper.toml")),
+      "global install must deliver native agents"
     );
     const state = JSON.parse(
       fs.readFileSync(path.join(root, ".do-it-install-state.json"), "utf8")
     );
     assert.ok(
-      !Object.keys(state.entries).some((target) => target.startsWith("agents/")),
-      "install state must not claim plugin-owned canonical agents"
+      Object.keys(state.entries).some((target) => target.startsWith("agents/")),
+      "install state must record native agent ownership"
     );
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
@@ -452,7 +450,7 @@ test("migrate-legacy defaults to a read-only inventory of proven do-it targets",
     const result = runManage(["migrate-legacy"], { CODEX_HOME: root });
     assert.equal(result.status, 0, result.stderr);
     assert.match(result.stdout, /mode: dry-run/);
-    assert.match(result.stdout, /REMOVABLE legacy-agent:code-mapper/);
+    assert.doesNotMatch(result.stdout, /REMOVABLE legacy-agent:code-mapper/);
     assert.match(result.stdout, /REMOVABLE deprecated-agent:architect-reviewer/);
     assert.doesNotMatch(result.stdout, /personal-agent/);
     assert.ok(fs.existsSync(canonical), "dry-run must not remove canonical agent");
@@ -518,7 +516,7 @@ test("migrate-legacy --apply removes only proven targets and keeps recoverable b
     const result = runManage(["migrate-legacy", "--apply"], { CODEX_HOME: root });
     assert.equal(result.status, 0, result.stderr);
     assert.match(result.stdout, /mode: apply/);
-    assert.ok(!fs.existsSync(canonical), "proven legacy canonical agent should be removed");
+    assert.ok(fs.existsSync(canonical), "current canonical native agent must be preserved");
     assert.ok(!fs.existsSync(retired), "proven deprecated agent should be removed");
     assert.ok(fs.existsSync(personal), "unrelated global agent must stay untouched");
 
@@ -531,10 +529,7 @@ test("migrate-legacy --apply removes only proven targets and keeps recoverable b
     const backupIds = fs.readdirSync(backupBase);
     assert.equal(backupIds.length, 1, "one persistent migration backup is expected");
     const backupRoot = path.join(backupBase, backupIds[0]);
-    assert.equal(
-      fs.readFileSync(path.join(backupRoot, "agents", "code-mapper.toml"), "utf8"),
-      canonicalAgentContent()
-    );
+    assert.ok(!fs.existsSync(path.join(backupRoot, "agents", "code-mapper.toml")));
     assert.equal(
       fs.readFileSync(path.join(backupRoot, "agents", "architect-reviewer.toml"), "utf8"),
       retiredContent
@@ -570,9 +565,8 @@ test("migrate-legacy --apply preserves ambiguous agents while cleaning proven ta
     });
 
     const result = runManage(["migrate-legacy", "--apply"], { CODEX_HOME: root });
-    assert.equal(result.status, 1, result.stdout || result.stderr);
-    assert.match(result.stdout, /REFUSED legacy-agent:code-mapper/);
-    assert.match(result.stderr, /Legacy migration incomplete/);
+    assert.equal(result.status, 0, result.stdout || result.stderr);
+    assert.doesNotMatch(result.stdout, /legacy-agent:code-mapper/);
     assert.ok(fs.existsSync(canonical), "ambiguous canonical agent must remain");
     assert.ok(!fs.existsSync(retired), "independently proven deprecated agent should be removed");
     assert.ok(
@@ -584,7 +578,7 @@ test("migrate-legacy --apply preserves ambiguous agents while cleaning proven ta
   }
 });
 
-test("migrate-legacy --apply requires an enabled and verified marketplace bundle", () => {
+test("migrate-legacy preserves native agents without a marketplace bundle", () => {
   const root = freshRoot("legacy-plugin-required");
   const canonical = path.join(root, "agents", "code-mapper.toml");
   try {
@@ -593,11 +587,9 @@ test("migrate-legacy --apply requires an enabled and verified marketplace bundle
     fs.writeFileSync(canonical, canonicalAgentContent());
 
     const result = runManage(["migrate-legacy", "--apply"], { CODEX_HOME: root });
-    assert.equal(result.status, 1, result.stdout || result.stderr);
-    assert.match(result.stdout, /plugin source of truth: UNCONFIRMED/);
-    assert.match(result.stdout, /installed plugin bundle is missing/);
-    assert.match(result.stderr, /until do-it@tdwhere-do-it is enabled and its current plugin bundle is verified/);
-    assert.ok(fs.existsSync(canonical), "plugin preflight failure must not remove legacy agent");
+    assert.equal(result.status, 0, result.stdout || result.stderr);
+    assert.match(result.stdout, /current canonical native agents are preserved/);
+    assert.ok(fs.existsSync(canonical), "native agent must remain without a plugin bundle");
     assert.ok(
       !fs.existsSync(path.join(root, ".do-it-legacy-migration-backups")),
       "plugin preflight failure must not create a backup/migration"
@@ -607,7 +599,7 @@ test("migrate-legacy --apply requires an enabled and verified marketplace bundle
   }
 });
 
-test("migrate-legacy --apply rejects an enabled plugin with stale agent content", () => {
+test("migrate-legacy ignores stale cached plugin agents", () => {
   const root = freshRoot("legacy-stale-plugin");
   const canonical = path.join(root, "agents", "code-mapper.toml");
   const installedAgent = path.join(
@@ -627,21 +619,20 @@ test("migrate-legacy --apply rejects an enabled plugin with stale agent content"
     fs.writeFileSync(canonical, canonicalAgentContent());
 
     const result = runManage(["migrate-legacy", "--apply"], { CODEX_HOME: root });
-    assert.equal(result.status, 1, result.stdout || result.stderr);
-    assert.match(result.stdout, /plugin source of truth: UNCONFIRMED/);
-    assert.match(result.stdout, /installed plugin agents .* do not match this do-it package/);
-    assert.ok(fs.existsSync(canonical), "stale plugin bundle must not permit removal");
+    assert.equal(result.status, 0, result.stdout || result.stderr);
+    assert.ok(fs.existsSync(canonical), "native role must remain regardless of cached plugin files");
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
 
-test("migrate-legacy --apply rejects a stale generated Codex agent bundle", () => {
+test("migrate-legacy ignores generated Codex agent bundle content", () => {
   const root = freshRoot("legacy-stale-generated-bundle");
   const canonical = path.join(root, "agents", "code-mapper.toml");
   try {
     const { packageRoot, pluginVersion } = createCachebusterPackageFixture(root);
     const packagePluginRoot = path.join(packageRoot, "plugins", "do-it");
+    fs.mkdirSync(path.join(packagePluginRoot, "agents"), { recursive: true });
     fs.appendFileSync(
       path.join(packagePluginRoot, "agents", "code-mapper.toml"),
       "\n# stale generated fixture\n"
@@ -659,19 +650,14 @@ test("migrate-legacy --apply rejects a stale generated Codex agent bundle", () =
     const result = runManageAt(packageRoot, ["migrate-legacy", "--apply"], {
       CODEX_HOME: root
     });
-    assert.equal(result.status, 1, result.stdout || result.stderr);
-    assert.match(result.stdout, /plugin source of truth: UNCONFIRMED/);
-    assert.match(
-      result.stdout,
-      /package plugin agents .* do not match canonical agents .* run npm run build:codex-plugin/
-    );
-    assert.ok(fs.existsSync(canonical), "stale generated bundle must not permit removal");
+    assert.equal(result.status, 0, result.stdout || result.stderr);
+    assert.ok(fs.existsSync(canonical), "generated plugin files must not authorize native role removal");
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
 
-test("migrate-legacy derives the Codex cache directory from a cachebuster plugin version", () => {
+test("migrate-legacy never uses a cachebuster plugin bundle as native replacement proof", () => {
   const root = freshRoot("legacy-cachebuster");
   const canonical = path.join(root, "agents", "code-mapper.toml");
   try {
@@ -695,11 +681,8 @@ test("migrate-legacy derives the Codex cache directory from a cachebuster plugin
       CODEX_HOME: root
     });
     assert.equal(result.status, 0, result.stdout || result.stderr);
-    assert.ok(
-      result.stdout.includes(path.join("do-it", pluginVersion)),
-      "migration should verify the cachebuster-named bundle rather than the base manifest version"
-    );
-    assert.ok(!fs.existsSync(canonical), "verified cachebuster bundle should permit proven cleanup");
+    assert.doesNotMatch(result.stdout, /verified bundle/);
+    assert.ok(fs.existsSync(canonical), "cachebuster bundles cannot replace native role discovery");
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }

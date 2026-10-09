@@ -1,8 +1,11 @@
 # Minimal Evidence-Carrying Execution Kernel
 
 > Historical design exploration. Current user-approved behavior is the simpler
-> product described in README and docs/simplification-migration.md; old adaptive,
-> classification, and completion-gate proposals below are not active instructions.
+> product described in [README](../../README.md), [current architecture](../architecture.md),
+> and [migration](../simplification-migration.md). “Current” and “Target” below
+> refer to the 0.16.0 baseline and its historical plan, not the 0.18.1 contract.
+> Old adaptive, classification, completion-gate, and retired-host proposals are
+> not active instructions.
 
 
 Architecture freeze for the upgrade from do-it `0.16.0` to a smaller,

@@ -1,5 +1,5 @@
 {
-  "version": "0.18.0",
+  "version": "0.18.1",
   "skillTiers": {
     "core": [
       "do-it-core",
@@ -130,7 +130,7 @@
       "rootEnv": "CODEX_HOME",
       "rootDefault": "$HOME/.codex",
       "stateFile": ".do-it-install-state.json",
-      "installAgents": false,
+      "installAgents": true,
       "agentSourceFrom": "agents",
       "agentSourceExt": ".toml",
       "agentTargetExt": ".toml",
@@ -143,6 +143,12 @@
           "legacyHashes": [
             "3ad92bd21dd919e2c1095b848016a0c64566229a1c847a1e9f9b45a763a08f95"
           ]
+        },
+        {
+          "name": "hooks-codex-post-tool",
+          "kind": "file",
+          "source": "hooks/codex-post-tool.sh",
+          "target": "hooks/codex-post-tool.sh"
         },
         {
           "name": "codex-hooks-json",
@@ -200,7 +206,7 @@
       "rootEnv": "CURSOR_PLUGIN_ROOT_OVERRIDE",
       "rootDefault": "$HOME/.cursor/plugins/local/do-it-cursor",
       "stateFile": ".do-it-install-state-cursor.json",
-      "agentSourceFrom": "dist/claude/agents",
+      "agentSourceFrom": "plugins/do-it-cursor/agents",
       "agentSourceExt": ".md",
       "agentTargetExt": ".md",
       "extras": [

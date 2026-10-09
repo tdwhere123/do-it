@@ -201,7 +201,7 @@ echo "Case 7: FORCE_COVERAGE=partial rewrites complete without jq"
   source "$EVENTS"
   repo="$(_setup_repo)"
   do_it_observed_epoch_bump "$repo" >/dev/null
-  DO_IT_EVENT_FORCE_COVERAGE=partial DO_IT_EVENT_HOST=kimi \
+  DO_IT_EVENT_FORCE_COVERAGE=partial DO_IT_EVENT_HOST=claude \
     do_it_runtime_event_append test observed "exit unavailable" "$repo"
   line="$(head -n1 "$(do_it_evidence_log_path "$repo")")"
   [[ "$(jq -r .worktree.coverage <<<"$line")" == "partial" ]] || exit 71

@@ -17,11 +17,13 @@ alias only. Choose useful skills directly from descriptions.
 
 Independent specialists gather evidence and form conclusions in scoped contexts.
 Keep read-only and write ownership restrictions explicit; the parent integrates
-and verifies. Host permissions enforce configured access and side effects.
+and verifies. Generated Markdown maps the eight canonical read-only roles to
+`disallowedTools: Edit, Write, NotebookEdit`. Bash remains available; these
+denials are not a filesystem sandbox. Verify active host permissions separately.
 
 ## Diagnostics and migration
 
-Diagnostics default off. For Pi/OpenCode, set `DO_IT_EVIDENCE_MODE=observe` in the
+Diagnostics default off. For Pi, set `DO_IT_EVIDENCE_MODE=observe` in the
 host environment. Other hosts can explicitly register `evidence-observer.sh` on
 the desired tool-result event with that setting, or invoke it manually with a
 host-shaped JSON payload on stdin. Cursor uses `run-hook.cmd evidence-observer`.
