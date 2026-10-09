@@ -156,7 +156,22 @@ function runManageAt(packageRoot, args, env) {
 }
 
 function runManage(args, env) {
-  return runManageAt(repoRoot, args, env);
+  // Cursor preInstall rebuilds its source bundle. Keep that destructive build
+  // away from the checkout read concurrently by local-install and release tests.
+  const packageRoot = args.includes("--target=cursor")
+    ? cursorPackageFixture(env.HOME)
+    : repoRoot;
+  return runManageAt(packageRoot, args, env);
+}
+
+function cursorPackageFixture(home) {
+  const packageRoot = path.join(home, "cursor-package");
+  if (!fs.existsSync(packageRoot)) {
+    for (const entry of ["install", "scripts", "agents", "skills", "hooks", "manifest.json", "package.json"]) {
+      fs.cpSync(path.join(repoRoot, entry), path.join(packageRoot, entry), { recursive: true });
+    }
+  }
+  return packageRoot;
 }
 
 function freshRoot(label) {
@@ -917,15 +932,25 @@ test("cursor doctor rejects a stale discovery-copy version", () => {
   }
 });
 
-test("cursor target installs plugin bundle with cursor hooks.json", () => {
+test("cursor target builds an isolated plugin bundle and installs cursor hooks.json", () => {
   const home = freshRoot("cursor-home");
   const pluginRoot = path.join(home, "cursor-plugin");
+  const sharedHooks = path.join(repoRoot, "plugins", "do-it-cursor", "hooks", "hooks.json");
+  const sharedContent = fs.readFileSync(sharedHooks, "utf8");
+  const sharedStat = fs.statSync(sharedHooks, { bigint: true });
   try {
     const result = runManage(["install", "--target=cursor"], {
       HOME: home,
       CURSOR_PLUGIN_ROOT_OVERRIDE: pluginRoot
     });
     assert.equal(result.status, 0, result.stderr);
+    const fixtureHooks = path.join(home, "cursor-package", "plugins", "do-it-cursor", "hooks", "hooks.json");
+    assert.equal(fs.readFileSync(fixtureHooks, "utf8"), sharedContent);
+    assert.equal(fs.readFileSync(sharedHooks, "utf8"), sharedContent);
+    const afterStat = fs.statSync(sharedHooks, { bigint: true });
+    for (const field of ["ino", "mtimeNs", "ctimeNs"]) {
+      assert.equal(afterStat[field], sharedStat[field], `shared hooks ${field} must not change during fixture build`);
+    }
 
     const statePath = path.join(pluginRoot, ".do-it-install-state-cursor.json");
     assert.ok(fs.existsSync(statePath), "cursor state file should exist");

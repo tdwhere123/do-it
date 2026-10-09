@@ -49,14 +49,15 @@ done <<< "$PATCH"
 
 SEEN=()
 CONTEXT=""
-for target in "${TARGETS[@]}"; do
+# Bash 3.2 treats empty arrays as unset under nounset.
+for target in ${TARGETS[@]+"${TARGETS[@]}"}; do
   [[ "$target" == /* ]] || target="$PWD/$target"
   # Retain the final path component so the canonical symlink guard still sees it.
   [[ -f "$target" && ! -L "$target" ]] || continue
   directory="$(cd -- "${target%/*}" 2>/dev/null && pwd -P)" || continue
   target="$directory/${target##*/}"
   duplicate=0
-  for seen in "${SEEN[@]}"; do
+  for seen in ${SEEN[@]+"${SEEN[@]}"}; do
     if [[ "$seen" == "$target" ]]; then duplicate=1; break; fi
   done
   [[ "$duplicate" == 0 ]] || continue

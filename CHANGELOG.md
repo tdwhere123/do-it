@@ -18,6 +18,9 @@
   options, preserve unrelated roles, and resolve aliases before writing managed
   native files. Install roots may sit beneath platform directory aliases such as
   macOS `/var`; the managed root and native targets retain symlink protection.
+  Native patch checks preserve clean output and path deduplication on Bash 3.2.
+- **Installation tests:** isolate Cursor rebuilds from the checkout so parallel
+  release checks never read a temporarily removed generated hooks directory.
 - **Claude and Cursor:** quote plugin paths; explicit native strict validation of
   `.claude-plugin/plugin.json` passed, separately from root marketplace validation. Eight
   Claude reader roles deny Edit, Write, and NotebookEdit, while Bash remains

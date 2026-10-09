@@ -69,6 +69,16 @@ with tempfile.TemporaryDirectory(prefix='do-it-codex-post-tool-') as temporary:
     assert not (root / 'BACKTICK').exists() and not (repo / 'BACKTICK').exists()
     print('PASS: multi-file native patch, move, deletion, dedup, guards, metacharacters, no-jq, one JSON')
 
+    (repo / 'clean.ts').write_text('const answer = 1;\n')
+    for session, extra in [('clean', {}), ('clean-no-jq', {'DO_IT_FORCE_NO_JQ': '1'})]:
+        for label, clean_patch in [
+            ('file', '*** Begin Patch\n*** Add File: clean.ts\n+const answer = 1;\n*** End Patch'),
+            ('delete', '*** Begin Patch\n*** Delete File: deleted.ts\n*** End Patch'),
+        ]:
+            output = run(event(session + '-' + label, tool_input={'command': clean_patch}), extra)
+            assert output == '', (session, label, output)
+    print('PASS: clean file and deletion-only patch emit no advisory with jq or fallback')
+
     for tool in ['Edit', 'Write', 'MultiEdit', 'NotebookEdit', 'StrReplace', 'EditNotebook']:
         text = context(run(event('legacy-' + tool, tool, {'path': 'updated.ts'})))
         assert 'edit on updated.ts matched ' in text and 'swallow-error' in text
