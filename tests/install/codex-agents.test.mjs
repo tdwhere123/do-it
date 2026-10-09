@@ -107,6 +107,13 @@ for (const config of [
   '[agents.personal]\nconfig_file = "external.toml"\nconfig_file = "second.toml"\n',
   '[agents.personal]\ndescription = "first"\n[agents.personal]\ndescription = "second"\n',
   `[agents.personal]\nconfig_file = ["external.toml"]\n`,
+  `agents.${agent} = true\n`,
+  `agents = { "${agent}" = 8 }\n`,
+  '[agents]\npersonal = [{ config_file = "external.toml" }]\n',
+  'agents.personal = []\n',
+  'agents = true\n',
+  '[agents]\nenabled = true\nenabled = false\n',
+  `[[agents.personal]]\nconfig_file = "external.toml"\n`,
   `[agents.personal\nconfig_file = "external.toml"\n`
 ]) {
   test(`agent-only install refuses config collision: ${config.split("\n")[0]}`, (t) => {
@@ -133,6 +140,9 @@ for (const config of [
 }
 
 const harmlessConfigs = [
+  '[agents]\nenabled = true\nmax_concurrent_threads_per_session = 8\n',
+  'agents.enabled = true\nagents.max_concurrent_threads_per_session = 8\n',
+  'agents = { enabled = true, max_concurrent_threads_per_session = 8 }\n',
   '# Ask a reviewer before merging; config_file is optional\n',
   "developer_instructions = 'Use a reviewer before merging'\n",
   'developer_instructions = """Use a reviewer.\n[agents.reviewer]\nconfig_file = \\"agents/reviewer.toml\\"\n"""\n',
@@ -258,6 +268,53 @@ test("unrelated native role survives agent-only installation", (t) => {
   put(root, "agents/team/personal.toml", personal);
   assert.equal(run(root).status, 0);
   assert.equal(fs.readFileSync(path.join(root, "agents/team/personal.toml"), "utf8"), personal);
+});
+
+for (const existing of [false, true]) {
+  test(`native install and doctor permit a directory alias ancestor (existing root: ${existing})`, (t) => {
+    const base = fixture(t);
+    const physical = path.join(base, "physical");
+    const alias = path.join(base, "alias");
+    fs.mkdirSync(physical);
+    fs.symlinkSync(physical, alias, process.platform === "win32" ? "junction" : "dir");
+    const root = path.join(alias, "codex");
+    if (existing) fs.mkdirSync(root);
+    for (const command of ["setup", "doctor"]) {
+      const result = run(root, command);
+      assert.equal(result.status, 0, result.stderr + result.stdout);
+    }
+    assert.equal(fs.readFileSync(path.join(physical, "codex", target), "utf8"), source);
+    assert.ok(fs.lstatSync(alias).isSymbolicLink());
+  });
+}
+
+test("native install rejects a symlink or junction at the managed root without writes", (t) => {
+  const base = fixture(t);
+  const physical = path.join(base, "physical");
+  const root = path.join(base, "codex");
+  fs.mkdirSync(physical);
+  fs.symlinkSync(physical, root, process.platform === "win32" ? "junction" : "dir");
+  const result = run(root);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /Refusing non-directory or symlink install root component/);
+  assert.deepEqual(fs.readdirSync(physical), []);
+  assert.ok(fs.lstatSync(root).isSymbolicLink());
+});
+
+test("native install beneath an ancestor alias still rejects physical config_file aliases", (t) => {
+  const base = fixture(t);
+  const physical = path.join(base, "physical");
+  const alias = path.join(base, "alias");
+  fs.mkdirSync(physical);
+  fs.symlinkSync(physical, alias, process.platform === "win32" ? "junction" : "dir");
+  const root = path.join(alias, "codex");
+  const config = `[agents.personal]\nconfig_file = ${JSON.stringify(path.join(physical, "codex", target))}\n`;
+  put(root, "config.toml", config);
+  const result = run(root);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /role conflict/);
+  assert.deepEqual(fs.readdirSync(root), ["config.toml"]);
+  assert.equal(fs.readFileSync(path.join(root, "config.toml"), "utf8"), config);
 });
 
 test("agent-only install refuses symlink agent directory and corrupt state", (t) => {

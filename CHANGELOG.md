@@ -14,8 +14,10 @@
   isolated comparison. The final native repository-bundle read returned twelve
   skills and three hook declarations with Skills/Hooks capabilities. Native roles install separately with
   `do-it setup --target=codex --only=agents`; discovery is not execution proof.
-  Collision checks ignore comments and instruction examples, preserve unrelated
-  roles, and resolve aliases before writing managed native files.
+  Collision checks ignore comments and instruction examples, accept scalar host
+  options, preserve unrelated roles, and resolve aliases before writing managed
+  native files. Install roots may sit beneath platform directory aliases such as
+  macOS `/var`; the managed root and native targets retain symlink protection.
 - **Claude and Cursor:** quote plugin paths; explicit native strict validation of
   `.claude-plugin/plugin.json` passed, separately from root marketplace validation. Eight
   Claude reader roles deny Edit, Write, and NotebookEdit, while Bash remains

@@ -816,7 +816,10 @@ function treesMatch(sourcePath, targetPath) {
 function assertNativePathsSafe() {
   if (targetName !== "codex") return;
   for (let current = installRoot; ; current = path.dirname(current)) {
-    const stat = pathState(current);
+    let stat = pathState(current);
+    // Ancestors may be platform directory aliases (such as macOS /var).
+    // Follow those aliases, but keep the managed root itself strictly unlinked.
+    if (current !== installRoot && stat?.isSymbolicLink()) stat = fs.statSync(current);
     if (stat && (stat.isSymbolicLink() || !stat.isDirectory())) {
       throw new Error(`Refusing non-directory or symlink install root component: ${current}`);
     }
@@ -957,8 +960,9 @@ function inspectCodexRoleToml(text, names = null) {
       take("}");
       return;
     }
-    if (isConfigRole(parts) && (parts.length === 1 ||
-        (parts.length === 2 && !["max_threads", "max_depth", "job_max_runtime_seconds"].includes(parts[1])))) fail();
+    // Host-wide scalar options share the agents namespace with role tables.
+    // Canonical names were checked above; arrays remain ambiguous role structures.
+    if (isConfigRole(parts) && (parts.length === 1 || (parts.length === 2 && at("[")))) fail();
     if (isConfigRole(parts) && parts.length === 3 && parts[2] === "config_file") {
       const token = tokens[cursor];
       if (token?.kind !== "string") fail();
@@ -966,7 +970,7 @@ function inspectCodexRoleToml(text, names = null) {
       const resolved = resolveCodexAliasPath(alias);
       if (canonicalAgentEntries.some((entry) => {
         const managed = resolveHomePath(entry.target);
-        return alias === managed || resolved === managed;
+        return alias === managed || resolved === resolveCodexAliasPath(managed);
       })) fail();
     }
     const start = cursor;
