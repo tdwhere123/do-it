@@ -12,7 +12,11 @@ that the intended items or assertions were actually checked: a validator that
 inspects nothing cannot establish that its target is valid.
 
 Consider whether evidence is stale, from another checkout, unrelated, simulated,
-or incomplete. Local tests can establish local behavior without establishing
+or incomplete. A green result can be manufactured: tests special-cased to the
+fixture, hard-coded expected values, weakened or skipped assertions, deleted
+failing tests, swallowed errors, or fallbacks that produce the expected output
+without the intended mechanism. Check that the passing check would fail if the
+claimed behavior were absent. Local tests can establish local behavior without establishing
 production operation. Reproduce the original symptom when verifying a bug fix
 and cover materially affected paths that share its cause. Choose evidence from
 the causal claim, not a fixed test count; a plausible diff or an unrelated green

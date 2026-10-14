@@ -1,5 +1,8 @@
 # Coverage and Evidence
 
+Contents: examined population; layers and chains; accounting for inspection;
+the evidentiary chain.
+
 ## Define the examined population
 
 Record the repository revision and relevant working-tree changes. Enumerate the
@@ -34,11 +37,39 @@ These are possible treatments, not permission to omit material the user included
 Resolve a scope-changing exclusion with the user. Do not treat an excluded or
 unread file as clean, or shrink the agreed scope merely to claim completion.
 
+## Layers and chains
+
+Layers are levels of question, not directories. Each catches defects the others
+cannot:
+
+- **Unit:** local behavior, error handling, and reachability within a file.
+- **Module boundary:** responsibility, dependency direction, interface shape,
+  and whether a boundary hides volatile detail or forces coordinated edits.
+- **Contract:** agreement between producers and consumers across modules,
+  including serialization, copied state, lifecycle transitions, and alternate
+  entry points.
+- **Delivery:** build, installation, generated copies, configuration defaults,
+  migrations, and documentation against the artifact a user actually runs.
+- **Intent:** the promises the project states in its README, specifications,
+  instructions, and tests, compared with delivered behavior.
+
+Apply a layer where the map shows something to ask at that level; a small
+private helper rarely needs delivery or intent questions.
+
+A chain is an end-to-end path from an entry (command, request, event, hook,
+install or build step, scheduled job) through admission, transformation, state,
+effect, and recovery. Select the chains that carry the project's stated
+promises, cross trust boundaries, mutate durable state, or deliver shipped
+artifacts. Prefer a few complete chains to many partial ones. One reader follows
+each selected chain across every hop so that a dropped field, a bypassed guard,
+or a disagreeing copy is visible in one context. Record each chain's hops, the
+contracts checked at each, and where it stopped being followed.
+
 ## Account for inspection, not tool activity
 
-The parent keeps a compact coverage map in working context: inventory and base
-inspection owners, substantive inspection evidence, cross-file contract checks,
-independent synthesis, and remaining work. Assignment is not inspection; file
+The parent keeps a compact coverage map in working context: inventory and
+inspection owners, substantive inspection evidence, layers asked, chains
+followed, independent synthesis, and remaining work. Assignment is not inspection; file
 inspection is not contract coverage; neither substitutes for synthesis. Delegates
 return compact scope and gaps, not separate exhaustive ledgers. No mandatory
 Markdown artifact, new storage format, or on-disk ledger is needed.
@@ -48,7 +79,8 @@ Keep these distinctions explicit:
 - Inventoried, assigned, or searched, but not substantively inspected.
 - Partially inspected, with bounded remaining questions or file regions.
 - Substantively inspected for file-appropriate risks, with supporting evidence.
-- Cross-file contracts checked, or still pending, independently of file coverage.
+- Chains followed end to end, partially followed with a named stopping hop, or
+  still pending, independently of file coverage.
 - Independently synthesized findings, with unresolved disputes or uncertainty.
 - Excluded, with the reason and any alternative evidence.
 
@@ -65,11 +97,9 @@ inspections and rejected candidates. Refresh only what changed or what a gap,
 critical uncertainty, conflict, or new finding puts in doubt. Do not reset the
 inventory or repeat full reads just to produce a formal complete status.
 
-Module slices help distribute the inventory. Risk perspectives can cross those
-slices: check producer-consumer agreement, alternate entry points, copied state,
-serialization, lifecycle transitions, and test/configuration wiring. A collection
-of locally clean files can still violate a shared contract. Avoid both unowned
-files and unnecessary repeated full reads by every specialist.
+Module slices distribute file inspection; chains cross those slices. Avoid both
+unowned files and repeated full reads by readers whose lenses could have shared
+one reading.
 
 ## Preserve the evidentiary chain
 

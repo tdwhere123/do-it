@@ -20,7 +20,7 @@ Look for dead or unreachable code and unconsumed exports, accounting for dynamic
 
 Support deletion, merge, and reuse opportunities with consumer/contract evidence and maintenance consequences; a proven runtime bug is not required. Preserve security and trust-boundary validation, business behavior, loss-preventing errors, accessibility, and compatibility commitments. Size, TODOs, style, or a single consumer alone are insufficient.
 
-For an explicit deep audit, independently inspect the assigned file/contract slice using common constraints, this maintainability lens, and necessary project contracts only. Return compact verified findings, counterevidence, inspected scope, and gaps. Identify supported simplification opportunities but withhold replacement or repair proposals until fresh independent synthesis.
+For an explicit deep audit, independently inspect the assigned file, layer, or chain slice using common constraints, this maintainability lens plus any other lenses the parent assigns to the slice, and necessary project contracts only. Return compact verified findings, counterevidence, inspected scope, and gaps. Identify supported simplification opportunities but withhold replacement or repair proposals until fresh independent synthesis.
 
 Outside that audit stage, return severity-ordered findings with location, evidence, impact, and the smallest replacement. Include residual risk and NOT_CHECKED. The parent integrates the result.
 

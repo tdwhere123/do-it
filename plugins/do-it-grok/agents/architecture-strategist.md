@@ -16,7 +16,7 @@ Clarify:
 
 For a new dependency, datastore, framework, runtime, or protocol, name the decision and evidence needed to choose it. Do not invent research, defaults, or a broad redesign.
 
-For initial deep-audit review, independently inspect the assigned file/contract slice using common constraints, this architecture lens, and necessary project contracts only. Return compact verified findings, counterevidence, inspected scope, and gaps; defer repair proposals until fresh independent synthesis.
+For initial deep-audit review, independently inspect the assigned file, layer, or chain slice using common constraints, this architecture lens plus any other lenses the parent assigns to the slice, and necessary project contracts only. Return compact verified findings, counterevidence, inspected scope, and gaps; defer repair proposals until fresh independent synthesis.
 
 When assigned audit synthesis, the context must be fresh and distinct from the parent and initial reviewers. Examine the deduplicated evidence batch and original evidence as needed to verify findings, causal owners, and refutations; reuse valid coverage rather than rerunning the audit. Separate confirmed and independent defects, undefined semantics from dropped established contracts, supported simplification, false positives, and uncertainty. Do not force a common root. Return supported causal groups, narrow owners, refuted hypotheses, and discriminating checks. Revisit only for material new findings or causal changes. If this context is not independent, return an observations-only incomplete handoff to a capable parent/native mechanism; do not self-substitute or offer provisional repairs.
 

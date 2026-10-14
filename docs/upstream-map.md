@@ -78,7 +78,7 @@ not as installed skill names or vendored text:
 | Source-driven context and security posture | `do-it-decide`, `do-it-context`, `do-it-review` | Research-first comparison for new surfaces; untrusted external-context boundary. |
 | Performance and release proof discipline | `do-it-code-quality`, `do-it-verify`, `docs/maintenance.md` | Measure/verify before claiming readiness. |
 | `observability-and-instrumentation` | `do-it-code-quality`, `do-it-verify` | Named production evidence surface (log / metric / trace) as done-ness; `runs in production` claims need production-side evidence. |
-| `documentation-and-adrs`; mattpocock ADR practice | `do-it-handbook` | Optional `decisions.md` promotion — one file, one paragraph per permanently settled route. |
+| `documentation-and-adrs`; mattpocock ADR practice | `do-it-context` | Optional `decisions.md` promotion — one file, one paragraph per permanently settled route. |
 | `doubt-driven-development` | `do-it-decide` | Fresh-context challenge applies in-flight while deciding, not only on finished diffs. |
 
 Useful ideas from `gsd-build/get-shit-done` and `gsd-build/gsd-2` are absorbed
@@ -101,7 +101,7 @@ decision and contract mechanics, not as a mandatory brainstorm/plan pipeline:
 | Session-settled decisions stay closed | `do-it-decide` | `[user]` / `[evidence]` / `[choice]` stay settled unless new evidence appears; `[assumption]` stays open. |
 | Ask only decisions; facts first | `do-it-decide` | Read local truth first; ask only a user-owned decision that changes the route. |
 | Readiness vs implementation-time unknown | `do-it-decide`, `task-contract.md` | Planning-time unknowns must be resolved or deferred before a durable contract; implementation unknowns stay in Open. |
-| Artifact size follows the task | `do-it-handbook`, `do-it-decide` | Persist an execution contract only when earned; no fixed multi-file plan ceremony. |
+| Artifact size follows the task | `do-it-context`, `do-it-decide` | Persist an execution contract only when earned; no fixed multi-file plan ceremony. |
 
 Rejected from that source: default grounding scouts, mandatory multi-stage
 pipelines, and per-plan reviewer deepening.

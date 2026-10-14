@@ -28,6 +28,5 @@ Links resolve beside this index in the installed or packaged skills directory. T
 
 ## Handbook & maintenance
 
-- [**do-it-handbook**](./do-it-handbook/SKILL.md) — Use when repeated rediscovery of stable project knowledge makes a small shared handbook useful.
-- [**do-it-context**](./do-it-context/SKILL.md) — Use when project terms, relationships, or invariants drift between user language, docs, and implementation.
-- [**do-it-skill-authoring**](./do-it-skill-authoring/SKILL.md) — Use when creating or revising a do-it skill so its trigger and unique professional judgment are useful without prescribing ceremony.
+- [**do-it-context**](./do-it-context/SKILL.md) — Use when project terms, relationships, or invariants drift between user language, docs, and implementation, or when stable project knowledge keeps being rediscovered or the user asks to document it.
+- [**do-it-skill-authoring**](./do-it-skill-authoring/SKILL.md) — Use when creating or revising a do-it skill, its description, references, or specialist delegation guidance so it adds needed judgment without prescribing ceremony.

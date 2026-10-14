@@ -24,7 +24,6 @@ export const EXTENDED_ON_DEMAND = [
 ];
 
 export const EXTENDED_MAINTENANCE = [
-  "do-it-handbook",
   "do-it-context",
   "do-it-skill-authoring"
 ];

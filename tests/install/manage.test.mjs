@@ -1020,8 +1020,8 @@ test("cursor target builds an isolated plugin bundle and installs cursor hooks.j
       "cursor install should ship the full skill set"
     );
     assert.ok(
-      fs.existsSync(path.join(pluginRoot, "skills", "do-it-handbook")),
-      "extended skill do-it-handbook must install for cursor"
+      fs.existsSync(path.join(pluginRoot, "skills", "do-it-context")),
+      "extended skill do-it-context must install for cursor"
     );
     assert.ok(
       fs.existsSync(path.join(pluginRoot, "skills", "references")),

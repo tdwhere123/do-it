@@ -1,48 +1,13 @@
 # Deep Audit Lenses
 
-Choose the lenses that bear on the selected scope. These are questions for
-investigation, not a quota of findings or a requirement to apply every category
-to every file. Existing [review lenses](../../references/review-lenses.md),
-[architecture judgment](../../do-it-architecture/SKILL.md), and the
-[stateful scan](../../references/stateful-change-scan.md) remain the owners of
-their general guidance. The parent dispatches only the questions needed for each
-assigned lens, excerpting the relevant passages rather than asking each delegate
-to read this entire file. Do not distribute an all-role directory or section list
-to every child. Follow a reference only to answer a concrete question; links do
-not require transitive loading of the reference tree.
+Contents: meaning and authority; security and side effects; failure and
+recovery; performance; tests and claims; runtime data boundaries; dependencies
+and delivery.
 
-## Architecture and structural costs
-
-Inspect module responsibilities, dependency direction, coupling, interfaces, and
-abstraction levels against actual producers and consumers. Do boundaries hide
-volatile details or merely force coordinated edits across modules? Trace data
-and state from creation through mutation, persistence, projection, and retirement;
-identify lifecycle ownership and conflicting sources of truth. Establish actual
-structural costs such as change propagation, dependency cycles, interface leakage,
-or difficult isolated verification. A preferred layering pattern alone is not a
-finding; preserve required behavior and compatibility when assessing structure.
-
-## Maintainability and safe simplification
-
-Treat maintainability as a substantive default perspective alongside correctness
-and architecture. Find dead or unreachable code and unconsumed exports, checking
-dynamic registration, reflection, plugins, package exports, generated consumers,
-and externally delivered APIs before calling them unused. Search absence alone
-is insufficient evidence for deletion.
-
-Look for redundant mechanisms and parallel implementations of the same rule;
-unnecessary abstractions, forwarding wrappers, speculative configuration, state,
-and obsolete compatibility paths; and hand-rolled behavior existing primitives
-can replace. Judge split and control-flow cost by how many places a maintainer
-must understand or change together. Naming, types, errors, and tests matter when
-they obscure contracts, hide failures, or make safe changes harder.
-
-Support deletion, merge, or reuse opportunities with concrete consumer/contract
-evidence and maintenance costs; a runtime defect is not required. Preserve
-security and trust validation, business behavior, accessibility, error guarantees,
-and actual compatibility commitments. Size, TODOs, style preference, or a single
-consumer alone do not establish needless complexity. Initial reviewers report
-opportunities and evidence, withholding repair prescriptions until synthesis.
+These are audit-specific questions that the general owners named in the audit
+skill do not already cover. Choose the ones that bear on a slice or chain; they
+are not a quota of findings or a category list for every file. The parent
+excerpts only the questions a delegate needs.
 
 ## Meaning, identity, and authority
 
@@ -72,9 +37,9 @@ observed impact from an unverified threat. Do not expose secret values in report
 
 ## Failure, lifecycle, and recovery
 
-Use the stateful scan for cancellation, races, uncertain commit, replay, and
-copied state. Also inspect startup, shutdown, interrupted upgrades, and the
-actual owner of resumption or repair. Does retaining a failure status preserve
+Beyond the stateful scan's cancellation, races, uncertain commit, replay, and
+copied state, inspect startup, shutdown, interrupted upgrades, and the actual
+owner of resumption or repair. Does retaining a failure status preserve
 valid independent results? Can a later observation settle uncertainty, or does
 a defensive flag make it permanent? Does retry advance durable state or merely
 repeat cost? Ensure success is recorded after the work that could still fail.
@@ -120,5 +85,4 @@ Trace installation, configuration defaults, migrations, rollback, and which
 shipped copy a user executes. Distinguish source tests from package integration.
 
 Check documentation against current contracts and examples. Investigate copied
-implementations through their shared rule and actual shipped consumers, using
-the maintainability perspective above.
+implementations through their shared rule and actual shipped consumers.

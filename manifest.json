@@ -12,7 +12,6 @@
     "extended": [
       "do-it-audit",
       "do-it-retrospective",
-      "do-it-handbook",
       "do-it-context",
       "do-it-skill-authoring",
       "do-it-router"
@@ -618,6 +617,12 @@
       "kind": "extra",
       "target": "hooks/network-admission.sh",
       "reason": "Retired runtime component; remove only when installer ownership is proven"
+    },
+    {
+      "name": "do-it-handbook",
+      "kind": "skill",
+      "target": "skills/do-it-handbook",
+      "reason": "0.18.1: merged into do-it-context"
     }
   ],
   "skills": [
@@ -685,12 +690,6 @@
       "name": "do-it-context",
       "source": "skills/do-it/do-it-context",
       "target": "skills/do-it-context",
-      "origin": "do-it"
-    },
-    {
-      "name": "do-it-handbook",
-      "source": "skills/do-it/do-it-handbook",
-      "target": "skills/do-it-handbook",
       "origin": "do-it"
     },
     {

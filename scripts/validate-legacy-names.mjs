@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 
-// Hard-delete guard for the 0.14 meaning-centric product. Historical migration
-// references stay in CHANGELOG/manifest retirement metadata; every installed or
-// generated surface must use canonical skill names.
+// Hard-delete guard for retired skill names (0.14 meaning-centric product and
+// later merges). Historical migration references stay in CHANGELOG/manifest
+// retirement metadata; every installed or generated surface must use canonical
+// skill names.
 
 import fs from "node:fs";
 import path from "node:path";
@@ -15,7 +16,8 @@ const retired = [
   "do-it-architecture-scan", "do-it-codebase-design", "do-it-interface-drill",
   "do-it-tdd", "do-it-debugging", "do-it-subagent-orchestration",
   "do-it-review-loop", "do-it-fix-loop", "do-it-verification-gate",
-  "do-it-worktree-isolation", "do-it-branch-closeout", "do-it-comments-discipline"
+  "do-it-worktree-isolation", "do-it-branch-closeout", "do-it-comments-discipline",
+  "do-it-handbook"
 ];
 const pattern = new RegExp(`\\b(?:${retired.join("|")})\\b`, "g");
 const roots = [

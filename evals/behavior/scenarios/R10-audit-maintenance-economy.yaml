@@ -29,7 +29,7 @@ contract:
       - audit-artifacts
   acceptance:
     A1: existing public-path and generated-copy consistency tests pass without changing repository files
-    A2: establish scope and inventory before initiating independent reviewer, architecture, and cleaner perspectives on a capable host; supply lens-specific context and assigned module or contract slices instead of default whole-package repeats
+    A2: establish scope, inventory, and a system map before inspection; apply correctness, architecture, and maintainability questions where they bear on each slice, delegating only where a fresh reader, separable slice, or specialist question improves the evidence, instead of one agent per lens or default whole-package repeats
     A3: identify src/retired.mjs as unreachable maintenance burden using public exports, imports, and documented lack of dynamic discovery; lack of an internal caller alone is insufficient evidence
     A4: identify duplicate summation mechanisms in invoice and batch as an independent maintenance finding despite correct results, citing the shared documented totals rule and both implementations
     A5: identify makePipeline and its sole identity stage as unnecessary indirection on the invoice path using its sole consumer and lack of a supported extension contract; explain the change cost without inventing a runtime defect

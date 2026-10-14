@@ -287,7 +287,6 @@ export function smokePiHostLoad(packageRoot, repoRoot = defaultRepoRoot) {
 			"do-it-code-quality",
 			"do-it-context",
 			"do-it-decide",
-			"do-it-handbook",
 			"do-it-retrospective",
 			"do-it-review",
 			"do-it-router",

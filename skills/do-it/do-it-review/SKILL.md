@@ -20,12 +20,14 @@ a root. Cluster related failures, repair the rightful owner, and check the
 repair's affected surface. Re-review depth follows new changes, remaining doubt,
 and risk; no fixed number of reviewers or repair rounds applies.
 
-For explicit deep audits, [Audit](../do-it-audit/SKILL.md) governs initial
-independent review, full scoped coverage, and fresh causal synthesis before
-repair proposals. Ordinary reviews do not inherit that workflow.
+For explicit deep audits, [Audit](../do-it-audit/SKILL.md) governs file, layer,
+and chain coverage and fresh causal synthesis before repair proposals. Ordinary
+reviews do not inherit that workflow.
 
 A useful finding identifies its location, consequence, evidence, and needed
-correction (deferred until synthesis during an audit). Distinguish blocking
+correction (deferred until synthesis during an audit), and changes a decision;
+seek refuting evidence before reporting, and leave out style preference and
+unreachable hypotheticals. Distinguish blocking
 defects, important regressions, and optional improvements. Do not claim clean
 while material findings remain unresolved;
 identify anything not checked or deliberately deferred. Use the user's review

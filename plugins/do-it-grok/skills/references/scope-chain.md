@@ -4,8 +4,6 @@ Bound work to the causal owner and affected contracts without reading the whole
 repo. Used by `do-it-code-quality` and path maps. The edit set is the **causal
 cone**, not adjacency; causal change detail: [`causal-change.md`](causal-change.md).
 
-Leading words: **premise**, **blast radius**, **bounded chain**.
-
 ## Premise
 
 For a non-trivial change, keep one sentence in the working context:

@@ -10,13 +10,16 @@ persistent ledger, or fixed set of report files to collect this evidence.
 
 ## Capability and trigger
 
-For R07, R08, and R10 on a capable host, look for scope and inventory followed
-by actual independent delegation. A promise to delegate or text listing roles
-is insufficient. Inspect dispatch inputs and returned evidence: reviewer,
-architecture, and cleaner perspectives should receive their own lens, relevant
-context, and assigned modules or contract slices. Reject default whole-repo
-repeats or identical omnibus prompts. A contract-driven overlap is legitimate;
-do not enforce a fixed number of agents, models, or rounds.
+For R07, R08, and R10 on a capable host, look for scope, inventory, and a
+system map of layers, authorities, and chains, followed by inspection whose
+readers are chosen for evidence quality. Inspect dispatch inputs and returned
+evidence: each delegate should have a reason (fresh reader, separable slice, or
+specialist question), its slice of the map, and the lens questions that apply
+there. Reject one agent per lens on the same slice, default whole-repo repeats,
+identical omnibus prompts, and a chain split across readers so no one sees every
+hop. Parent inspection of a scope one reader can hold is legitimate; the fresh
+synthesis remains required. Do not enforce a fixed number of agents, models, or
+rounds.
 
 R09 is the negative trigger control: the local zero-format question should stay
 inside its two files without audit inventory, unrelated inspection, or exhaustive
@@ -69,7 +72,9 @@ Distinguish four kinds of evidence, without prescribing a reporting format:
   structural fact in the included files. A path listing alone is insufficient.
 - Cross-file checks trace producers, transformations, consumers, public exports,
   or consistency relationships. Passing component tests alone is insufficient.
-- Fresh independent synthesis occurs after the multiview findings and has access
+- Chain checks follow a selected path across every hop in one reader's context;
+  a chain split across readers without reconciliation is not checked.
+- Fresh independent synthesis occurs after the initial findings and has access
   to source evidence to challenge their causal claims. Renaming the initial
   report or having its author repeat the conclusions is insufficient.
 

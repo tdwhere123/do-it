@@ -54,11 +54,13 @@ deep audits from ordinary review:
   without redundant inspection by every delegate. Public-path tests and temporary
   removal/drift probes check these fixture facts, not model judgment.
 
-On a capable host, R07/R08/R10 require actual independent multiview delegation
-following scope and inventory. Reviewer, architecture, and cleaner perspectives
-receive their own context and assigned module or contract slices. Assigned files,
-inspected files, cross-file checks, and synthesis are distinct; reusable inspection
-is valid. No fixed agent/model/round count or persistent report ledger is required.
+R07/R08/R10 require a system map, correctness, architecture, and maintainability
+questions applied where they bear, selected chains followed end to end, and an
+actual fresh independent synthesis on a capable host. Initial readers are chosen
+for evidence quality, not one per lens; a delegate may carry several lenses.
+Assigned files, inspected files, chain checks, and synthesis are distinct;
+reusable inspection is valid. No fixed agent/model/round count or persistent
+report ledger is required.
 
 When a delegate cannot launch an independent context, R07/R08/R10 also require an
 incomplete observations-only handoff to a capable parent, not provisional repair

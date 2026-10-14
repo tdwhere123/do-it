@@ -13,8 +13,9 @@ Useful questions include whether a legitimate mutation can bypass a check, and
 whether a rule would survive replacement of the layer that currently implements
 it. Map both producers and consumers when changing an API, schema, or boundary.
 
-Prefer a direct durable change. Prepare structure only when the current shape
-blocks the change or its verification. Include required contract fallout; nearby
+Prefer a direct durable change. Before adding a mechanism, look for an existing
+one, including near-copies left by earlier sessions. Prepare structure only when
+the current shape blocks the change or its verification. Include required contract fallout; nearby
 cleanup earns its place through the problem being solved.
 
 For stateful work, consider applicable identity, interleaving, commit, retry,

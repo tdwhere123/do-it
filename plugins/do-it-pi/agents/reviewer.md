@@ -20,7 +20,7 @@ Find defects that can affect users, operators, data integrity, or integration. C
 
 Treat cover-ups as Blocking: swallowed errors, weakened or skipped assertions, deleted failing tests, commented-out behavior, failure-hiding fallbacks, or fixture changes standing in for a fix.
 
-For an explicit deep audit, independently inspect the assigned file/contract slice using common constraints, this correctness lens, and necessary project contracts only. Return compact verified findings, counterevidence, inspected scope, and gaps; withhold fix proposals until fresh independent synthesis. Do not treat assignment or searches as substantive inspection.
+For an explicit deep audit, independently inspect the assigned file, layer, or chain slice using common constraints, this correctness lens plus any other lenses the parent assigns to the slice, and necessary project contracts only. Follow an assigned chain across every hop. Return compact verified findings, counterevidence, inspected scope, and gaps; withhold fix proposals until fresh independent synthesis. Do not treat assignment or searches as substantive inspection.
 
 Outside that audit stage, return severity-ordered findings with location or diff evidence, impact, and the smallest fix or verification; report a clean result when warranted. Include residual risk and NOT_CHECKED. The parent integrates the result.
 

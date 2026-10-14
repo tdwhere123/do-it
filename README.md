@@ -42,10 +42,9 @@ Choose a skill directly when its description helps the work:
 | `do-it-architecture` | Authority, boundaries, compatibility, migration, and recovery |
 | `do-it-decide` | Decision-changing uncertainty and meaningful alternatives |
 | `do-it-review` | Requirements and implementation quality as distinct lenses |
-| `do-it-audit` | Explicit deep audits with file coverage and independent causal synthesis |
+| `do-it-audit` | Explicit deep audits with file, layer, and chain coverage and independent causal synthesis |
 | `do-it-verify` | Relevant evidence and the practical limits of delivery claims |
-| `do-it-context` | Project terminology and factual consistency |
-| `do-it-handbook` | Stable knowledge worth preserving in existing project docs |
+| `do-it-context` | Project terminology, invariants, and stable knowledge worth preserving in existing docs |
 | `do-it-retrospective` | On-demand reflection on observed outcomes |
 | `do-it-skill-authoring` | Succinct triggers, unique judgment, and necessary boundaries |
 
@@ -65,14 +64,16 @@ for example: "Use do-it-audit for the whole repository" or "Deep-audit the
 storage subsystem for recovery and data integrity." Scope and risk focus are
 separate choices; already stated choices do not require another interview.
 
-On a host with subagent support, the parent initiates independent correctness,
-architecture, and maintainability review after establishing scope and inventory.
-Specialists receive bounded module or contract slices and their own perspective;
-agent counts follow the work. Dead code, redundant mechanisms, and safe
-simplification receive substantive attention alongside functional defects.
+The parent first maps layers, authorities, and the end-to-end chains that carry
+the project's promises, then measures coverage along three dimensions: every
+included file, the layers where each question belongs, and selected chains
+followed end to end by one reader. Readers are chosen for evidence quality: a
+fresh reader, a separable slice, or a specialist question earns a delegate;
+repeated readings and split chains do not. One delegate can carry several
+lenses. Dead code, redundant mechanisms, and safe simplification receive
+substantive attention alongside functional defects.
 
-Coverage distinguishes file assignment, substantive inspection, and cross-module
-checks. Valid evidence is reused, and generated copies or assets receive suitable
+Coverage distinguishes file assignment, substantive inspection, and chain checks. Valid evidence is reused, and generated copies or assets receive suitable
 consistency or integrity checks. A fresh independent context tests the combined
 findings and causal explanations before repair recommendations, using targeted
 source checks rather than repeating the whole audit. Reports lead with diagnosis;

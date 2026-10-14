@@ -3,15 +3,15 @@
   "package": "@tdwhere/do-it",
   "repository": "https://github.com/tdwhere123/do-it",
   "domain": "agentic-workflow",
-  "total_skills": 12,
-  "total_capabilities": 12,
+  "total_skills": 11,
+  "total_capabilities": 11,
   "total_discovery_entries": 1,
   "total_agents": 10,
   "coverage": {
     "skill_groups": {
       "index": 1,
       "mainline": 6,
-      "maintenance": 3,
+      "maintenance": 2,
       "on-demand": 3
     },
     "optional_skills": []
@@ -120,7 +120,7 @@
     {
       "kind": "skill",
       "name": "do-it-context",
-      "description": "Use when project terms, relationships, or invariants drift between user language, docs, and implementation.",
+      "description": "Use when project terms, relationships, or invariants drift between user language, docs, and implementation, or when stable project knowledge keeps being rediscovered or the user asks to document it.",
       "origin": "do-it",
       "optional": false,
       "group": "maintenance",
@@ -129,18 +129,8 @@
     },
     {
       "kind": "skill",
-      "name": "do-it-handbook",
-      "description": "Use when repeated rediscovery of stable project knowledge makes a small shared handbook useful.",
-      "origin": "do-it",
-      "optional": false,
-      "group": "maintenance",
-      "source": "skills/do-it/do-it-handbook",
-      "target": "skills/do-it-handbook"
-    },
-    {
-      "kind": "skill",
       "name": "do-it-skill-authoring",
-      "description": "Use when creating or revising a do-it skill so its trigger and unique professional judgment are useful without prescribing ceremony.",
+      "description": "Use when creating or revising a do-it skill, its description, references, or specialist delegation guidance so it adds needed judgment without prescribing ceremony.",
       "origin": "do-it",
       "optional": false,
       "group": "maintenance",

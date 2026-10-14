@@ -41,14 +41,44 @@
   reference loading conditions, trigger maintenance guidance, causal verification,
   and control-to-impact security evidence without importing a workflow framework.
 
+### Skill consolidation and authoring practice
+
+- **Skill authoring:** revisions start from an observed failure captured as a
+  behavior scenario and compared against the prior skill. Descriptions state
+  triggers and near misses without summarizing procedure; specificity matches
+  fragility; load-bearing guidance comes first; references stay one level deep;
+  delegation guidance states what independence adds and when it adds nothing.
+- **Context absorbs handbook:** `do-it-handbook` and its command are retired and
+  merged into `do-it-context`, which now owns terms, invariants, and stable
+  project knowledge, including the optional bootstrap templates. Managed
+  installs remove the retired skill through `deprecatedTargets`; no alias remains.
+- **Shared review lenses:** `review-lenses.md` owns the maintainability lens
+  (moved from the audit lenses), adds explicit guidance on what not to report,
+  and drops retired ledger, grill-note, and audit-only research wording. Audit
+  lenses keep only audit-specific questions and link general owners directly.
+- **Verification and causal fixes:** `do-it-verify` names manufactured green
+  results (special-cased tests, hard-coded expectations, weakened assertions,
+  hiding fallbacks); `do-it-code-quality` checks for existing mechanisms and
+  near-copies before adding one; `do-it-retrospective` turns instruction-level
+  lessons into reproducible scenarios.
+
 ### Focused deep audits with reusable evidence
 
-- **Initial independent review:** an explicit deep audit on a capable host now
-  initiates complementary correctness, architecture, and maintainability work
-  after scope and inventory. Existing specialist roles receive bounded slices
-  and their own lens; no fixed worker count, model, or audit runtime is added.
+- **Map, then layered and chain coverage:** an explicit deep audit maps layers,
+  semantic authorities, and the end-to-end chains that carry the project's
+  promises before judging. Coverage is measured across files, layers (unit,
+  module boundary, contract, delivery, intent), and selected chains followed end
+  to end by one reader. These are evidence dimensions, not phases.
+- **Readers chosen for evidence quality:** the observed failure was excessive
+  subagent fan-out, one agent per lens per slice. Delegation now requires a
+  fresh reader, a separable slice, or a specialist question; one delegate can
+  carry several lenses, delegates do not launch delegates, and a scope one
+  reader can hold may be inspected by the parent. Fresh independent synthesis
+  stays mandatory. Audit scenarios R07, R08, and R10 and the trajectory rubric
+  no longer require one delegate per correctness, architecture, and
+  maintainability lens.
 - **Coverage quality:** distinguish inventory and assignment from substantive
-  inspection and cross-file contract checks. Reuse current evidence; check
+  inspection and chain checks. Reuse current evidence; check
   generated copies, lockfiles, and assets through appropriate consistency and
   integrity evidence. The parent keeps compact coverage state and targets gaps
   instead of restarting full reads or requiring duplicate ledgers.
