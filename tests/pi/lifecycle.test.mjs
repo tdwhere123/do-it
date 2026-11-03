@@ -413,3 +413,32 @@ test("default Pi runtime delivers context and edit checks without diagnostics or
     await pi.handlers.get("session_shutdown")({}, ctx);
   } finally { rmTemp(cwd); }
 });
+
+for (const child of [false, true]) {
+	test(`custom-message agent starts preserve ${child ? "child stance" : "root prompt isolation"}`, async () => {
+		const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-pi-custom-start-"));
+		const calls = [];
+		const pi = fakePi();
+		createDoItPiExtension({
+			env: { HOME: cwd, PI_SUBAGENT_CHILD: child ? "1" : "" },
+			runHook: async (_hooksDir, scriptName, payload) => {
+				calls.push({ scriptName, prompt: payload.prompt });
+				return { exitCode: 0, stdout: "", stderr: "", additionalContext: "child stance" };
+			},
+		})(pi.api);
+		try {
+			const result = await pi.handlers.get("before_agent_start")({
+				type: "before_agent_start",
+				messageType: "custom",
+				message: { role: "custom", customType: "notification", content: "background update", display: false, timestamp: 0 },
+				systemPrompt: "",
+				systemPromptOptions: {},
+			}, fakeContext(cwd));
+			assert.deepEqual(calls, child ? [{ scriptName: "subagent-stance.sh", prompt: "" }] : []);
+			if (child) assert.equal(result.message.content, "child stance");
+			else assert.equal(result, undefined);
+		} finally {
+			rmTemp(cwd);
+		}
+	});
+}
