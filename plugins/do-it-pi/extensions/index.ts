@@ -265,7 +265,7 @@ export function createDoItPiExtension(
 		});
 
 		pi.on("before_agent_start", async (event, ctx) => {
-			const prompt = typeof event.prompt === "string" ? event.prompt : "";
+			const prompt = "prompt" in event && typeof event.prompt === "string" ? event.prompt : "";
 			const contexts: string[] = [];
 
 			if (childSession(ctx)) {
