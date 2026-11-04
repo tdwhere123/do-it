@@ -53,6 +53,8 @@ expanding the Core bootstrap excerpt (642 characters; unchanged).
   evidence.
 - Continuing authorized reversible work does not authorize secrets,
   spend, destruction, or push.
+- Temporary breakage does not authorize exposing a broken intermediate
+  to live consumers, including live-linked callers that would reload it.
 
 ## Disposition key
 
@@ -73,13 +75,13 @@ write-quality families remain exit 0 and data-only.
 
 | # | Principle | Disposition | Owner | Executable fragment | Why this owner / limit |
 | --- | --- | --- | --- | --- | --- |
-| 1 | Laziness Protocol | strengthened | Code Quality; detail in `causal-change.md` | `copy-paste`, `no-consumer`, `edit-bloat` (proxies) | Smallest *structurally correct* change, not fewest lines. Consolidate a repeated decision; a forwarding layer is not smaller. |
+| 1 | Laziness Protocol | strengthened | Code Quality; detail in `causal-change.md` | `copy-paste`, `no-consumer`, `edit-bloat` (proxies) | Smallest *structurally correct* change, not fewest lines. One owner for a repeated decision, not a prescribed flag. Collapsing a pass-through is not smaller if it is a contract, policy, dependency, or compatibility boundary. |
 | 2 | Foundational Thinking | strengthened | Architecture | `type-escape` only for contract bypass | Data, legal states, and access patterns before business branches. Not “tests before features” as ceremony; not a framework around one feature. |
 | 3 | Redesign from First Principles | strengthened | Architecture | none | Day-one question, then verifiable steps. Distinct from attacking a false *fact* (row 4). Not every additive change. |
 | 4 | Attack the Premise | strengthened | Code Quality | none | Write the shared assumed fact; observe what would differ if it were false. A cleanup path that always runs is compensation, not a test. |
 | 5 | Subtract Before You Add | strengthened | Code Quality; Review maintainability | `no-consumer` | Remove leftover complexity that would force a new layer. Do not drop compatibility, recovery, or history. |
-| 6 | Minimize Reader Load | strengthened | Review maintainability lens | `file-size`, `edit-bloat` (LOC proxies) | Layers to trace *and* hidden state to hold. Line count is a proxy. |
-| 7 | Outcome-Oriented Execution | strengthened | Architecture | none | Planned scoped reversible breakage is allowed; the destination still needs a complete check. Throwaway dual-running code is a new design. |
+| 6 | Minimize Reader Load | strengthened | Review maintainability lens | `file-size`, `edit-bloat` (LOC proxies) | Layers to trace *and* hidden state to hold. Line count is a proxy. Collapse pass-throughs that only repeat current branch logic; keep needed boundaries. |
+| 7 | Outcome-Oriented Execution | strengthened | Architecture | none | Temporary breakage only inside an authorized isolated migration live consumers will not load; the destination still needs a complete check. Reversibility is not a live-reload license. Not a rollout framework. |
 | 8 | Experience First | strengthened | Decide | none | Name the consumer (end user, caller, next reader). Foundations serve that target; they do not replace it. |
 | 9 | Exhaust the Design Space | strengthened | Decide | none | Two or three *structurally* different options when the choice is consequential and unprecedented. Ordinary edits do not need a bake-off. |
 | 10 | Build the Lever | strengthened | Code Quality | none (compulsory script would be wrong) | First unit by hand, then the smallest rerunnable script when a reviewer must replay the work. Distinct from encoding a *recurring instruction* (row 24). |
@@ -89,11 +91,11 @@ write-quality families remain exit 0 and data-only.
 | 14 | Make Operations Idempotent | covered | Architecture + `stateful-change-scan.md` Identity/Commit | none | Already: same identity twice; timeout after durable write. Strengthened only by “independent facts before a lock” (row 16). |
 | 15 | Migrate Callers Then Delete Legacy APIs | strengthened | Architecture | `no-consumer` after migration | Only with no external compatibility promise. A configured reference is still a caller. |
 | 16 | Separate Before Serializing Shared State | strengthened | Architecture; scan Interleaving | none | Independent facts get independent state; a lock is a smell to check, not the default. |
-| 17 | Prove It Works | strengthened | Verify | `test-weakened`, `test-fiction` | Native artifact over compile/log/delegate claim. Suspect the observation method. Do not change a production contract to obtain stronger proof. |
-| 18 | Fix Root Causes | strengthened | Code Quality | `swallow-error` (hides faults) | Earliest wrong decision. A guard at the symptom is a fix only if that state is legitimate. |
+| 17 | Prove It Works | strengthened | Verify | `test-weakened`, `test-fiction` | Native artifact over compile/log/delegate claim. When evidence conflicts, inspect what each observed. Do not change a production contract to obtain stronger proof. |
+| 18 | Fix Root Causes | strengthened | Code Quality | `swallow-error` (hides faults) | Repair the causal producer in the owned chain. Fail-fast at the admission boundary is not a symptom patch; silently normalizing an impossible internal state is. |
 | 19 | Sequence Verifiable Units | strengthened | Decide | none | Independently checkable increments. A later unit must not be the first proof that an earlier one worked. |
 | 20 | Test Behavior Not Implementation | strengthened | Code Quality; `causal-change.md` feedback | `test-fiction` | Two imagined edits: wrong observable fails; internals-only change does not. Do not weaken closed-set validators in the name of “test behavior.” |
-| 21 | Explain the Number | strengthened | Verify (claim); `causal-change.md` Optimization (method) | none | Named limiter, noise, matching workload. A speedup larger than the changed piece's time measured something else. |
+| 21 | Explain the Number | strengthened | Verify (claim); `causal-change.md` Optimization (method) | none | Named limiter, noise, matching workload. A gain larger than local cost needs traced secondary effects or proof the changed work ran; it is not automatically invalid. |
 | 22 | Guard the Context Window | strengthened | `workflow-kernel.md`; Core already keeps parent integration | none | Bound independent slices. Do not drop decisions, authorization, or needed evidence. No turn-budget hook. |
 | 23 | Never Block on the Human | strengthened | Decide; Core authorization | opt-in `strict-external-actions` for named publish/apply | Advance authorized reversible work. Still stop for intent, authority, secrets, spend, destruction, or push. |
 | 24 | Encode Lessons in Structure | covered | Retrospective, Skill Authoring, Context | the write-quality families themselves | Prefer test/type/lint/script over a reminder that restates them. No new family; no policy database. |

@@ -78,8 +78,9 @@ compatibility paths; and hand-rolled behavior that existing primitives can
 replace. Judge split and control-flow cost by how many places a maintainer must
 understand or change together. Reader load is those places plus hidden or
 mutable state the reader must hold; line count is a proxy. A flat file of many
-globals can cost as much as a pass-through adapter stack. Collapse a layer that
-repeats the same methods and arguments unless it hides a real decision. Naming,
+globals can cost as much as a pass-through adapter stack. Keep a pass-through
+that is a needed contract, policy, dependency, or compatibility boundary;
+current-branch repetition alone is not that need. Naming,
 types, errors, and tests matter when they obscure contracts, hide failures, or
 make safe changes harder.
 

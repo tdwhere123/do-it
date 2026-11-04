@@ -39,11 +39,14 @@ before adding a lock.
 For a boundary change, account for consumers, compatibility, migration, rollback,
 and eventual retirement. If this requirement had existed on day one, would the
 current split still be the design? If not, move toward that shape in verifiable
-steps rather than bolting a parallel path onto a now-false assumption. Planned
-temporary breakage is acceptable when scoped and reversible; the destination
-still needs a complete check. When nothing outside the repo promised
-compatibility, migrate remaining callers and delete the old API in the same
-wave; a configured reference is still a caller.
+steps rather than bolting a parallel path onto a now-false assumption. Temporary
+breakage is acceptable only inside an authorized, isolated migration that live
+consumers will not load. Reversibility does not make a broken live reload safe:
+an identity-only cutover still needs its paired runtime change before a
+live-linked caller would pick it up. The destination still needs a complete
+check. This is a cutover question, not a rollout framework. When nothing outside
+the repo promised compatibility, migrate remaining callers and delete the old
+API in the same wave; a configured reference is still a caller.
 
 Challenge necessity before adding an abstraction, service, or governance layer.
 An independent strategist can test premises without inheriting the author's

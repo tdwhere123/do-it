@@ -19,9 +19,10 @@ one, including near-copies left by earlier sessions. Prepare structure only when
 the current shape blocks the change or its verification. Include required
 contract fallout; nearby cleanup earns its place through the problem being solved.
 The smallest correct change is not the fewest lines: repeating the same decision
-in several places is larger than one owner plus a flag; a forwarding layer that
-hides no decision is not smaller. Remove leftover complexity that would force a
-new layer, without dropping a compatibility, recovery, or history obligation the
+in several places is larger than giving it one owner. Collapsing a forwarding
+layer is not smaller if that layer is the contract, policy, dependency, or
+compatibility boundary. Remove leftover complexity that would force a new
+layer, without dropping a compatibility, recovery, or history obligation the
 contract still needs. Do not change a public interface merely to make a local
 test convenient. A test that needs a fake collaborator may need a better fixture,
 not a new production API.
@@ -38,8 +39,10 @@ after one side loses is compensating for the premise, not testing it. A differen
 error, a narrowed cause, or a ruled-out explanation can be progress; repeated tool
 calls alone establish neither progress nor a reason to abort.
 
-A guard at the symptom is a fix only if that state is legitimate. If the state
-should never exist, find what produced it rather than hiding it.
+Silently normalizing or swallowing an impossible internal state hides the fault.
+Rejecting invalid external input at the boundary that admits it is fail-fast, not
+a symptom patch. If the producer is inside the owned chain, repair it there; keep
+needed defensive containment while that cause is fixed.
 
 A regression should observe the changed contract with an expectation independent
 of the implementation; use a focused probe when that is more informative.
