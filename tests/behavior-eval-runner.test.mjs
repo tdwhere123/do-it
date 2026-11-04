@@ -6,8 +6,10 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { BACKENDS, parseArgs, publicHostProbe, runSuite } from "../evals/behavior/runner.mjs";
+import { BACKENDS, applyTrajectory, parseArgs, publicHostProbe, runSuite } from "../evals/behavior/runner.mjs";
 import { hasCompositeScore } from "../evals/behavior/judge.mjs";
+import { nodeTestOutcome } from "../evals/behavior/evidence.mjs";
+import { runFixtureTests } from "../evals/behavior/hosts/workspace.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const runnerCli = path.join(repoRoot, "evals/behavior/runner.mjs");
@@ -105,6 +107,58 @@ test("live backend without credentials is NOT_RUN and is not faked", () => {
   assert.doesNotMatch(result.stderr, /unimplemented/i);
   assert.doesNotMatch(result.stdout + result.stderr, /"model": "gpt-/);
   fs.rmSync(home, { recursive: true, force: true });
+});
+
+test("independent checks clear NODE_OPTIONS while replay overrides remain honestly unverified", () => {
+  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-evidence-env-"));
+  const previous = process.env.NODE_OPTIONS;
+  const marker = path.join(cwd, "executed.txt");
+  fs.mkdirSync(path.join(cwd, "tests"));
+  for (const name of ["api", "ledger"]) {
+    fs.writeFileSync(path.join(cwd, `tests/${name}.test.mjs`),
+      `import test from 'node:test'; import fs from 'node:fs'; test('${name}', () => fs.appendFileSync(${JSON.stringify(marker)}, '${name}\\n'));\n`);
+  }
+  const fixtureMeta = {
+    relevant_tests: ["tests/api.test.mjs", "tests/ledger.test.mjs"],
+    acceptance: { A1: { type: "command_exit0", argv: ["node", "--test"] } }
+  };
+  const command = { type: "command", argv: ["node", "--test"], execute: true };
+  const executed = () => fs.readFileSync(marker, "utf8").trim().split("\n").sort();
+  try {
+    for (const source of ["inherited", "trajectory", "step"]) {
+      delete process.env.NODE_OPTIONS;
+      if (source === "inherited") process.env.NODE_OPTIONS = "--test-shard=1/2";
+      fs.writeFileSync(marker, "");
+      const trajectory = applyTrajectory(cwd, cwd, {
+        ...(source === "trajectory" ? { env: { NODE_OPTIONS: "--test-shard=1/2" } } : {}),
+        steps: [{ ...command, ...(source === "step" ? { env: { NODE_OPTIONS: "--test-shard=1/2" } } : {}) }]
+      }, fixtureMeta);
+      assert.equal(trajectory.steps[0].exit, 0);
+      assert.equal(executed().length, 1, source);
+      assert.equal(nodeTestOutcome(trajectory.steps[0]), "unverified", source);
+      assert.deepEqual(trajectory.steps[0].evidence.selected_tests, []);
+    }
+    delete process.env.NODE_OPTIONS;
+    fs.writeFileSync(marker, "");
+    const clean = applyTrajectory(cwd, cwd, { steps: [command] }, fixtureMeta);
+    assert.deepEqual(executed(), ["api", "ledger"]);
+    assert.equal(nodeTestOutcome(clean.steps[0]), "passed");
+    assert.deepEqual(clean.steps[0].evidence.selected_tests, fixtureMeta.relevant_tests);
+
+    process.env.NODE_OPTIONS = "--test-shard=1/2";
+    fs.writeFileSync(marker, "");
+    const independent = runFixtureTests(cwd, fixtureMeta);
+    assert.deepEqual(executed(), ["api", "ledger"]);
+    assert.deepEqual({ passed: independent.passed, failed: independent.failed, unverified: independent.unverified },
+      { passed: 1, failed: 0, unverified: 0 });
+    assert.deepEqual(independent.results[0].evidence.selected_tests, fixtureMeta.relevant_tests);
+    // Clearing the independent subprocess environment must not alter the parent.
+    assert.equal(process.env.NODE_OPTIONS, "--test-shard=1/2");
+  } finally {
+    if (previous === undefined) delete process.env.NODE_OPTIONS;
+    else process.env.NODE_OPTIONS = previous;
+    fs.rmSync(cwd, { recursive: true, force: true });
+  }
 });
 
 test("dry-run fixture backend records model, condition, commit, permissions, cost, trajectory ref", async () => {

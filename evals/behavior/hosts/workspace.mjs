@@ -146,20 +146,23 @@ export function runFixtureTests(workspaceDir, fixtureMeta) {
   let unverified = 0;
   const results = [];
   for (const argv of commands) {
+    const workspacePaths = Object.keys(readTreeFiles(workspaceDir));
+    const targets = evidenceTargets(fixtureMeta, workspacePaths);
     const env = { ...process.env };
     delete env.NODE_TEST_CONTEXT;
+    // This independent check must not inherit a shard/filter/preload from its parent.
+    delete env.NODE_OPTIONS;
     const result = spawnSync(argv[0], argv.slice(1), {
       cwd: workspaceDir,
       encoding: "utf8",
       env,
       timeout: 60_000
     });
-    const targets = evidenceTargets(fixtureMeta);
     const captured = captureCommandEvidence({
       argv, cwd: workspaceDir,
       event: { result: { exitCode: result.status, stdout: result.stdout, stderr: result.stderr } },
-      source: "harness", targets,
-      existingTargets: targets.filter((target) => fs.existsSync(path.join(workspaceDir, target))),
+      source: "harness", targets, targetSnapshotKnown: true,
+      existingTargets: workspacePaths,
       ordered: true
     });
     const step = { type: "command", ...captured };

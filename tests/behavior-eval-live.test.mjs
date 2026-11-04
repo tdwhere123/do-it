@@ -14,7 +14,7 @@ import {
   pickGrok46,
   probeCursor
 } from "../evals/behavior/hosts/cursor-sdk.mjs";
-import { parseHosts } from "../evals/behavior/hosts/live-run.mjs";
+import { executeLiveJob, parseHosts } from "../evals/behavior/hosts/live-run.mjs";
 import { judgeRun } from "../evals/behavior/judge.mjs";
 import { runPiPrompt } from "../evals/behavior/hosts/pi-sdk.mjs";
 import {
@@ -521,6 +521,53 @@ test("Pi and Cursor SDK event adapters preserve completed tool provenance withou
   }
 });
 
+test("live final-diff attribution requires a matching completed full-content write", async () => {
+  const content = "export function add(a, b) { return a + b; }\n";
+  for (const variant of ["matching", "unexpected-final", "missing-content", "failed-write", "partial-edit"]) {
+    const run = await executeLiveJob({
+      repoRoot, fixturesRoot: path.join(repoRoot, "evals/behavior/fixtures"),
+      host: "pi", condition: "vanilla",
+      scenario: {
+        id: "D01", repo_fixture: "fixtures/d01-low-risk-patch", prompt: "local fake",
+        authorized_actions: { writes: true, external: false },
+        contract: { boundary: { in: ["src/", "tests/"] }, acceptance: { A1: "add is correct" } }
+      },
+      adapters: { pi: {
+        async probe() { return { ok: true, model: "local-fake" }; },
+        async prompt({ cwd }) {
+          fs.writeFileSync(path.join(cwd, "src/add.mjs"), content);
+          const command = "node --test tests/add.test.mjs";
+          const result = realShell(command, cwd);
+          assert.equal(result.status, 0);
+          if (variant === "unexpected-final") fs.appendFileSync(path.join(cwd, "src/add.mjs"), "// unobserved final mutation\n");
+          const writeArgs = { path: "src/add.mjs", ...(variant === "missing-content" ? {} : { content }) };
+          if (variant === "partial-edit") {
+            delete writeArgs.content;
+            writeArgs.new_string = content;
+          }
+          return {
+            model: "local-fake", assistantText: "VERIFIED",
+            events: mergeToolEvents([
+              ...toolPair("w", variant === "partial-edit" ? "edit" : "write", writeArgs,
+                variant === "failed-write" ? { isError: true } : {}),
+              ...toolPair("t", "bash", { command }, { structuredContent: { exit_code: result.status, output: result.stdout } })
+            ])
+          };
+        }
+      } }
+    });
+    assert.equal(run.status, "ran", run.reason);
+    assert.equal(run.fixtureTests.passed, 1, variant);
+    const expected = variant === "matching";
+    assert.equal(run.judge.faces.integrity.fresh_relevant_evidence, expected, variant);
+    assert.equal(run.judge.faces.correctness.acceptance.A1.reached, expected, variant);
+    assert.equal(run.judge.hard_gate, expected ? "pass" : "fail", variant);
+    const writes = run.trajectory.steps.filter((step) => step.type === "write");
+    assert.equal(writes.length, expected ? 1 : 2, variant);
+    if (expected) assert.match(writes[0].result_sha256, /^[a-f0-9]{64}$/);
+  }
+});
+
 test("live fake records bounded real execution provenance through runner and report", async () => {
   const outDir = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-evidence-live-"));
   const secret = "DUMMY_TOOL_OUTPUT_SECRET_123";
@@ -541,7 +588,7 @@ test("live fake records bounded real execution provenance through runner and rep
           return {
             model: "fake-pi", assistantText: "VERIFIED", injectedTexts: [],
             events: mergeToolEvents([
-              ...toolPair("w", "write", { path: "src/add.mjs" }, {}),
+              ...toolPair("w", "write", { path: "src/add.mjs", content: "export function add(a, b) { return a + b; }\n" }, {}),
               ...toolPair("t", "bash", { command }, {
                 structuredContent: { exit_code: result.status, output: `${result.stdout}\n${secret}` }
               })

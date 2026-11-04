@@ -1,11 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { hasCompositeScore, judgeRun } from "../evals/behavior/judge.mjs";
-import { captureCommandEvidence, evidenceTargets } from "../evals/behavior/evidence.mjs";
+import { captureCommandEvidence, evidenceTargets, passingNodeTest } from "../evals/behavior/evidence.mjs";
+import { eventsToSteps, mergeToolEvents } from "../evals/behavior/hosts/trajectory.mjs";
+import { applyTrajectory } from "../evals/behavior/runner.mjs";
 import { renderRunMarkdown, renderSuiteMarkdown } from "../evals/behavior/report.mjs";
 import { parseYaml } from "../evals/behavior/validate.mjs";
 
@@ -288,6 +292,152 @@ test("unverified fixture executions do not become passing or failing tests", () 
     fixtureTests: { passed: 0, failed: 1, unverified: 1 }
   });
   assert.equal(failed.faces.correctness.status, "fail");
+});
+
+test("shell-owned recursive globs cannot credit nested Node test targets", () => {
+  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-glob-owner-"));
+  const shallow = "tests/edge.test.mjs";
+  const nested = "evals/fixtures/workspace/tests/ledger.test.mjs";
+  for (const [file, name] of [[shallow, "SHALLOW_EXECUTED"], [nested, "NESTED_EXECUTED"]]) {
+    fs.mkdirSync(path.dirname(path.join(cwd, file)), { recursive: true });
+    fs.writeFileSync(path.join(cwd, file), `import test from 'node:test'; test('${name}', () => {});\n`);
+  }
+  const env = { ...process.env };
+  delete env.NODE_TEST_CONTEXT;
+  delete env.NODE_OPTIONS;
+  delete env.BASH_ENV;
+  delete env.BASHOPTS;
+  try {
+    for (const quoted of [false, true]) {
+      const command = quoted ? "node --test '**/*dge*.test.mjs'" : "node --test **/*dge*.test.mjs";
+      const result = spawnSync("bash", ["--noprofile", "--norc", "-c", command], { cwd, env, encoding: "utf8" });
+      if (!quoted) {
+        assert.equal(result.status, 0, result.stderr);
+        assert.match(result.stdout, /SHALLOW_EXECUTED/);
+        assert.doesNotMatch(result.stdout, /NESTED_EXECUTED/);
+      } else if (result.status === 0) assert.match(result.stdout, /NESTED_EXECUTED/);
+      const step = { type: "command", ...captureCommandEvidence({
+        argv: ["bash", "-c", command], cwd, source: "host-tool", ordered: true,
+        targets: [nested], existingTargets: [shallow, nested],
+        event: { result: { exitCode: result.status, stdout: result.stdout } }
+      }) };
+      assert.equal(passingNodeTest(step, nested), quoted && result.status === 0);
+      if (!quoted) assert.deepEqual(step.evidence.selected_tests, []);
+    }
+  } finally {
+    fs.rmSync(cwd, { recursive: true, force: true });
+  }
+});
+
+test("acceptance-only targets and glob expectations use the full concrete target snapshot", () => {
+  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-target-snapshot-"));
+  fs.mkdirSync(path.join(cwd, "tests"));
+  for (const name of ["add", "another", "unrelated"]) {
+    fs.writeFileSync(path.join(cwd, `tests/${name}.test.mjs`), `import test from 'node:test'; test('${name}', () => {});\n`);
+  }
+  try {
+    const exactMeta = { acceptance: { A1: { type: "command_exit0", argv: ["node", "--test", "tests/add.test.mjs"] } } };
+    const globMeta = { acceptance: { A1: { type: "command_exit0", argv: ["node", "--test", "tests/a*.test.mjs"] } } };
+    const run = (argv, fixtureMeta) => {
+      const trajectory = applyTrajectory(cwd, cwd, { steps: [
+        { type: "command", argv, execute: true }, { type: "claim", status: "VERIFIED" }
+      ] }, fixtureMeta);
+      return { trajectory, result: judgeRun({ scenario: loadScenario("D01"), trajectory, fixtureMeta }) };
+    };
+    for (const [file, expected] of [["unrelated", false], ["add", true]]) {
+      const { result } = run(["node", "--test", `tests/${file}.test.mjs`], exactMeta);
+      assert.equal(result.faces.integrity.fresh_relevant_evidence, expected);
+      assert.equal(result.faces.correctness.acceptance.A1.reached, expected);
+      assert.equal(result.hard_gate, expected ? "pass" : "fail");
+    }
+    const unknown = run(["node", "--test", "tests/add.test.mjs"], {});
+    assert.equal(unknown.result.faces.integrity.fresh_relevant_evidence, false);
+    const subset = run(["node", "--test", "tests/add.test.mjs"], globMeta);
+    assert.deepEqual(subset.trajectory.steps[0].evidence.target_tests, ["tests/add.test.mjs", "tests/another.test.mjs"]);
+    assert.deepEqual(subset.trajectory.steps[0].evidence.selected_tests, ["tests/add.test.mjs"]);
+    assert.equal(subset.result.faces.correctness.acceptance.A1.reached, false);
+    assert.equal(subset.result.faces.integrity.fresh_relevant_evidence, false);
+    const unknownSnapshot = structuredClone(subset.trajectory);
+    unknownSnapshot.steps[0].evidence.target_snapshot = "unknown";
+    unknownSnapshot.steps[0].evidence.target_tests = ["tests/add.test.mjs"];
+    assert.equal(judgeRun({ scenario: loadScenario("D01"), fixtureMeta: globMeta,
+      trajectory: unknownSnapshot }).faces.correctness.acceptance.A1.reached, false);
+    for (const argv of [
+      ["node", "--test", "tests/a*.test.mjs"],
+      ["bash", "-c", "node --test 'tests/a*.test.mjs'"]
+    ]) {
+      const full = run(argv, globMeta);
+      const supportedRuntime = full.trajectory.steps[0].exit === 0;
+      assert.equal(full.result.faces.correctness.acceptance.A1.reached, supportedRuntime);
+      assert.equal(full.result.faces.integrity.fresh_relevant_evidence, supportedRuntime);
+    }
+    const env = { ...process.env };
+    delete env.NODE_TEST_CONTEXT;
+    delete env.NODE_OPTIONS;
+    const workspacePaths = ["tests/add.test.mjs", "tests/another.test.mjs", "tests/unrelated.test.mjs"];
+    for (const [command, fullSelection] of [
+      ["node --test tests/add.test.mjs", false],
+      ["node --test 'tests/a*.test.mjs'", true]
+    ]) {
+      const executed = spawnSync("bash", ["-c", command], { cwd, env, encoding: "utf8" });
+      const steps = eventsToSteps(mergeToolEvents([
+        { toolCallId: "t", phase: "start", name: "bash", args: { command } },
+        { toolCallId: "t", phase: "end", name: "bash", result: { exitCode: executed.status, stdout: executed.stdout } }
+      ]), cwd, { fixtureMeta: globMeta, workspacePaths, existingTargets: workspacePaths });
+      const live = judgeRun({
+        scenario: loadScenario("D01"), fixtureMeta: globMeta,
+        trajectory: { steps: [...steps, { type: "claim", status: "VERIFIED" }] }
+      });
+      assert.deepEqual(steps[0].evidence.target_tests, ["tests/add.test.mjs", "tests/another.test.mjs"]);
+      assert.equal(live.faces.correctness.acceptance.A1.reached, fullSelection && executed.status === 0);
+      assert.equal(live.faces.integrity.fresh_relevant_evidence, fullSelection && executed.status === 0);
+    }
+    const absent = run(["node", "--test", "tests/add.test.mjs"], {
+      acceptance: { A1: { type: "command_exit0", argv: ["node", "--test", "missing/*.test.mjs"] } }
+    });
+    assert.equal(absent.result.faces.correctness.acceptance.A1.reached, false);
+  } finally {
+    fs.rmSync(cwd, { recursive: true, force: true });
+  }
+});
+
+test("tool normalization rejects contradictory identity, arguments, sequence and exit signals", () => {
+  const args = { command: "node --test tests/ledger.test.mjs" };
+  const apiArgs = { command: "node --test tests/api.test.mjs" };
+  const result = { structuredContent: { exit_code: 0, output: "# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n" } };
+  const start = { toolCallId: "t", phase: "start", name: "bash", args };
+  const end = { toolCallId: "t", phase: "end", name: "bash", result };
+  const normalize = (events) => eventsToSteps(mergeToolEvents(events), "/tmp/eval-workspace", {
+    fixtureMeta: { relevant_tests: ["tests/ledger.test.mjs", "tests/api.test.mjs"] },
+    existingTargets: ["tests/ledger.test.mjs", "tests/api.test.mjs"]
+  })[0];
+  for (const events of [
+    [start, { ...end, args: apiArgs }],
+    [start, { ...end, args: {} }],
+    [end, start, { ...end, result: undefined }],
+    [start, start, end],
+    [start, end, end],
+    [start, { ...end, name: "shell" }],
+    [start, { ...end, result: undefined }]
+  ]) {
+    const step = normalize(events);
+    assert.equal(passingNodeTest(step, "tests/ledger.test.mjs"), false);
+    assert.equal(passingNodeTest(step, "tests/api.test.mjs"), false);
+  }
+  assert.equal(passingNodeTest(normalize([start, end]), "tests/ledger.test.mjs"), true);
+  assert.equal(passingNodeTest(normalize([start, { ...end, args: { ...args } }]), "tests/ledger.test.mjs"), true);
+  for (const completion of [
+    { ...end, result: { ...result, exitCode: 1 } },
+    { ...end, result: { ...result, exit: 1 } },
+    { ...end, exit: 1 },
+    { ...end, isError: true }
+  ]) {
+    const step = normalize([start, completion]);
+    assert.equal(step.evidence.exit_source, "conflict");
+    assert.equal(step.exit, null);
+    assert.equal(passingNodeTest(step, "tests/ledger.test.mjs"), false);
+  }
+  assert.equal(passingNodeTest(normalize([start, { ...end, exit: 0, result: { ...result, exitCode: 0 } }]), "tests/ledger.test.mjs"), true);
 });
 
 test("v1 exit-only records stay readable but cannot establish a fresh pass", () => {

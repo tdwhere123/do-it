@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
 import path from "node:path";
+import { createHash } from "node:crypto";
+import { isDeepStrictEqual } from "node:util";
 import { captureCommandEvidence, evidenceTargets } from "../evidence.mjs";
 
 const COMPLETION_RE =
@@ -62,34 +64,50 @@ export function mergeToolEvents(events) {
     const id = event.toolCallId;
     let record = id != null && id !== "" ? byId.get(id) : null;
     if (!record) {
-      record = { name: event.name, args: {}, start: null, end: null };
+      record = { name: event.name, args: event.args ?? {}, start: null, end: null, invalid: id == null || id === "" };
       records.push(record);
       if (id != null && id !== "") byId.set(id, record);
     }
-    if (event.name) record.name = event.name;
-    if (event.args && Object.keys(event.args).length) record.args = event.args;
-    if (event.result != null) record.result = event.result;
-    if (event.exit != null) record.exit = event.exit;
-    if (event.isError === true) record.isError = true;
-    if (phase === "start" || phase === "tool_execution_start") record.start = index;
-    if (phase === "end" || phase === "tool_execution_end") record.end = index;
+    if (phase === "start" || phase === "tool_execution_start") {
+      if (record.start != null || record.end != null) record.invalid = true;
+      record.start = index;
+    } else if (phase === "end" || phase === "tool_execution_end") {
+      if (record.start == null || record.end != null) record.invalid = true;
+      record.end = index;
+      // Never carry output/exit from an orphan or earlier completion forward.
+      record.result = event.result;
+      record.exit = event.exit;
+      record.isError = event.isError;
+    } else record.invalid = true;
+    if ((event.name != null && event.name !== record.name) ||
+        (event.args !== undefined && !isDeepStrictEqual(event.args, record.args))) record.invalid = true;
   }
   // Unknown tools (including wrappers around other tools) may mutate too.
   const mayMutate = (record) => !READ_TOOLS.test(record.name ?? "");
   return records.map((record) => {
-    const complete = record.start != null && record.end != null && record.start < record.end;
+    const complete = !record.invalid && record.start != null && record.end != null && record.start < record.end;
     const overlaps = records.some((other) => {
       if (other === record || !mayMutate(other)) return false;
-      if (other.start == null || other.end == null) return true;
+      if (other.invalid || other.start == null || other.end == null) return true;
       return record.start < other.end && other.start < record.end;
     });
-    const { start, end, ...event } = record;
-    return { ...event, ordered: complete && !overlaps };
+    const { start, end, invalid, ...event } = record;
+    if (!complete) {
+      delete event.result;
+      delete event.exit;
+    }
+    return { ...event, completed: complete && event.result != null, ordered: complete && !overlaps };
   });
 }
 
-export function eventsToSteps(events, cwd, { fixtureMeta = {}, existingTargets = [] } = {}) {
-  const targets = evidenceTargets(fixtureMeta);
+function contentHash(content) {
+  return createHash("sha256").update(content, "utf8").digest("hex");
+}
+
+export function eventsToSteps(events, cwd, {
+  fixtureMeta = {}, existingTargets = [], workspacePaths, environmentKnown = !process.env.NODE_OPTIONS
+} = {}) {
+  const targets = evidenceTargets(fixtureMeta, workspacePaths);
   const steps = [];
   for (const event of events ?? []) {
     const name = String(event.name ?? event.toolName ?? event.tool ?? "");
@@ -97,10 +115,14 @@ export function eventsToSteps(events, cwd, { fixtureMeta = {}, existingTargets =
     if (WRITE_TOOLS.test(name)) {
       const filePath = toolPath(args, cwd);
       if (filePath && !filePath.startsWith(".do-it/runtime/") && !filePath.startsWith(".pi/") && !filePath.startsWith(".cursor/")) {
+        const content = args.contents ?? args.content;
+        const established = /^write$/i.test(name) && typeof content === "string" &&
+          event.completed === true && event.ordered === true && event.isError !== true && event.result?.isError !== true;
         steps.push({
           type: "write",
           path: filePath,
-          content: args.contents ?? args.content ?? args.new_string ?? args.newString
+          content: content ?? args.new_string ?? args.newString,
+          ...(established ? { result_sha256: contentHash(content) } : {})
         });
       } else {
         // Excluded runtime paths are not user-scope writes, but still make
@@ -123,8 +145,9 @@ export function eventsToSteps(events, cwd, { fixtureMeta = {}, existingTargets =
       const captured = captureCommandEvidence({
         argv: process.platform === "win32" ? ["cmd", "/c", command] : ["bash", "-lc", command], cwd,
         commandCwd: args.cwd ?? args.workdir ?? args.working_directory ?? args.workingDirectory,
-        environmentKnown: args.env == null && args.environment == null,
-        event, source: "host-tool", targets, existingTargets, ordered: event.ordered === true
+        environmentKnown: environmentKnown && args.env == null && args.environment == null,
+        event, source: "host-tool", targets, targetSnapshotKnown: Array.isArray(workspacePaths),
+        existingTargets, ordered: event.ordered === true
       });
       steps.push({ type: "command", tool: name.toLowerCase(), ...captured });
       if (isExternalCommand(command)) {
@@ -143,15 +166,14 @@ export function eventsToSteps(events, cwd, { fixtureMeta = {}, existingTargets =
 
 export function mergeDiffWrites(steps, diffWrites) {
   const existing = steps ?? [];
-  const seen = new Set(
-    existing
-      .filter((step) => step.type === "write" && step.path)
-      .map((step) => posixRel(step.path))
-  );
+  const lastWrites = new Map(existing.filter((step) => step.type === "write" && step.path)
+    .map((step) => [posixRel(step.path), step]));
   const extra = [];
   for (const write of diffWrites ?? []) {
     const rel = posixRel(write.path);
-    if (!seen.has(rel)) extra.push({ type: "write", path: rel });
+    const observed = lastWrites.get(rel);
+    const attributed = typeof write.content === "string" && observed?.result_sha256 === contentHash(write.content);
+    if (!attributed) extra.push({ type: "write", path: rel });
   }
   if (extra.length === 0) return existing;
   // A final diff establishes that a write happened, not when it happened.
@@ -254,9 +276,11 @@ export function buildTrajectory({
   thinking,
   cwd,
   fixtureMeta,
-  existingTargets
+  existingTargets,
+  workspacePaths,
+  environmentKnown
 }) {
-  let steps = eventsToSteps(events, cwd, { fixtureMeta, existingTargets });
+  let steps = eventsToSteps(events, cwd, { fixtureMeta, existingTargets, workspacePaths, environmentKnown });
   steps = mergeDiffWrites(steps, diffWrites);
   const hasWrites = steps.some((step) => step.type === "write");
   const claim = claimFromAssistant(assistantText, { hasWrites });

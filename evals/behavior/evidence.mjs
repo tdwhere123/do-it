@@ -22,7 +22,11 @@ function parseWords(text) {
     const match = token.exec(text);
     if (!match) return null;
     const word = match[0];
-    words.push(word.startsWith("'") || word.startsWith('"') ? word.slice(1, -1) : word);
+    const quoted = word.startsWith("'") || word.startsWith('"');
+    // An unquoted wildcard belongs to the shell. Its expansion depends on
+    // shell options (notably globstar), so do not interpret it as a Node glob.
+    if (!quoted && /[*?]/.test(word)) return null;
+    words.push(quoted ? word.slice(1, -1) : word);
     offset = token.lastIndex;
     if (offset < text.length && !/\s/.test(text[offset])) return null;
   }
@@ -37,11 +41,14 @@ function nodeTestWords(argv, cwd) {
   }
   if (!words || words[0] !== "node" || words[1] !== "--test") return null;
   const selectors = words.slice(2);
-  if (selectors.some((item) =>
-    !/^[A-Za-z0-9_./*?+-]+$/.test(item) || item.startsWith("-") ||
-    item.startsWith("/") || item.split("/").includes("..")
-  )) return null;
+  if (selectors.some((item) => !supportedSelector(item))) return null;
   return selectors;
+}
+
+function supportedSelector(item) {
+  return typeof item === "string" && /^[A-Za-z0-9_./*?+-]+$/.test(item) &&
+    !item.startsWith("-") && !item.startsWith("/") && !item.split("/").includes("..") &&
+    item.split("/").every((part) => !part.includes("**") || part === "**");
 }
 
 function hiddenPath(testPath) {
@@ -67,14 +74,31 @@ function matchesSelector(testPath, selector) {
   return new RegExp(`${re}$`).test(testPath.replace(/^\.\//, ""));
 }
 
-export function evidenceTargets(fixtureMeta = {}) {
-  const targets = [...(fixtureMeta.relevant_tests ?? [])];
+export function evidenceTargets(fixtureMeta = {}, workspacePaths = []) {
+  const selectors = [...(fixtureMeta.relevant_tests ?? [])];
   for (const check of Object.values(fixtureMeta.acceptance ?? {})) {
-    if (check?.type === "command_exit0" && check.argv?.[0] === "node" && check.argv?.[1] === "--test") {
-      targets.push(...check.argv.slice(2));
-    }
+    if (check?.type === "command_exit0") selectors.push(...(nodeTestWords(check.argv) ?? []));
   }
-  return [...new Set(targets.filter((item) => typeof item === "string" && /^[A-Za-z0-9_./+-]+$/.test(item) && !item.startsWith("/") && !item.split("/").includes("..")))];
+  return [...new Set(selectors.filter(supportedSelector).flatMap((selector) =>
+    /[*?]/.test(selector)
+      ? workspacePaths.filter((file) => supportedSelector(file) && !/[*?]/.test(file) && matchesSelector(file, selector))
+      : [selector.replace(/^\.\//, "")]
+  ))].sort();
+}
+
+// Resolve acceptance against the producer's complete target snapshot, not just
+// the subset selected by the command. Empty/unknown expansions cannot pass.
+export function passingTestSelection(step, argv) {
+  const selectors = nodeTestWords(argv);
+  if (!selectors) return false;
+  if (!selectors.length) return passingNodeTest(step, undefined, { requireAll: true });
+  return selectors.every((selector) => {
+    if (/[*?]/.test(selector) && step.evidence?.target_snapshot !== "complete") return false;
+    const expected = /[*?]/.test(selector)
+      ? (step.evidence?.target_tests ?? []).filter((target) => matchesSelector(target, selector))
+      : [selector.replace(/^\.\//, "")];
+    return expected.length > 0 && expected.every((target) => passingNodeTest(step, target));
+  });
 }
 
 function testSummary(output, targets) {
@@ -117,16 +141,17 @@ function resultStatus(event) {
     ["exit", event.result?.exit],
     ["event_exit", event.exit]
   ];
-  for (const [source, value] of candidates) {
-    if (Number.isInteger(value) && value >= 0) {
-      if ((event.isError === true || event.result?.isError === true) && value === 0) return { exit: null, exit_source: "conflict" };
-      return { exit: value, exit_source: source };
-    }
+  const supplied = candidates.filter(([, value]) => value !== undefined);
+  if (!supplied.length) return { exit: null, exit_source: "unavailable" };
+  const [source, value] = supplied[0];
+  if (supplied.some(([, other]) => !Number.isInteger(other) || other < 0 || other !== value) ||
+      ((event.isError === true || event.result?.isError === true) && value === 0)) {
+    return { exit: null, exit_source: "conflict" };
   }
-  return { exit: null, exit_source: "unavailable" };
+  return { exit: value, exit_source: source };
 }
 
-export function captureCommandEvidence({ argv, cwd, commandCwd, environmentKnown = true, event, source, targets = [], existingTargets = [], ordered = false }) {
+export function captureCommandEvidence({ argv, cwd, commandCwd, environmentKnown = true, event, source, targets = [], targetSnapshotKnown = false, existingTargets = [], ordered = false }) {
   const inWorkspace = Boolean(cwd) && (commandCwd == null ||
     (typeof commandCwd === "string" && path.resolve(cwd, commandCwd) === path.resolve(cwd)));
   const selectors = inWorkspace && environmentKnown ? nodeTestWords(argv, cwd) : null;
@@ -145,6 +170,8 @@ export function captureCommandEvidence({ argv, cwd, commandCwd, environmentKnown
       ordering: ordered ? "observed" : "unknown",
       invocation: selectors ? "node-test" : "unsupported",
       selection: selectors ? (selectors.length ? "explicit" : "all") : "unknown",
+      target_snapshot: targetSnapshotKnown ? "complete" : "unknown",
+      target_tests: targets,
       selected_tests: selected || [],
       summary: selectors ? testSummary(resultOutput(event.result), targets) : null
     }

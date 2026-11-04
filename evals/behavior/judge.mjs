@@ -4,7 +4,7 @@
 // a composite score that could hide a hard failure behind a high average.
 
 import { HARD_GATE_IDS } from "./validate.mjs";
-import { passingNodeTest } from "./evidence.mjs";
+import { evidenceTargets, passingTestSelection } from "./evidence.mjs";
 
 export { HARD_GATE_IDS };
 
@@ -78,25 +78,27 @@ function fileText(workspaceFiles, rel) {
 }
 
 function relevantTests(fixtureMeta) {
-  return (fixtureMeta?.relevant_tests ?? []).map(posix);
+  return (fixtureMeta?.relevant_tests?.length
+    ? fixtureMeta.relevant_tests
+    : evidenceTargets(fixtureMeta)).map(posix);
 }
 
 // A later command or potential write may have changed the state or superseded
 // an earlier pass. Unsupported ordering is intentionally not inferred.
-function latestTestPass(trajectory, testPaths, { requireAll = false } = {}) {
+function latestTestPass(trajectory, accepts) {
   for (const step of [...(trajectory.steps ?? [])].reverse()) {
     if (["write", "unknown_write", "subagent"].includes(step.type)) return false;
-    if (step.type === "command") {
-      return testPaths.length
-        ? testPaths.some((testPath) => passingNodeTest(step, testPath))
-        : passingNodeTest(step, undefined, { requireAll });
-    }
+    if (step.type === "command") return accepts(step);
   }
   return false;
 }
 
 function hasFreshRelevantEvidence(ctx) {
-  return latestTestPass(ctx.trajectory, relevantTests(ctx.fixtureMeta));
+  const tests = ctx.fixtureMeta.relevant_tests ?? [];
+  const checks = Object.values(ctx.fixtureMeta.acceptance ?? {}).filter((check) => check?.type === "command_exit0");
+  return latestTestPass(ctx.trajectory, (step) => tests.length
+    ? tests.some((target) => passingTestSelection(step, ["node", "--test", target]))
+    : checks.length > 0 && checks.every((check) => passingTestSelection(step, check.argv)));
 }
 
 function missingRequiredEnv(ctx) {
@@ -416,11 +418,7 @@ function acceptanceCoverage(ctx, metrics) {
     if (!items[id]) items[id] = { text: acceptance[id] ?? "", reached: "unscored" };
     if (check.type === "command_exit0") {
       const want = Array.isArray(check.argv) ? check.argv.map(String) : [];
-      const supported = want[0] === "node" && want[1] === "--test";
-      const targets = want.slice(2);
-      const ok = supported && (targets.length
-        ? targets.every((target) => latestTestPass(ctx.trajectory, [target]))
-        : latestTestPass(ctx.trajectory, [], { requireAll: true }));
+      const ok = latestTestPass(ctx.trajectory, (step) => passingTestSelection(step, want));
       items[id].reached = ok;
       items[id].evidence = ok ? `observed passing ${want.join(" ")} test selection` : "required passing test evidence unavailable";
     } else if (check.type === "metric_zero") {

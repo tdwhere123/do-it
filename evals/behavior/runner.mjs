@@ -250,7 +250,11 @@ export function applyTrajectory(workspaceDir, fixtureDir, trajectory, fixtureMet
       continue;
     }
     if (step.type === "command" && step.execute) {
+      const workspacePaths = Object.keys(readTreeFiles(workspaceDir));
+      const targets = evidenceTargets(fixtureMeta, workspacePaths);
       const env = { ...process.env, ...(trajectory.env ?? {}), ...(step.env ?? {}) };
+      const environmentKnown = !env.NODE_OPTIONS &&
+        Object.keys(trajectory.env ?? {}).length === 0 && Object.keys(step.env ?? {}).length === 0;
       // A harness launched by node --test must run the fixture as a new test run.
       delete env.NODE_TEST_CONTEXT;
       const result = spawnSync(step.argv[0], step.argv.slice(1), {
@@ -258,12 +262,11 @@ export function applyTrajectory(workspaceDir, fixtureDir, trajectory, fixtureMet
         encoding: "utf8",
         env
       });
-      const targets = evidenceTargets(fixtureMeta);
       const captured = captureCommandEvidence({
-        argv: step.argv, cwd: workspaceDir,
+        argv: step.argv, cwd: workspaceDir, environmentKnown,
         event: { result: { exitCode: result.status, stdout: result.stdout, stderr: result.stderr } },
-        source: "fixture-replay", targets,
-        existingTargets: targets.filter((target) => fs.existsSync(path.join(workspaceDir, target))),
+        source: "fixture-replay", targets, targetSnapshotKnown: true,
+        existingTargets: workspacePaths,
         ordered: true
       });
       executed.push({ ...step, ...captured });

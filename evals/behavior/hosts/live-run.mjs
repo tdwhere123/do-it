@@ -5,7 +5,6 @@ import os from "node:os";
 import path from "node:path";
 
 import { judgeRun } from "../judge.mjs";
-import { evidenceTargets } from "../evidence.mjs";
 import { runCursorPrompt } from "./cursor-sdk.mjs";
 import { probeCursor } from "./cursor-sdk.mjs";
 import { probePi, runPiPrompt } from "./pi-sdk.mjs";
@@ -113,11 +112,11 @@ export async function executeLiveJob(job) {
       diffWrites: writes,
       cwd: workspaceDir,
       fixtureMeta: fixture.meta,
+      environmentKnown: !env.NODE_OPTIONS && !process.env.NODE_OPTIONS,
+      workspacePaths: [...new Set([...Object.keys(originalFiles), ...Object.keys(workspaceFiles)])],
       // A final snapshot alone cannot establish that a newly created test existed
       // when an earlier command ran.
-      existingTargets: evidenceTargets(fixture.meta).filter((target) =>
-        Object.hasOwn(originalFiles, target) && Object.hasOwn(workspaceFiles, target)
-      ),
+      existingTargets: Object.keys(originalFiles).filter((target) => Object.hasOwn(workspaceFiles, target)),
       cost: {
         tokens: raw.tokens ?? 0,
         tool_calls: (raw.events ?? []).length,

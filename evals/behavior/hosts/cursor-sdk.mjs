@@ -138,7 +138,7 @@ export function collectCursorEvent(event, events, assistantChunks, injectedTexts
     events.push({
       toolCallId: event.toolCallId ?? event.tool_call_id ?? event.id,
       name: event.name ?? event.tool ?? event.toolName,
-      args: event.args ?? event.arguments ?? event.params ?? {},
+      args: event.args ?? event.arguments ?? event.params,
       result: event.result,
       isError: event.status === "error" || event.isError === true,
       phase: event.status === "started" ? "start" : "end"

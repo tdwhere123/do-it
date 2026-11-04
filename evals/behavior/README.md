@@ -109,24 +109,42 @@ the judge requires a completed host tool or fixture replay with an explicit
 process exit code, workspace cwd, observed non-overlapping tool intervals, and
 a nonempty Node test summary with no failures, cancellations, skips, todos,
 suite blocks, or file-only passes. Suite blocks are conservatively unverified:
-an empty suite in a selected file can otherwise be masked by another file's pass. The bounded invocation recognizer accepts a direct
-`node --test` with simple relative paths or globs, including
-`node --test 'tests/*.test.mjs'`, and an optional `2>&1` or `cd <workspace> &&`
-prefix. Glob support depends on the installed Node version. A compound command,
-pipeline, different cwd, options or environment overrides, missing/truncated
-result, or unknown ordering is not passing evidence, even when its wrapper exits
-zero. This is not a general shell interpreter.
+an empty suite in a selected file can otherwise be masked by another file's pass.
+The bounded invocation recognizer accepts a direct `node --test` with simple
+relative paths or Node-owned globs (direct argv or quoted shell arguments),
+including `node --test 'tests/*.test.mjs'`, and an optional `2>&1` or
+`cd <workspace> &&` prefix. Unquoted shell globs are unverified: Bash's default
+`**` expansion is not Node's recursive glob expansion. Glob support depends on
+the installed Node version. A compound command, pipeline, different cwd, options
+or environment overrides, missing/truncated result, or unknown ordering is not
+passing evidence, even when its wrapper exits zero. This is not a general shell
+interpreter.
+
+Independent harness checks clear inherited `NODE_OPTIONS` and
+`NODE_TEST_CONTEXT`; an inherited shard or filter must not shrink their selection.
+Replay still executes its declared environment, but nonempty replay/step overrides
+or inherited `NODE_OPTIONS` make its test evidence unverified. Live capture also
+rejects known `NODE_OPTIONS` or tool environment overrides. This is not attestation
+of arbitrary shell startup configuration or adversarial test processes.
 
 The record stores the tool name, workspace/unknown cwd, explicit exit and its
-source, ordering status, all-tests versus explicit selection, matched known
-fixture test targets, and aggregate test counts. It does **not** store command text, arbitrary tool output, or environment
-values for live command evidence. A match means that the supported selector
+source, ordering status, all-tests versus explicit selection, the concrete fixture
+target snapshot and its selected subset, and aggregate test counts. Acceptance
+globs require every concrete matching target in that snapshot, not just whichever
+subset passed. Fresh relevance uses explicit relevant tests, falling back to
+required acceptance commands; an unknown target cannot be proved by an arbitrary
+green command. The record does **not** store command text, arbitrary tool output,
+or environment values for live command evidence. A match means that the supported selector
 covers the target; for live capture, the target must exist in both the initial
 and final workspace snapshots. It does not establish per-test coverage or that
 an adversarial process could not forge reporter output. A later write, unknown
-tool or command invalidates earlier evidence. Final diffs with no attributed
-write, including deletions, are treated as unordered and cannot be placed before
-a test to manufacture freshness. The harness's separate fixture re-run can
+tool or command invalidates earlier evidence. Start/end tool pairs must have
+coherent identities, arguments, sequence, and exit signals; output is taken only
+from that pair's actual completion. Final diffs are attributed only when the last
+completed, ordered full-content write has the same content hash. Mismatches,
+missing results/content, partial edits without an established resulting snapshot,
+and deletions remain unordered rather than being placed before a test to
+manufacture freshness. The harness's separate fixture re-run can
 assess the final workspace; it is not evidence that the agent ran that test.
 A failed test command and an unverified/empty result are counted separately.
 Completion-only SDK events or SDKs without explicit exit/output metadata remain
