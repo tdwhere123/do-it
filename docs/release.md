@@ -223,8 +223,8 @@ PI_TARBALL="./tdwhere-do-it-pi-${VERSION}.tgz"
 npm run smoke:package -- "$ROOT_TARBALL"
 node scripts/smoke-pi-package.mjs "$PI_TARBALL"
 
-npm publish "$ROOT_TARBALL" --access public
 npm publish "$PI_TARBALL" --access public
+npm publish "$ROOT_TARBALL" --access public
 ```
 
 Keep the root package scoped and keep `do-it` as its bin. Install from the
@@ -278,8 +278,9 @@ a release artifact.
     child stance. No host contains `grill-pretool`; only Claude may contain the
     named, default-off strict external-action profile.
 11. In a reloaded Pi session, run `/do-it-status` for Bash, hook diagnostics,
-    and `Agent`/`subagent` tool registration. Separately use the active runtime’s role list to
-    confirm `do-it.*` agents are executable; without it, confirm extension,
+    and `Agent`/`subagent` tool registration. Separately verify executable roles
+    through the active runtime: bare canonical names for patched Tintinweb,
+    `do-it.*` for nicobailon. Without a supported runtime, confirm extension,
     skills, and prompts remain available with explicit degradation.
 12. Run `npm run validate:release -- vX.Y.Z`; it must check both Pi lockfile
     version fields as well as the other host metadata.
