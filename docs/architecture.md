@@ -1,9 +1,17 @@
 # Architecture
 
-do-it ships ten independently selected skills and ten specialist roles. Skill
-descriptions determine task fit. Neither the index groups nor specialist roles
-create a mandatory pipeline, delegation quota, artifact system, or fixed test
-count.
+This unreleased 0.19.0 source ships independently selected skills from
+`skills/do-it/` (`scripts/skill-tiers.mjs` `ALL_SKILLS`: 10 runnable) plus one
+generated discovery entry (`do-it-skills-index` in `index.json`), and specialist
+roles from `agents/*.toml` (8). Skill descriptions determine task fit. Neither
+the index groups nor specialist roles create a mandatory pipeline, delegation
+quota, artifact system, or fixed test count. `do-it-router` has no callable
+alias; retired names remain only in history, absence tests, and migration
+records.
+
+Those figures are source declaration. Host discovery, native fake-provider
+execution, real-model sessions, and task effectiveness are separate claims.
+Packaging metadata does not imply any of the latter.
 
 ## Canonical ownership
 
@@ -31,9 +39,11 @@ Codex uses `plugins/do-it/.codex-plugin/plugin.json`. In an isolated native
 manifest exposed skills but found zero hooks; the Codex manifest in the same
 package exposed hooks. The builder therefore removes root `plugin.json` and
 plugin `agents/` output. A schema-valid portable manifest is insufficient proof
-of this host's hook support. A subsequent native `plugin/read` of the final
-repository bundle returned twelve skills, three hook declarations (two
-UserPromptSubmit and one PostToolUse), and only Skills/Hooks capabilities.
+of this host's hook support. That historical probe also reported twelve skill
+entries and three hook declarations with Skills/Hooks capabilities; it is not a
+current-inventory assertion. This checkout packages 10 runnable skill
+directories plus generated `_index.md`. Current native discovery and live hook
+execution need their own evidence.
 
 Native specialists are installed separately with
 `do-it setup --target=codex --only=agents`. The inspected Codex loader reads
@@ -42,19 +52,21 @@ Hook discovery does not establish live hook execution; installed TOML files do
 not establish named-role dispatch or sandbox enforcement. See
 [installation](./install.md) and the [host matrix](./harness-adapter-matrix.md).
 
-Claude's native `claude plugin validate --strict .claude-plugin/plugin.json`
-passed after quoting plugin paths. Root validation also passed, but checks the
-marketplace surface and does not replace explicit plugin-manifest validation.
+Claude's plugin-manifest surface is `.claude-plugin/plugin.json`. Root
+marketplace validation does not replace explicit plugin-manifest validation, and
+neither command proves live hook execution.
 
 Role enforcement is host-specific. The shared parser in
 `scripts/lib/agent-source.mjs` feeds Markdown renderers from canonical TOML.
-The eight read-only Claude roles receive `disallowedTools: Edit, Write,
-NotebookEdit`; Bash remains available, so this is not a filesystem sandbox.
-Cursor generates its own agents with native `readonly: true` for those roles.
-Pi reader roles omit edit/write tools but retain Bash. Codex sandbox settings
-apply only when the host actually loads the native role. Verify active host
-permissions separately; advisory hooks and diagnostics cannot establish task
-acceptance or a universal security guarantee.
+`sandbox_mode` is `read-only` for six roles and `workspace-write` for
+`documentation-engineer` and `test-engineer`. Claude projections add
+`disallowedTools: Edit, Write, NotebookEdit` only on read-only roles; Cursor
+sets native `readonly: true` for those same roles. Pi reader roles omit
+edit/write tools but retain Bash. Codex sandbox settings apply only when the
+host actually loads the native role. Verify active host permissions separately;
+advisory hooks and diagnostics cannot establish task acceptance or a universal
+security guarantee. Tool lists and read-only instructions are not a filesystem
+sandbox.
 
 Primary contracts: [Agent Plugins 1.0 schema](https://agent-plugins.org/schemas/1.0.0/plugin.schema.json),
 [Codex plugins](https://developers.openai.com/codex/plugins/),
@@ -67,13 +79,14 @@ Other host contracts inspected on 2026-10-09:
 [subagents](https://code.claude.com/docs/en/sub-agents.md);
 [Cursor plugins](https://cursor.com/docs/reference/plugins) and
 [subagents](https://cursor.com/docs/context/subagents);
-[Pi 1.1.0 extension API](https://github.com/earendil-works/pi/blob/abe508e1/packages/coding-agent/docs/extensions.md) and
-[packages](https://github.com/earendil-works/pi/blob/abe508e1/packages/coding-agent/docs/packages.md);
 [Grok plugins](https://docs.x.ai/build/features/skills-plugins-marketplaces.md),
 [hooks](https://docs.x.ai/build/features/hooks.md), and
 [subagents](https://docs.x.ai/build/features/subagents.md).
 For Grok 1.0.46, its bundled user guide provides the event-specific output
-semantics that the shorter public pages omit.
+semantics that the shorter public pages omit. The locked Pi development SDK is
+`@earendil-works/pi-coding-agent` 1.5.0 in `plugins/do-it-pi/package.json`; the
+optional peer `~1.5.0` is a version policy, not evidence for other patch
+versions.
 
 Grok Build has a separate generated `plugins/do-it-grok/` bundle and
 `.grok-plugin/plugin.json` named `do-it-grok`, avoiding the observed collision
@@ -83,19 +96,37 @@ context; PostToolUse delivers Core and edit-check context. Core
 arrives after the first completed tool; prompt/session hooks do not supply an
 initial context guarantee. Grok Markdown contains canonical instruction bodies,
 without translating Codex sandbox settings or Claude tool denials into Grok
-permissions. Native Grok Build 1.0.46 loaded-source inspection reported twelve skills and ten
-specialists; the Grok suite passed 9/9 checks with the absolute 1.0.46 executable
-selected by `DO_IT_GROK_BINARY`. Native package validation and discovery are separate from proof of
-runtime execution.
+permissions. A 1.0.46 loaded-source inspection that reported twelve skills and
+ten specialists is historical, not this checkout's inventory; the generated
+bundle currently has 10 skill directories and 8 agent files. Native package
+validation and discovery are separate from proof of runtime execution.
 
-Pi development dependencies target 1.1.0. Its adapter detects either `Agent` or
-`subagent`; in-process child detection combines runtime manager presence,
-parent-session lineage, and absence of both delegation tools. A fresh-process
-probe with the native Agent runtime verified one stance message in each of two
-child model requests, one persisted stance invocation, no Core or root hooks,
-and an unchanged `pwd` result. This covers a persisted child with fresh context;
-root/fork selection and edit suppression also have lifecycle tests. See
+Pi child identity is `PI_SUBAGENT_CHILD=1` (subprocess) or a patched Tintinweb
+`subagents:session-context` reply
+`{ version: 1, runtime: "@tintinweb/pi-subagents", role: "root" | "child" }`.
+Otherwise the session is unmarked and root hooks apply. Lineage and presence of
+`Agent`/`subagent` tools are not identity; `/do-it-status` still reports whether
+those tools are registered, which is not package-agent discovery. Published
+`@tintinweb/pi-subagents` 0.23.0 cannot provide creator identity. The reviewed
+patch (portable form of `7a48987`) ships with its MIT license and pinned recipe
+at `install/pi-runtime/tintinweb/` and, in the standalone Pi tarball,
+`docs/tintinweb/`. Repository tests do not patch a live installation.
+
+The shared physical projection keeps one `agents/*.toml` body.
+Tintinweb discovers bare names such as `code-mapper`; nicobailon `pi-subagents`
+0.35.1 (optional peer and devDependency, exact) qualifies `do-it.*`. Do not load
+both runtimes expecting automatic selection. Tintinweb's replacement prompt does
+not inherit project instruction files; pass required constraints in the
+delegation. Skip-gated Linux fake-provider suites are
+`tests/pi/native-primary.test.mjs` and `tests/pi/nicobailon-native.test.mjs`.
+Windows and nicobailon 0.84.0 lifecycle are **NOT_VERIFIED**. Real-model host
+sessions and paired-task effectiveness are not established here. See
 [Pi runtime boundaries](../skills/do-it/references/host-pi.md).
+
+Cursor's declared hook map is sessionStart, beforeSubmitPrompt, and postToolUse
+via `run-hook.cmd`. Plugin-native hook loading versus the user-level
+`~/.cursor/hooks.json` mirror is not closed; native actual hook counts are
+unverified.
 
 ## Upstream comparison
 
