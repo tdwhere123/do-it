@@ -29,12 +29,15 @@ root cause / semantic authority
 + the feedback path that can prove the change
 ```
 
-Prefer existing capabilities before a new abstraction. Judge adapters and
+Prefer existing capabilities before a new abstraction. The smallest correct
+change is not the fewest lines: consolidating a repeated decision can be the
+smaller design even if the diff is larger; a forwarding layer that hides no
+decision is not smaller. Judge adapters and
 wrappers by the contracts they preserve and the reasoning or change costs they
 add, not their consumer count. Preserve necessary compatibility, validation,
-and ownership boundaries; remove unsupported scaffolding or forwarding layers
-only when evidence supports simplification. Reuse a live path before forking a
-second home for the same truth.
+and ownership boundaries; remove leftover complexity that would force a new
+layer, without dropping recovery or history the contract still needs. Reuse a
+live path before forking a second home for the same truth.
 
 **Phases, not piles:** keep compute, apply/persist, and audit/side-effect in
 separate phases when mixing them would block a local durable change.
@@ -74,7 +77,8 @@ TDD is how feedback is built at a real seam, not a ceremony.
   one vertical slice.
 - No correct seam → best available probe, and name the proof gap.
 - Tests observe public behavior. Expected truth must not be computed by the
-  same algorithm under test.
+  same algorithm under test. Imagine two edits: a wrong observable result
+  should fail the test; a restructure that preserves observables should not.
 - Mocking away the producer→consumer chain under proof is test fiction —
   tighten or add a real-path check.
 - Mechanical or docs-only edits may skip RED; say why.
@@ -119,8 +123,12 @@ only when the resolution is justified, then run the project's checks.
 
 ## Optimization
 
-Unknown is not impossible, but possibility is not proof. Measure a baseline,
+Unknown is not impossible, but possibility is not proof. Write the decision
+the number must change, and the noise floor, before running. Measure a baseline,
 keep a correct fallback, and run the cheapest falsifier before investing.
-Promote only when observed results beat the baseline on the metric that
-matters. A production-bound feature is not done until its evidence surface
-(log, metric, or trace) is named.
+Name the limiter (core, lock, disk, network, or the harness itself) from a
+profile or counters taken during the run, not from a guess. List what else the
+number could be measuring — skipped work, cache, errors, an untuned side, a
+piece too small to matter end to end — and rule each out. Promote only when
+observed results beat the baseline on the metric that matters. A production-bound
+feature is not done until its evidence surface (log, metric, or trace) is named.

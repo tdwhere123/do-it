@@ -4,10 +4,13 @@
 
 - **Prompt judgment:** revise the ten skills using pinned upstream prompt comparisons:
   concrete disconfirmation questions, safe verification, independent comprehension,
-  and lessons encoded in existing tests or checks. Preserve the compact Core
-  bootstrap, explicit-only deep audit, and independent synthesis before repair.
-  Authorized editorial improvements do not require a prior benchmark; measured
-  behavioral gains still require separate evidence.
+  and lessons encoded in existing tests or checks. Absorb pstack principle reasoning
+  into those owners (smallest structurally correct change, premises, domain structure,
+  cutover, native artifacts, numbers, bounded independent work) without new principle
+  skills or a 24-step checklist. Preserve the compact Core bootstrap, explicit-only
+  deep audit, and independent synthesis before repair. Authorized editorial
+  improvements do not require a prior benchmark; measured behavioral gains still
+  require separate evidence. Dispositions: `docs/design/pstack-principles.md`.
 - **Specialists:** consolidate ten roles into eight. `decision-challenger` combines
   product and plan challenge; `reviewer` covers requirements and implementation;
   `test-engineer` replaces the RED-only writer with a scoped test role that still

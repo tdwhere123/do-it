@@ -16,7 +16,10 @@ and source facts. Label parent interpretations as hypotheses. Reviewers should
 inspect evidence independently rather than inherit a verdict. Avoid passing
 irrelevant conversation history that anchors their analysis. Independence means
 forming a separate judgment, not discarding the user's constraints or the facts
-needed to understand the task. For an ambiguous design, an independent reader's
+needed to understand the task. Bound each independent slice. Keep bulk output
+and long files out of the parent when a summary preserves the decision-relevant
+facts. Do not drop settled decisions, authorization, or needed evidence to save
+context. For an ambiguous design, an independent reader's
 plain-language reconstruction can expose a missing relationship before another
 round of recommendations.
 

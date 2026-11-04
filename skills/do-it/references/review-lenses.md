@@ -76,8 +76,12 @@ including near-copies left by separate agent sessions; unnecessary abstractions,
 forwarding wrappers, speculative configuration, state, and obsolete
 compatibility paths; and hand-rolled behavior that existing primitives can
 replace. Judge split and control-flow cost by how many places a maintainer must
-understand or change together. Naming, types, errors, and tests matter when they
-obscure contracts, hide failures, or make safe changes harder.
+understand or change together. Reader load is those places plus hidden or
+mutable state the reader must hold; line count is a proxy. A flat file of many
+globals can cost as much as a pass-through adapter stack. Collapse a layer that
+repeats the same methods and arguments unless it hides a real decision. Naming,
+types, errors, and tests matter when they obscure contracts, hide failures, or
+make safe changes harder.
 
 Support deletion, merge, or reuse with concrete consumer and contract evidence
 and a maintenance cost; a runtime defect is not required. Preserve security and

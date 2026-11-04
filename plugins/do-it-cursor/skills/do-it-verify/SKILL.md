@@ -30,9 +30,17 @@ it. Retain valid evidence and bound conclusions when paths remain unchecked.
 Separate local correctness, host integration, and operation in a real deployment.
 A source test does not prove that an installed package is discovered or invoked;
 a discovered role name does not prove which instructions or permissions it uses.
-Exercise the relevant native boundary when making those claims. Do not contact
-external services or alter a production contract just to obtain stronger proof
-than the task authorizes; report that missing proof instead.
+Exercise the relevant native boundary when making those claims. Prefer the
+artifact the user or caller would observe over compilation, logs, or a
+delegate's claim. When a check disagrees with other evidence, suspect the
+observation method before the system. A parent-only liveness check can pass if
+the child simply finished; it does not prove cancellation or isolation. Do not
+contact external services or alter a production contract just to obtain stronger
+proof than the task authorizes; report that missing proof instead.
+
+For a performance or eval number, name what limited it, the run-to-run noise,
+and why the workload matches the decision. A speedup larger than the changed
+piece's time is measuring something else.
 
 Report the result and relevant check, plus material gaps or remaining risks.
 Use NOT_VERIFIED when proof is missing, and explain what is missing. No fixed
