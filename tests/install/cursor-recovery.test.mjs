@@ -92,6 +92,28 @@ test("Cursor release refuses a replaced owner and preserves the replacement lock
   }
 });
 
+test("Cursor fault fixture allows ownership reads after an acquired-lock close failure", () => {
+  const home = freshHome();
+  try {
+    const result = spawnSync(process.execPath, [
+      "--import", pathToFileURL(path.join(repoRoot, "tests", "fixtures", "cursor-install-faults.mjs")).href,
+      "--input-type=module", "--eval", `
+        import assert from "node:assert/strict";
+        import fs from "node:fs";
+        const lock = ${JSON.stringify(path.join(home, ".do-it-install.lock"))};
+        const fd = fs.openSync(lock, "wx");
+        fs.writeFileSync(fd, "owner");
+        assert.throws(() => fs.closeSync(fd), /injected lock close failure/);
+        assert.equal(fs.readFileSync(lock, "utf8"), "owner");
+        assert.throws(() => fs.rmSync(lock), /injected lock removal failure/);
+      `
+    ], { cwd: repoRoot, encoding: "utf8" });
+    assert.equal(result.status, 0, result.stderr);
+  } finally {
+    fs.rmSync(home, { recursive: true, force: true });
+  }
+});
+
 for (const caller of ["local", "registration"]) {
   test(`Cursor ${caller} CLI retains commit, rollback, stage cleanup, and lock failures`, () => {
     const home = freshHome();

@@ -4,9 +4,11 @@ import path from "node:path";
 
 const { openSync, closeSync, renameSync, rmSync, writeFileSync } = fs;
 const lockFds = new Set();
-fs.openSync = function (file, ...args) {
-  const fd = openSync.call(fs, file, ...args);
-  if (String(file).endsWith(".do-it-install.lock")) lockFds.add(fd);
+fs.openSync = function (file, flags, ...args) {
+  const fd = openSync.call(fs, file, flags, ...args);
+  // Inject only when closing the acquired lock, not when reading its owner.
+  // Node 18's readFileSync uses the public openSync/closeSync functions.
+  if (flags === "wx" && String(file).endsWith(".do-it-install.lock")) lockFds.add(fd);
   return fd;
 };
 fs.closeSync = function (fd) {
