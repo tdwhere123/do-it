@@ -51,7 +51,9 @@ jobs:
         run: npm run validate:release -- "${GITHUB_REF_NAME}"
 
       - name: Full test suite
-        run: npm test
+        run: |
+          npm test
+          node --test .github/scripts/publish-package.test.mjs
 
       - name: Build all host plugins
         run: |
@@ -148,13 +150,9 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          if [ -z "${NODE_AUTH_TOKEN}" ]; then
-            echo "NPM_TOKEN secret is required to publish" >&2
-            exit 1
-          fi
           TARBALL=$(find . -maxdepth 1 -name '*do-it-[0-9]*.tgz' -print -quit)
           test -n "${TARBALL}"
-          npm publish "${TARBALL}" --access public
+          node .github/scripts/publish-package.mjs "${TARBALL}" package.json
 
   publish-pi-npm:
     name: Publish Pi npm package (optional)
@@ -194,10 +192,6 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          if [ -z "${NODE_AUTH_TOKEN}" ]; then
-            echo "NPM_TOKEN secret is required to publish @tdwhere/do-it-pi" >&2
-            exit 1
-          fi
           TARBALL=$(find . -maxdepth 1 -name '*do-it-pi*.tgz' -print -quit)
           test -n "${TARBALL}"
-          npm publish "${TARBALL}" --access public
+          node .github/scripts/publish-package.mjs "${TARBALL}" plugins/do-it-pi/package.json
