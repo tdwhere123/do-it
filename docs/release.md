@@ -31,9 +31,9 @@ publication still require their own evidence.
 
 | Plane | Current repository evidence |
 | --- | --- |
-| Source/package | Metadata prepares `0.19.0`: 10 runnable skills, 1 generated discovery entry, and 8 specialists. Prompt revisions, role consolidation, router removal, and host fixes are source changes, not a measured model-efficacy or publication claim. |
-| Git tag | This work creates no release tag. Tag the verified release commit only when authorized; do not retro-tag or move historical releases to conceal source/package drift. Version metadata or a tag alone does not prove npm publication. |
-| Marketplace/npm | Registry queries on 2026-11-04 confirm both `@tdwhere/do-it` and `@tdwhere/do-it-pi` 0.18.1 were published on 2026-10-17. The source continued changing under that version; these tarballs are not the current adapter. Publication of 0.19.0 is authorized but still pending the release gate. Verify the registry before claiming availability. Cursor marketplace listing remains pending. |
+| Source/package | Release metadata is `0.19.0`: 10 runnable skills, 1 generated discovery entry, and 8 specialists. Prompt revisions, role consolidation, router removal, and host fixes are source changes, not a measured model-efficacy or publication claim. |
+| Git tag | Create `v0.19.0` on the verified release commit as part of the authorized release; do not push it without authorization; do not retro-tag or move historical releases to conceal source/package drift. Version metadata or a tag alone does not prove npm publication. |
+| Marketplace/npm | Registry queries on 2026-11-04 confirm both `@tdwhere/do-it` and `@tdwhere/do-it-pi` 0.18.1 were published on 2026-10-17. The source continued changing under that version; these tarballs are not the current adapter. The authorized 0.19.0 release uses separately verified root and Pi tarballs. Verify both exact versions and integrity values in the registry before claiming publication. Cursor marketplace listing remains pending. |
 | Live host | Only host install/inspection evidence proves an active version. Source, package, tag, and live host may differ. |
 
 ## Tag Policy

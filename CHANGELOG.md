@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.19.0 (unreleased)
+## 0.19.0 (2026-11-04)
 
 - **Prompt judgment:** revise the ten skills using pinned upstream prompt comparisons:
   concrete disconfirmation questions, safe verification, independent comprehension,
@@ -39,8 +39,8 @@
   only hash-proven legacy assets. Retain uncertain install locks across OS/PID
   namespaces, and preserve rollback, cleanup and recovery-path errors.
 - **Version accounting:** move source metadata to 0.19.0 rather than reusing the
-  already-published 0.18.1 version. No tag, publication, or live-host update is
-  performed by this source change.
+  already-published 0.18.1 version. Source, npm artifacts and live-host
+  activation are verified separately; old tarballs are not rewritten.
 
 - **Remove discovery router:** delete `do-it-router` without an alias or replacement
   entrypoint from canonical skills, host bundles, and discovery indexes. Install

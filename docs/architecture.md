@@ -1,6 +1,6 @@
 # Architecture
 
-This unreleased 0.19.0 source ships independently selected skills from
+The 0.19.0 architecture ships independently selected skills from
 `skills/do-it/` (`scripts/skill-tiers.mjs` `ALL_SKILLS`: 10 runnable) plus one
 generated discovery entry (`do-it-skills-index` in `index.json`), and specialist
 roles from `agents/*.toml` (8). Skill descriptions determine task fit. Neither
