@@ -178,7 +178,8 @@ test("install-cursor-local copies a real plugin directory into HOME plugins/loca
     const dest = path.join(home, ".cursor", "plugins", "local", "do-it-cursor");
     assert.ok(fs.existsSync(path.join(dest, ".cursor-plugin", "plugin.json")));
     assert.ok(!fs.lstatSync(dest).isSymbolicLink(), "must not be a symlink");
-    assert.ok(fs.existsSync(path.join(dest, "skills", "do-it-router", "SKILL.md")));
+    assert.ok(fs.existsSync(path.join(dest, "skills", "do-it-core", "SKILL.md")));
+    assert.equal(fs.existsSync(path.join(dest, "skills", "do-it-router")), false);
     assert.ok(fs.existsSync(path.join(dest, "hooks", "hooks.json")));
     assert.ok(fs.existsSync(path.join(dest, "hooks", "run-hook.cmd")));
     assert.ok(
@@ -456,8 +457,8 @@ test("validateCursorPlugin rejects intermediate directory symlinks", () => {
       path.join(plugin, ".cursor-plugin", "plugin.json"),
       JSON.stringify({ name: "do-it-cursor", version: expectedVersion })
     );
-    fs.mkdirSync(path.join(plugin, "skills", "do-it-router"), { recursive: true });
-    fs.writeFileSync(path.join(plugin, "skills", "do-it-router", "SKILL.md"), "# router\n");
+    fs.mkdirSync(path.join(plugin, "skills", "do-it-core"), { recursive: true });
+    fs.writeFileSync(path.join(plugin, "skills", "do-it-core", "SKILL.md"), "# core\n");
     fs.mkdirSync(path.join(plugin, "agents"), { recursive: true });
     fs.writeFileSync(path.join(plugin, "agents", "reviewer.md"), "# reviewer\n");
     fs.mkdirSync(external, { recursive: true });

@@ -17,12 +17,12 @@ const retired = [
   "do-it-tdd", "do-it-debugging", "do-it-subagent-orchestration",
   "do-it-review-loop", "do-it-fix-loop", "do-it-verification-gate",
   "do-it-worktree-isolation", "do-it-branch-closeout", "do-it-comments-discipline",
-  "do-it-handbook"
+  "do-it-handbook", "do-it-router"
 ];
 const pattern = new RegExp(`\\b(?:${retired.join("|")})\\b`, "g");
 const roots = [
   "agents", "commands", "hooks", "skills/do-it", "scripts",
-  "plugins/do-it", "plugins/do-it-cursor", "plugins/do-it-pi",
+  "plugins/do-it", "plugins/do-it-cursor", "plugins/do-it-pi", "plugins/do-it-grok",
   "dist/claude", ".claude-plugin", ".cursor-plugin"
 ];
 const ignored = new Set([

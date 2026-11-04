@@ -3,8 +3,8 @@
   "package": "@tdwhere/do-it",
   "repository": "https://github.com/tdwhere123/do-it",
   "domain": "agentic-workflow",
-  "total_skills": 11,
-  "total_capabilities": 11,
+  "total_skills": 10,
+  "total_capabilities": 10,
   "total_discovery_entries": 1,
   "total_agents": 10,
   "coverage": {
@@ -12,7 +12,7 @@
       "index": 1,
       "mainline": 6,
       "maintenance": 2,
-      "on-demand": 3
+      "on-demand": 2
     },
     "optional_skills": []
   },
@@ -26,16 +26,6 @@
       "group": "index",
       "source": "dist/claude/skills/_index.md",
       "target": "skills/_index.md"
-    },
-    {
-      "kind": "skill",
-      "name": "do-it-router",
-      "description": "Compatibility alias for earlier do-it skill discovery; select relevant skills directly from their descriptions.",
-      "origin": "do-it",
-      "optional": false,
-      "group": "on-demand",
-      "source": "skills/do-it/do-it-router",
-      "target": "skills/do-it-router"
     },
     {
       "kind": "skill",

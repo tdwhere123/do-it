@@ -51,7 +51,7 @@ export function buildPiInvocation(
 
 export function main(installRoot = pluginRoot) {
 	if (
-		!fs.existsSync(path.join(installRoot, "skills", "do-it-router", "SKILL.md"))
+		!fs.existsSync(path.join(installRoot, "skills", "do-it-core", "SKILL.md"))
 	) {
 		throw new Error(
 			"plugins/do-it-pi is not built — run npm run build:pi-plugin first",

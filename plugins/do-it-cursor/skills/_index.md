@@ -24,7 +24,6 @@ Links resolve beside this index in the installed or packaged skills directory. T
 
 - [**do-it-audit**](./do-it-audit/SKILL.md) — Use when the user explicitly requests a deep repository or scoped audit; not for ordinary diff review.
 - [**do-it-retrospective**](./do-it-retrospective/SKILL.md) — Use when the user asks to reflect on an observed collaboration or engineering outcome and identify useful lessons.
-- [**do-it-router**](./do-it-router/SKILL.md) — Compatibility alias for earlier do-it skill discovery; select relevant skills directly from their descriptions.
 
 ## Handbook & maintenance
 

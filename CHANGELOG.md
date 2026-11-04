@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Remove discovery router:** delete `do-it-router` without an alias or replacement
+  entrypoint from canonical skills, host bundles, and discovery indexes. Install
+  checks use Core instead; managed upgrades remove unchanged owned copies and
+  preserve modified user content for explicit resolution.
+
 ## 0.18.1 (unreleased)
 
 ### Shared ownership and native host delivery

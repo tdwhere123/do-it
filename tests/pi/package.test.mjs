@@ -274,7 +274,7 @@ test("independent npm tarball contains Pi runtime assets only", () => {
 		"extensions/bridge.ts",
 		"hooks/prompt-submit.sh",
 		"hooks/subagent-stance.sh",
-		"skills/do-it-router/SKILL.md",
+		"skills/do-it-core/SKILL.md",
 		"agents/code-mapper.md",
 		"docs/README.pi.md",
 	]) {
@@ -287,7 +287,7 @@ test("independent npm tarball contains Pi runtime assets only", () => {
 	for (const entry of files) {
 		assert.doesNotMatch(
 			entry,
-			/(?:^|\/)node_modules(?:\/|$)|\.test-dist|skills\/_index\.md|enable-fff-multigrep/,
+			/(?:^|\/)node_modules(?:\/|$)|\.test-dist|skills\/_index\.md|skills\/do-it-router(?:\/|$)|enable-fff-multigrep/,
 		);
 	}
 });

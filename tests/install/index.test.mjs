@@ -48,10 +48,7 @@ test("build-index-json creates a byte-reproducible skill and agent inventory", (
   assert.equal(discovery?.kind, "skill");
   assert.equal(discovery?.group, "index");
 
-  const router = index.entries.find((entry) => entry.name === "do-it-router");
-  assert.equal(router?.kind, "skill");
-  assert.equal(router?.target, "skills/do-it-router");
-  assert.match(router?.description ?? "", /compatibility|discovery/i);
+  assert.equal(index.entries.some((entry) => entry.name === "do-it-router"), false);
 
   const reviewer = index.entries.find((entry) => entry.name === "reviewer");
   assert.equal(reviewer?.kind, "agent");
@@ -59,19 +56,33 @@ test("build-index-json creates a byte-reproducible skill and agent inventory", (
   assert.match(reviewer?.description ?? "", /review/i);
 });
 
+test("retired router has no source, discovery entry, or shipped alias", () => {
+  const manifest = readJson("manifest.json");
+  assert.ok(!Object.values(manifest.skillTiers).flat().includes("do-it-router"));
+  assert.ok(!manifest.skills.some((entry) => entry.name === "do-it-router"));
+  for (const root of [
+    "skills/do-it", "dist/claude/skills", "plugins/do-it/skills",
+    "plugins/do-it-cursor/skills", "plugins/do-it-pi/skills", "plugins/do-it-grok/skills"
+  ]) {
+    assert.equal(fs.existsSync(path.join(repoRoot, root, "do-it-router")), false, root);
+    const index = path.join(repoRoot, root, "_index.md");
+    if (fs.existsSync(index)) assert.doesNotMatch(fs.readFileSync(index, "utf8"), /do-it-router/);
+  }
+});
+
 test("parseFrontmatter accepts CRLF SKILL.md fences", () => {
   const crlf = [
     "---",
-    "name: do-it-router",
-    'description: "Use when starting any non-trivial repo task: pick Light / Standard / Heavy tier."',
+    "name: do-it-core",
+    'description: "Use when repository work needs shared intent, facts, and evidence."',
     "---",
     "",
-    "# Router",
+    "# Core",
     ""
   ].join("\r\n");
   const fm = parseFrontmatter(crlf);
-  assert.equal(fm.name, "do-it-router");
-  assert.match(fm.description, /Light \/ Standard \/ Heavy/);
+  assert.equal(fm.name, "do-it-core");
+  assert.match(fm.description, /intent, facts, and evidence/);
 });
 
 test("removed install migration note is not referenced by shipped docs", () => {

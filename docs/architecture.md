@@ -1,7 +1,6 @@
 # Architecture
 
-do-it ships twelve independently selected skills (including the explicit
-`do-it-router` discovery compatibility alias) and ten specialist roles. Skill
+do-it ships ten independently selected skills and ten specialist roles. Skill
 descriptions determine task fit. Neither the index groups nor specialist roles
 create a mandatory pipeline, delegation quota, artifact system, or fixed test
 count.

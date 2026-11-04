@@ -1,9 +1,10 @@
 # Simplification migration
 
 The default runtime now delivers compact context and useful source-edit checks.
-Choose professional skills directly; `do-it-router` remains only as an explicit
-compatibility alias. Workflow tiers, lexical router/grill prompts, completion
-language gates, and automatic active-task takeover have been retired.
+Choose professional skills directly. `do-it-router` is removed without an alias
+or replacement entrypoint. Managed upgrades remove unchanged owned copies; modified
+user copies require explicit resolution. Workflow tiers, lexical router/grill
+prompts, completion language gates, and automatic active-task takeover are retired.
 
 The custom adaptive system is removed in full: profile selection and injection,
 candidates, shadow/activation/promotion, automatic recording, and policy tooling.

@@ -48,8 +48,6 @@ Choose a skill directly when its description helps the work:
 | `do-it-retrospective` | On-demand reflection on observed outcomes |
 | `do-it-skill-authoring` | Succinct triggers, unique judgment, and necessary boundaries |
 
-`do-it-router` remains only as an explicit compatibility alias for discovery.
-
 Independent agent contexts matter: they can gather fresh evidence and reach
 conclusions without inheriting the parent's anchoring. Pass goals, scope,
 settled decisions, and source facts; label parent opinions as hypotheses.

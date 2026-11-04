@@ -122,7 +122,7 @@ export function smokePiTarball(tarball) {
 			"extensions/bridge.ts",
 			"hooks/prompt-submit.sh",
 			"hooks/subagent-stance.sh",
-			"skills/do-it-router/SKILL.md",
+			"skills/do-it-core/SKILL.md",
 			"agents/code-mapper.md",
 		]) {
 			if (!fs.existsSync(path.join(installedRoot, relativePath))) {
@@ -283,13 +283,14 @@ export function smokePiHostLoad(packageRoot, repoRoot = defaultRepoRoot) {
 				throw new Error(`installed Pi extension did not register ${handler}`);
 		}
 		for (const skill of [
+			"do-it-architecture",
 			"do-it-audit",
+			"do-it-core",
 			"do-it-code-quality",
 			"do-it-context",
 			"do-it-decide",
 			"do-it-retrospective",
 			"do-it-review",
-			"do-it-router",
 			"do-it-skill-authoring",
 			"do-it-verify",
 		]) {

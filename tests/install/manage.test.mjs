@@ -330,7 +330,7 @@ test("install falls back to copy when staged rename crosses filesystems", () => 
     });
     assert.equal(result.status, 0, result.stderr);
     assert.ok(
-      fs.existsSync(path.join(root, "skills", "do-it-router", "SKILL.md")),
+      fs.existsSync(path.join(root, "skills", "do-it-core", "SKILL.md")),
       "skill directory should be copied into place after EXDEV"
     );
     assert.ok(
@@ -367,6 +367,43 @@ test("re-install from an older state version triggers a backed-up migration", ()
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
+
+for (const modified of [false, true]) {
+  test(`retired router cleanup ${modified ? "preserves modified user content" : "removes the managed alias and state"}`, () => {
+    const root = freshRoot("retire-router");
+    try {
+      assert.equal(runManage(["install"], { CODEX_HOME: root }).status, 0);
+      const statePath = path.join(root, ".do-it-install-state.json");
+      const state = JSON.parse(fs.readFileSync(statePath, "utf8"));
+      const retired = path.join(root, "skills", "do-it-router");
+      const content = "former managed discovery alias\n";
+      fs.mkdirSync(retired, { recursive: true });
+      fs.writeFileSync(path.join(retired, "SKILL.md"), content);
+      state.entries["skills/do-it-router"] = {
+        kind: "skill", name: "do-it-router",
+        hash: crypto.createHash("sha256").update(`SKILL.md\0${content}\0`).digest("hex")
+      };
+      const stateText = `${JSON.stringify(state, null, 2)}\n`;
+      fs.writeFileSync(statePath, stateText);
+      if (modified) fs.appendFileSync(path.join(retired, "SKILL.md"), "personal changes\n");
+
+      const result = runManage(["install"], { CODEX_HOME: root });
+      if (modified) {
+        assert.notEqual(result.status, 0);
+        assert.match(result.stderr, /Refusing to remove existing deprecated skill target/);
+        assert.equal(fs.readFileSync(path.join(retired, "SKILL.md"), "utf8"), `${content}personal changes\n`);
+        assert.equal(fs.readFileSync(statePath, "utf8"), stateText, "failed cleanup leaves state unchanged");
+      } else {
+        assert.equal(result.status, 0, result.stderr);
+        assert.equal(fs.existsSync(retired), false);
+        assert.ok(!Object.hasOwn(JSON.parse(fs.readFileSync(statePath, "utf8")).entries, "skills/do-it-router"));
+      }
+      assert.ok(fs.existsSync(path.join(root, "skills", "do-it-core", "SKILL.md")));
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
+}
 
 test("0.13 hard-delete migration removes managed retired skill and agent", () => {
   const root = freshRoot("retire-managed");

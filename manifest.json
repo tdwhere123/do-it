@@ -13,8 +13,7 @@
       "do-it-audit",
       "do-it-retrospective",
       "do-it-context",
-      "do-it-skill-authoring",
-      "do-it-router"
+      "do-it-skill-authoring"
     ]
   },
   "migrations": [
@@ -257,7 +256,7 @@
       "legacyHashes": [
         "5050279df0d8f24aeccfe8b6a050312b58e1674c18a8e8694d87a0eccb9f87a6"
       ],
-      "reason": "renamed into do-it-router; adapter guidance lives in docs/upstream-map.md"
+      "reason": "use task-fit skills directly; adapter guidance lives in docs/upstream-map.md"
     },
     {
       "name": "brainstorming",
@@ -265,7 +264,7 @@
       "legacyHashes": [
         "55d0dece3e093868722f24ce228f59cdc1ea4118d02a8578bcf59cea403ebf4e"
       ],
-      "reason": "absorbed into do-it-decide and do-it-router"
+      "reason": "absorbed into do-it-decide"
     },
     {
       "name": "quality-workflow-router",
@@ -273,7 +272,7 @@
       "legacyHashes": [
         "d961a153fb63661a645d59112ca10e54a2d363d96d5d8c26d50a4b622ec707c2"
       ],
-      "reason": "replaced by do-it-router"
+      "reason": "select task-fit skills directly from their descriptions"
     },
     {
       "name": "decision-first-brainstorming",
@@ -289,7 +288,7 @@
       "legacyHashes": [
         "1d91834b9a041ace828b67f1bdc49aa1ab30536b3f8f040f9a4d4608553b9564"
       ],
-      "reason": "absorbed into do-it-router, do-it-code-quality, and parent delegation (workflow-kernel)"
+      "reason": "absorbed into do-it-code-quality and parent delegation (workflow-kernel)"
     },
     {
       "name": "multi-perspective-review",
@@ -377,7 +376,7 @@
       "legacyHashes": [
         "15619616cf9b0d82f74f81e472ad1669b5cc23f56b8b6adb31d9e33ddb16d79e"
       ],
-      "reason": "removed after 0.4.x; use do-it-router plus do-it-code-quality, do-it-review, and do-it-verify as needed"
+      "reason": "removed after 0.4.x; use do-it-code-quality, do-it-review, and do-it-verify as needed"
     },
     {
       "name": "do-it-grill-log",
@@ -623,6 +622,12 @@
       "kind": "skill",
       "target": "skills/do-it-handbook",
       "reason": "0.18.1: merged into do-it-context"
+    },
+    {
+      "name": "do-it-router",
+      "kind": "skill",
+      "target": "skills/do-it-router",
+      "reason": "Discovery alias removed; select skills directly from their descriptions"
     }
   ],
   "skills": [
@@ -630,12 +635,6 @@
       "name": "do-it-skills-index",
       "source": "dist/claude/skills/_index.md",
       "target": "skills/_index.md",
-      "origin": "do-it"
-    },
-    {
-      "name": "do-it-router",
-      "source": "skills/do-it/do-it-router",
-      "target": "skills/do-it-router",
       "origin": "do-it"
     },
     {

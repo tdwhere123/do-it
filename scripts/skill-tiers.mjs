@@ -3,8 +3,7 @@
 // All maintained host surfaces (Codex / Claude / Cursor / Pi / Grok Build)
 // ship ALL_SKILLS.
 // Groups organize discovery only; they do not classify tasks.
-// Meaning-centric buckets (not process pipeline): route / code-quality / review /
-// decide / verify + persistence/maintenance.
+// Meaning-centric buckets organize professional judgment, not a process pipeline.
 
 /** @type {readonly string[]} */
 export const CORE_SKILLS = [
@@ -19,8 +18,7 @@ export const CORE_SKILLS = [
 /** On-demand extended skills — deliberately outside the meaning-centric default set. */
 export const EXTENDED_ON_DEMAND = [
   "do-it-audit",
-  "do-it-retrospective",
-  "do-it-router"
+  "do-it-retrospective"
 ];
 
 export const EXTENDED_MAINTENANCE = [

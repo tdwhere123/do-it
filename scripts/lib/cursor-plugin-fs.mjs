@@ -74,7 +74,7 @@ export function validateCursorPlugin(
   }
 
   if (requireRuntime) {
-    requireRealFile(path.join("skills", "do-it-router", "SKILL.md"));
+    requireRealFile(path.join("skills", "do-it-core", "SKILL.md"));
     requireRealFile(path.join("agents", "reviewer.md"));
   }
 

@@ -116,7 +116,8 @@ jobs:
           npm run install:cursor-local
           test -f "$HOME/.cursor/plugins/local/do-it-cursor/.cursor-plugin/plugin.json"
           test ! -L "$HOME/.cursor/plugins/local/do-it-cursor"
-          test -f "$HOME/.cursor/plugins/local/do-it-cursor/skills/do-it-router/SKILL.md"
+          test -f "$HOME/.cursor/plugins/local/do-it-cursor/skills/do-it-core/SKILL.md"
+          test ! -e "$HOME/.cursor/plugins/local/do-it-cursor/skills/do-it-router"
           test -f "$HOME/.cursor/hooks.json"
           grep -q 'run-hook.cmd' "$HOME/.cursor/hooks.json"
           ! grep -E 'do-it-cursor/hooks/[^"]+\.sh"' "$HOME/.cursor/hooks.json"

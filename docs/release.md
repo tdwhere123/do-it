@@ -24,7 +24,7 @@ builds, native discovery, actual model probes, and remaining unverified behavior
 
 | Plane | Current repository evidence |
 | --- | --- |
-| Source/package | `package.json`, manifest, and plugin metadata declare `0.18.1`; inventory is 12 runnable skills (including the discovery compatibility alias), 1 generated discovery entry, and 10 agents. This patch improves explicit deep-audit delegation, coverage reuse, and maintainability review, consolidates Core/bootstrap and specialist ownership, and updates host support. It is an unpublished source update; npm publication is deferred. |
+| Source/package | `package.json`, manifest, and plugin metadata declare `0.18.1`; the current checkout inventory is 10 runnable skills, 1 generated discovery entry, and 10 agents; the retired discovery router is no longer shipped. This patch improves explicit deep-audit delegation, coverage reuse, and maintainability review, consolidates Core/bootstrap and specialist ownership, and updates host support. It is an unpublished source update; npm publication is deferred. |
 | Git tag | The existing `v0.18.0` tag identifies the preceding version. This source update does not create `v0.18.1`. The older `v0.17.0` tag belongs to a different commit whose npm publication failed; do not move or reuse it. Version metadata or a tag alone does not prove npm publication. |
 | Marketplace/npm | The release workflow publishes separate `@tdwhere/do-it` and `@tdwhere/do-it-pi` artifacts. Only post-workflow registry queries prove publication. Cursor marketplace listing remains pending. |
 | Live host | Only host install/inspection evidence proves an active version. Source, package, tag, and live host may differ. |
