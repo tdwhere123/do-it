@@ -116,6 +116,16 @@ test("Pi package README surfaces stay generated from the canonical host sheet", 
 	}
 });
 
+test("Pi package carries reproducible primary runtime preparation assets", () => {
+	for (const name of ["README.md", "LICENSE", "session-identity.patch.gz"]) {
+		assert.deepEqual(
+			fs.readFileSync(path.join(pluginRoot, "docs", "tintinweb", name)),
+			fs.readFileSync(path.join(repoRoot, "install", "pi-runtime", "tintinweb", name)),
+			`${name}: primary runtime preparation must survive standalone distribution`,
+		);
+	}
+});
+
 test("Pi package exposes one extension and optional namespaced subagents", () => {
 	assert.equal(manifest.name, "@tdwhere/do-it-pi");
 	assert.deepEqual(manifest.pi.extensions, ["./extensions/index.ts"]);
@@ -285,6 +295,9 @@ test("independent npm tarball contains Pi runtime assets only", () => {
 		"skills/do-it-core/SKILL.md",
 		"agents/code-mapper.md",
 		"docs/README.pi.md",
+		"docs/tintinweb/README.md",
+		"docs/tintinweb/LICENSE",
+		"docs/tintinweb/session-identity.patch.gz",
 	]) {
 		assert.equal(
 			files.has(required),

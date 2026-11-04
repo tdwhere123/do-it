@@ -8,7 +8,8 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseAgentToml } from "../../../scripts/lib/agent-source.mjs";
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
-const originalPlugin = path.join(repo, "plugins/do-it-pi");
+const sdkPlugin = path.join(repo, "plugins/do-it-pi");
+const originalPlugin = process.env.DO_IT_PI_PLUGIN_ROOT ? path.resolve(process.env.DO_IT_PI_PLUGIN_ROOT) : sdkPlugin;
 const source = path.resolve(process.env.DO_IT_TINTINWEB_SOURCE);
 const scenario = process.argv[2];
 const negative = process.env.DO_IT_PI_PROBE_NEGATIVE;
@@ -21,9 +22,9 @@ Object.assign(process.env, { HOME: home, USERPROFILE: home, PI_CODING_AGENT_DIR:
 	PI_OFFLINE: "1", DO_IT_PI_PROBE_DIR: home, DO_IT_EVIDENCE_MODE: "observe" });
 delete process.env.PI_SUBAGENT_CHILD;
 globalThis.fetch = async () => { throw new Error("network is forbidden in the native fixture"); };
-const sdk = await import(pathToFileURL(path.join(originalPlugin, "node_modules/@earendil-works/pi-coding-agent/dist/index.js")));
-const ai = await import(pathToFileURL(path.join(originalPlugin, "node_modules/@earendil-works/pi-ai/dist/index.js")));
-const piVersion = JSON.parse(fs.readFileSync(path.join(originalPlugin, "node_modules/@earendil-works/pi-coding-agent/package.json"))).version;
+const sdk = await import(pathToFileURL(path.join(sdkPlugin, "node_modules/@earendil-works/pi-coding-agent/dist/index.js")));
+const ai = await import(pathToFileURL(path.join(sdkPlugin, "node_modules/@earendil-works/pi-ai/dist/index.js")));
+const piVersion = JSON.parse(fs.readFileSync(path.join(sdkPlugin, "node_modules/@earendil-works/pi-coding-agent/package.json"))).version;
 assert.equal(piVersion, "1.5.0");
 const writer = fs.readdirSync(path.join(repo, "agents")).filter((file) => file.endsWith(".toml"))
 	.map((file) => parseAgentToml(fs.readFileSync(path.join(repo, "agents", file), "utf8")))

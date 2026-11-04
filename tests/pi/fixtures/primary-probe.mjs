@@ -8,8 +8,9 @@ import { createHash } from "node:crypto";
 import { parseAgentToml } from "../../../scripts/lib/agent-source.mjs";
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
-const plugin = path.join(repo, "plugins/do-it-pi");
-const piVersion = JSON.parse(fs.readFileSync(path.join(plugin, "node_modules/@earendil-works/pi-coding-agent/package.json"), "utf8")).version;
+const sdkPlugin = path.join(repo, "plugins/do-it-pi");
+const plugin = process.env.DO_IT_PI_PLUGIN_ROOT ? path.resolve(process.env.DO_IT_PI_PLUGIN_ROOT) : sdkPlugin;
+const piVersion = JSON.parse(fs.readFileSync(path.join(sdkPlugin, "node_modules/@earendil-works/pi-coding-agent/package.json"), "utf8")).version;
 assert.equal(piVersion, "1.5.0", "native evidence is for the locked Pi 1.5 host");
 const source = path.resolve(process.env.DO_IT_TINTINWEB_SOURCE);
 const scenario = process.argv[2];
@@ -37,8 +38,8 @@ fs.writeFileSync(path.join(agentDir, "subagents.json"), JSON.stringify({ remembe
 fs.writeFileSync(path.join(cwd, ".pi/agents/probe-nested.md"), `---\nname: probe-nested\ndescription: Native nested fixture\ntools: read, bash, write\nallowed_subagents: ${writer.name}\n---\nExercise the assigned temporary fixture only.\n`);
 fs.writeFileSync(path.join(cwd, ".pi/agents/probe-filtered.md"), `---\nname: probe-filtered\ndescription: Native filtered fixture\ntools: read, bash, write\nextensions: do-it-pi, ${observer}\n---\nExercise the assigned temporary fixture only.\n`);
 
-const sdk = await import(pathToFileURL(path.join(plugin, "node_modules/@earendil-works/pi-coding-agent/dist/index.js")));
-const ai = await import(pathToFileURL(path.join(plugin, "node_modules/@earendil-works/pi-ai/dist/index.js")));
+const sdk = await import(pathToFileURL(path.join(sdkPlugin, "node_modules/@earendil-works/pi-coding-agent/dist/index.js")));
+const ai = await import(pathToFileURL(path.join(sdkPlugin, "node_modules/@earendil-works/pi-ai/dist/index.js")));
 const fake = ai.fauxProvider();
 const counts = new Map();
 const tool = (name, args) => ai.fauxToolCall(name, args);
@@ -156,7 +157,7 @@ try {
 	assert.equal(sessions.reduce((total, session) => total + session.modelRequests, 0), fake.state.callCount);
 	const digest = (file) => createHash("sha256").update(fs.readFileSync(file)).digest("hex");
 	report = { scenario, expectedPatched, pi: piVersion, runtime: JSON.parse(fs.readFileSync(path.join(source, "package.json"), "utf8")).version,
-		provider: "local faux; network fetch denied", requests: fake.state.callCount, source, writer: writer.name,
+		provider: "local faux; network fetch denied", requests: fake.state.callCount, source, plugin, writer: writer.name,
 		canonicalRoles: canonical.map((agent) => agent.name), nativeCatalog, node: process.version,
 		fixtureHashes: Object.fromEntries(["primary-probe.mjs", "primary-observer.mjs"].map((file) => [file, digest(path.join(repo, "tests/pi/fixtures", file))])),
 		canonicalAgentHashes: Object.fromEntries(canonical.map((agent) => [agent.name, digest(path.join(repo, "agents", `${agent.name}.toml`))])),

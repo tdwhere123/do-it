@@ -10,8 +10,10 @@ versions. The package requires Node 22.19 or newer. The primary runtime
 is `@tintinweb/pi-subagents`. Correct in-process child routing currently requires
 the **local source patch** documented in `docs/release-evidence/pi-child-identity-boundaries.md`
 in the do-it source checkout, not the published, unpatched 0.23.0 package.
-This patch is not published and no live installation is changed by the
-repository tests.
+The standalone Pi tarball includes the reviewed patch, upstream license, and
+pinned preparation steps under `docs/tintinweb/README.md`; a do-it checkout carries
+the same assets under `install/pi-runtime/tintinweb/`. This is not an upstream
+runtime release, and repository tests do not change a live installation.
 
 Tintinweb currently discovers package agents by their literal bare names, such
 as `code-mapper`. The separate `pi-subagents` compatibility runtime qualifies
@@ -71,8 +73,8 @@ it or the new runtime response, the session is **unmarked** and uses root hooks;
 `/do-it-status` says so. Unpatched Tintinweb 0.23.0 children are therefore
 unsupported, including persisted children: the former lineage/tool heuristic
 has been removed rather than retained as a second authority. To try the local
-patch, review the verification record and deliberately replace only the selected
-runtime package source; do not load patched and unpatched copies together. **Migration is paired:** replacing or
+patch, follow the bundled preparation guide and deliberately replace only the
+selected runtime package source; do not load patched and unpatched copies together. **Migration is paired:** replacing or
 reloading a live-linked do-it checkout is operationally an installation change.
 Do not deploy this adapter alone to an unpatched Tintinweb installation. A paired
 runtime/adapter migration requires explicit authorization; the isolated tests do

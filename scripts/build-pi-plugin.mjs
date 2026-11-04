@@ -71,7 +71,7 @@ function assertPiPackageContract(pluginPkg) {
 	}
 	if (pluginPkg.engines?.node !== ">=22.19.0") {
 		throw new Error(
-			"plugins/do-it-pi Node engine must match Pi 0.81.x (>=22.19.0)",
+			"plugins/do-it-pi Node engine must match the supported Pi baseline (>=22.19.0)",
 		);
 	}
 }
@@ -207,6 +207,8 @@ function copyHooks() {
 function main() {
 	assertPiVersionParity();
 	copySkills();
+	fs.cpSync(path.join(repoRoot, "install", "pi-runtime", "tintinweb"),
+		path.join(pluginRoot, "docs", "tintinweb"), { recursive: true });
 	copyAgents();
 	copyHooks();
 
