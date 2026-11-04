@@ -20,7 +20,9 @@ the plugin installation without duplicating its skills/hooks.
 The historical [0.18.1 verification record](./release-evidence/0.18.1-unreleased.md)
 retains its original scope. It is not proof for the current checkout or the
 published 0.18.1 tarballs. Keep builds, native discovery, actual model probes,
-and registry publication separate.
+and registry publication separate. The [0.19.0 source checkpoint](./release-evidence/0.19.0-unreleased.md)
+records integrated prompt, role, evaluator, and compatibility checks, including
+the still-isolated Tintinweb migration gate.
 
 ## Current Truth Planes
 

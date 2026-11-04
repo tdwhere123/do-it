@@ -19,7 +19,17 @@
   upgrades; keep Claude's explicit declarations aligned with canonical sources.
 - **Pi 1.5 baseline:** retain structured tool results when appending advisories and
   isolate hook cancellation/shutdown by extension instance. Native fake-provider
-  coverage is distinct from subagent-runtime compatibility and model efficacy.
+  coverage is distinct from model efficacy. Verify nicobailon `pi-subagents`
+  0.35.1 discovery, real child execution, project constraints, results, and
+  cancellation on Linux; bound its optional peer to that version and the Pi
+  SDK peer to the 1.5 patch line. The Tintinweb creator-identity change remains
+  isolated pending lifecycle verification and an authorized paired migration;
+  the live-linked main checkout retains its existing child detector meanwhile.
+- **Behavioral evidence:** capture bounded execution provenance, recognize quoted
+  Node test globs, and reject masked failures, ambiguous ordering, skipped work,
+  and unattributed writes as fresh passing evidence. Preserve historical runs.
+  A provider-free native Pi test covers actual tools through evidence capture;
+  it is not a model comparison or a claim of benchmark-answer isolation.
 - **Version accounting:** move source metadata to 0.19.0 rather than reusing the
   already-published 0.18.1 version. No tag, publication, or live-host update is
   performed by this source change.
