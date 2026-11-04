@@ -30,7 +30,9 @@ const ignored = new Set([
   "plugins/do-it-pi/.test-dist"
 ]);
 const allowed = new Set([
-  "hooks/verification-gate.sh"
+  "hooks/verification-gate.sh",
+  // Hash-proven retirement paths are cleanup metadata, not callable skills.
+  "scripts/lib/cursor-plugin-fs.mjs"
 ]);
 const errors = [];
 
