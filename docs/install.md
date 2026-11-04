@@ -85,7 +85,13 @@ Cursor has an official marketplace
 ([cursor.com/marketplace](https://cursor.com/marketplace)), but **`do-it` is not
 listed there yet**. Until it is submitted/reviewed, use:
 
-1. **Local (recommended today):**
+1. **Local (recommended today):** Pause Cursor agent and hook activity during an
+   upgrade: managed asset files are replaced separately, not as an atomic reader
+   snapshot. Runtime `.do-it-data` and unrelated user files remain in place;
+   same-path bundled assets are updated, and unknown or modified retired files
+   are preserved. On a process interruption, inspect any `.do-it-backup-*` and
+   `.do-it-stage-*` paths before retrying; interrupted work is not automatically
+   rolled back. A rollback conflict reports its retained backup path.
 
    ```bash
    npm run install:cursor-local
@@ -100,8 +106,8 @@ listed there yet**. Until it is submitted/reviewed, use:
    Current plugin-native hook loading has not been reverified here: check for
    duplicate execution before assuming the user-level mirror is still necessary. On **native Windows**
    the target is `%USERPROFILE%\.cursor\plugins\local\do-it-cursor` (never
-   `/mnt/c/...`). On Windows+WSL the script also mirrors into that Windows
-   profile when it can see `/mnt/c/Users`. After reload, verify the exact
+   `/mnt/c/...`). On Windows+WSL, set `USERPROFILE` to that Windows profile or
+   `CURSOR_LOCAL_HOME` to its WSL path to mirror it. After reload, verify the exact
    plugin directory exists and Customize → Hooks lists user-level do-it `.cmd`
    entries; Agent turns must not pop `.sh` source. This local-copy path does not
    create managed CLI install state, so ordinary `do-it doctor` is not its

@@ -12,8 +12,9 @@ import process from "node:process";
 function pathState(targetPath) {
   try {
     return fs.lstatSync(targetPath);
-  } catch {
-    return null;
+  } catch (error) {
+    if (error.code === "ENOENT" || error.code === "ENOTDIR") return null;
+    throw error;
   }
 }
 
@@ -81,17 +82,89 @@ export function validateCursorPlugin(
   assertNoSymlinksInTree(pluginPath);
 }
 
+// Exact generated 0.18.1 files at commit 2bb8fc23db59d9738ecfa999253f2906644d952a.
+// Local-copy installs had no ownership state; never retire modified or unknown files.
+const retiredCursorFiles = new Map([
+  ["agents/plan-challenger.md", "c3278d6aef170a0cdff00ed3ef6df56d778be97ac02cdaeea09428dcefe97fe8"],
+  ["agents/product-strategist.md", "23e2d35152d9386e38baeac30cff8782208c16195563a439a344b62e9235b272"],
+  ["agents/spec-compliance-reviewer.md", "a92549898503caf5764f3269ef16eb796a0c5b095788fc4884dfcc0406c1baa8"],
+  ["agents/tdd-red-writer.md", "3b7be439e404883a9785d80d44d59136b2b6f9bbc6e0a0dd2ca468fe5d4d171e"],
+  ["skills/do-it-router/SKILL.md", "a9d72de56e72577e576545871fa71aa1737216f98d691b319396f9772023cbf3"]
+]);
+
+function fileHash(filePath) {
+  return crypto.createHash("sha256").update(fs.readFileSync(filePath)).digest("hex");
+}
+
+function assetFileState(root, relativePath) {
+  const parts = relativePath.split(path.sep);
+  let current = root;
+  for (const part of parts.slice(0, -1)) {
+    current = path.join(current, part);
+    const state = pathState(current);
+    if (state && (state.isSymbolicLink() || !state.isDirectory())) {
+      throw new Error(`Cursor asset path is not a real directory: ${current}`);
+    }
+  }
+  const target = path.join(root, relativePath);
+  const state = pathState(target);
+  if (state && (state.isSymbolicLink() || !state.isFile())) {
+    throw new Error(`Cursor asset target is not a real file: ${target}`);
+  }
+  return state ? { exists: true, hash: fileHash(target) } : { exists: false };
+}
+
+function stagedFiles(root, relativePath = "") {
+  const files = [];
+  for (const entry of fs.readdirSync(path.join(root, relativePath), { withFileTypes: true })) {
+    const relative = path.join(relativePath, entry.name);
+    if (entry.isDirectory()) files.push(...stagedFiles(root, relative));
+    else if (entry.isFile()) files.push(relative);
+    else throw new Error(`Cursor plugin asset is not a real file: ${path.join(root, relative)}`);
+  }
+  return files.sort();
+}
+
 export function prepareDirectoryReplacement(sourcePath, targetPath, options = {}) {
   fs.mkdirSync(path.dirname(targetPath), { recursive: true });
   const stagedPath = siblingPath(targetPath, "stage");
+  const sourceRoot = path.resolve(sourcePath);
+  const assetRoots = new Set([".cursor-plugin", "agents", "assets", "hooks", "skills"]);
   try {
-    fs.cpSync(sourcePath, stagedPath, {
+    fs.cpSync(sourceRoot, stagedPath, {
       recursive: true,
       errorOnExist: true,
-      force: false
+      force: false,
+      filter(source) {
+        const relative = path.relative(sourceRoot, source);
+        if (!relative) return true;
+        if (!assetRoots.has(relative.split(path.sep)[0])) return false;
+        return !options.referenceSource || fs.existsSync(path.join(options.referenceSource, relative));
+      }
     });
     options.validate?.(stagedPath);
-    return { targetPath, stagedPath, kind: options.kind, home: options.home };
+    const rootState = pathState(targetPath);
+    if (rootState && (rootState.isSymbolicLink() || !rootState.isDirectory())) {
+      throw new Error(`Cursor plugin must be a real directory: ${targetPath}`);
+    }
+    const files = stagedFiles(stagedPath).map((relative) => ({
+      relative,
+      stagedPath: path.join(stagedPath, relative),
+      expectedState: assetFileState(targetPath, relative)
+    }));
+    const stagedNames = new Set(files.map((file) => file.relative.split(path.sep).join("/")));
+    for (const [relative, hash] of retiredCursorFiles) {
+      if (stagedNames.has(relative)) continue;
+      const localPath = relative.split("/").join(path.sep);
+      const expectedState = assetFileState(targetPath, localPath);
+      if (expectedState.exists && expectedState.hash === hash) {
+        files.push({ relative: localPath, stagedPath: null, expectedState });
+      }
+    }
+    return {
+      targetPath, stagedPath, kind: options.kind, home: options.home, files,
+      rootState: rootState ? { exists: true, dev: rootState.dev, ino: rootState.ino } : { exists: false }
+    };
   } catch (error) {
     fs.rmSync(stagedPath, { recursive: true, force: true });
     throw error;
@@ -220,49 +293,107 @@ function fileStateMatches(targetPath, expectedState) {
   if (!expectedState) return true;
   const current = pathState(targetPath);
   if (!expectedState.exists) return current === null;
-  return Boolean(current?.isFile()) && fs.readFileSync(targetPath, "utf8") === expectedState.content;
+  if (!current?.isFile() || current.isSymbolicLink()) return false;
+  if (expectedState.hash) return fileHash(targetPath) === expectedState.hash;
+  return fs.readFileSync(targetPath, "utf8") === expectedState.content;
+}
+
+function ensureRealDirectory(directory, committed) {
+  const state = pathState(directory);
+  if (state) {
+    if (state.isSymbolicLink() || !state.isDirectory()) {
+      throw new Error(`Cursor asset path is not a real directory: ${directory}`);
+    }
+    return;
+  }
+  ensureRealDirectory(path.dirname(directory), committed);
+  fs.mkdirSync(directory);
+  committed.push({ createdDirectory: directory });
+}
+
+function commitFile(targetPath, stagedPath, expectedState, committed) {
+  if (!fileStateMatches(targetPath, expectedState)) {
+    throw new Error(`target changed while Cursor install was staged: ${targetPath}`);
+  }
+  const priorState = pathState(targetPath);
+  const record = {
+    targetPath,
+    backupPath: priorState ? siblingPath(targetPath, "backup") : null,
+    installedHash: null
+  };
+  if (record.backupPath) fs.renameSync(targetPath, record.backupPath);
+  committed.push(record);
+  if (stagedPath) {
+    const hash = fileHash(stagedPath);
+    fs.renameSync(stagedPath, targetPath);
+    record.installedHash = hash;
+  }
+}
+
+function commitAssetFiles(replacement, committed) {
+  const root = pathState(replacement.targetPath);
+  const expected = replacement.rootState;
+  if (expected.exists
+    ? !root?.isDirectory() || root.isSymbolicLink() || root.dev !== expected.dev || root.ino !== expected.ino
+    : Boolean(root)) {
+    throw new Error(`target changed while Cursor install was staged: ${replacement.targetPath}`);
+  }
+  ensureRealDirectory(replacement.targetPath, committed);
+  for (const file of replacement.files) {
+    // Recheck ancestors before every rename; never follow an asset-path symlink.
+    assetFileState(replacement.targetPath, file.relative);
+    const target = path.join(replacement.targetPath, file.relative);
+    ensureRealDirectory(path.dirname(target), committed);
+    commitFile(target, file.stagedPath, file.expectedState, committed);
+  }
 }
 
 function rollbackCommitted(committed) {
-  let rollbackError;
+  const rollbackErrors = [];
   for (const record of [...committed].reverse()) {
     try {
-      fs.rmSync(record.targetPath, { recursive: true, force: true });
-      if (record.backupPath && pathState(record.backupPath)) {
-        fs.renameSync(record.backupPath, record.targetPath);
+      if (record.createdDirectory) {
+        try {
+          fs.rmdirSync(record.createdDirectory);
+        } catch (error) {
+          if (error.code !== "ENOENT" && error.code !== "ENOTEMPTY" && error.code !== "EEXIST") throw error;
+        }
+        continue;
       }
+      const current = pathState(record.targetPath);
+      if (record.backupPath && !pathState(record.backupPath)) {
+        throw new Error(`Cursor rollback backup missing for ${record.targetPath}: ${record.backupPath}`);
+      }
+      if (record.installedHash) {
+        if (!current?.isFile() || current.isSymbolicLink() || fileHash(record.targetPath) !== record.installedHash) {
+          throw new Error(`Cursor rollback preserved changed ${record.targetPath}; backup: ${record.backupPath ?? "none"}`);
+        }
+        fs.rmSync(record.targetPath);
+      } else if (current) {
+        throw new Error(`Cursor rollback preserved recreated ${record.targetPath}; backup: ${record.backupPath ?? "none"}`);
+      }
+      if (record.backupPath) fs.renameSync(record.backupPath, record.targetPath);
     } catch (error) {
-      rollbackError ??= error;
+      rollbackErrors.push(error.message);
     }
   }
-  if (rollbackError) throw rollbackError;
+  if (rollbackErrors.length) throw new Error(rollbackErrors.join("; "));
 }
 
 export function commitPreparedReplacements(replacements, { afterReplace, removeBackup = fs.rmSync } = {}) {
   const committed = [];
   try {
-    for (const replacement of replacements) {
-      if (!fileStateMatches(replacement.targetPath, replacement.expectedState)) {
-        throw new Error(`target changed while Cursor install was staged: ${replacement.targetPath}`);
-      }
-      const priorState = pathState(replacement.targetPath);
-      const record = {
-        ...replacement,
-        backupPath: priorState ? siblingPath(replacement.targetPath, "backup") : null,
-        hadTarget: Boolean(priorState)
-      };
-      if (record.backupPath) {
-        fs.renameSync(record.targetPath, record.backupPath);
-      }
-      committed.push(record);
-      fs.renameSync(record.stagedPath, record.targetPath);
-      afterReplace?.(record, committed.length - 1);
+    for (const [index, replacement] of replacements.entries()) {
+      if (replacement.files) commitAssetFiles(replacement, committed);
+      else commitFile(replacement.targetPath, replacement.stagedPath, replacement.expectedState, committed);
+      afterReplace?.(replacement, index);
     }
   } catch (error) {
     try {
       rollbackCommitted(committed);
     } catch (rollbackError) {
       error.cause = rollbackError;
+      error.message = `${error.message}; rollback incomplete: ${rollbackError.message}`;
     }
     discardPreparedReplacements(replacements);
     throw error;
@@ -275,6 +406,24 @@ export function commitPreparedReplacements(replacements, { afterReplace, removeB
       removeBackup(record.backupPath, { recursive: true, force: true });
     } catch (error) {
       cleanupFailures.push({ path: record.backupPath, error });
+    }
+  }
+  for (const replacement of replacements) {
+    try {
+      fs.rmSync(replacement.stagedPath, { recursive: true, force: true });
+    } catch (error) {
+      cleanupFailures.push({ path: replacement.stagedPath, error });
+    }
+    // Removing a proven retired skill file must not remove any user files.
+    for (const file of replacement.files ?? []) {
+      if (file.stagedPath || path.dirname(file.relative) !== path.join("skills", "do-it-router")) continue;
+      try {
+        fs.rmdirSync(path.join(replacement.targetPath, path.dirname(file.relative)));
+      } catch (error) {
+        if (error.code !== "ENOENT" && error.code !== "ENOTEMPTY" && error.code !== "EEXIST") {
+          cleanupFailures.push({ path: path.join(replacement.targetPath, path.dirname(file.relative)), error });
+        }
+      }
     }
   }
   return { cleanupFailures };

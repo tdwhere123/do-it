@@ -28,6 +28,7 @@ import {
 import {
   acquireCursorHomeLocks,
   commitPreparedReplacements,
+  prepareDirectoryReplacement,
   prepareFileReplacement,
   registerCursorPlugin,
   validateCursorPlugin
@@ -38,9 +39,13 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../
 const script = path.join(repoRoot, "scripts", "install-cursor-local.mjs");
 
 function runInstall(env) {
+  const childEnv = { ...process.env, ...env };
+  if (process.platform === "win32" && !childEnv.USERPROFILE && childEnv.HOME) {
+    childEnv.USERPROFILE = childEnv.HOME;
+  }
   return spawnSync(process.execPath, [script], {
     cwd: repoRoot,
-    env: { ...process.env, ...env },
+    env: childEnv,
     encoding: "utf8"
   });
 }
@@ -215,6 +220,246 @@ test("install-cursor-local copies a real plugin directory into HOME plugins/loca
   }
 });
 
+test("Cursor upgrades retain runtime data and unrelated files in the same plugin directory", () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-cursor-live-data-"));
+  const source = path.join(repoRoot, "plugins", "do-it-cursor");
+  const dest = path.join(home, ".cursor", "plugins", "local", "do-it-cursor");
+  try {
+    installCursorLocal({ homes: [home], source });
+    const state = path.join(dest, ".do-it-data", "sessions", "active", "state.json");
+    const custom = path.join(dest, "skills", "my-custom-skill", "SKILL.md");
+    fs.mkdirSync(path.dirname(state), { recursive: true });
+    fs.mkdirSync(path.dirname(custom), { recursive: true });
+    fs.writeFileSync(state, "live session\n");
+    fs.writeFileSync(custom, "my skill\n");
+    fs.writeFileSync(path.join(dest, "agents", "personal.md"), "my agent\n");
+    fs.writeFileSync(path.join(dest, "personal-notes.txt"), "my notes\n");
+    const rootInode = fs.statSync(dest).ino;
+    const stateInode = fs.statSync(state).ino;
+
+    installCursorLocal({ homes: [home], source });
+
+    assert.equal(fs.statSync(dest).ino, rootInode, "the plugin root must stay in place");
+    assert.equal(fs.statSync(state).ino, stateInode, "live state must not be copied or replaced");
+    assert.equal(fs.readFileSync(state, "utf8"), "live session\n");
+    assert.equal(fs.readFileSync(custom, "utf8"), "my skill\n");
+    assert.equal(fs.readFileSync(path.join(dest, "agents", "personal.md"), "utf8"), "my agent\n");
+    assert.equal(fs.readFileSync(path.join(dest, "personal-notes.txt"), "utf8"), "my notes\n");
+  } finally {
+    fs.rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test("Cursor commit preserves concurrent writes through the live data handle and path", () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-cursor-live-commit-"));
+  const source = path.join(repoRoot, "plugins", "do-it-cursor");
+  const dest = path.join(home, ".cursor", "plugins", "local", "do-it-cursor");
+  let fd;
+  try {
+    installCursorLocal({ homes: [home], source });
+    const state = path.join(dest, ".do-it-data", "sessions", "active", "state.json");
+    fs.mkdirSync(path.dirname(state), { recursive: true });
+    fs.writeFileSync(state, "before\n");
+    fd = fs.openSync(state, "a");
+    const inode = fs.statSync(state).ino;
+    const replacement = prepareDirectoryReplacement(source, dest, { kind: "plugin", home });
+    commitPreparedReplacements([replacement], {
+      afterReplace() {
+        fs.writeSync(fd, "via open handle\n");
+        fs.appendFileSync(state, "via path\n");
+      }
+    });
+    assert.equal(fs.statSync(state).ino, inode);
+    assert.equal(fs.readFileSync(state, "utf8"), "before\nvia open handle\nvia path\n");
+  } finally {
+    if (fd !== undefined) fs.closeSync(fd);
+    fs.rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test("Cursor rollback keeps writes made to the live data path during commit", () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-cursor-live-rollback-"));
+  const source = path.join(repoRoot, "plugins", "do-it-cursor");
+  const dest = path.join(home, ".cursor", "plugins", "local", "do-it-cursor");
+  let fd;
+  try {
+    installCursorLocal({ homes: [home], source });
+    const state = path.join(dest, ".do-it-data", "sessions", "active", "state.json");
+    fs.mkdirSync(path.dirname(state), { recursive: true });
+    fs.writeFileSync(state, "before\n");
+    const managed = path.join(dest, "agents", "reviewer.md");
+    fs.writeFileSync(managed, "previous managed asset\n");
+    fd = fs.openSync(state, "a");
+    const rootInode = fs.statSync(dest).ino;
+    const stateInode = fs.statSync(state).ino;
+    const replacement = prepareDirectoryReplacement(source, dest, { kind: "plugin", home });
+
+    assert.throws(() => commitPreparedReplacements([replacement], {
+      afterReplace() {
+        fs.writeSync(fd, "via open handle\n");
+        fs.appendFileSync(state, "via path\n");
+        fs.writeFileSync(path.join(dest, "agents", "new-user-agent.md"), "new user file\n");
+        throw new Error("injected after active write");
+      }
+    }), /injected after active write/);
+
+    assert.equal(fs.statSync(dest).ino, rootInode);
+    assert.equal(fs.statSync(state).ino, stateInode);
+    assert.equal(fs.readFileSync(state, "utf8"), "before\nvia open handle\nvia path\n");
+    assert.equal(fs.readFileSync(managed, "utf8"), "previous managed asset\n");
+    assert.equal(fs.readFileSync(path.join(dest, "agents", "new-user-agent.md"), "utf8"), "new user file\n");
+  } finally {
+    if (fd !== undefined) fs.closeSync(fd);
+    fs.rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test("Cursor retires only the exact known legacy asset and preserves adjacent user files", () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-cursor-retired-"));
+  const source = path.join(repoRoot, "plugins", "do-it-cursor");
+  const dest = path.join(home, ".cursor", "plugins", "local", "do-it-cursor");
+  try {
+    installCursorLocal({ homes: [home], source });
+    const legacyDir = path.join(dest, "skills", "do-it-router");
+    fs.mkdirSync(legacyDir);
+    fs.copyFileSync(
+      path.join(repoRoot, "tests", "fixtures", "cursor-0.18.1-do-it-router.md"),
+      path.join(legacyDir, "SKILL.md")
+    );
+    fs.writeFileSync(path.join(legacyDir, "personal.txt"), "keep\n");
+    const modifiedRole = path.join(dest, "agents", "plan-challenger.md");
+    fs.writeFileSync(modifiedRole, "my customized retired role\n");
+
+    installCursorLocal({ homes: [home], source });
+
+    assert.equal(fs.existsSync(path.join(legacyDir, "SKILL.md")), false);
+    assert.equal(fs.readFileSync(path.join(legacyDir, "personal.txt"), "utf8"), "keep\n");
+    assert.equal(fs.readFileSync(modifiedRole, "utf8"), "my customized retired role\n");
+  } finally {
+    fs.rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test("Cursor refuses an asset changed after staging and rolls back earlier assets", () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-cursor-asset-cas-"));
+  const source = path.join(repoRoot, "plugins", "do-it-cursor");
+  const dest = path.join(home, ".cursor", "plugins", "local", "do-it-cursor");
+  try {
+    installCursorLocal({ homes: [home], source });
+    const early = path.join(dest, "agents", "reviewer.md");
+    const later = path.join(dest, "skills", "do-it-verify", "SKILL.md");
+    fs.writeFileSync(early, "previous managed asset\n");
+    const replacement = prepareDirectoryReplacement(source, dest, { kind: "plugin", home });
+    fs.writeFileSync(later, "concurrent change\n");
+
+    assert.throws(() => commitPreparedReplacements([replacement]), /target changed while Cursor install was staged/);
+    assert.equal(fs.readFileSync(early, "utf8"), "previous managed asset\n");
+    assert.equal(fs.readFileSync(later, "utf8"), "concurrent change\n");
+  } finally {
+    fs.rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test("Cursor refuses a plugin root created after staging without touching its data", () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-cursor-root-cas-"));
+  const source = path.join(repoRoot, "plugins", "do-it-cursor");
+  const dest = path.join(home, ".cursor", "plugins", "local", "do-it-cursor");
+  try {
+    const replacement = prepareDirectoryReplacement(source, dest, { kind: "plugin", home });
+    const state = path.join(dest, ".do-it-data", "state.json");
+    fs.mkdirSync(path.dirname(state), { recursive: true });
+    fs.writeFileSync(state, "created concurrently\n");
+    assert.throws(() => commitPreparedReplacements([replacement]), /target changed while Cursor install was staged/);
+    assert.equal(fs.readFileSync(state, "utf8"), "created concurrently\n");
+  } finally {
+    fs.rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test("Cursor refuses a symlinked destination asset directory", () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-cursor-asset-symlink-"));
+  const source = path.join(repoRoot, "plugins", "do-it-cursor");
+  const dest = path.join(home, ".cursor", "plugins", "local", "do-it-cursor");
+  const external = path.join(home, "external");
+  try {
+    installCursorLocal({ homes: [home], source });
+    fs.mkdirSync(external);
+    fs.writeFileSync(path.join(external, "keep.txt"), "external\n");
+    fs.renameSync(path.join(dest, "skills"), path.join(home, "saved-skills"));
+    fs.symlinkSync(external, path.join(dest, "skills"), process.platform === "win32" ? "junction" : "dir");
+    assert.throws(
+      () => prepareDirectoryReplacement(source, dest, { kind: "plugin", home }),
+      /Cursor asset path is not a real directory/
+    );
+    assert.equal(fs.readFileSync(path.join(external, "keep.txt"), "utf8"), "external\n");
+  } finally {
+    fs.rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test("Cursor retains a concurrently changed asset and its backup on rollback", () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-cursor-rollback-conflict-"));
+  const source = path.join(repoRoot, "plugins", "do-it-cursor");
+  const dest = path.join(home, ".cursor", "plugins", "local", "do-it-cursor");
+  try {
+    installCursorLocal({ homes: [home], source });
+    const target = path.join(dest, "agents", "reviewer.md");
+    fs.writeFileSync(target, "previous managed asset\n");
+    const replacement = prepareDirectoryReplacement(source, dest, { kind: "plugin", home });
+    let failure;
+    try {
+      commitPreparedReplacements([replacement], {
+        afterReplace() {
+          fs.writeFileSync(target, "concurrent user change\n");
+          throw new Error("injected failure");
+        }
+      });
+    } catch (error) {
+      failure = error;
+    }
+    assert.match(failure?.message ?? "", /injected failure; rollback incomplete:.*backup:/);
+    assert.match(failure?.cause?.message ?? "", /rollback preserved changed .*reviewer\.md; backup:/);
+    assert.equal(fs.readFileSync(target, "utf8"), "concurrent user change\n");
+    const backups = fs.readdirSync(path.dirname(target)).filter((name) => name.startsWith(".do-it-backup-reviewer.md-"));
+    assert.equal(backups.length, 1);
+    assert.equal(fs.readFileSync(path.join(path.dirname(target), backups[0]), "utf8"), "previous managed asset\n");
+  } finally {
+    fs.rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test("registerCursorPlugin mirrors managed assets without copying source or destination user data", () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-cursor-register-data-"));
+  const source = path.join(repoRoot, "plugins", "do-it-cursor");
+  const managed = path.join(home, "managed");
+  const dest = path.join(home, ".cursor", "plugins", "local", "do-it-cursor");
+  try {
+    installCursorLocal({ homes: [home], source });
+    fs.cpSync(source, managed, { recursive: true });
+    const sourceState = path.join(managed, ".do-it-data", "sessions", "active", "state.json");
+    const destState = path.join(dest, ".do-it-data", "sessions", "active", "state.json");
+    const sourceCustom = path.join(managed, "skills", "personal", "SKILL.md");
+    const destCustom = path.join(dest, "skills", "personal", "SKILL.md");
+    for (const file of [sourceState, destState, sourceCustom, destCustom]) {
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+    }
+    fs.writeFileSync(sourceState, "source state\n");
+    fs.writeFileSync(destState, "destination state\n");
+    fs.writeFileSync(sourceCustom, "source custom\n");
+    fs.writeFileSync(destCustom, "destination custom\n");
+    const stateInode = fs.statSync(destState).ino;
+
+    registerCursorPlugin({ home, installRoot: managed, builtBundle: source, log() {} });
+
+    assert.equal(fs.statSync(destState).ino, stateInode);
+    assert.equal(fs.readFileSync(destState, "utf8"), "destination state\n");
+    assert.equal(fs.readFileSync(destCustom, "utf8"), "destination custom\n");
+    assert.equal(fs.readFileSync(sourceState, "utf8"), "source state\n");
+  } finally {
+    fs.rmSync(home, { recursive: true, force: true });
+  }
+});
+
 test("install-cursor-local copy failure preserves the existing plugin and hooks", () => {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-cursor-copy-fail-"));
   try {
@@ -232,6 +477,7 @@ test("install-cursor-local copy failure preserves the existing plugin and hooks"
       DO_IT_TEST_CURSOR_LOCAL_FAIL_AT: "before-copy-1"
     });
     assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /injected Cursor local install failure at before-copy-1/);
     assert.equal(fs.readFileSync(path.join(dest, "keep.txt"), "utf8"), "old plugin\n");
     assert.equal(
       fs.readFileSync(hooksPath, "utf8"),
@@ -252,10 +498,14 @@ test("install-cursor-local rolls back every home when the second commit fails", 
     const secondHooks = path.join(secondHome, ".cursor", "hooks.json");
     fs.mkdirSync(firstDest, { recursive: true });
     fs.writeFileSync(path.join(firstDest, "keep.txt"), "old plugin\n");
+    fs.mkdirSync(path.join(firstDest, ".do-it-data"));
+    fs.writeFileSync(path.join(firstDest, ".do-it-data", "session"), "first session\n");
     fs.mkdirSync(path.dirname(firstHooks), { recursive: true });
     fs.writeFileSync(firstHooks, '{"version":1,"hooks":{"stop":[{"command":"keep-me"}]}}\n');
     fs.mkdirSync(secondDest, { recursive: true });
     fs.writeFileSync(path.join(secondDest, "keep.txt"), "second old plugin\n");
+    fs.mkdirSync(path.join(secondDest, ".do-it-data"));
+    fs.writeFileSync(path.join(secondDest, ".do-it-data", "session"), "second session\n");
     fs.mkdirSync(path.dirname(secondHooks), { recursive: true });
     fs.writeFileSync(secondHooks, '{"version":1,"hooks":{"stop":[{"command":"second"}]}}\n');
 
@@ -266,7 +516,10 @@ test("install-cursor-local rolls back every home when the second commit fails", 
       DO_IT_TEST_CURSOR_LOCAL_FAIL_AT: "after-plugin-2"
     });
     assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /injected Cursor local install failure at after-plugin-2/);
     assert.equal(fs.readFileSync(path.join(firstDest, "keep.txt"), "utf8"), "old plugin\n");
+    assert.equal(fs.readFileSync(path.join(firstDest, ".do-it-data", "session"), "utf8"), "first session\n");
+    assert.equal(fs.readFileSync(path.join(secondDest, ".do-it-data", "session"), "utf8"), "second session\n");
     assert.equal(
       fs.readFileSync(firstHooks, "utf8"),
       '{"version":1,"hooks":{"stop":[{"command":"keep-me"}]}}\n'
@@ -304,6 +557,7 @@ test("install-cursor-local hook merge failure preserves staged targets", () => {
       DO_IT_TEST_CURSOR_LOCAL_FAIL_AT: "before-hook-merge-1"
     });
     assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /injected Cursor local install failure at before-hook-merge-1/);
     assert.equal(fs.readFileSync(path.join(dest, "keep.txt"), "utf8"), "old plugin\n");
     assert.equal(
       fs.readFileSync(hooksPath, "utf8"),
@@ -331,6 +585,7 @@ test("install-cursor-local rolls back plugin copies when hook commit fails", () 
       DO_IT_TEST_CURSOR_LOCAL_FAIL_AT: "after-user-hooks-1"
     });
     assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /injected Cursor local install failure at after-user-hooks-1/);
     assert.equal(fs.readFileSync(path.join(dest, "keep.txt"), "utf8"), "old plugin\n");
     assert.equal(
       fs.readFileSync(hooksPath, "utf8"),
@@ -395,7 +650,7 @@ test("mergeDoItUserHooks replaces prior do-it commands only", () => {
     1
   );
   assert.ok(
-    merged.hooks.sessionStart.some((e) => String(e.command).includes("run-hook.cmd session-start"))
+    merged.hooks.sessionStart.some((e) => /run-hook\.cmd"? session-start$/.test(String(e.command)))
   );
 });
 
@@ -411,7 +666,7 @@ test("mergeDoItUserHooks upgrades legacy bare .sh do-it commands to run-hook.cmd
   };
   const merged = mergeDoItUserHooks(existing, pluginRoot);
   assert.equal(merged.hooks.sessionStart.length, 1);
-  assert.match(merged.hooks.sessionStart[0].command, /run-hook\.cmd session-start$/);
+  assert.match(merged.hooks.sessionStart[0].command, /run-hook\.cmd"? session-start$/);
   assert.ok(!merged.hooks.sessionStart[0].command.endsWith(".sh"));
 });
 

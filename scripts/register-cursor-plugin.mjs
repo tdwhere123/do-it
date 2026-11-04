@@ -86,10 +86,14 @@ export function registerCursorPlugin(options = {}) {
           ? installRoot
           : builtBundle;
       validateCursorPlugin(source, { requireRuntime: true, expectedVersion: version });
+      // The managed root may also contain user/runtime files. Only mirror paths
+      // shipped by the verified bundle, not arbitrary files from that root.
+      validateCursorPlugin(builtBundle, { requireRuntime: true, expectedVersion: version });
       replacements.push(
         prepareDirectoryReplacement(source, localPlugin, {
           kind: "local-plugin",
           home,
+          referenceSource: builtBundle,
           validate(stagedPath) {
             validateCursorPlugin(stagedPath, { requireRuntime: true, expectedVersion: version });
           }

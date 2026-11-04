@@ -70,7 +70,11 @@ Doctor 只证明受管文件和状态一致；具名角色发现与沙箱行为�
 
 Cursor **有**官方公开市场（[cursor.com/marketplace](https://cursor.com/marketplace)），但 **`do-it` 目前尚未上架**。在提交并通过审核前，请用：
 
-1. **本地（今日推荐）：**
+1. **本地（今日推荐）：** 升级时暂停 Cursor agent 和 hook 活动：受管资源文件
+   会逐个替换，并非供读取者使用的原子快照。运行时 `.do-it-data` 与无关的用户
+   文件保留原位；同路径的插件资源会更新，未知或已修改的退役文件会保留。进程
+   中断后不会自动回滚；重试前请检查遗留的 `.do-it-backup-*` 与 `.do-it-stage-*`
+   路径。回滚冲突会报告保留的备份路径。
 
    ```bash
    npm run install:cursor-local
@@ -84,8 +88,8 @@ Cursor **有**官方公开市场（[cursor.com/marketplace](https://cursor.com/m
    入口一律走 `hooks/run-hook.cmd …`——原生 Windows 上若直接写 `.sh`，Cursor
    会把脚本**当文件打开**而不是执行。**原生 Windows** 目标是
    `%USERPROFILE%\.cursor\plugins\local\do-it-cursor`（绝不会写成
-   `/mnt/c/...`）。Windows + WSL 下若能看到 `/mnt/c/Users` 还会镜像到该
-   Windows 配置目录。Reload 后确认准确的插件目录存在，且 Customize → Hooks
+   `/mnt/c/...`）。Windows + WSL 下，设置 `USERPROFILE` 为该 Windows 配置目录，
+   或设置 `CURSOR_LOCAL_HOME` 为其 WSL 路径，即可同步该目录。Reload 后确认准确的插件目录存在，且 Customize → Hooks
    能看到用户级 do-it 的 `.cmd` 条目；Agent 触发时不应弹出 `.sh` 源码。这个
    本地拷贝路径不会生成受管 CLI install state，因此普通 `do-it doctor` 不负责
    验证它。
