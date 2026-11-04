@@ -12,9 +12,9 @@ applications or user configuration.
 
 | Truth plane | What this repository can claim |
 | --- | --- |
-| Source/package metadata | This checkout declares `0.18.1`, 10 runnable skills + 1 generated discovery entry, and 8 agents. |
-| Git tag | A `0.18.1` npm/GitHub release still requires `v0.18.1`; version metadata alone is not a release tag. |
-| Marketplace / npm | Coordinates and publish paths are documented; only post-workflow `npm view` proves registry publication. Cursor marketplace listing remains pending. |
+| Source/package metadata | This checkout prepares `0.19.0`, 10 runnable skills + 1 generated discovery entry, and 8 agents. |
+| Git tag | This source update creates no release tag. A future `v0.19.0` must identify the verified release commit; metadata alone is not publication. |
+| Marketplace / npm | Both npm packages published `0.18.1` on 2026-10-17 (registry checked 2026-11-04); those tarballs predate this checkout. This work does not publish `0.19.0`. Cursor marketplace listing remains pending. |
 | Live host | Only an install/inspection on that host proves what is active there; do not infer it from source or a packed artifact. |
 
 ## Codex
@@ -37,15 +37,16 @@ CODEX_HOME=/tmp/do-it-plugin-test codex plugin add do-it@tdwhere-do-it
 ```
 
 The Codex plugin bundle lives at `plugins/do-it/` (generated from
-`manifest.json`): 12 user/runnable skills, 1 generated `_index.md` discovery
+`manifest.json`): 10 runnable skills, 1 generated `_index.md` discovery
 entry, plus plugin-local hooks. Native agents are installed separately below.
 
 The bundle uses `.codex-plugin/plugin.json`. In an isolated `codex 0.162.0`
 `plugin/read` comparison, root `plugin.json` yielded zero hooks while the Codex
 manifest exposed hooks. The builder removes the root manifest and plugin
-`agents/` directory. A native read of the final repository bundle returned
-12 skills and 3 hook declarations with Skills/Hooks capabilities. Discovery
-still does not prove live hook execution.
+`agents/` directory. That historical native probe returned 12 discovered skill
+entries and 3 hook declarations with Skills/Hooks capabilities; it is not a
+current-inventory assertion. Current native discovery and live hook execution
+require their own evidence.
 
 **Named specialists require native agent installation.** Codex loads
 `.codex/agents/*.toml` or explicit configured roles; plugin `agents` metadata
@@ -94,8 +95,10 @@ listed there yet**. Until it is submitted/reviewed, use:
    `~/.cursor/plugins/local/do-it-cursor` as a **real directory** (Cursor
    rejects external symlinks), then merges do-it hooks into user-level
    `~/.cursor/hooks.json` via `hooks/run-hook.cmd …` (plugin-local hooks are
-   not registered by the current Cursor Hooks UI/service; bare `.sh` commands
-   on Windows open in the editor instead of executing). On **native Windows**
+   not registered by the earlier locally verified Cursor Hooks UI/service;
+   bare `.sh` commands on Windows opened in the editor instead of executing).
+   Current plugin-native hook loading has not been reverified here: check for
+   duplicate execution before assuming the user-level mirror is still necessary. On **native Windows**
    the target is `%USERPROFILE%\.cursor\plugins\local\do-it-cursor` (never
    `/mnt/c/...`). On Windows+WSL the script also mirrors into that Windows
    profile when it can see `/mnt/c/Users`. After reload, verify the exact
@@ -119,11 +122,12 @@ diagnostics are not registered. See [host matrix](./harness-adapter-matrix.md).
 
 ## Pi
 
-After `npm view @tdwhere/do-it-pi@0.18.1 version` succeeds, install the
-independent Pi package from npm:
+The published package is separate from this unreleased checkout. After
+`npm view @tdwhere/do-it-pi@0.19.0 version` confirms the intended release,
+install that exact Pi package:
 
 ```bash
-pi install npm:@tdwhere/do-it-pi
+pi install npm:@tdwhere/do-it-pi@0.19.0
 ```
 
 Before registry publication or for package development, a local checkout can
@@ -167,10 +171,11 @@ agent inspect --json
 ```
 
 These commands use the native Grok Build `agent` executable (verified host
-version: 1.0.46). Reload the Plugins tab or start a new session. Inspect the
+version for isolated discovery: 1.0.70). Reload the Plugins tab or start a new session. Inspect the
 loaded source paths and actual skill/agent names under `do-it-grok`: a plugin
 list entry alone does not prove which source won discovery. The bundle carries
-12 canonical skills and 10 generated Markdown specialists.
+10 canonical skills and 8 generated Markdown specialists. Native discovery
+reports specialist names such as `do-it-grok:reviewer`.
 
 UserPromptSubmit only updates turn state and emits no Core context.
 Grok's hook protocol differs from Claude's: prompt/session hook context is not
@@ -215,6 +220,6 @@ For a packed local release artifact:
 
 ```bash
 npm pack
-npm install -g ./tdwhere-do-it-0.18.1.tgz
+npm install -g ./tdwhere-do-it-0.19.0.tgz
 do-it setup   # optional / legacy global copy
 ```

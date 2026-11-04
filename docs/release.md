@@ -17,16 +17,18 @@ part of this support change. Managed CLI setup remains available for doctor,
 isolated smoke checks, and legacy migration; Codex agent-only setup complements
 the plugin installation without duplicating its skills/hooks.
 
-The [0.18.1 verification record](./release-evidence/0.18.1-unreleased.md) separates
-builds, native discovery, actual model probes, and remaining unverified behavior.
+The historical [0.18.1 verification record](./release-evidence/0.18.1-unreleased.md)
+retains its original scope. It is not proof for the current checkout or the
+published 0.18.1 tarballs. Keep builds, native discovery, actual model probes,
+and registry publication separate.
 
 ## Current Truth Planes
 
 | Plane | Current repository evidence |
 | --- | --- |
-| Source/package | `package.json`, manifest, and plugin metadata declare `0.18.1`; the current checkout inventory is 10 runnable skills, 1 generated discovery entry, and 8 agents; the retired discovery router is no longer shipped. This patch improves explicit deep-audit delegation, coverage reuse, and maintainability review, consolidates Core/bootstrap and specialist ownership, and updates host support. It is an unpublished source update; npm publication is deferred. |
-| Git tag | The existing `v0.18.0` tag identifies the preceding version. This source update does not create `v0.18.1`. The older `v0.17.0` tag belongs to a different commit whose npm publication failed; do not move or reuse it. Version metadata or a tag alone does not prove npm publication. |
-| Marketplace/npm | The release workflow publishes separate `@tdwhere/do-it` and `@tdwhere/do-it-pi` artifacts. Only post-workflow registry queries prove publication. Cursor marketplace listing remains pending. |
+| Source/package | Metadata prepares `0.19.0`: 10 runnable skills, 1 generated discovery entry, and 8 specialists. Prompt revisions, role consolidation, router removal, and host fixes are source changes, not a measured model-efficacy or publication claim. |
+| Git tag | This work creates no release tag. Tag the verified release commit only when authorized; do not retro-tag or move historical releases to conceal source/package drift. Version metadata or a tag alone does not prove npm publication. |
+| Marketplace/npm | Registry queries on 2026-11-04 confirm both `@tdwhere/do-it` and `@tdwhere/do-it-pi` 0.18.1 were published on 2026-10-17. The source continued changing under that version; these tarballs are not the current adapter. This work does not publish 0.19.0. Cursor marketplace listing remains pending. |
 | Live host | Only host install/inspection evidence proves an active version. Source, package, tag, and live host may differ. |
 
 ## Tag Policy
@@ -34,7 +36,7 @@ builds, native discovery, actual model probes, and remaining unverified behavior
 - Every release ends with a `vX.Y.Z` git tag on the release commit — the tag is
   what triggers `.github/workflows/release.yml` (verify → pack → optional npm
   publish). A version bump without a tag is not a release.
-- After a release, `main` bumps to the next patch version (e.g. `0.18.1`)
+- After a release, `main` bumps to the next development version (e.g. `0.19.1`)
   promptly, so a checkout never claims a published version it has already
   moved past.
 - Historical gap: `0.6.1`–`0.14.0` shipped without tags (latest tag was
@@ -87,7 +89,7 @@ npm install -g https://github.com/tdwhere123/do-it/archive/refs/heads/main.tar.g
 do-it setup
 ```
 
-After `npm view @tdwhere/do-it@0.18.1 version` succeeds, the root registry
+After `npm view @tdwhere/do-it@0.19.0 version` succeeds, the root registry
 package provides the optional managed CLI. Before publication, use the GitHub
 or checkout-local path above.
 
@@ -124,8 +126,9 @@ is separate from proof of execution. Full global `do-it setup` remains optional;
 The isolated native `codex 0.162.0` comparison found no hooks with root
 `plugin.json` and found hooks with `.codex-plugin/plugin.json`. The builder
 prunes the root manifest and plugin agents; discovery still does not prove
-execution. The final native repository-bundle read returned twelve skills,
-three hook declarations, and Skills/Hooks capabilities. Claude's explicit
+execution. That historical repository-bundle read returned twelve discovered
+skill entries, three hook declarations, and Skills/Hooks capabilities; those
+counts are not a statement about the current inventory. Claude's explicit
 `claude plugin validate --strict .claude-plugin/plugin.json` passed; root
 marketplace validation passed separately. See [architecture](./architecture.md).
 
@@ -198,7 +201,7 @@ Set `CODEX_HOME=/path/to/codex-home` to test or install into a temporary target.
 Prefer publishing the exact tarballs that already passed release validation:
 
 ```bash
-VERSION=0.18.1
+VERSION=0.19.0
 npm run validate:release -- "v${VERSION}"
 npm run build:generated
 npm run build:codex-plugin
@@ -220,7 +223,7 @@ npm publish "$PI_TARBALL" --access public
 ```
 
 Keep the root package scoped and keep `do-it` as its bin. Install from the
-registry only after `npm view @tdwhere/do-it@0.18.1 version` succeeds; before
+registry only after `npm view @tdwhere/do-it@0.19.0 version` succeeds; before
 publication, use the exact local tarball from the verified pack step.
 
 ```bash
@@ -234,7 +237,7 @@ Publishing one must not select another package's tarball by a broad wildcard.
 ### Option 2: Pack And Test Locally
 
 ```bash
-VERSION=0.18.1
+VERSION=0.19.0
 npm pack --ignore-scripts
 npm run smoke:package -- "./tdwhere-do-it-${VERSION}.tgz"
 ```
@@ -279,7 +282,7 @@ a release artifact.
     packed Pi tarball.
 14. Confirm `manifest.json` matches the on-disk inventory (10 runnable
     skills + 1 generated discovery entry, 8 agents). Source metadata is
-    `0.18.1`; do not tag or npm-publish until those are authorized. Default
+    `0.19.0`; do not tag or npm-publish until those are authorized. Default
     runtime provides compact context and source-edit checks; classification and
     completion reminder gates are retired.
 15. Confirm root tarball contents remain separate from `plugins/do-it-pi`, and

@@ -1,13 +1,37 @@
 # Changelog
 
-## Unreleased
+## 0.19.0 (unreleased)
+
+- **Prompt judgment:** revise the ten skills using pinned upstream prompt comparisons:
+  concrete disconfirmation questions, safe verification, independent comprehension,
+  and lessons encoded in existing tests or checks. Preserve the compact Core
+  bootstrap, explicit-only deep audit, and independent synthesis before repair.
+  Authorized editorial improvements do not require a prior benchmark; measured
+  behavioral gains still require separate evidence.
+- **Specialists:** consolidate ten roles into eight. `decision-challenger` combines
+  product and plan challenge; `reviewer` covers requirements and implementation;
+  `test-engineer` replaces the RED-only writer with a scoped test role that still
+  honors explicit RED-only assignments. No mandatory delegation sequence is added.
+  Preserve modified/unowned retired files and configured consumers on managed
+  upgrades; keep Claude's explicit declarations aligned with canonical sources.
+- **Pi 1.5 baseline:** retain structured tool results when appending advisories and
+  isolate hook cancellation/shutdown by extension instance. Native fake-provider
+  coverage is distinct from subagent-runtime compatibility and model efficacy.
+- **Version accounting:** move source metadata to 0.19.0 rather than reusing the
+  already-published 0.18.1 version. No tag, publication, or live-host update is
+  performed by this source change.
 
 - **Remove discovery router:** delete `do-it-router` without an alias or replacement
   entrypoint from canonical skills, host bundles, and discovery indexes. Install
   checks use Core instead; managed upgrades remove unchanged owned copies and
   preserve modified user content for explicit resolution.
 
-## 0.18.1 (unreleased)
+## 0.18.1 (source history)
+
+Both npm packages were published as 0.18.1 on 2026-10-17, while the source
+continued changing under that version. The notes below describe that source
+line, not the exact published tarballs; its subsequent unpublished changes carry
+forward into 0.19.0. Historical verification records retain their original scope.
 
 ### Shared ownership and native host delivery
 

@@ -20,7 +20,8 @@ Core 只保留稳定原则：守住用户目标、已定决策和授权边界；
 | Grok Build | [生成式插件包安装](./docs/install.zh-CN.md#grok-build) |
 
 [安装详情](./docs/install.zh-CN.md)包含宿主配置和冒烟检查。
-0.18.1 源码更新尚未发布；marketplace 或 npm 安装可能获取较早版本。Codex
+当前 checkout 准备尚未发布的 0.19.0。两个 npm 包已于 2026-10-17 发布 0.18.1，
+那些 tarball 不包含当前源码改动。发布前请按本地 checkout 指南验证此修订。Codex
 专业代理需要按安装指南单独安装原生角色。OpenCode 和 Kimi Code 的仓库支持已退役，
 不移除本机应用或用户配置。安装后正常表达需求即可。
 无需任务分级、强制 router 入口或 .do-it 脚手架。优先复用已有指令和项目文档，仅在

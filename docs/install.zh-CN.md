@@ -10,9 +10,9 @@
 
 | 真相平面 | 本仓库可以声明的内容 |
 | --- | --- |
-| 源码 / 包元数据 | 当前 checkout 声明 `0.18.1`、10 个可运行 skill + 1 个生成式发现入口、8 个 agent。 |
-| Git tag | `0.18.1` 的 GitHub/npm 发布仍需要 `v0.18.1`；版本元数据不等于发布 tag。 |
-| Marketplace / npm | 文档记录坐标与发布路径；只有 workflow 之后的 `npm view` 才能证明已发布到 registry。Cursor 公开上架仍待完成。 |
+| 源码 / 包元数据 | 当前 checkout 准备 `0.19.0`、10 个可运行 skill + 1 个生成式发现入口、8 个 agent。 |
+| Git tag | 本次源码更新不创建发布 tag；将来的 `v0.19.0` 应标记已验证的发布提交。版本元数据不等于发布。 |
+| Marketplace / npm | 两个 npm 包已于 2026-10-17 发布 `0.18.1`（2026-11-04 查询确认），那些 tarball 早于本次源码；本次不发布 `0.19.0`。Cursor 公开上架仍待完成。 |
 | Live host | 只有在对应宿主安装并检查，才能证明那里实际启用了什么；不能从源码或 tarball 推断。 |
 
 ## Codex
@@ -32,12 +32,12 @@ CODEX_HOME=/tmp/do-it-plugin-test codex plugin add do-it@tdwhere-do-it
 ```
 
 Codex plugin bundle 位于 `plugins/do-it/`（由 `manifest.json` 生成）：
-12 个用户可运行 skill、1 个生成式 `_index.md` 发现入口及插件内 hooks；
+10 个可运行 skill、1 个生成式 `_index.md` 发现入口及插件内 hooks；
 原生代理按下文单独安装。插件使用 `.codex-plugin/plugin.json`。隔离环境中的
 `codex 0.162.0` `plugin/read` 对比发现：根 `plugin.json` 未发现任何 hook，
 而 Codex 清单能发现 hooks。因此构建器移除根清单和插件内 `agents/` 目录。
-对最终仓库插件包的原生读取返回 12 个技能、3 个 hook 声明及 Skills/Hooks
-能力字段。发现配置仍不证明实际执行钩子。
+当时的历史原生探针返回 12 个技能发现条目、3 个 hook 声明及 Skills/Hooks
+能力字段，不代表当前清单数量。当前原生发现及实际钩子执行都需要各自的证据。
 
 **具名专业代理需要原生 agent 安装。** Codex 从 `.codex/agents/*.toml`
 或显式角色配置加载角色；插件 `agents` 字段和缓存文件不等于角色注册。
@@ -78,8 +78,9 @@ Cursor **有**官方公开市场（[cursor.com/marketplace](https://cursor.com/m
 
    然后 **Developer: Reload Window**。脚本会先构建插件包，再把它**真实拷贝**到
    `~/.cursor/plugins/local/do-it-cursor`（Cursor **拒绝**指向 `local/` 外的
-   symlink），并**合并** do-it 条目到用户级 `~/.cursor/hooks.json`（当前
-   Cursor Hooks UI/服务**不会**注册 plugin 包内 `hooks/hooks.json`）。
+   symlink），并**合并** do-it 条目到用户级 `~/.cursor/hooks.json`（此前本地验证的
+   Cursor Hooks UI/服务不会注册 plugin 包内 `hooks/hooks.json`）。本轮尚未重新验证
+   当前版本的插件原生 hook 加载：应检查是否重复执行，不能假定用户级镜像仍有必要。
    入口一律走 `hooks/run-hook.cmd …`——原生 Windows 上若直接写 `.sh`，Cursor
    会把脚本**当文件打开**而不是执行。**原生 Windows** 目标是
    `%USERPROFILE%\.cursor\plugins\local\do-it-cursor`（绝不会写成
@@ -100,10 +101,11 @@ Cursor 安装完整技能、发现索引、参考文档和限定范围的代理�
 
 ## Pi
 
-确认 `npm view @tdwhere/do-it-pi@0.18.1 version` 成功后，再安装独立的 Pi npm 包：
+已发布包与当前未发布的 checkout 不同。确认
+`npm view @tdwhere/do-it-pi@0.19.0 version` 已提供目标版本后，再安装这个确切版本：
 
 ```bash
-pi install npm:@tdwhere/do-it-pi
+pi install npm:@tdwhere/do-it-pi@0.19.0
 ```
 
 registry 尚未发布或开发该包时可使用本地 checkout：运行
@@ -142,10 +144,10 @@ agent plugin install "$(pwd)/plugins/do-it-grok" --trust
 agent inspect --json
 ```
 
-上述命令使用 Grok Build 原生 `agent` 可执行文件（已核实的宿主版本为 1.0.46）。
+上述命令使用 Grok Build 原生 `agent` 可执行文件（隔离发现检查的宿主版本为 1.0.70）。
 刷新 Plugins 页或启动新会话，检查 `do-it-grok` 下实际加载的来源路径、技能名和
 代理名；仅在插件列表中出现不能证明发现时哪个来源生效。插件包包含 10 个规范技能
-和 8 个生成式 Markdown 专业代理。
+和 8 个生成式 Markdown 专业代理。原生发现中的角色名称形如 `do-it-grok:reviewer`。
 
 UserPromptSubmit 仅更新轮次状态，不输出 Core 上下文。
 Grok 钩子协议与 Claude 不同：prompt/session 钩子的输出不能证明模型收到引导上下文。
@@ -185,6 +187,6 @@ do-it doctor
 
 ```bash
 npm pack
-npm install -g ./tdwhere-do-it-0.18.1.tgz
+npm install -g ./tdwhere-do-it-0.19.0.tgz
 do-it setup   # 可选 / 遗留全局拷贝
 ```

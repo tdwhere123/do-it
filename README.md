@@ -23,8 +23,9 @@ workflow, or report.
 | Grok Build | [Generated bundle installation](./docs/install.md#grok-build) |
 
 [Installation details](./docs/install.md) cover host setup and smoke checks.
-The 0.18.1 source update is unreleased; marketplace or npm installation may
-serve an earlier version. Codex specialists require the separate native-agent
+This checkout prepares unreleased 0.19.0. Both npm packages already published
+0.18.1 on 2026-10-17; those tarballs do not contain the current source changes.
+Use the local-checkout instructions to test this revision before publication. Codex specialists require the separate native-agent
 setup described in that guide. OpenCode and Kimi Code repository support is
 retired; local applications and user configuration remain untouched.
 Talk normally after installation. No task tier, mandatory router entry, or
