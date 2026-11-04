@@ -6,7 +6,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-import { pushInjectedText } from "./trajectory.mjs";
+import { mergeToolEvents, pushInjectedText } from "./trajectory.mjs";
 import { liveBlockedByCi, liveTimeoutMs } from "./workspace.mjs";
 
 export const CURSOR_MODEL_NEEDLE = /grok-4\.6|grok 4\.6/i;
@@ -134,12 +134,14 @@ function isAssistantPayload(event) {
 
 export function collectCursorEvent(event, events, assistantChunks, injectedTexts) {
   const type = event?.type;
-  if (type === "tool_call" && (event.status === "completed" || event.status === "error" || !event.status)) {
+  if (type === "tool_call" && ["started", "completed", "error", undefined].includes(event.status)) {
     events.push({
+      toolCallId: event.toolCallId ?? event.tool_call_id ?? event.id,
       name: event.name ?? event.tool ?? event.toolName,
       args: event.args ?? event.arguments ?? event.params ?? {},
       result: event.result,
-      isError: event.status === "error" || event.isError === true
+      isError: event.status === "error" || event.isError === true,
+      phase: event.status === "started" ? "start" : "end"
     });
   }
   const message = event.message ?? event;
@@ -331,7 +333,7 @@ export async function runCursorPrompt(job) {
         host: "cursor",
         model: picked.id,
         thinking: picked.params,
-        events,
+        events: mergeToolEvents(events),
         assistantText: String(resultText ?? assistantChunks.join("")),
         injectedTexts,
         tokens,

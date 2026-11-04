@@ -11,6 +11,7 @@ import path from "node:path";
 import process from "node:process";
 
 import { judgeRun } from "./judge.mjs";
+import { captureCommandEvidence, evidenceTargets, nodeTestOutcome } from "./evidence.mjs";
 import {
   assertNoComposite,
   renderSuiteMarkdown,
@@ -231,7 +232,7 @@ export function loadTrajectory(fixtureDir, condition) {
   return { trajectory: null, source: null };
 }
 
-export function applyTrajectory(workspaceDir, fixtureDir, trajectory) {
+export function applyTrajectory(workspaceDir, fixtureDir, trajectory, fixtureMeta = {}) {
   const executed = [];
   for (const step of trajectory.steps ?? []) {
     if (step.type === "write") {
@@ -249,33 +250,42 @@ export function applyTrajectory(workspaceDir, fixtureDir, trajectory) {
       continue;
     }
     if (step.type === "command" && step.execute) {
+      const env = { ...process.env, ...(trajectory.env ?? {}), ...(step.env ?? {}) };
+      // A harness launched by node --test must run the fixture as a new test run.
+      delete env.NODE_TEST_CONTEXT;
       const result = spawnSync(step.argv[0], step.argv.slice(1), {
         cwd: workspaceDir,
         encoding: "utf8",
-        env: { ...process.env, ...(trajectory.env ?? {}), ...(step.env ?? {}) }
+        env
       });
-      executed.push({
-        ...step,
-        exit: result.status,
-        stdout: result.stdout,
-        stderr: result.stderr
+      const targets = evidenceTargets(fixtureMeta);
+      const captured = captureCommandEvidence({
+        argv: step.argv, cwd: workspaceDir,
+        event: { result: { exitCode: result.status, stdout: result.stdout, stderr: result.stderr } },
+        source: "fixture-replay", targets,
+        existingTargets: targets.filter((target) => fs.existsSync(path.join(workspaceDir, target))),
+        ordered: true
       });
+      executed.push({ ...step, ...captured });
       continue;
     }
     executed.push(step);
   }
-  return { ...trajectory, steps: executed };
+  return { ...trajectory, schema: "do-it/behavior-trajectory/v2", steps: executed };
 }
 
 function countFixtureTests(trajectory) {
   let passed = 0;
   let failed = 0;
+  let unverified = 0;
   for (const step of trajectory.steps ?? []) {
     if (step.type !== "command" || !step.execute) continue;
-    if (step.exit === 0) passed += 1;
-    else failed += 1;
+    const outcome = nodeTestOutcome(step);
+    if (outcome === "passed") passed += 1;
+    else if (outcome === "failed") failed += 1;
+    else unverified += 1;
   }
-  return { passed, failed };
+  return { passed, failed, unverified };
 }
 
 export class FixtureBackend {
@@ -300,7 +310,7 @@ export class FixtureBackend {
     const workspaceDir = fs.mkdtempSync(path.join(os.tmpdir(), `do-it-eval-${job.scenario.id}-`));
     copyWorkspace(fixture.workspace, workspaceDir);
     const originalFiles = readTreeFiles(workspaceDir);
-    const applied = applyTrajectory(workspaceDir, fixture.dir, loaded.trajectory);
+    const applied = applyTrajectory(workspaceDir, fixture.dir, loaded.trajectory, fixture.meta);
     const workspaceFiles = readTreeFiles(workspaceDir);
     const fixtureTests = countFixtureTests(applied);
     const judgeInput = {

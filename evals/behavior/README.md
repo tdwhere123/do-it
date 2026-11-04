@@ -102,6 +102,42 @@ counts host-delivered do-it context, including historical bootstrap forms;
 assistant echoes are excluded. Run records retain model, condition, host, commit,
 permissions, costs, and trajectory references.
 
+## Execution evidence and its limits
+
+New trajectories use `do-it/behavior-trajectory/v2`. For fresh test evidence,
+the judge requires a completed host tool or fixture replay with an explicit
+process exit code, workspace cwd, observed non-overlapping tool intervals, and
+a nonempty Node test summary with no failures, cancellations, skips, todos,
+suite blocks, or file-only passes. Suite blocks are conservatively unverified:
+an empty suite in a selected file can otherwise be masked by another file's pass. The bounded invocation recognizer accepts a direct
+`node --test` with simple relative paths or globs, including
+`node --test 'tests/*.test.mjs'`, and an optional `2>&1` or `cd <workspace> &&`
+prefix. Glob support depends on the installed Node version. A compound command,
+pipeline, different cwd, options or environment overrides, missing/truncated
+result, or unknown ordering is not passing evidence, even when its wrapper exits
+zero. This is not a general shell interpreter.
+
+The record stores the tool name, workspace/unknown cwd, explicit exit and its
+source, ordering status, all-tests versus explicit selection, matched known
+fixture test targets, and aggregate test counts. It does **not** store command text, arbitrary tool output, or environment
+values for live command evidence. A match means that the supported selector
+covers the target; for live capture, the target must exist in both the initial
+and final workspace snapshots. It does not establish per-test coverage or that
+an adversarial process could not forge reporter output. A later write, unknown
+tool or command invalidates earlier evidence. Final diffs with no attributed
+write, including deletions, are treated as unordered and cannot be placed before
+a test to manufacture freshness. The harness's separate fixture re-run can
+assess the final workspace; it is not evidence that the agent ran that test.
+A failed test command and an unverified/empty result are counted separately.
+Completion-only SDK events or SDKs without explicit exit/output metadata remain
+unverified; no success is inferred from `isError: false`.
+
+Historical v1 records and their original grades remain readable and unchanged.
+They lack this provenance, so rejudging an exit-only v1 command cannot establish
+fresh passing evidence. Do not reconstruct missing tool output from historical
+transcripts. Records can still contain other sensitive material, such as assistant
+claims, injected context, or write contents; inspect and share them accordingly.
+
 ## Optional live evaluation
 
 Live evaluation requires separate authorization for external model calls and
@@ -115,8 +151,17 @@ An explicitly authorized comparison can use:
 DO_IT_EVAL_LIVE=1 node evals/behavior/runner.mjs --backend live --host cursor,pi --scenario D01 --condition vanilla,legacy,kernel
 ```
 
-Each run gets an isolated workspace and host settings. The frozen legacy plugin
-is extracted from local Git history; the current plugin uses the current bundle.
-Cursor uses its own API credential; Pi uses its configured DeepSeek credential.
-Neither adapter uses OpenAI credentials. Raw output stays in gitignored `runs/`;
-only reviewed aggregates and non-sensitive fixtures belong in version control.
+Each run gets a temporary workspace and separate host settings. This is **not**
+a filesystem or environment sandbox: host tools may read the evaluator's
+scenarios, judge, and expected answers outside that workspace, as well as other
+accessible files. Such reads can contaminate a comparison. Live reports therefore
+mark `answer_isolation: NOT_VERIFIED`; neither a hard-gate pass nor a prompt
+prohibition proves answer isolation. Do not claim a leak-resistant model
+comparison without an independently verified native isolation boundary. This
+limitation does not prevent ordinary prompt or skill improvements.
+
+The frozen legacy plugin is extracted from local Git history; the current plugin
+uses the current bundle. Cursor uses its own API credential; Pi uses its
+configured DeepSeek credential. Neither adapter uses OpenAI credentials. Runs
+stay in gitignored `runs/`; only reviewed aggregates and non-sensitive fixtures
+belong in version control.

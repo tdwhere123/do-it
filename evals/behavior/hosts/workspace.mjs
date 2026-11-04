@@ -6,6 +6,7 @@ import os from "node:os";
 import path from "node:path";
 
 import { resolveFixtureDir } from "../validate.mjs";
+import { captureCommandEvidence, evidenceTargets, nodeTestOutcome } from "../evidence.mjs";
 
 export const LEGACY_BASELINE = "8e85add081b2793fb39529e1a57a36155fe03847";
 
@@ -142,26 +143,33 @@ export function runFixtureTests(workspaceDir, fixtureMeta) {
   }
   let passed = 0;
   let failed = 0;
+  let unverified = 0;
   const results = [];
   for (const argv of commands) {
+    const env = { ...process.env };
+    delete env.NODE_TEST_CONTEXT;
     const result = spawnSync(argv[0], argv.slice(1), {
       cwd: workspaceDir,
       encoding: "utf8",
+      env,
       timeout: 60_000
     });
-    const exit = result.status;
-    if (exit === 0) passed += 1;
-    else failed += 1;
-    results.push({
-      type: "command",
-      argv,
-      exit,
-      stdout: result.stdout,
-      stderr: result.stderr,
-      source: "harness"
+    const targets = evidenceTargets(fixtureMeta);
+    const captured = captureCommandEvidence({
+      argv, cwd: workspaceDir,
+      event: { result: { exitCode: result.status, stdout: result.stdout, stderr: result.stderr } },
+      source: "harness", targets,
+      existingTargets: targets.filter((target) => fs.existsSync(path.join(workspaceDir, target))),
+      ordered: true
     });
+    const step = { type: "command", ...captured };
+    const outcome = nodeTestOutcome(step, { allowHarness: true });
+    if (outcome === "passed") passed += 1;
+    else if (outcome === "failed") failed += 1;
+    else unverified += 1;
+    results.push(step);
   }
-  return { passed, failed, results };
+  return { passed, failed, unverified, results };
 }
 
 export function isHarnessPath(rel) {
@@ -177,10 +185,11 @@ export function isHarnessPath(rel) {
 export function diffWrites(originalFiles, workspaceFiles) {
   const writes = [];
   const originals = originalFiles ?? {};
-  for (const [rel, content] of Object.entries(workspaceFiles ?? {})) {
+  const current = workspaceFiles ?? {};
+  for (const rel of new Set([...Object.keys(originals), ...Object.keys(current)])) {
     if (isHarnessPath(rel)) continue;
-    if (originals[rel] !== content) {
-      writes.push({ type: "write", path: posixRel(rel), content });
+    if (originals[rel] !== current[rel]) {
+      writes.push({ type: "write", path: posixRel(rel), content: current[rel] });
     }
   }
   return writes;

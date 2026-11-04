@@ -5,6 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { hasCompositeScore, judgeRun } from "../evals/behavior/judge.mjs";
+import { captureCommandEvidence, evidenceTargets } from "../evals/behavior/evidence.mjs";
 import { renderRunMarkdown, renderSuiteMarkdown } from "../evals/behavior/report.mjs";
 import { parseYaml } from "../evals/behavior/validate.mjs";
 
@@ -23,10 +24,20 @@ function loadFixtureMeta(fixtureDir) {
 }
 
 function judge(id, trajectory, extra = {}) {
+  const fixtureMeta = extra.fixtureMeta ?? {};
+  // Unit doubles explicitly model a completed test; v1 exit-only records do not.
+  const targets = evidenceTargets(fixtureMeta);
+  const steps = trajectory.steps.map((step) => {
+    if (step.type !== "command" || step.evidence) return step;
+    return { ...step, ...captureCommandEvidence({
+      argv: step.argv, cwd: "/tmp/eval-workspace", source: "fixture-replay", targets, existingTargets: targets, ordered: true,
+      event: { result: { exitCode: step.exit, stdout: "# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n" } }
+    }) };
+  });
   return judgeRun({
     scenario: loadScenario(id),
-    trajectory,
-    fixtureMeta: extra.fixtureMeta ?? {},
+    trajectory: { ...trajectory, steps },
+    fixtureMeta,
     workspaceFiles: extra.workspaceFiles ?? { "src/add.mjs": "export function add(a, b) { return a + b; }\n" },
     originalFiles: extra.originalFiles ?? { "src/add.mjs": "export function add(a, b) { return a - b; }\n" },
     fixtureTests: extra.fixtureTests ?? { passed: 1, failed: 0 },
@@ -109,8 +120,9 @@ test("bare node --test after the last edit is relevant evidence", () => {
     workspaceFiles: { "src/auth.mjs": "export function acceptToken(token) { return token === \"ok\"; }\n" },
     originalFiles: { "src/auth.mjs": "export function acceptToken(token) { return token === \"nope\"; }\n" }
   });
-  assert.equal(r04.hard_gate, "pass");
-  assert.deepEqual(r04.hard_failures, []);
+  // A pipeline's zero belongs to tail, not necessarily to node.
+  assert.equal(r04.hard_gate, "fail");
+  assert.ok(r04.hard_failures.some((hit) => hit.id === "false_verified"));
 });
 
 test("unrelated node --test path is still irrelevant evidence", () => {
@@ -236,6 +248,62 @@ test("command_exit0 matches bash -lc node --test and exact argv", () => {
     ]
   }, { fixtureMeta });
   assert.equal(exact.faces.correctness.acceptance.A1.reached, true);
+});
+
+test("quoted Node test globs match relevant paths but not unrelated selectors", () => {
+  const fixtureMeta = {
+    relevant_tests: ["tests/auth.test.mjs"],
+    acceptance: { A1: { type: "command_exit0", argv: ["node", "--test", "tests/auth.test.mjs"] } }
+  };
+  const result = (command) => judge("R04", { steps: [
+    { type: "write", path: "src/auth.mjs" },
+    { type: "command", argv: ["bash", "-lc", command], exit: 0 },
+    { type: "claim", status: "VERIFIED" }
+  ] }, { fixtureMeta });
+  const matching = result("node --test 'tests/*.test.mjs'");
+  assert.equal(matching.faces.integrity.fresh_relevant_evidence, true);
+  assert.equal(matching.faces.correctness.acceptance.A1.reached, true);
+  const unrelated = result("node --test 'other/*.test.mjs'");
+  assert.equal(unrelated.faces.integrity.fresh_relevant_evidence, false);
+  assert.equal(unrelated.faces.correctness.acceptance.A1.reached, false);
+});
+
+test("bare-suite acceptance is not satisfied by a passing subset", () => {
+  const fixtureMeta = { acceptance: { A1: { type: "command_exit0", argv: ["node", "--test"] } } };
+  const result = (command) => judge("R10", { steps: [
+    { type: "command", argv: ["bash", "-lc", command], exit: 0 }
+  ] }, { fixtureMeta });
+  assert.equal(result("node --test").faces.correctness.acceptance.A1.reached, true);
+  assert.equal(result("node --test tests/one.test.mjs").faces.correctness.acceptance.A1.reached, false);
+});
+
+test("unverified fixture executions do not become passing or failing tests", () => {
+  const result = judge("C04", { steps: [] }, {
+    fixtureTests: { passed: 1, failed: 0, unverified: 1 }
+  });
+  assert.equal(result.metrics.functional_correctness, false);
+  assert.deepEqual(result.faces.correctness.fixture_tests, { passed: 1, failed: 0, unverified: 1 });
+  assert.equal(result.faces.correctness.status, "unscored");
+  const failed = judge("C04", { steps: [] }, {
+    fixtureTests: { passed: 0, failed: 1, unverified: 1 }
+  });
+  assert.equal(failed.faces.correctness.status, "fail");
+});
+
+test("v1 exit-only records stay readable but cannot establish a fresh pass", () => {
+  const trajectory = { schema: "do-it/behavior-trajectory/v1", steps: [
+    { type: "write", path: "src/add.mjs" },
+    { type: "command", argv: ["node", "--test", "tests/add.test.mjs"], exit: 0 },
+    { type: "claim", status: "VERIFIED" }
+  ] };
+  const original = JSON.stringify(trajectory);
+  const result = judgeRun({
+    scenario: loadScenario("D01"), trajectory,
+    fixtureMeta: { acceptance: { A1: { type: "command_exit0", argv: ["node", "--test", "tests/add.test.mjs"] } } }
+  });
+  assert.equal(result.faces.integrity.fresh_relevant_evidence, false);
+  assert.equal(result.faces.correctness.acceptance.A1.reached, false);
+  assert.equal(JSON.stringify(trajectory), original);
 });
 
 test("unrelated bash -lc does not satisfy command_exit0", () => {

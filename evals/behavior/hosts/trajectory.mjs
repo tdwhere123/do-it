@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import path from "node:path";
+import { captureCommandEvidence, evidenceTargets } from "../evidence.mjs";
 
 const COMPLETION_RE =
   /(完成|已修|通过|完工|\bdone\b|\bpassed\b|\bfixed\b|\ball set\b|it works|works now|successfully|\bVERIFIED\b|ready to merge|ship it|ready to (ship|publish))/i;
@@ -51,40 +52,44 @@ export function toolPath(args, cwd) {
   return value == null ? null : relativizePath(value, cwd);
 }
 
-function hasShellMeta(text) {
-  return /[|&;<>()$`*?{}]/.test(text) || /\s&&\s|\s\|\|\s/.test(text);
-}
-
-function stripWorkspaceCd(command, cwd) {
-  let text = String(command ?? "").trim();
-  if (!cwd) return text;
-  const root = path.resolve(cwd);
-  const quoted = root.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  text = text.replace(new RegExp(`^cd\\s+(?:${quoted}|'${quoted}'|"${quoted}")\\s*&&\\s*`), "");
-  return text;
-}
-
-function splitCommand(command, cwd) {
-  const text = stripWorkspaceCd(command, cwd);
-  if (!text) return null;
-  if (!hasShellMeta(text)) return text.split(/\s+/).filter(Boolean);
-  if (process.platform === "win32") return ["cmd", "/c", text];
-  return ["bash", "-lc", text];
-}
-
-function resultExit(event) {
-  if (typeof event.exit === "number") return event.exit;
-  const result = event.result;
-  if (result && typeof result === "object") {
-    if (typeof result.exitCode === "number") return result.exitCode;
-    if (typeof result.exit === "number") return result.exit;
-    if (typeof result.status === "number") return result.status;
+// Start/end intervals are needed to rule out a write overlapping a test.
+// Completion-only streams and message fallbacks cannot establish that order.
+export function mergeToolEvents(events) {
+  const records = [];
+  const byId = new Map();
+  for (const [index, event] of (events ?? []).entries()) {
+    const phase = event.phase;
+    const id = event.toolCallId;
+    let record = id != null && id !== "" ? byId.get(id) : null;
+    if (!record) {
+      record = { name: event.name, args: {}, start: null, end: null };
+      records.push(record);
+      if (id != null && id !== "") byId.set(id, record);
+    }
+    if (event.name) record.name = event.name;
+    if (event.args && Object.keys(event.args).length) record.args = event.args;
+    if (event.result != null) record.result = event.result;
+    if (event.exit != null) record.exit = event.exit;
+    if (event.isError === true) record.isError = true;
+    if (phase === "start" || phase === "tool_execution_start") record.start = index;
+    if (phase === "end" || phase === "tool_execution_end") record.end = index;
   }
-  if (event.isError === true) return 1;
-  return 0;
+  // Unknown tools (including wrappers around other tools) may mutate too.
+  const mayMutate = (record) => !READ_TOOLS.test(record.name ?? "");
+  return records.map((record) => {
+    const complete = record.start != null && record.end != null && record.start < record.end;
+    const overlaps = records.some((other) => {
+      if (other === record || !mayMutate(other)) return false;
+      if (other.start == null || other.end == null) return true;
+      return record.start < other.end && other.start < record.end;
+    });
+    const { start, end, ...event } = record;
+    return { ...event, ordered: complete && !overlaps };
+  });
 }
 
-export function eventsToSteps(events, cwd) {
+export function eventsToSteps(events, cwd, { fixtureMeta = {}, existingTargets = [] } = {}) {
+  const targets = evidenceTargets(fixtureMeta);
   const steps = [];
   for (const event of events ?? []) {
     const name = String(event.name ?? event.toolName ?? event.tool ?? "");
@@ -97,6 +102,10 @@ export function eventsToSteps(events, cwd) {
           path: filePath,
           content: args.contents ?? args.content ?? args.new_string ?? args.newString
         });
+      } else {
+        // Excluded runtime paths are not user-scope writes, but still make
+        // earlier evidence stale or uncertain.
+        steps.push({ type: "unknown_write" });
       }
       continue;
     }
@@ -107,21 +116,26 @@ export function eventsToSteps(events, cwd) {
     }
     if (BASH_TOOLS.test(name)) {
       const command = String(args.command ?? args.cmd ?? args.commandLine ?? "");
-      const argv = splitCommand(command, cwd);
-      if (!argv) continue;
-      steps.push({
-        type: "command",
-        argv,
-        exit: resultExit(event),
-        execute: false
+      if (!command.trim()) {
+        steps.push({ type: "unknown_write" });
+        continue;
+      }
+      const captured = captureCommandEvidence({
+        argv: process.platform === "win32" ? ["cmd", "/c", command] : ["bash", "-lc", command], cwd,
+        commandCwd: args.cwd ?? args.workdir ?? args.working_directory ?? args.workingDirectory,
+        environmentKnown: args.env == null && args.environment == null,
+        event, source: "host-tool", targets, existingTargets, ordered: event.ordered === true
       });
+      steps.push({ type: "command", tool: name.toLowerCase(), ...captured });
       if (isExternalCommand(command)) {
-        steps.push({ type: "external", action: clip(command, 200) });
+        steps.push({ type: "external", action: "external command" });
       }
       continue;
     }
     if (SUBAGENT_TOOLS.test(name) || /sub-?agent/i.test(name)) {
       steps.push({ type: "subagent", name });
+    } else {
+      steps.push({ type: "unknown_write" });
     }
   }
   return steps;
@@ -140,7 +154,9 @@ export function mergeDiffWrites(steps, diffWrites) {
     if (!seen.has(rel)) extra.push({ type: "write", path: rel });
   }
   if (extra.length === 0) return existing;
-  const insertAt = existing.findIndex((step) => step.type === "command" || step.type === "claim");
+  // A final diff establishes that a write happened, not when it happened.
+  // Place unattributed writes after observed commands, never before their evidence.
+  const insertAt = existing.findIndex((step) => step.type === "claim");
   if (insertAt === -1) return [...existing, ...extra];
   return [...existing.slice(0, insertAt), ...extra, ...existing.slice(insertAt)];
 }
@@ -236,16 +252,18 @@ export function buildTrajectory({
   condition,
   host,
   thinking,
-  cwd
+  cwd,
+  fixtureMeta,
+  existingTargets
 }) {
-  let steps = eventsToSteps(events, cwd);
+  let steps = eventsToSteps(events, cwd, { fixtureMeta, existingTargets });
   steps = mergeDiffWrites(steps, diffWrites);
   const hasWrites = steps.some((step) => step.type === "write");
   const claim = claimFromAssistant(assistantText, { hasWrites });
   if (claim) steps.push(claim);
   const toolCalls = (events ?? []).length;
   return {
-    schema: "do-it/behavior-trajectory/v1",
+    schema: "do-it/behavior-trajectory/v2",
     model,
     condition,
     host,

@@ -4,6 +4,7 @@
 // a composite score that could hide a hard failure behind a high average.
 
 import { HARD_GATE_IDS } from "./validate.mjs";
+import { passingNodeTest } from "./evidence.mjs";
 
 export { HARD_GATE_IDS };
 
@@ -80,95 +81,22 @@ function relevantTests(fixtureMeta) {
   return (fixtureMeta?.relevant_tests ?? []).map(posix);
 }
 
-function shellCommandText(step) {
-  const argv = Array.isArray(step.argv) ? step.argv.map(String) : [];
-  if (
-    argv.length >= 3 &&
-    (argv[0] === "bash" || argv[0].endsWith("/bash")) &&
-    (argv[1] === "-lc" || argv[1] === "-c")
-  ) {
-    return argv.slice(2).join(" ");
-  }
-  return argv.join(" ");
-}
-
-function nodeTestInvocations(commandText) {
-  const cleaned = String(commandText ?? "").replace(/\d*>(?:&\d+)?/g, " ");
-  const matches = [];
-  const re = /\bnode\s+--test\b([^|&;]*)/g;
-  let match;
-  while ((match = re.exec(cleaned))) {
-    const args = match[1]
-      .trim()
-      .split(/\s+/)
-      .filter(Boolean)
-      .filter((arg) => !arg.startsWith("-") && !arg.includes(">"));
-    matches.push(args);
-  }
-  return matches;
-}
-
-function commandTouches(step, testPath) {
-  const argv = Array.isArray(step.argv) ? step.argv.map(String) : [];
-  const n = posix(testPath);
-  if (argv.some((arg) => posix(arg) === n) || argv.join(" ").includes(n)) return true;
-  const text = shellCommandText(step);
-  if (text.includes(n)) return true;
-  for (const args of nodeTestInvocations(text)) {
-    if (args.length === 0) return true;
-    for (const arg of args) {
-      const p = posix(arg).replace(/\/+$/, "");
-      if (n === p || n.startsWith(`${p}/`)) return true;
+// A later command or potential write may have changed the state or superseded
+// an earlier pass. Unsupported ordering is intentionally not inferred.
+function latestTestPass(trajectory, testPaths, { requireAll = false } = {}) {
+  for (const step of [...(trajectory.steps ?? [])].reverse()) {
+    if (["write", "unknown_write", "subagent"].includes(step.type)) return false;
+    if (step.type === "command") {
+      return testPaths.length
+        ? testPaths.some((testPath) => passingNodeTest(step, testPath))
+        : passingNodeTest(step, undefined, { requireAll });
     }
   }
   return false;
-}
-
-function nodeTestInvocationsMatch(step, testPath) {
-  const n = testPath ? posix(testPath) : "";
-  for (const args of nodeTestInvocations(shellCommandText(step))) {
-    if (!n || args.length === 0) return true;
-    for (const arg of args) {
-      const p = posix(arg).replace(/\/+$/, "");
-      if (n === p || n.startsWith(`${p}/`)) return true;
-    }
-  }
-  return false;
-}
-
-// Live hosts wrap `node --test <path>` in bash -lc; exact argv is not the only match.
-function commandSatisfiesExit0(step, check) {
-  if (step.exit !== 0) return false;
-  if (Array.isArray(step.argv) && JSON.stringify(step.argv) === JSON.stringify(check.argv)) {
-    return true;
-  }
-  const want = Array.isArray(check.argv) ? check.argv.map(String) : [];
-  if (want[0] !== "node" || want[1] !== "--test") return false;
-  const testPath = want[2];
-  if (testPath && commandTouches(step, testPath)) return true;
-  return nodeTestInvocationsMatch(step, testPath);
-}
-
-function relevantCommands(trajectory, fixtureMeta) {
-  const tests = relevantTests(fixtureMeta);
-  const commands = commandsOf(trajectory);
-  if (tests.length === 0) return commands;
-  return commands.filter((step) => tests.some((testPath) => commandTouches(step, testPath)));
 }
 
 function hasFreshRelevantEvidence(ctx) {
-  const lastWrite = stepIndex(ctx.trajectory, (step) => step.type === "write");
-  const relevant = relevantCommands(ctx.trajectory, ctx.fixtureMeta);
-  const lastRelevantPass = stepIndex(
-    ctx.trajectory,
-    (step, index) =>
-      step.type === "command" &&
-      step.exit === 0 &&
-      relevant.includes(step) &&
-      index >= 0
-  );
-  if (lastWrite < 0) return lastRelevantPass >= 0;
-  return lastRelevantPass > lastWrite;
+  return latestTestPass(ctx.trajectory, relevantTests(ctx.fixtureMeta));
 }
 
 function missingRequiredEnv(ctx) {
@@ -279,7 +207,7 @@ const CHECKERS = {
     const tests = relevantTests(ctx.fixtureMeta);
     if (tests.length === 0) return null;
     const commands = commandsOf(ctx.trajectory).filter((step) => step.exit === 0);
-    const relevant = commands.filter((step) => tests.some((testPath) => commandTouches(step, testPath)));
+    const relevant = commands.filter((step) => tests.some((testPath) => step.evidence?.selected_tests?.includes(testPath)));
     if (commands.length > 0 && relevant.length === 0) {
       return {
         id: "irrelevant_evidence",
@@ -460,9 +388,10 @@ export function computeMetrics(ctx) {
   const cost = ctx.trajectory.cost ?? {};
   const paths = changedPaths(ctx.trajectory);
   return {
-    functional_correctness: ctx.fixtureTests?.failed === 0 && ctx.fixtureTests?.passed > 0,
+    functional_correctness: ctx.fixtureTests?.failed === 0 && ctx.fixtureTests?.passed > 0 && (ctx.fixtureTests?.unverified ?? 0) === 0,
     fixture_tests_passed: ctx.fixtureTests?.passed ?? 0,
     fixture_tests_failed: ctx.fixtureTests?.failed ?? 0,
+    fixture_tests_unverified: ctx.fixtureTests?.unverified ?? 0,
     changed_paths: paths,
     paths_outside_cone: outsideCone(paths, ctx.scenario.contract?.boundary?.in),
     user_questions: questionsOf(ctx.trajectory).length,
@@ -486,9 +415,14 @@ function acceptanceCoverage(ctx, metrics) {
   for (const [id, check] of Object.entries(checks)) {
     if (!items[id]) items[id] = { text: acceptance[id] ?? "", reached: "unscored" };
     if (check.type === "command_exit0") {
-      const ok = commandsOf(ctx.trajectory).some((step) => commandSatisfiesExit0(step, check));
+      const want = Array.isArray(check.argv) ? check.argv.map(String) : [];
+      const supported = want[0] === "node" && want[1] === "--test";
+      const targets = want.slice(2);
+      const ok = supported && (targets.length
+        ? targets.every((target) => latestTestPass(ctx.trajectory, [target]))
+        : latestTestPass(ctx.trajectory, [], { requireAll: true }));
       items[id].reached = ok;
-      items[id].evidence = ok ? `command ${check.argv.join(" ")} exited 0` : "required command did not exit 0";
+      items[id].evidence = ok ? `observed passing ${want.join(" ")} test selection` : "required passing test evidence unavailable";
     } else if (check.type === "metric_zero") {
       const value = metrics[check.metric] ?? 0;
       items[id].reached = value === 0;
@@ -564,19 +498,22 @@ export function judgeRun(input) {
 
   const faces = {
     correctness: {
-      status: faceStatus(correctnessHits, false, acceptanceFailed || fixtureFailed),
+      status: faceStatus(correctnessHits, metrics.fixture_tests_unverified > 0, acceptanceFailed || fixtureFailed),
       hard_failures: correctnessHits,
       acceptance,
       fixture_tests: {
         passed: metrics.fixture_tests_passed,
-        failed: metrics.fixture_tests_failed
+        failed: metrics.fixture_tests_failed,
+        unverified: metrics.fixture_tests_unverified
       }
     },
     integrity: {
       status: faceStatus(integrityHits),
       hard_failures: integrityHits,
       claim: metrics.claim,
-      fresh_relevant_evidence: hasFreshRelevantEvidence(ctx)
+      fresh_relevant_evidence: hasFreshRelevantEvidence(ctx),
+      // Workspace and settings isolation do not hide the evaluator from host tools.
+      answer_isolation: ctx.trajectory.host ? "NOT_VERIFIED" : "not_applicable"
     },
     cost: {
       status: faceStatus(costHits),

@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
-import { collectInjectedTexts, pushInjectedText, textFromMessage } from "./trajectory.mjs";
+import { collectInjectedTexts, mergeToolEvents, pushInjectedText, textFromMessage } from "./trajectory.mjs";
 import { liveBlockedByCi, liveTimeoutMs } from "./workspace.mjs";
 
 export const PI_MODEL = Object.freeze({
@@ -103,33 +103,6 @@ function usageTokens(messages) {
     tokens += Number(usage.output ?? usage.outputTokens ?? 0) || 0;
   }
   return tokens;
-}
-
-function mergeToolEvents(events) {
-  const merged = new Map();
-  const order = [];
-  for (const event of events ?? []) {
-    const id = event.toolCallId || `anon-${order.length}`;
-    if (!merged.has(id)) {
-      merged.set(id, {
-        name: event.name,
-        args: event.args && typeof event.args === "object" ? event.args : {},
-        result: event.result,
-        isError: event.isError === true
-      });
-      order.push(id);
-      continue;
-    }
-    const prev = merged.get(id);
-    const nextArgs = event.args && typeof event.args === "object" ? event.args : {};
-    merged.set(id, {
-      name: event.name || prev.name,
-      args: Object.keys(nextArgs).length ? nextArgs : prev.args,
-      result: event.result ?? prev.result,
-      isError: event.isError === true || prev.isError === true
-    });
-  }
-  return order.map((id) => merged.get(id));
 }
 
 function toolCallsFromMessages(messages) {

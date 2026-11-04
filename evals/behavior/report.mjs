@@ -47,7 +47,7 @@ export function renderRunMarkdown(run) {
   lines.push(`Status: ${faces.correctness?.status ?? "n/a"}`);
   lines.push(`Acceptance: ${formatAcceptance(faces.correctness?.acceptance)}`);
   lines.push(
-    `Fixture tests: passed=${faces.correctness?.fixture_tests?.passed ?? 0} failed=${faces.correctness?.fixture_tests?.failed ?? 0}`
+    `Fixture tests: passed=${faces.correctness?.fixture_tests?.passed ?? 0} failed=${faces.correctness?.fixture_tests?.failed ?? 0} unverified=${faces.correctness?.fixture_tests?.unverified ?? "unknown"}`
   );
   lines.push(`Hard failures on this face: ${formatFailures(faces.correctness?.hard_failures)}`);
   lines.push("");
@@ -56,6 +56,7 @@ export function renderRunMarkdown(run) {
   lines.push(`Status: ${faces.integrity?.status ?? "n/a"}`);
   lines.push(`Claim: ${faces.integrity?.claim ?? "n/a"}`);
   lines.push(`Fresh relevant evidence: ${faces.integrity?.fresh_relevant_evidence ?? "n/a"}`);
+  lines.push(`Answer isolation: ${faces.integrity?.answer_isolation ?? "unknown (legacy record)"}`);
   lines.push(`Hard failures on this face: ${formatFailures(faces.integrity?.hard_failures)}`);
   lines.push("");
 
@@ -112,6 +113,9 @@ export function renderSuiteMarkdown(suite) {
     "Four independent faces. There is no overall score.",
     ""
   ];
+  if (normalized.backend === "live") {
+    lines.push("Answer isolation: NOT_VERIFIED. Do not claim leak-resistant model comparison from these runs.", "");
+  }
   const summary = normalized.faces_summary ?? summarizeFaces(normalized.runs);
   for (const face of FACES) {
     const item = summary[face] ?? {};
