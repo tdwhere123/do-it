@@ -1,0 +1,7 @@
+{
+  "scenario": "reopen-root",
+  "negative": true,
+  "exitCode": 1,
+  "rejectedBoundary": "reopened-root: model-visible stance",
+  "stderr": "node:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\n\nAssertionError [ERR_ASSERTION]: reopened-root: model-visible stance\n\n2 !== 0\n\n    at file:///home/tdwhere/vibe/do-it-wt-pi/tests/pi/fixtures/primary-lifecycle-probe.mjs:171:10 {\n  generatedMessage: false,\n  code: 'ERR_ASSERTION',\n  actual: 2,\n  expected: 0,\n  operator: 'strictEqual',\n  diff: 'simple'\n}\n\nNode.js v24.21.0\n"
+}

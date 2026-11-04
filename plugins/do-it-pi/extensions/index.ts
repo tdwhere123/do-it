@@ -24,7 +24,8 @@ const defaultPluginRoot = path.resolve(
 	"..",
 );
 type MessagePart = { type?: unknown; text?: unknown };
-type MessageLike = { role?: unknown; content?: unknown };
+type MessageLike = { role?: unknown; content?: unknown; customType?: unknown; details?: unknown };
+type Reminder = { role: "root" | "child"; kind: "stance" | "context" | "diagnostic" };
 type HookRunner = (
 	hooksDir: string,
 	scriptName: string,
@@ -96,6 +97,30 @@ function textFromContent(content: unknown): string {
 		.filter((part) => part.type === "text" && typeof part.text === "string")
 		.map((part) => part.text as string)
 		.join("\n");
+}
+
+// Only extension-owned messages are policy reminders. User text and other
+// extensions' messages must survive even when they quote the same wording.
+function ownedReminder(message: MessageLike): Reminder | undefined {
+	if (message.role !== "custom" || message.customType !== "do-it") return undefined;
+	const details = message.details as { doIt?: Record<string, unknown> } | undefined;
+	const marker = details?.doIt;
+	if (marker?.version === 1 && (marker.role === "root" || marker.role === "child") &&
+		(marker.kind === "stance" || marker.kind === "context" || marker.kind === "diagnostic")) {
+		return { role: marker.role, kind: marker.kind };
+	}
+	// Prior adapters persisted a string and no metadata. Recognize only their
+	// owned, anchored signatures, not phrases embedded in arbitrary content.
+	if (marker !== undefined || typeof message.content !== "string") return undefined;
+	const content = message.content.trim();
+	if (/^<system-reminder>\s*do-it subagent stance: [\s\S]*<\/system-reminder>$/.test(content)) {
+		return { role: "child", kind: "stance" };
+	}
+	if (content.startsWith("Do-it: Preserve the user's goal,") ||
+		content.startsWith("Do-it kernel: read current repository truth")) {
+		return { role: "root", kind: "context" };
+	}
+	return undefined;
 }
 
 export function assistantTextFromMessages(
@@ -206,6 +231,7 @@ export function createDoItPiExtension(
 		payload: HookPayload,
 		ctx: ExtensionContext,
 		processOwner: HookProcessOwner,
+		role: ReturnType<typeof piSessionRole>,
 	): Promise<HookResult> {
 		try {
 			const result = await runHook(hooksDir, scriptName, payload, {
@@ -213,7 +239,10 @@ export function createDoItPiExtension(
 				// to this invocation; in-process siblings share process.env.
 				env: {
 					...hookEnvironment(),
-					...(scriptName === "subagent-stance.sh" ? { PI_SUBAGENT_CHILD: "1" } : {}),
+					// Unmarked stays explicit in status, but its documented hook
+					// default is root. Do not re-infer identity from file paths.
+					DO_IT_PI_SESSION_ROLE: role === "child" ? "child" : "root",
+					...(role === "child" ? { PI_SUBAGENT_CHILD: "1" } : {}),
 				},
 				signal: ctx.signal,
 				processOwner,
@@ -252,9 +281,6 @@ export function createDoItPiExtension(
 
 	return function doItPiExtension(pi: ExtensionAPI): void {
 		const processOwner = createHookProcessOwner();
-		function childSession(): boolean {
-			return isPiSubagent(currentEnv(), pi);
-		}
 
 		pi.registerCommand("do-it-status", {
 			description: "Show do-it Pi adapter status and last hook diagnostic.",
@@ -282,17 +308,36 @@ export function createDoItPiExtension(
 			ensureDataDir();
 		});
 
+		pi.on("context", (event) => {
+			const role = piSessionRole(currentEnv(), pi) === "child" ? "child" : "root";
+			// Projection only: immutable transcript entries remain available in
+			// history/UI and become applicable again if execution role changes.
+			return { messages: event.messages.filter((message) => {
+				const reminder = ownedReminder(message);
+				return !reminder || reminder.role === role;
+			}) };
+		});
+
 		pi.on("before_agent_start", async (event, ctx) => {
+			const role = piSessionRole(currentEnv(), pi);
+			let kind: Reminder["kind"] = role === "child" ? "stance" : "context";
 			const prompt = "prompt" in event && typeof event.prompt === "string" ? event.prompt : "";
 			const contexts: string[] = [];
 
-			if (childSession()) {
+			if (role === "child") {
+				// The SDK's persisted active projection is the receipt, including
+				// retained/in-memory sessions. A hook launch or returned-but-lost
+				// result never marks delivery; interruption therefore permits retry.
+				if (ctx.sessionManager.buildSessionProjection().messages.some((message) =>
+					ownedReminder(message)?.kind === "stance")) return undefined;
 				const result = await invokeHook(
 					"subagent-stance.sh",
 					basePayload(ctx, { prompt }),
 					ctx,
 					processOwner,
+					role,
 				);
+				if (result.exitCode !== 0 || !result.additionalContext?.trim()) kind = "diagnostic";
 				const context = resultContext(result);
 				if (context) contexts.push(context);
 			} else {
@@ -300,7 +345,7 @@ export function createDoItPiExtension(
 					const payload = basePayload(ctx, { prompt });
           for (const scriptName of ["prompt-submit.sh"]) {
 						if (ctx.signal?.aborted) break;
-						const result = await invokeHook(scriptName, payload, ctx, processOwner);
+						const result = await invokeHook(scriptName, payload, ctx, processOwner, role);
 						const context = resultContext(result);
 						if (context) contexts.push(context);
 						if (result.unavailable) break;
@@ -312,6 +357,7 @@ export function createDoItPiExtension(
 			return {
 				message: {
 					customType: "do-it",
+					details: { doIt: { version: 1, role: role === "child" ? "child" : "root", kind } },
 					content: contexts.join("\n\n"),
 					display: false,
 				},
@@ -319,7 +365,8 @@ export function createDoItPiExtension(
 		});
 
 		pi.on("tool_result", async (event, ctx) => {
-			if (childSession()) return undefined;
+			const role = piSessionRole(currentEnv(), pi);
+			if (role === "child") return undefined;
 			if (currentEnv().DO_IT_EVIDENCE_MODE === "observe" && isEvidenceTool(event.toolName)) {
 				await invokeHook(
 					"evidence-observer.sh",
@@ -331,6 +378,7 @@ export function createDoItPiExtension(
 					}),
 					ctx,
 					processOwner,
+					role,
 				);
 			}
 			if (!isEditTool(event.toolName)) return undefined;
@@ -345,6 +393,7 @@ export function createDoItPiExtension(
 				}),
 				ctx,
 				processOwner,
+				role,
 			);
 			const context = resultContext(result);
 			if (!context) return undefined;

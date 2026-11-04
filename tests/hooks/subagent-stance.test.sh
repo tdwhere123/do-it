@@ -74,6 +74,29 @@ else
   _fail "child reminder omitted no-write boundary: $out"
 fi
 
+# Pi authority must survive the shell boundary even under a misleading path.
+echo "Case 4: explicit Pi root overrides legacy child signals"
+_isolate /tmp/doit-subagent-stance-c4
+out="$(DO_IT_EVENT_HOST=pi DO_IT_PI_SESSION_ROLE=root PI_SUBAGENT_CHILD=1 _run_stance c4 /tmp/agents/root.jsonl)"
+if [[ -z "$out" ]]; then _pass "explicit root is not a child"; else _fail "root was reclassified: $out"; fi
+out="$(printf '%s' '{"session_id":"c4","transcript_path":"/tmp/agents/root.jsonl"}' | DO_IT_EVENT_HOST=pi DO_IT_PI_SESSION_ROLE=root bash "$KERNEL")"
+if printf '%s' "$out" | jq -e '.hookSpecificOutput.additionalContext | contains("Do-it:")' >/dev/null 2>&1; then
+  _pass "explicit root retains Core beneath agents path"
+else _fail "root Core was skipped: $out"; fi
+
+echo "Case 5: Pi-specific authority does not alter other host heuristics"
+_isolate /tmp/doit-subagent-stance-c5
+out="$(DO_IT_EVENT_HOST=claude DO_IT_PI_SESSION_ROLE=root _run_stance c5 /tmp/agents/child.jsonl)"
+if [[ -n "$out" ]]; then _pass "other host still recognizes child path"; else _fail "Pi role leaked to another host"; fi
+
+echo "Case 6: Pi delivery owner can retry despite a historical pre-output flag"
+_isolate /tmp/doit-subagent-stance-c6
+_run_stance c6 /tmp/agents/child.jsonl >/dev/null
+for attempt in 1 2; do
+  out="$(DO_IT_EVENT_HOST=pi DO_IT_PI_SESSION_ROLE=child _run_stance c6 /tmp/child.jsonl)"
+  if [[ -n "$out" ]]; then _pass "Pi attempt $attempt emits for SDK delivery"; else _fail "shell state suppressed Pi retry"; fi
+done
+
 if [[ "$FAIL" -ne 0 ]]; then
   echo "FAIL: $FAIL test(s) failed" >&2
   exit 1

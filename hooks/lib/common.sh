@@ -338,6 +338,14 @@ do_it_prune_stale_sessions() {
 
 # Lower-case a string portably.
 do_it_in_subagent_context() {
+  # Pi's adapter carries creator/subprocess authority per hook invocation.
+  # Other hosts and Pi callers without a role keep their existing fallback.
+  if [[ "${DO_IT_EVENT_HOST:-}" == "pi" ]]; then
+    case "${DO_IT_PI_SESSION_ROLE:-}" in
+      child) return 0 ;;
+      root) return 1 ;;
+    esac
+  fi
   local tp_arg="${1:-}"
   local tp_normalized="${tp_arg//\\//}"
   local env_tp_normalized="${transcript_path:-}"

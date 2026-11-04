@@ -112,7 +112,7 @@ registry 尚未发布或开发该包时可使用本地 checkout：运行
 `npm run install:pi-global`，然后在 Pi 中执行 `/reload`。核心 extension、skills
 与 prompt templates 不依赖额外包。主要 runtime `@tintinweb/pi-subagents` 的正确
 子会话路由目前需要尚未发布的源码补丁，而不是未打补丁的 npm 0.23.0。
-先按[原生验证记录](release-evidence/pi-child-identity.md)准备并审查补丁，再明确选择
+先按[原生验证记录](release-evidence/pi-child-identity-boundaries.md)准备并审查补丁，再明确选择
 本地 runtime 来源来替代旧来源：
 
 ```bash
@@ -120,7 +120,10 @@ pi install /path/to/pi-subagents-child-identity
 ```
 
 先检查 `pi list`，如已有旧 runtime，只移除该 runtime 的包注册；不要同时加载两份。
-这是操作人员主动执行的步骤，do-it 安装器和测试不会代为修改现有安装。
+这是操作人员主动执行的步骤，do-it 安装器和测试不会代为修改现有安装。迁移必须
+**配对进行**：不要单独部署或重载新版适配器来连接未打补丁的 Tintinweb。
+修改实时链接的源码 checkout 也会在重载时改变已安装插件，因此 runtime/适配器的
+配对迁移仍须明确授权。
 
 该 runtime 目前按裸名称发现 package roles，例如 `code-mapper`；另一个兼容性
 runtime `pi-subagents` 使用 `do-it.code-mapper` 等名称。工具已注册不代表已确认
@@ -131,10 +134,18 @@ Pi 1.5.0 上的无外部 provider 原生测试覆盖了打补丁后的持久化�
 普通 fork、extension 筛选，以及取消一个子会话而其兄弟会话继续运行的情况。
 创建者提供会话局部身份；`PI_SUBAGENT_CHILD=1` 仍是独立的子进程标记。两者均不可用时，
 身份为 **unmarked**，应用主会话 hooks，并在状态中明确警告。未打补丁的 Tintinweb
-0.23.0 子会话不受支持，不再根据会话谱系或工具存在性猜测。测试未修改任何现有安装。
+0.23.0 子会话不受支持，不再根据会话谱系或工具存在性猜测。主会话身份通过 shell 边界
+传递，即使 transcript 路径含 `/agents/` 也不会被误判。Pi 根据 SDK 实际持久化的职责
+提示去重，因此中断的输出可在恢复时重试。角色切换仅从模型上下文中排除本扩展拥有的
+不适用提示，不删除或重写不可变历史及用户内容。测试未修改任何现有安装。
 
-兼容 runtime 的 0.35.1 发现投影已测试，但其 Pi 1.5 生命周期仍为 **NOT_VERIFIED**。
-两个 runtime 读取相同的包级代理声明，却有不同的元数据语义；分别激活仍是未解决的限制。
+SDK peer 策略为 `~1.5.0`，原生证据仅覆盖 **1.5.0**。兼容 runtime 的可选 peer 和
+开发依赖均固定为 **0.35.1**。Linux 上的模拟 provider 原生测试已验证包级角色发现、
+项目指令继承、子代理职责提示且不运行主会话 hooks、结果保留，以及活跃子进程取消后的
+PID 消失和父会话继续运行。详见 [`tests/pi/nicobailon-native.md`](../tests/pi/nicobailon-native.md)。
+Windows 和 0.84.0 生命周期仍为 **NOT_VERIFIED**；nicobailon 的证明式验收层可能在
+退出码为 0 时仍拒绝纯文本完成声明。两个 runtime 共用包级代理，但元数据语义不同；
+投影文字明确区分 runtime 名称，不会自动选择 runtime。
 Tintinweb 的替换提示不继承项目指令文件，应在委派任务中提供必要约束。工具列表、
 只读指令及这个受信任 extension 身份接口都不是沙箱。详见 [`plugins/do-it-pi/README.md`](../plugins/do-it-pi/README.md)。
 

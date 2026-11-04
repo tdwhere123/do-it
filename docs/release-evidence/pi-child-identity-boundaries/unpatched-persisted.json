@@ -1,0 +1,333 @@
+{
+  "scenario": "persisted",
+  "expectedPatched": false,
+  "pi": "1.5.0",
+  "runtime": "0.23.0",
+  "provider": "local faux; network fetch denied",
+  "requests": 5,
+  "source": "/home/tdwhere/vibe/pi-subagents-0.23-baseline",
+  "writer": "documentation-engineer",
+  "canonicalRoles": [
+    "architecture-strategist",
+    "code-mapper",
+    "code-quality-cleaner",
+    "decision-challenger",
+    "documentation-engineer",
+    "red-team-reviewer",
+    "reviewer",
+    "test-engineer"
+  ],
+  "nativeCatalog": "The type of specialized agent to use. Available types: general-purpose, Explore, Plan, architecture-strategist, code-mapper, code-quality-cleaner, decision-challenger, documentation-engineer, red-team-reviewer, reviewer, test-engineer, probe-filtered, probe-nested. Custom agents from .pi/agents/*.md (project) or /tmp/do-it-pi-primary-DE1zSF/agent/agents/*.md (global) are also available.",
+  "node": "v24.21.0",
+  "fixtureHashes": {
+    "primary-probe.mjs": "20b0584cf52a32ca12746cfad38a38ce36b5d9fafabfebbdcb8ccc653a41c723",
+    "primary-observer.mjs": "5784e69f5bc597c69857c8bba601516f1d9a653c7c48eac661f8d603395cec61"
+  },
+  "canonicalAgentHashes": {
+    "architecture-strategist": "69130ec1a11a53b8bced727b84546591343b1f5bc7c967402f2bcd096c3b8fe8",
+    "code-mapper": "5af83b313e3730be8aaa71c3795554cffe248f06c18412471706064d82d595ca",
+    "code-quality-cleaner": "c61076a19631b603e9224c1f0e69135804d37b6a44fa5828e5f34b1e0f22191e",
+    "decision-challenger": "83c37126abc713cc30ddd47fb81cc51dc4ca75c7d3483d26673d1b76047fc342",
+    "documentation-engineer": "d0b68207b225d6b7824201c566c679a71c388a4fa7d4ab31979ed3b996635661",
+    "red-team-reviewer": "17ebe5e6582855818642df9c51ecd15cddb248cd3e6c672b18b1c6b53c4f86fb",
+    "reviewer": "851dddb417ad73c0c2076524e721e23f562773cd909c136892b393b89262c46a",
+    "test-engineer": "c37eccac9bf6b7babd7e5c09d1367901670912625221a1f5f53267cee2586540"
+  },
+  "hashes": {
+    "src/agent-runner.ts": "ab78003a7734ca430eaefc32a5fa1c83ecb87aea909588aa918a1aa0ddd4f2f5",
+    "src/index.ts": "1ad3eae93e817a82decffc75dd3ada7689291fddfedc94497db4d5ccf9c3ae59"
+  },
+  "adapterHash": "82a822a58b7c9beaf294918b2f5af6ed79f8bf46aa4c6ffbc34dae91ab8bba33",
+  "stanceHash": "851a84abea28ca912ad61ec13e82292134e2f5c20c2c804e902909563bdb916c",
+  "sessions": [
+    {
+      "instance": "fd726265-a146-4de8-aba4-6f6da4e1af0c",
+      "type": "before",
+      "sessionId": "01a1a539-4cd3-7553-8fe7-648b4047310c",
+      "prompt": "PROBE:root",
+      "identity": null,
+      "tools": [
+        {
+          "instance": "fd726265-a146-4de8-aba4-6f6da4e1af0c",
+          "type": "tool",
+          "sessionId": "01a1a539-4cd3-7553-8fe7-648b4047310c",
+          "prompt": "PROBE:root",
+          "name": "Agent",
+          "input": {
+            "subagent_type": "documentation-engineer",
+            "prompt": "PROBE:child",
+            "description": "probe-child",
+            "run_in_background": false
+          },
+          "identity": null,
+          "error": false,
+          "content": [
+            {
+              "type": "text",
+              "text": "Agent completed in 0.3s (3 tool uses, 2.6k token).\n\nfixture child complete"
+            }
+          ],
+          "agentId": "fa984d49-4f08-485"
+        }
+      ],
+      "processChildFlag": null,
+      "parent": null,
+      "registeredTools": [
+        "read",
+        "bash",
+        "powershell",
+        "edit",
+        "write",
+        "grep",
+        "find",
+        "ls",
+        "probe_wait",
+        "probe_control",
+        "Agent",
+        "SubagentWorkflow",
+        "get_subagent_result",
+        "steer_subagent"
+      ],
+      "modelRequests": 2,
+      "state": {
+        "user_turn": 1,
+        "kernel_text": "Do-it: Preserve the user's goal, settled decisions, and authorization boundary. Prior authorization remains valid within its scope. Review, diagnosis, and planning authorize inspection and reporting, not implementation; explicit no-write scope also applies to delegates. Use native host permissions for enforcement. Work from current facts and distinguish assumptions. Fix the causal owner with necessary scope. Support claims with relevant actual evidence and name gaps. Choose useful skills and methods for the task, without prescribed workflow phases. Independent contexts gather evidence and test assumptions; the parent integrates and verifies."
+      },
+      "start": {
+        "instance": "fd726265-a146-4de8-aba4-6f6da4e1af0c",
+        "type": "start",
+        "sessionId": "01a1a539-4cd3-7553-8fe7-648b4047310c",
+        "reason": "startup",
+        "parent": null,
+        "file": "/tmp/do-it-pi-primary-DE1zSF/sessions/2026-11-04T06-22-38-292Z_01a1a539-4cd3-7553-8fe7-648b4047310c.jsonl"
+      },
+      "contexts": [
+        {
+          "instance": "fd726265-a146-4de8-aba4-6f6da4e1af0c",
+          "type": "context",
+          "sessionId": "01a1a539-4cd3-7553-8fe7-648b4047310c",
+          "prompt": "PROBE:root",
+          "identity": null,
+          "owned": [
+            {
+              "role": "custom",
+              "customType": "do-it",
+              "content": "Do-it: Preserve the user's goal, settled decisions, and authorization boundary. Prior authorization remains valid within its scope. Review, diagnosis, and planning authorize inspection and reporting, not implementation; explicit no-write scope also applies to delegates. Use native host permissions for enforcement. Work from current facts and distinguish assumptions. Fix the causal owner with necessary scope. Support claims with relevant actual evidence and name gaps. Choose useful skills and methods for the task, without prescribed workflow phases. Independent contexts gather evidence and test assumptions; the parent integrates and verifies.",
+              "display": false,
+              "details": {
+                "doIt": {
+                  "version": 1,
+                  "role": "root",
+                  "kind": "context"
+                }
+              },
+              "timestamp": 1793773358810
+            }
+          ],
+          "userQuote": false,
+          "stance": 0,
+          "core": true
+        },
+        {
+          "instance": "fd726265-a146-4de8-aba4-6f6da4e1af0c",
+          "type": "context",
+          "sessionId": "01a1a539-4cd3-7553-8fe7-648b4047310c",
+          "prompt": "PROBE:root",
+          "identity": null,
+          "owned": [
+            {
+              "role": "custom",
+              "customType": "do-it",
+              "content": "Do-it: Preserve the user's goal, settled decisions, and authorization boundary. Prior authorization remains valid within its scope. Review, diagnosis, and planning authorize inspection and reporting, not implementation; explicit no-write scope also applies to delegates. Use native host permissions for enforcement. Work from current facts and distinguish assumptions. Fix the causal owner with necessary scope. Support claims with relevant actual evidence and name gaps. Choose useful skills and methods for the task, without prescribed workflow phases. Independent contexts gather evidence and test assumptions; the parent integrates and verifies.",
+              "display": false,
+              "details": {
+                "doIt": {
+                  "version": 1,
+                  "role": "root",
+                  "kind": "context"
+                }
+              },
+              "timestamp": 1793773358810
+            }
+          ],
+          "userQuote": false,
+          "stance": 0,
+          "core": true
+        }
+      ],
+      "shutdown": [
+        {
+          "instance": "fd726265-a146-4de8-aba4-6f6da4e1af0c",
+          "type": "shutdown",
+          "sessionId": "01a1a539-4cd3-7553-8fe7-648b4047310c",
+          "reason": "quit"
+        }
+      ]
+    },
+    {
+      "instance": "47c480ab-5ec8-4def-9faa-132e154a8c7d",
+      "type": "before",
+      "sessionId": "01a1a539-4ef2-7553-8fe7-648d70dcd339",
+      "prompt": "PROBE:child",
+      "identity": null,
+      "tools": [
+        {
+          "instance": "47c480ab-5ec8-4def-9faa-132e154a8c7d",
+          "type": "tool",
+          "sessionId": "01a1a539-4ef2-7553-8fe7-648d70dcd339",
+          "prompt": "PROBE:child",
+          "name": "write",
+          "input": {
+            "path": "child.md",
+            "content": "fixture evidence\n"
+          },
+          "identity": null,
+          "error": false,
+          "content": [
+            {
+              "type": "text",
+              "text": "Successfully wrote to child.md"
+            }
+          ]
+        },
+        {
+          "instance": "47c480ab-5ec8-4def-9faa-132e154a8c7d",
+          "type": "tool",
+          "sessionId": "01a1a539-4ef2-7553-8fe7-648d70dcd339",
+          "prompt": "PROBE:child",
+          "name": "bash",
+          "input": {
+            "command": "printf fixture-evidence"
+          },
+          "identity": null,
+          "error": false,
+          "content": [
+            {
+              "type": "text",
+              "text": "fixture-evidence"
+            }
+          ]
+        }
+      ],
+      "processChildFlag": null,
+      "parent": "/tmp/do-it-pi-primary-DE1zSF/sessions/2026-11-04T06-22-38-292Z_01a1a539-4cd3-7553-8fe7-648b4047310c.jsonl",
+      "registeredTools": [
+        "read",
+        "bash",
+        "powershell",
+        "edit",
+        "write",
+        "probe_wait",
+        "probe_control",
+        "codemode",
+        "tool_search"
+      ],
+      "modelRequests": 3,
+      "state": {
+        "user_turn": 1,
+        "kernel_text": "Do-it: Preserve the user's goal, settled decisions, and authorization boundary. Prior authorization remains valid within its scope. Review, diagnosis, and planning authorize inspection and reporting, not implementation; explicit no-write scope also applies to delegates. Use native host permissions for enforcement. Work from current facts and distinguish assumptions. Fix the causal owner with necessary scope. Support claims with relevant actual evidence and name gaps. Choose useful skills and methods for the task, without prescribed workflow phases. Independent contexts gather evidence and test assumptions; the parent integrates and verifies.",
+        "hook_invocations": {
+          "evidence_observer": 2,
+          "write_quality_lint": 1
+        }
+      },
+      "start": {
+        "instance": "47c480ab-5ec8-4def-9faa-132e154a8c7d",
+        "type": "start",
+        "sessionId": "01a1a539-4ef2-7553-8fe7-648d70dcd339",
+        "reason": "startup",
+        "parent": "/tmp/do-it-pi-primary-DE1zSF/sessions/2026-11-04T06-22-38-292Z_01a1a539-4cd3-7553-8fe7-648b4047310c.jsonl",
+        "file": "/tmp/do-it-pi-primary-DE1zSF/agent/sessions/--tmp-do-it-pi-primary-DE1zSF-project--/2026-11-04T06-22-38-834Z_01a1a539-4ef2-7553-8fe7-648d70dcd339.jsonl"
+      },
+      "contexts": [
+        {
+          "instance": "47c480ab-5ec8-4def-9faa-132e154a8c7d",
+          "type": "context",
+          "sessionId": "01a1a539-4ef2-7553-8fe7-648d70dcd339",
+          "prompt": "PROBE:child",
+          "identity": null,
+          "owned": [
+            {
+              "role": "custom",
+              "customType": "do-it",
+              "content": "Do-it: Preserve the user's goal, settled decisions, and authorization boundary. Prior authorization remains valid within its scope. Review, diagnosis, and planning authorize inspection and reporting, not implementation; explicit no-write scope also applies to delegates. Use native host permissions for enforcement. Work from current facts and distinguish assumptions. Fix the causal owner with necessary scope. Support claims with relevant actual evidence and name gaps. Choose useful skills and methods for the task, without prescribed workflow phases. Independent contexts gather evidence and test assumptions; the parent integrates and verifies.",
+              "display": false,
+              "details": {
+                "doIt": {
+                  "version": 1,
+                  "role": "root",
+                  "kind": "context"
+                }
+              },
+              "timestamp": 1793773358889
+            }
+          ],
+          "userQuote": false,
+          "stance": 0,
+          "core": true
+        },
+        {
+          "instance": "47c480ab-5ec8-4def-9faa-132e154a8c7d",
+          "type": "context",
+          "sessionId": "01a1a539-4ef2-7553-8fe7-648d70dcd339",
+          "prompt": "PROBE:child",
+          "identity": null,
+          "owned": [
+            {
+              "role": "custom",
+              "customType": "do-it",
+              "content": "Do-it: Preserve the user's goal, settled decisions, and authorization boundary. Prior authorization remains valid within its scope. Review, diagnosis, and planning authorize inspection and reporting, not implementation; explicit no-write scope also applies to delegates. Use native host permissions for enforcement. Work from current facts and distinguish assumptions. Fix the causal owner with necessary scope. Support claims with relevant actual evidence and name gaps. Choose useful skills and methods for the task, without prescribed workflow phases. Independent contexts gather evidence and test assumptions; the parent integrates and verifies.",
+              "display": false,
+              "details": {
+                "doIt": {
+                  "version": 1,
+                  "role": "root",
+                  "kind": "context"
+                }
+              },
+              "timestamp": 1793773358889
+            }
+          ],
+          "userQuote": false,
+          "stance": 0,
+          "core": true
+        },
+        {
+          "instance": "47c480ab-5ec8-4def-9faa-132e154a8c7d",
+          "type": "context",
+          "sessionId": "01a1a539-4ef2-7553-8fe7-648d70dcd339",
+          "prompt": "PROBE:child",
+          "identity": null,
+          "owned": [
+            {
+              "role": "custom",
+              "customType": "do-it",
+              "content": "Do-it: Preserve the user's goal, settled decisions, and authorization boundary. Prior authorization remains valid within its scope. Review, diagnosis, and planning authorize inspection and reporting, not implementation; explicit no-write scope also applies to delegates. Use native host permissions for enforcement. Work from current facts and distinguish assumptions. Fix the causal owner with necessary scope. Support claims with relevant actual evidence and name gaps. Choose useful skills and methods for the task, without prescribed workflow phases. Independent contexts gather evidence and test assumptions; the parent integrates and verifies.",
+              "display": false,
+              "details": {
+                "doIt": {
+                  "version": 1,
+                  "role": "root",
+                  "kind": "context"
+                }
+              },
+              "timestamp": 1793773358889
+            }
+          ],
+          "userQuote": false,
+          "stance": 0,
+          "core": true
+        }
+      ],
+      "shutdown": [
+        {
+          "instance": "47c480ab-5ec8-4def-9faa-132e154a8c7d",
+          "type": "shutdown",
+          "sessionId": "01a1a539-4ef2-7553-8fe7-648d70dcd339",
+          "reason": "quit"
+        }
+      ]
+    }
+  ],
+  "controls": []
+}

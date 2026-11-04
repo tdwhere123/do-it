@@ -135,7 +135,7 @@ run `npm run install:pi-global`, then `/reload` in Pi. The extension, skills,
 and prompt templates work without extra packages. Correct child routing with
 the primary runtime `@tintinweb/pi-subagents` currently requires an unpublished
 source patch, not its unpatched npm 0.23.0 release. Prepare and review the
-[native verification record's source patch](release-evidence/pi-child-identity.md),
+[native verification record and source patch](release-evidence/pi-child-identity-boundaries.md),
 then deliberately select that local runtime source instead of the old one:
 
 ```bash
@@ -144,7 +144,10 @@ pi install /path/to/pi-subagents-child-identity
 
 First inspect `pi list` and remove only the previous selected runtime package
 registration, if present; do not load both versions together. This is an
-operator action, not something do-it's installer or tests perform.
+operator action, not something do-it's installer or tests perform. Migration is
+**paired**: do not deploy/reload the new adapter alone against unpatched Tintinweb.
+Changing a live-linked source checkout also changes the installed plugin on reload;
+explicit authorization for that runtime/adapter migration is still required.
 
 It currently discovers package roles under bare names such as `code-mapper`;
 the separate `pi-subagents` compatibility runtime uses names such as
@@ -158,12 +161,22 @@ while its sibling continues. The creator supplies session-local identity;
 `PI_SUBAGENT_CHILD=1` remains a separate subprocess marker. Without either,
 identity is **unmarked**, root hooks apply, and status warns explicitly.
 Unpatched Tintinweb 0.23.0 children are unsupported; lineage and tool presence
-are no longer guessed. No live installation was patched by these tests.
+are no longer guessed. Root authority crosses the shell boundary even under an
+`/agents/` transcript path. Pi stance dedupe follows actual persisted SDK delivery,
+so interrupted output can retry on resume. On role transitions, only owned
+role-specific reminders are omitted from model context, not immutable history or
+user content. No live installation was patched by these tests.
 
-The compatibility runtime's 0.35.1 discovery projection is tested, but its Pi
-1.5 lifecycle is **NOT_VERIFIED**. Both runtimes consume the same package agent
-declaration with different metadata semantics; separate runtime activation is
-still unresolved. Tintinweb's replacement prompt does not inherit project
+The SDK peer policy is `~1.5.0`; native evidence is for **1.5.0** only. The
+compatibility runtime's optional peer and development dependency are pinned to
+**0.35.1**. On Linux, simulated-provider native tests verify package discovery,
+project inheritance, child stance without root hooks, result preservation, and
+active-child cancellation with PID death and parent survival. See
+[`tests/pi/nicobailon-native.md`](../tests/pi/nicobailon-native.md). Windows and
+0.84.0 lifecycle are **NOT_VERIFIED**; nicobailon's attested acceptance overlay
+can reject prose-only completion despite exit code 0. The runtimes share package
+agents but differ in metadata semantics; the projection explicitly qualifies
+runtime names and does not select a runtime automatically. Tintinweb's replacement prompt does not inherit project
 instruction files, so pass required constraints in the delegation. Tool lists,
 read-only instructions, and this trusted-extension identity seam are not a
 sandbox. See

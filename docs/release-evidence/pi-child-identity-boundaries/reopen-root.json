@@ -1,0 +1,624 @@
+{
+  "scenario": "reopen-root",
+  "pi": "1.5.0",
+  "source": "/home/tdwhere/vibe/pi-subagents-child-identity",
+  "provider": "local faux; network fetch denied",
+  "requests": [
+    {
+      "label": "root",
+      "stance": 0,
+      "core": 1,
+      "userQuote": false,
+      "timeout": false
+    },
+    {
+      "label": "child",
+      "stance": 1,
+      "core": 0,
+      "userQuote": false,
+      "timeout": false
+    },
+    {
+      "label": "child",
+      "stance": 1,
+      "core": 0,
+      "userQuote": false,
+      "timeout": false
+    },
+    {
+      "label": "child",
+      "stance": 1,
+      "core": 0,
+      "userQuote": false,
+      "timeout": false
+    },
+    {
+      "label": "root",
+      "stance": 0,
+      "core": 1,
+      "userQuote": false,
+      "timeout": false
+    },
+    {
+      "label": "reopened-root",
+      "stance": 0,
+      "core": 1,
+      "userQuote": true,
+      "timeout": false
+    },
+    {
+      "label": "reopened-root",
+      "stance": 0,
+      "core": 1,
+      "userQuote": true,
+      "timeout": false
+    },
+    {
+      "label": "reopened-root",
+      "stance": 0,
+      "core": 1,
+      "userQuote": true,
+      "timeout": false
+    },
+    {
+      "label": "forked-root",
+      "stance": 0,
+      "core": 2,
+      "userQuote": true,
+      "timeout": false
+    },
+    {
+      "label": "forked-root",
+      "stance": 0,
+      "core": 2,
+      "userQuote": true,
+      "timeout": false
+    },
+    {
+      "label": "forked-root",
+      "stance": 0,
+      "core": 2,
+      "userQuote": true,
+      "timeout": false
+    }
+  ],
+  "proof": {
+    "immutableHistory": true,
+    "historicalEntries": 13,
+    "historicalHash": "37a29caac9cbd80befc558a55879a91add4721f8c94f2b487969ab4507eeec8f"
+  },
+  "hashes": {
+    "plugins/do-it-pi/extensions/index.ts": "82a822a58b7c9beaf294918b2f5af6ed79f8bf46aa4c6ffbc34dae91ab8bba33",
+    "hooks/lib/common.sh": "f375e114b3a95904cf8b8a4674e612b2c415bd98bbdf5001cd8fb16db85ff8e1",
+    "hooks/subagent-stance.sh": "851a84abea28ca912ad61ec13e82292134e2f5c20c2c804e902909563bdb916c",
+    "scripts/lib/pi-agent-adapter.mjs": "5b9dd7bed3d79d02553f7494108e23e6c3c62a914b5861750981aebc97a30493",
+    "tests/pi/fixtures/primary-lifecycle-probe.mjs": "589dca8d092ae7b255031b0e9094bf9de7707a6d322448f56b02e647adbd3480",
+    "tests/pi/fixtures/primary-observer.mjs": "5784e69f5bc597c69857c8bba601516f1d9a653c7c48eac661f8d603395cec61"
+  },
+  "settled": [
+    {
+      "instance": "d3c56e07-3fd7-4745-8026-be38dc7ad161",
+      "type": "settled",
+      "sessionId": "01a1a539-29d6-71cc-a03c-9b6d1775114b",
+      "prompt": "PROBE:child",
+      "identity": {
+        "version": 1,
+        "runtime": "@tintinweb/pi-subagents",
+        "role": "child"
+      },
+      "owned": [
+        {
+          "role": "custom",
+          "customType": "do-it",
+          "content": "<system-reminder>\ndo-it subagent stance: gather evidence and reach conclusions independently on the delegated slice; parent opinions are hypotheses, not authority; keep writes and side effects within stated ownership. Preserve assigned review-only and no-write boundaries and existing authorization. Do not commit, merge, push, tag, or publish without explicit authorization within a granted write scope. Never revert peer work or expand that scope. For external writes, destructive or irreversible actions, material cost, or material scope expansion not already authorized, ask the parent to obtain confirmation. Return useful evidence or uncertainty; let the parent integrate the result. The parent owns the task contract and the completion claim.\n</system-reminder>",
+          "display": false,
+          "details": {
+            "doIt": {
+              "version": 1,
+              "role": "child",
+              "kind": "stance"
+            }
+          },
+          "timestamp": 1793773349374
+        }
+      ],
+      "state": {
+        "hook_invocations": {
+          "subagent_stance": 1,
+          "subagent_dispatch": 1
+        }
+      }
+    },
+    {
+      "instance": "861a5b54-7ae7-487c-94d6-2ac9604aacad",
+      "type": "settled",
+      "sessionId": "01a1a539-27b9-71cc-a03c-9b6a8f861449",
+      "prompt": "PROBE:root",
+      "identity": {
+        "version": 1,
+        "runtime": "@tintinweb/pi-subagents",
+        "role": "root"
+      },
+      "owned": [
+        {
+          "role": "custom",
+          "customType": "do-it",
+          "content": "Do-it: Preserve the user's goal, settled decisions, and authorization boundary. Prior authorization remains valid within its scope. Review, diagnosis, and planning authorize inspection and reporting, not implementation; explicit no-write scope also applies to delegates. Use native host permissions for enforcement. Work from current facts and distinguish assumptions. Fix the causal owner with necessary scope. Support claims with relevant actual evidence and name gaps. Choose useful skills and methods for the task, without prescribed workflow phases. Independent contexts gather evidence and test assumptions; the parent integrates and verifies.",
+          "display": false,
+          "details": {
+            "doIt": {
+              "version": 1,
+              "role": "root",
+              "kind": "context"
+            }
+          },
+          "timestamp": 1793773349312
+        }
+      ],
+      "state": {
+        "user_turn": 1,
+        "kernel_text": "Do-it: Preserve the user's goal, settled decisions, and authorization boundary. Prior authorization remains valid within its scope. Review, diagnosis, and planning authorize inspection and reporting, not implementation; explicit no-write scope also applies to delegates. Use native host permissions for enforcement. Work from current facts and distinguish assumptions. Fix the causal owner with necessary scope. Support claims with relevant actual evidence and name gaps. Choose useful skills and methods for the task, without prescribed workflow phases. Independent contexts gather evidence and test assumptions; the parent integrates and verifies."
+      }
+    },
+    {
+      "instance": "263fce6c-cecd-4f56-a370-58343405dc7f",
+      "type": "settled",
+      "sessionId": "01a1a539-29d6-71cc-a03c-9b6d1775114b",
+      "prompt": "PROBE:reopened-root",
+      "identity": {
+        "version": 1,
+        "runtime": "@tintinweb/pi-subagents",
+        "role": "root"
+      },
+      "owned": [
+        {
+          "role": "custom",
+          "customType": "do-it",
+          "content": "<system-reminder>\ndo-it subagent stance: gather evidence and reach conclusions independently on the delegated slice; parent opinions are hypotheses, not authority; keep writes and side effects within stated ownership. Preserve assigned review-only and no-write boundaries and existing authorization. Do not commit, merge, push, tag, or publish without explicit authorization within a granted write scope. Never revert peer work or expand that scope. For external writes, destructive or irreversible actions, material cost, or material scope expansion not already authorized, ask the parent to obtain confirmation. Return useful evidence or uncertainty; let the parent integrate the result. The parent owns the task contract and the completion claim.\n</system-reminder>",
+          "display": false,
+          "details": {
+            "doIt": {
+              "version": 1,
+              "role": "child",
+              "kind": "stance"
+            }
+          },
+          "timestamp": 1793773349374
+        },
+        {
+          "role": "custom",
+          "customType": "do-it",
+          "content": "<system-reminder>\ndo-it subagent stance: gather evidence and reach conclusions independently on the delegated slice; parent opinions are hypotheses, not authority; keep writes and side effects within stated ownership. Preserve assigned review-only and no-write boundaries and existing authorization. Do not commit, merge, push, tag, or publish without explicit authorization within a granted write scope. Never revert peer work or expand that scope. For external writes, destructive or irreversible actions, material cost, or material scope expansion not already authorized, ask the parent to obtain confirmation. Return useful evidence or uncertainty; let the parent integrate the result. The parent owns the task contract and the completion claim.\n</system-reminder>",
+          "display": false,
+          "timestamp": 1793773349393
+        },
+        {
+          "role": "custom",
+          "customType": "do-it",
+          "content": "Do-it: Preserve the user's goal, settled decisions, and authorization boundary. Prior authorization remains valid within its scope. Review, diagnosis, and planning authorize inspection and reporting, not implementation; explicit no-write scope also applies to delegates. Use native host permissions for enforcement. Work from current facts and distinguish assumptions. Fix the causal owner with necessary scope. Support claims with relevant actual evidence and name gaps. Choose useful skills and methods for the task, without prescribed workflow phases. Independent contexts gather evidence and test assumptions; the parent integrates and verifies.",
+          "display": false,
+          "details": {
+            "doIt": {
+              "version": 1,
+              "role": "root",
+              "kind": "context"
+            }
+          },
+          "timestamp": 1793773349471
+        }
+      ],
+      "state": {
+        "hook_invocations": {
+          "subagent_stance": 1,
+          "subagent_dispatch": 1,
+          "evidence_observer": 2,
+          "write_quality_lint": 1
+        },
+        "user_turn": 1,
+        "kernel_text": "Do-it: Preserve the user's goal, settled decisions, and authorization boundary. Prior authorization remains valid within its scope. Review, diagnosis, and planning authorize inspection and reporting, not implementation; explicit no-write scope also applies to delegates. Use native host permissions for enforcement. Work from current facts and distinguish assumptions. Fix the causal owner with necessary scope. Support claims with relevant actual evidence and name gaps. Choose useful skills and methods for the task, without prescribed workflow phases. Independent contexts gather evidence and test assumptions; the parent integrates and verifies."
+      }
+    },
+    {
+      "instance": "f87f92b0-276e-4b80-9ad2-e8f3288af761",
+      "type": "settled",
+      "sessionId": "01a1a539-2b31-71cc-a03c-9b6eda0a595d",
+      "prompt": "PROBE:forked-root",
+      "identity": {
+        "version": 1,
+        "runtime": "@tintinweb/pi-subagents",
+        "role": "root"
+      },
+      "owned": [
+        {
+          "role": "custom",
+          "customType": "do-it",
+          "content": "<system-reminder>\ndo-it subagent stance: gather evidence and reach conclusions independently on the delegated slice; parent opinions are hypotheses, not authority; keep writes and side effects within stated ownership. Preserve assigned review-only and no-write boundaries and existing authorization. Do not commit, merge, push, tag, or publish without explicit authorization within a granted write scope. Never revert peer work or expand that scope. For external writes, destructive or irreversible actions, material cost, or material scope expansion not already authorized, ask the parent to obtain confirmation. Return useful evidence or uncertainty; let the parent integrate the result. The parent owns the task contract and the completion claim.\n</system-reminder>",
+          "display": false,
+          "details": {
+            "doIt": {
+              "version": 1,
+              "role": "child",
+              "kind": "stance"
+            }
+          },
+          "timestamp": 1793773349374
+        },
+        {
+          "role": "custom",
+          "customType": "do-it",
+          "content": "<system-reminder>\ndo-it subagent stance: gather evidence and reach conclusions independently on the delegated slice; parent opinions are hypotheses, not authority; keep writes and side effects within stated ownership. Preserve assigned review-only and no-write boundaries and existing authorization. Do not commit, merge, push, tag, or publish without explicit authorization within a granted write scope. Never revert peer work or expand that scope. For external writes, destructive or irreversible actions, material cost, or material scope expansion not already authorized, ask the parent to obtain confirmation. Return useful evidence or uncertainty; let the parent integrate the result. The parent owns the task contract and the completion claim.\n</system-reminder>",
+          "display": false,
+          "timestamp": 1793773349393
+        },
+        {
+          "role": "custom",
+          "customType": "do-it",
+          "content": "Do-it: Preserve the user's goal, settled decisions, and authorization boundary. Prior authorization remains valid within its scope. Review, diagnosis, and planning authorize inspection and reporting, not implementation; explicit no-write scope also applies to delegates. Use native host permissions for enforcement. Work from current facts and distinguish assumptions. Fix the causal owner with necessary scope. Support claims with relevant actual evidence and name gaps. Choose useful skills and methods for the task, without prescribed workflow phases. Independent contexts gather evidence and test assumptions; the parent integrates and verifies.",
+          "display": false,
+          "details": {
+            "doIt": {
+              "version": 1,
+              "role": "root",
+              "kind": "context"
+            }
+          },
+          "timestamp": 1793773349471
+        },
+        {
+          "role": "custom",
+          "customType": "do-it",
+          "content": "Do-it: Preserve the user's goal, settled decisions, and authorization boundary. Prior authorization remains valid within its scope. Review, diagnosis, and planning authorize inspection and reporting, not implementation; explicit no-write scope also applies to delegates. Use native host permissions for enforcement. Work from current facts and distinguish assumptions. Fix the causal owner with necessary scope. Support claims with relevant actual evidence and name gaps. Choose useful skills and methods for the task, without prescribed workflow phases. Independent contexts gather evidence and test assumptions; the parent integrates and verifies.",
+          "display": false,
+          "details": {
+            "doIt": {
+              "version": 1,
+              "role": "root",
+              "kind": "context"
+            }
+          },
+          "timestamp": 1793773349755
+        }
+      ],
+      "state": {
+        "user_turn": 1,
+        "kernel_text": "Do-it: Preserve the user's goal, settled decisions, and authorization boundary. Prior authorization remains valid within its scope. Review, diagnosis, and planning authorize inspection and reporting, not implementation; explicit no-write scope also applies to delegates. Use native host permissions for enforcement. Work from current facts and distinguish assumptions. Fix the causal owner with necessary scope. Support claims with relevant actual evidence and name gaps. Choose useful skills and methods for the task, without prescribed workflow phases. Independent contexts gather evidence and test assumptions; the parent integrates and verifies.",
+        "hook_invocations": {
+          "evidence_observer": 2,
+          "write_quality_lint": 1
+        }
+      }
+    }
+  ],
+  "lifecycle": [
+    {
+      "instance": "861a5b54-7ae7-487c-94d6-2ac9604aacad",
+      "type": "start",
+      "sessionId": "01a1a539-27b9-71cc-a03c-9b6a8f861449",
+      "reason": "startup",
+      "parent": null,
+      "file": "/tmp/do-it-pi-lifecycle-JXWgkI/sessions/2026-11-04T06-22-28-793Z_01a1a539-27b9-71cc-a03c-9b6a8f861449.jsonl"
+    },
+    {
+      "instance": "861a5b54-7ae7-487c-94d6-2ac9604aacad",
+      "type": "before",
+      "sessionId": "01a1a539-27b9-71cc-a03c-9b6a8f861449",
+      "prompt": "PROBE:root",
+      "identity": {
+        "version": 1,
+        "runtime": "@tintinweb/pi-subagents",
+        "role": "root"
+      },
+      "tools": [
+        "read",
+        "bash",
+        "powershell",
+        "edit",
+        "write",
+        "grep",
+        "find",
+        "ls",
+        "probe_wait",
+        "probe_control",
+        "Agent",
+        "SubagentWorkflow",
+        "get_subagent_result",
+        "steer_subagent"
+      ],
+      "processChildFlag": null,
+      "parent": null
+    },
+    {
+      "instance": "d3c56e07-3fd7-4745-8026-be38dc7ad161",
+      "type": "start",
+      "sessionId": "01a1a539-29d6-71cc-a03c-9b6d1775114b",
+      "reason": "startup",
+      "parent": "/tmp/do-it-pi-lifecycle-JXWgkI/sessions/2026-11-04T06-22-28-793Z_01a1a539-27b9-71cc-a03c-9b6a8f861449.jsonl",
+      "file": "/tmp/do-it-pi-lifecycle-JXWgkI/agent/sessions/--tmp-do-it-pi-lifecycle-JXWgkI-project--/2026-11-04T06-22-29-334Z_01a1a539-29d6-71cc-a03c-9b6d1775114b.jsonl"
+    },
+    {
+      "instance": "d3c56e07-3fd7-4745-8026-be38dc7ad161",
+      "type": "before",
+      "sessionId": "01a1a539-29d6-71cc-a03c-9b6d1775114b",
+      "prompt": "PROBE:child",
+      "identity": {
+        "version": 1,
+        "runtime": "@tintinweb/pi-subagents",
+        "role": "child"
+      },
+      "tools": [
+        "read",
+        "bash",
+        "powershell",
+        "edit",
+        "write",
+        "probe_wait",
+        "probe_control",
+        "codemode",
+        "tool_search"
+      ],
+      "processChildFlag": null,
+      "parent": "/tmp/do-it-pi-lifecycle-JXWgkI/sessions/2026-11-04T06-22-28-793Z_01a1a539-27b9-71cc-a03c-9b6a8f861449.jsonl"
+    },
+    {
+      "instance": "861a5b54-7ae7-487c-94d6-2ac9604aacad",
+      "type": "shutdown",
+      "sessionId": "01a1a539-27b9-71cc-a03c-9b6a8f861449",
+      "reason": "quit"
+    },
+    {
+      "instance": "d3c56e07-3fd7-4745-8026-be38dc7ad161",
+      "type": "shutdown",
+      "sessionId": "01a1a539-29d6-71cc-a03c-9b6d1775114b",
+      "reason": "quit"
+    },
+    {
+      "instance": "263fce6c-cecd-4f56-a370-58343405dc7f",
+      "type": "start",
+      "sessionId": "01a1a539-29d6-71cc-a03c-9b6d1775114b",
+      "reason": "startup",
+      "parent": "/tmp/do-it-pi-lifecycle-JXWgkI/sessions/2026-11-04T06-22-28-793Z_01a1a539-27b9-71cc-a03c-9b6a8f861449.jsonl",
+      "file": "/tmp/do-it-pi-lifecycle-JXWgkI/agent/sessions/--tmp-do-it-pi-lifecycle-JXWgkI-project--/2026-11-04T06-22-29-334Z_01a1a539-29d6-71cc-a03c-9b6d1775114b.jsonl"
+    },
+    {
+      "instance": "263fce6c-cecd-4f56-a370-58343405dc7f",
+      "type": "before",
+      "sessionId": "01a1a539-29d6-71cc-a03c-9b6d1775114b",
+      "prompt": "PROBE:reopened-root",
+      "identity": {
+        "version": 1,
+        "runtime": "@tintinweb/pi-subagents",
+        "role": "root"
+      },
+      "tools": [
+        "read",
+        "bash",
+        "powershell",
+        "edit",
+        "write",
+        "grep",
+        "find",
+        "ls",
+        "probe_wait",
+        "probe_control",
+        "Agent",
+        "SubagentWorkflow",
+        "get_subagent_result",
+        "steer_subagent"
+      ],
+      "processChildFlag": null,
+      "parent": "/tmp/do-it-pi-lifecycle-JXWgkI/sessions/2026-11-04T06-22-28-793Z_01a1a539-27b9-71cc-a03c-9b6a8f861449.jsonl"
+    },
+    {
+      "instance": "263fce6c-cecd-4f56-a370-58343405dc7f",
+      "type": "shutdown",
+      "sessionId": "01a1a539-29d6-71cc-a03c-9b6d1775114b",
+      "reason": "fork"
+    },
+    {
+      "instance": "f87f92b0-276e-4b80-9ad2-e8f3288af761",
+      "type": "start",
+      "sessionId": "01a1a539-2b31-71cc-a03c-9b6eda0a595d",
+      "reason": "fork",
+      "parent": "/tmp/do-it-pi-lifecycle-JXWgkI/agent/sessions/--tmp-do-it-pi-lifecycle-JXWgkI-project--/2026-11-04T06-22-29-334Z_01a1a539-29d6-71cc-a03c-9b6d1775114b.jsonl",
+      "file": "/tmp/do-it-pi-lifecycle-JXWgkI/agent/sessions/--tmp-do-it-pi-lifecycle-JXWgkI-project--/2026-11-04T06-22-29-681Z_01a1a539-2b31-71cc-a03c-9b6eda0a595d.jsonl"
+    },
+    {
+      "instance": "f87f92b0-276e-4b80-9ad2-e8f3288af761",
+      "type": "before",
+      "sessionId": "01a1a539-2b31-71cc-a03c-9b6eda0a595d",
+      "prompt": "PROBE:forked-root",
+      "identity": {
+        "version": 1,
+        "runtime": "@tintinweb/pi-subagents",
+        "role": "root"
+      },
+      "tools": [
+        "read",
+        "bash",
+        "powershell",
+        "edit",
+        "write",
+        "grep",
+        "find",
+        "ls",
+        "probe_wait",
+        "probe_control",
+        "Agent",
+        "SubagentWorkflow",
+        "get_subagent_result",
+        "steer_subagent"
+      ],
+      "processChildFlag": null,
+      "parent": "/tmp/do-it-pi-lifecycle-JXWgkI/agent/sessions/--tmp-do-it-pi-lifecycle-JXWgkI-project--/2026-11-04T06-22-29-334Z_01a1a539-29d6-71cc-a03c-9b6d1775114b.jsonl"
+    },
+    {
+      "instance": "f87f92b0-276e-4b80-9ad2-e8f3288af761",
+      "type": "shutdown",
+      "sessionId": "01a1a539-2b31-71cc-a03c-9b6eda0a595d",
+      "reason": "quit"
+    }
+  ],
+  "tools": [
+    {
+      "instance": "d3c56e07-3fd7-4745-8026-be38dc7ad161",
+      "type": "tool",
+      "sessionId": "01a1a539-29d6-71cc-a03c-9b6d1775114b",
+      "prompt": "PROBE:child",
+      "name": "write",
+      "input": {
+        "path": "child.md",
+        "content": "lifecycle evidence\n"
+      },
+      "identity": {
+        "version": 1,
+        "runtime": "@tintinweb/pi-subagents",
+        "role": "child"
+      },
+      "error": false,
+      "content": [
+        {
+          "type": "text",
+          "text": "Successfully wrote to child.md"
+        }
+      ]
+    },
+    {
+      "instance": "d3c56e07-3fd7-4745-8026-be38dc7ad161",
+      "type": "tool",
+      "sessionId": "01a1a539-29d6-71cc-a03c-9b6d1775114b",
+      "prompt": "PROBE:child",
+      "name": "bash",
+      "input": {
+        "command": "printf lifecycle-evidence"
+      },
+      "identity": {
+        "version": 1,
+        "runtime": "@tintinweb/pi-subagents",
+        "role": "child"
+      },
+      "error": false,
+      "content": [
+        {
+          "type": "text",
+          "text": "lifecycle-evidence"
+        }
+      ]
+    },
+    {
+      "instance": "861a5b54-7ae7-487c-94d6-2ac9604aacad",
+      "type": "tool",
+      "sessionId": "01a1a539-27b9-71cc-a03c-9b6a8f861449",
+      "prompt": "PROBE:root",
+      "name": "Agent",
+      "input": {
+        "subagent_type": "documentation-engineer",
+        "prompt": "PROBE:child",
+        "description": "probe-child",
+        "run_in_background": false
+      },
+      "identity": {
+        "version": 1,
+        "runtime": "@tintinweb/pi-subagents",
+        "role": "root"
+      },
+      "error": false,
+      "content": [
+        {
+          "type": "text",
+          "text": "Agent completed in 0.1s (3 tool uses, 2.6k token).\n\nfixture child complete"
+        }
+      ],
+      "agentId": "b8ca1c3b-e762-4ff"
+    },
+    {
+      "instance": "263fce6c-cecd-4f56-a370-58343405dc7f",
+      "type": "tool",
+      "sessionId": "01a1a539-29d6-71cc-a03c-9b6d1775114b",
+      "prompt": "PROBE:reopened-root",
+      "name": "write",
+      "input": {
+        "path": "reopened-root.md",
+        "content": "lifecycle evidence\n"
+      },
+      "identity": {
+        "version": 1,
+        "runtime": "@tintinweb/pi-subagents",
+        "role": "root"
+      },
+      "error": false,
+      "content": [
+        {
+          "type": "text",
+          "text": "Successfully wrote to reopened-root.md"
+        }
+      ]
+    },
+    {
+      "instance": "263fce6c-cecd-4f56-a370-58343405dc7f",
+      "type": "tool",
+      "sessionId": "01a1a539-29d6-71cc-a03c-9b6d1775114b",
+      "prompt": "PROBE:reopened-root",
+      "name": "bash",
+      "input": {
+        "command": "printf lifecycle-evidence"
+      },
+      "identity": {
+        "version": 1,
+        "runtime": "@tintinweb/pi-subagents",
+        "role": "root"
+      },
+      "error": false,
+      "content": [
+        {
+          "type": "text",
+          "text": "lifecycle-evidence"
+        }
+      ]
+    },
+    {
+      "instance": "f87f92b0-276e-4b80-9ad2-e8f3288af761",
+      "type": "tool",
+      "sessionId": "01a1a539-2b31-71cc-a03c-9b6eda0a595d",
+      "prompt": "PROBE:forked-root",
+      "name": "write",
+      "input": {
+        "path": "forked-root.md",
+        "content": "lifecycle evidence\n"
+      },
+      "identity": {
+        "version": 1,
+        "runtime": "@tintinweb/pi-subagents",
+        "role": "root"
+      },
+      "error": false,
+      "content": [
+        {
+          "type": "text",
+          "text": "Successfully wrote to forked-root.md"
+        }
+      ]
+    },
+    {
+      "instance": "f87f92b0-276e-4b80-9ad2-e8f3288af761",
+      "type": "tool",
+      "sessionId": "01a1a539-2b31-71cc-a03c-9b6eda0a595d",
+      "prompt": "PROBE:forked-root",
+      "name": "bash",
+      "input": {
+        "command": "printf lifecycle-evidence"
+      },
+      "identity": {
+        "version": 1,
+        "runtime": "@tintinweb/pi-subagents",
+        "role": "root"
+      },
+      "error": false,
+      "content": [
+        {
+          "type": "text",
+          "text": "lifecycle-evidence"
+        }
+      ]
+    }
+  ]
+}

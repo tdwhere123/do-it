@@ -44,7 +44,9 @@ test("Pi agents retain canonical semantics with reader/writer host profiles", ()
     assert.match(output, /Do not send routine completion handoffs/);
     if (canonical.name === "code-mapper") {
       assert.match(output, /`intercom` with `action: "ask"`/);
-      assert.match(output, /fast `scout`/);
+      assert.match(output, /Tintinweb exposes this role as `code-mapper`/);
+      assert.match(output, /nicobailon's pi-subagents exposes `do-it\.code-mapper`/);
+      assert.doesNotMatch(output, /qualified runtime name is|fast `scout`/);
     } else {
       assert.match(output, /`contact_supervisor` with `reason: "need_decision"`/);
       assert.match(output, /Fall back to generic `intercom`/);

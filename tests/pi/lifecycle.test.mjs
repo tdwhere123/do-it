@@ -85,6 +85,7 @@ function fakeContext(cwd, sessionId = "session-1") {
 				return path.join(cwd, `${sessionId}.jsonl`);
 			},
 			appendCustomEntry() {},
+			buildSessionProjection() { return { messages: [] }; },
 		},
 	};
 }
@@ -213,6 +214,48 @@ test("in-process child delivers real shell stance with a subprocess-only child f
 		assert.equal(process.env.PI_SUBAGENT_CHILD, previousChildFlag);
 	} finally { rmTemp(cwd); }
 });
+
+test("child stance dedupe requires an actually persisted delivery, not a launch or diagnostic", async () => {
+	const pi = fakePi([], "child");
+	const ctx = fakeContext("/tmp/stance-receipt");
+	const messages = [];
+	ctx.sessionManager.buildSessionProjection = () => ({ messages });
+	let calls = 0;
+	createDoItPiExtension({ env: { HOME: os.tmpdir() }, runHook: async () => {
+		calls++;
+		return calls === 1 ? { exitCode: 124, diagnostic: "interrupted" }
+			: { exitCode: 0, additionalContext: "delivered stance" };
+	} })(pi.api);
+	const run = () => pi.handlers.get("before_agent_start")({ prompt: "resume" }, ctx);
+	const diagnostic = await run();
+	messages.push({ role: "custom", ...diagnostic.message });
+	assert.equal(diagnostic.message.details.doIt.kind, "diagnostic");
+	await run(); // Successful output lost before the SDK commits the message.
+	const delivered = await run();
+	assert.equal(calls, 3);
+	messages.push({ role: "custom", ...delivered.message });
+	assert.equal(await run(), undefined);
+	assert.equal(calls, 3);
+});
+
+for (const role of ["root", "child"]) {
+	test(`${role} context reconciles owned reminders without changing history or user content`, () => {
+		const pi = fakePi([], role);
+		createDoItPiExtension({ env: { HOME: os.tmpdir() } })(pi.api);
+		const stance = "<system-reminder>\ndo-it subagent stance: historical authorization\n</system-reminder>";
+		const root = { role: "custom", customType: "do-it", content: "Do-it: Preserve the user's goal, historical root" };
+		const legacy = { role: "custom", customType: "do-it", content: stance };
+		const modern = { role: "custom", customType: "do-it", content: "owned stance", details: { doIt: { version: 1, role: "child", kind: "stance" } } };
+		const user = { role: "user", content: stance };
+		const foreign = { role: "custom", customType: "another-extension", content: stance };
+		const unknown = { role: "custom", customType: "do-it", content: `Quoted example: ${stance}` };
+		const messages = Object.freeze([root, legacy, modern, user, foreign, unknown].map(Object.freeze));
+		const snapshot = JSON.stringify(messages);
+		const result = pi.handlers.get("context")({ messages }).messages;
+		assert.deepEqual(result, role === "root" ? [root, user, foreign, unknown] : [legacy, modern, user, foreign, unknown]);
+		assert.equal(JSON.stringify(messages), snapshot);
+	});
+}
 
 test("advisory hook failures become context instead of rejecting Pi lifecycle", async () => {
 	const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-pi-hook-failure-"));

@@ -22,12 +22,16 @@ fi
 
 do_it_session_state_inc "$SESSION_ID" hook_invocations subagent_stance
 
-if [[ "$(do_it_session_state_get "$SESSION_ID" subagent_stance_seen)" == "1" ]]; then
-  do_it_debug subagent-stance "decision=skip reason=already-seen"
-  exit 0
+# Pi deduplicates from actual persisted custom-message delivery. Hook output
+# can be lost to timeout/cancellation before the SDK stores it, so a pre-output
+# state flag is not a receipt. Keep the historical once-only behavior elsewhere.
+if [[ "${DO_IT_EVENT_HOST:-}" != "pi" || "${DO_IT_PI_SESSION_ROLE:-}" != "child" ]]; then
+  if [[ "$(do_it_session_state_get "$SESSION_ID" subagent_stance_seen)" == "1" ]]; then
+    do_it_debug subagent-stance "decision=skip reason=already-seen"
+    exit 0
+  fi
+  do_it_session_state_set "$SESSION_ID" subagent_stance_seen 1
 fi
-
-do_it_session_state_set "$SESSION_ID" subagent_stance_seen 1
 do_it_session_state_inc "$SESSION_ID" hook_invocations subagent_dispatch
 do_it_debug subagent-stance "decision=emit event=subagent_dispatch"
 

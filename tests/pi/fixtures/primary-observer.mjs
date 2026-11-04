@@ -1,10 +1,11 @@
 // Test-only observer and cancellation barrier. Never supplies runtime identity.
 import fs from "node:fs";
 import path from "node:path";
+import { randomUUID } from "node:crypto";
 
 const directory = process.env.DO_IT_PI_PROBE_DIR;
 const trace = path.join(directory, "trace.jsonl");
-const log = (record) => fs.appendFileSync(trace, `${JSON.stringify(record)}\n`);
+const append = (record) => fs.appendFileSync(trace, `${JSON.stringify(record)}\n`);
 const text = (messages) => JSON.stringify(messages);
 const identity = (pi) => {
 	let value = null;
@@ -22,7 +23,10 @@ async function until(check, signal) {
 }
 
 export default function (pi) {
+	const instance = randomUUID();
+	const log = (record) => append({ instance, ...record });
 	let sessionId;
+	let prompt;
 	const agents = new Map();
 	pi.events.on("subagents:started", (record) => agents.set(record.description, record.id));
 	pi.on("session_start", (event, ctx) => {
@@ -31,18 +35,27 @@ export default function (pi) {
 			file: ctx.sessionManager.getSessionFile() ?? null });
 	});
 	pi.on("before_agent_start", (event, ctx) => {
+		prompt = event.prompt;
 		log({ type: "before", sessionId, prompt: event.prompt, identity: identity(pi), tools: pi.getAllTools().map((t) => t.name),
 			processChildFlag: process.env.PI_SUBAGENT_CHILD ?? null, parent: ctx.sessionManager.getHeader()?.parentSession ?? null });
 	});
 	pi.on("context_with_system", (event) => {
 		const serialized = text(event.messages);
-		log({ type: "context", sessionId, identity: identity(pi),
+		log({ type: "context", sessionId, prompt, identity: identity(pi),
+			owned: event.messages.filter((message) => message.role === "custom" && message.customType === "do-it"),
+			userQuote: event.messages.some((message) => message.role === "user" && text(message.content).includes("USER_QUOTE_DO_NOT_FILTER")),
 			stance: (serialized.match(/do-it subagent stance:/g) ?? []).length,
 			core: serialized.includes("Do-it: Preserve the user's goal"),
 		});
 	});
-	pi.on("tool_result", (event) => log({ type: "tool", sessionId, name: event.toolName, input: event.input,
-		identity: identity(pi), error: event.isError, content: event.content }));
+	pi.on("tool_result", (event) => log({ type: "tool", sessionId, prompt, name: event.toolName, input: event.input,
+		identity: identity(pi), error: event.isError, content: event.content, agentId: event.details?.agentId }));
+	pi.on("agent_settled", (_event, ctx) => {
+		const stateFile = path.join(process.env.PI_CODING_AGENT_DIR, "do-it-data/sessions", sessionId, "state.json");
+		log({ type: "settled", sessionId, prompt, identity: identity(pi),
+			owned: ctx.sessionManager.buildSessionProjection().messages.filter((message) => message.role === "custom" && message.customType === "do-it"),
+			state: fs.existsSync(stateFile) ? JSON.parse(fs.readFileSync(stateFile, "utf8")) : null });
+	});
 	pi.on("session_shutdown", (event) => log({ type: "shutdown", sessionId, reason: event.reason }));
 
 	pi.registerTool({

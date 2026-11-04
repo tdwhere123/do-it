@@ -121,7 +121,7 @@ try {
 		assert.ok(pending === 0 || (session.prompt === "PROBE:cancelled" && pending === 1));
 		assert.equal(session.shutdown.length, 1, `${session.prompt}: native shutdown must happen once`);
 		if (child && expectedPatched) {
-			assert.equal(session.state?.subagent_stance_seen, "1");
+			assert.equal(session.state?.subagent_stance_seen, undefined, "Pi delivery belongs to persisted SDK messages, not pre-output hook state");
 			assert.deepEqual(session.state?.hook_invocations, { subagent_stance: 1, subagent_dispatch: 1 });
 			assert.equal(session.state?.kernel_text, undefined);
 			for (const context of session.contexts) { assert.equal(context.stance, 1); assert.equal(context.core, false); }

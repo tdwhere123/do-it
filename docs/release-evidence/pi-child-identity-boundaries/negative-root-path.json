@@ -1,0 +1,7 @@
+{
+  "scenario": "root-path",
+  "negative": true,
+  "exitCode": 1,
+  "rejectedBoundary": "root: model-visible root Core",
+  "stderr": "node:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\n\nAssertionError [ERR_ASSERTION]: root: model-visible root Core\n\nfalse !== true\n\n    at file:///home/tdwhere/vibe/do-it-wt-pi/tests/pi/fixtures/primary-lifecycle-probe.mjs:172:10\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {\n  generatedMessage: false,\n  code: 'ERR_ASSERTION',\n  actual: false,\n  expected: true,\n  operator: 'strictEqual',\n  diff: 'simple'\n}\n\nNode.js v24.21.0\n"
+}
