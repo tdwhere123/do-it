@@ -28,6 +28,49 @@ const expectedPackageNames = fs
 	.map((name) => `do-it.${name.replace(/\.toml$/, "")}`)
 	.sort();
 
+function sleep(ms) {
+	return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function processAlive(pid) {
+	if (!Number.isInteger(pid) || pid <= 1) return false;
+	try {
+		process.kill(pid, 0);
+		return true;
+	} catch (error) {
+		if (error.code === "ESRCH") return false;
+		if (error.code === "EPERM") return true;
+		throw error;
+	}
+}
+
+async function waitForFile(filePath, timeoutMs, label) {
+	const started = Date.now();
+	while (!fs.existsSync(filePath)) {
+		assert.ok(Date.now() - started < timeoutMs, `timed out waiting for ${label}`);
+		await sleep(25);
+	}
+	return fs.readFileSync(filePath, "utf8");
+}
+
+async function ensureDead(pid) {
+	if (!processAlive(pid) || pid === process.pid) return;
+	try {
+		process.kill(pid, "SIGTERM");
+	} catch {
+		return;
+	}
+	const started = Date.now();
+	while (processAlive(pid) && Date.now() - started < 1000) await sleep(25);
+	if (processAlive(pid)) {
+		try {
+			process.kill(pid, "SIGKILL");
+		} catch {
+			// Best-effort leftover cleanup.
+		}
+	}
+}
+
 function rmTemp(dir) {
 	for (let attempt = 0; attempt < 8; attempt += 1) {
 		try {
@@ -61,6 +104,7 @@ function createHarness() {
 	const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-nico-native-cwd-"));
 	const agentDir = path.join(home, ".pi", "agent");
 	const factsPath = path.join(cwd, "child-facts.json");
+	const readyPath = path.join(cwd, "child-ready.json");
 	const spawnLog = path.join(cwd, "spawn.log");
 	const wrapper = path.join(cwd, "pi-1.5");
 	fs.mkdirSync(path.join(agentDir, "extensions"), { recursive: true });
@@ -82,7 +126,7 @@ function createHarness() {
 		`#!/bin/sh\nset -eu\nif [ -n "\${DO_IT_NICO_SPAWN_LOG:-}" ]; then\n  echo "child=\${PI_SUBAGENT_CHILD-}" >> "\${DO_IT_NICO_SPAWN_LOG}"\n  echo "agent=\${PI_SUBAGENT_CHILD_AGENT-}" >> "\${DO_IT_NICO_SPAWN_LOG}"\n  echo "cli=\${DO_IT_NICO_PI_CLI-}" >> "\${DO_IT_NICO_SPAWN_LOG}"\nfi\nexec "\${DO_IT_NICO_NODE}" "\${DO_IT_NICO_PI_CLI}" "$@"\n`,
 		{ mode: 0o755 },
 	);
-	return { home, cwd, agentDir, factsPath, spawnLog, wrapper };
+	return { home, cwd, agentDir, factsPath, readyPath, spawnLog, wrapper };
 }
 
 const isolatedKeys = (harness, extra = {}) => ({
@@ -97,6 +141,7 @@ const isolatedKeys = (harness, extra = {}) => ({
 	DO_IT_NICO_PI_CLI: piCli,
 	DO_IT_NICO_SPAWN_LOG: harness.spawnLog,
 	DO_IT_NICO_CHILD_FACTS: harness.factsPath,
+	DO_IT_NICO_CHILD_READY: harness.readyPath,
 	DO_IT_NICO_CHILD_DELAY_MS: "0",
 	ANTHROPIC_API_KEY: undefined,
 	OPENAI_API_KEY: undefined,
@@ -126,7 +171,6 @@ test(
 	"nicobailon 0.35.1 discovers package roles as do-it.* from the plugin declaration",
 	{ skip: skipWin },
 	() => {
-		assert.equal(expectedPackageNames.length, 8);
 		const harness = createHarness();
 		try {
 			const require = createRequire(import.meta.url);
@@ -307,8 +351,9 @@ test(
 			pathToFileURL(path.join(plugin, "node_modules/@earendil-works/pi-ai/dist/index.js")).href
 		);
 		const harness = createHarness();
+		let childPid;
 		await withIsolatedEnv(
-			isolatedKeys(harness, { DO_IT_NICO_CHILD_DELAY_MS: "5000" }),
+			isolatedKeys(harness, { DO_IT_NICO_CHILD_DELAY_MS: "20000" }),
 			async () => {
 				const fake = ai.fauxProvider();
 				fake.setResponses([
@@ -316,7 +361,7 @@ test(
 						ai.fauxToolCall("subagent", {
 							agent: "do-it.code-mapper",
 							task: "Map example.ts ownership in one sentence.",
-							timeoutMs: 20_000,
+							timeoutMs: 25_000,
 						}),
 						{ stopReason: "toolUse" },
 					),
@@ -342,6 +387,7 @@ test(
 					additionalExtensionPaths: [nicobailonEntry, doItExtension],
 				});
 				let session;
+				let toolResult;
 				try {
 					await loader.reload();
 					({ session } = await sdk.createAgentSession({
@@ -354,21 +400,53 @@ test(
 						sessionManager: sdk.SessionManager.inMemory(harness.cwd),
 					}));
 					await session.bindExtensions({});
-					const started = Promise.withResolvers();
 					session.subscribe((event) => {
-						if (event.type === "tool_execution_start" && event.toolName === "subagent") {
-							started.resolve();
+						if (event.type === "tool_execution_end" && event.toolName === "subagent") {
+							toolResult = event.result;
 						}
 					});
 					const pending = session.prompt("Delegate mapping.");
-					await started.promise;
-					const waitStart = Date.now();
-					while (!fs.existsSync(harness.spawnLog)) {
-						assert.ok(Date.now() - waitStart < 15_000, "timed out waiting for Pi 1.5 child spawn");
-						await new Promise((resolve) => setTimeout(resolve, 25));
-					}
+					const ready = JSON.parse(
+						await waitForFile(harness.readyPath, 15_000, "child fake-provider handshake"),
+					);
+					childPid = ready.pid;
+					assert.equal(typeof childPid, "number");
+					assert.notEqual(childPid, process.pid);
+					assert.equal(ready.child, "1");
+					assert.equal(ready.agent, "do-it.code-mapper");
+					assert.equal(processAlive(childPid), true, "handshake pid must be a live child");
+					assert.equal(fs.existsSync(harness.factsPath), false, "completion facts must not exist before abort");
 					await session.abort();
 					await pending.catch(() => {});
+					const waitStart = Date.now();
+					while (processAlive(childPid) && !fs.existsSync(harness.factsPath) && Date.now() - waitStart < 10_000) {
+						await sleep(25);
+					}
+					if (fs.existsSync(harness.factsPath)) {
+						const facts = JSON.parse(fs.readFileSync(harness.factsPath, "utf8"));
+						assert.notEqual(
+							facts.completed,
+							true,
+							"abort must cancel the child before normal fake-provider completion",
+						);
+					}
+					assert.equal(
+						processAlive(childPid),
+						false,
+						"child process must exit after abort rather than finish the delayed reply",
+					);
+					const resultText = JSON.stringify(toolResult ?? {});
+					assert.equal(resultText.includes("NICO_CHILD_OK"), false, resultText);
+					const childResult = toolResult?.details?.results?.[0];
+					const cancelled =
+						toolResult?.isError === true ||
+						childResult?.interrupted === true ||
+						(typeof childResult?.exitCode === "number" && childResult.exitCode !== 0);
+					assert.equal(
+						cancelled,
+						true,
+						`missing cancellation metadata after child exit: ${resultText}`,
+					);
 					assert.equal(session.getActiveToolNames().includes("subagent"), true);
 					fake.setResponses([ai.fauxAssistantMessage("parent-still-alive")]);
 					await session.prompt("Confirm the parent session still works.");
@@ -376,6 +454,7 @@ test(
 					assert.equal(session.getActiveToolNames().includes("edit"), true);
 					assert.equal(session.getActiveToolNames().includes("subagent"), true);
 				} finally {
+					await ensureDead(childPid);
 					session?.dispose();
 					rmTemp(harness.home);
 					rmTemp(harness.cwd);
