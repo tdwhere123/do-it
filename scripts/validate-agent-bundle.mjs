@@ -311,7 +311,20 @@ function validateSourceAgents(manifest, errors) {
   return sourceNames.sort();
 }
 
+export function validateClaudeAgentDeclaration(plugin, sourceNames, errors) {
+  if (!Array.isArray(plugin.agents)) {
+    errors.push(".claude-plugin/plugin.json agents must list canonical generated files");
+    return;
+  }
+  compareSets(".claude-plugin/plugin.json agents",
+    sourceNames.map((name) => `./dist/claude/agents/${name}.md`), plugin.agents, errors);
+  if (new Set(plugin.agents).size !== plugin.agents.length) {
+    errors.push(".claude-plugin/plugin.json agents contains duplicate declarations");
+  }
+}
+
 function validateGeneratedAgents(sourceNames, errors) {
+  validateClaudeAgentDeclaration(readJson(".claude-plugin/plugin.json"), sourceNames, errors);
   if (fs.existsSync(repoPath("plugins/do-it/agents"))) {
     errors.push("plugins/do-it/agents is not a Codex discovery path; remove stale bundled roles");
   }

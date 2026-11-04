@@ -9,6 +9,7 @@ import {
   validateAgentCapabilityPolicy,
   validateAgentInstructionLinks,
   validateCodexEntry,
+  validateClaudeAgentDeclaration,
   validatePortableAgentPolicy
 } from "../scripts/validate-agent-bundle.mjs";
 import { parseFrontmatter } from "../scripts/build-index-json.mjs";
@@ -112,6 +113,20 @@ test("canonical role consolidation removes obsolete discovery entries", () => {
     for (const root of ["dist/claude/agents", "plugins/do-it-cursor/agents", "plugins/do-it-grok/agents", "plugins/do-it-pi/agents"]) {
       assert.equal(fs.existsSync(path.join(repoRoot, root, `${name}.md`)), false, `${root}/${name}.md`);
     }
+  }
+});
+
+test("Claude's explicit declaration discovers exactly the canonical generated roles", () => {
+  const names = JSON.parse(readRepoFile("manifest.json")).agents.map(({ name }) => name);
+  const plugin = JSON.parse(readRepoFile(".claude-plugin/plugin.json"));
+  const errors = [];
+  validateClaudeAgentDeclaration(plugin, names, errors);
+  assert.deepEqual(errors, []);
+  for (const agents of [undefined, plugin.agents.slice(1),
+    [...plugin.agents, "./dist/claude/agents/retired.md"], [...plugin.agents, plugin.agents[0]]]) {
+    const failures = [];
+    validateClaudeAgentDeclaration({ ...plugin, agents }, names, failures);
+    assert.ok(failures.length > 0, "missing, retired, or duplicate declarations must fail");
   }
 });
 
