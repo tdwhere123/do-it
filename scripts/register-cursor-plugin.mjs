@@ -13,6 +13,7 @@ import { prepareUserHooksForPlugin } from "./lib/cursor-user-hooks.mjs";
 import { resolveUserHome } from "./lib/user-home.mjs";
 import {
   acquireCursorHomeLocks,
+  assertCursorHomeLockHeld,
   commitPreparedReplacements,
   discardPreparedReplacements,
   prepareDirectoryReplacement,
@@ -73,7 +74,10 @@ export function registerCursorPlugin(options = {}) {
   const sameAsLocal = path.resolve(installRoot) === path.resolve(localPlugin);
   const replacements = [];
   const recoveryBackups = [];
-  const releaseLocks = acquireCursorHomeLocks([home], options.lockOptions);
+  // A managed install owns the same lock across asset updates, registration,
+  // rollback, and cleanup. Standalone registration owns its lock itself.
+  if (options.homeLock) assertCursorHomeLockHeld(options.homeLock, home);
+  const releaseLocks = options.homeLock ? null : acquireCursorHomeLocks([home], options.lockOptions);
   let installError;
 
   try {
@@ -136,7 +140,7 @@ export function registerCursorPlugin(options = {}) {
     retainRecoveryFailures(error, "stage cleanup", discardPreparedReplacements(replacements));
     throw error;
   } finally {
-    const failures = releaseLocks();
+    const failures = releaseLocks?.() ?? [];
     if (installError) retainRecoveryFailures(installError, "lock release", failures);
     else for (const failure of failures) {
       recoveryBackups.push(failure.path);

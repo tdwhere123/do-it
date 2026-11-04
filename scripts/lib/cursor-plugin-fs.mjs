@@ -272,10 +272,19 @@ function acquireCursorHomeLock(
   };
 }
 
+const heldCursorHomeLocks = new WeakMap();
+
+export function assertCursorHomeLockHeld(lock, home) {
+  if (!heldCursorHomeLocks.get(lock)?.includes(path.resolve(home))) {
+    throw new Error(`Cursor registration requires an active lock for ${home}`);
+  }
+}
+
 export function acquireCursorHomeLocks(homes, options = {}) {
   const releases = [];
+  const resolvedHomes = [...new Set(homes.map((value) => path.resolve(value)))].sort();
   try {
-    for (const home of [...new Set(homes.map((value) => path.resolve(value)))].sort()) {
+    for (const home of resolvedHomes) {
       releases.push(acquireCursorHomeLock(home, options));
     }
   } catch (error) {
@@ -283,7 +292,12 @@ export function acquireCursorHomeLocks(homes, options = {}) {
     retainRecoveryFailures(error, "lock release", cleanupFailures);
     throw error;
   }
-  return () => releases.reverse().flatMap((release) => release());
+  const releaseLocks = () => {
+    heldCursorHomeLocks.delete(releaseLocks);
+    return releases.reverse().flatMap((release) => release());
+  };
+  heldCursorHomeLocks.set(releaseLocks, resolvedHomes);
+  return releaseLocks;
 }
 
 function fileStateMatches(targetPath, expectedState) {

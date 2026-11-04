@@ -18,6 +18,7 @@ import {
   registerCursorPlugin,
   validateCursorPlugin
 } from "../scripts/register-cursor-plugin.mjs";
+import { acquireCursorHomeLocks, retainRecoveryFailures } from "../scripts/lib/cursor-plugin-fs.mjs";
 import { resolveUserHome, looksLikeWindowsPath, toWslMountPath } from "../scripts/lib/user-home.mjs";
 import { targetExtras } from "../scripts/lib/manifest-extras.mjs";
 
@@ -367,21 +368,29 @@ function removeDeprecatedTarget(targetPath, transaction) {
 }
 
 function rollbackTransaction(transaction) {
+  const failures = [];
   for (const record of [...transaction].reverse()) {
-    fs.rmSync(record.targetPath, { recursive: true, force: true });
-
-    if (record.hadTarget && record.backupPath && pathState(record.backupPath)) {
-      fs.renameSync(record.backupPath, record.targetPath);
+    try {
+      fs.rmSync(record.targetPath, { recursive: true, force: true });
+      if (record.hadTarget && record.backupPath && pathState(record.backupPath)) {
+        fs.renameSync(record.backupPath, record.targetPath);
+      }
+    } catch (error) {
+      failures.push({ path: record.backupPath ?? record.targetPath, error });
     }
   }
+  return failures;
 }
 
 function cleanupTransaction(transaction) {
+  const failures = [];
   for (const record of transaction) {
     if (record.backupPath) {
-      fs.rmSync(record.backupPath, { recursive: true, force: true });
+      try { fs.rmSync(record.backupPath, { recursive: true, force: true }); }
+      catch (error) { failures.push({ path: record.backupPath, error }); }
     }
   }
+  return failures;
 }
 
 function walkDirectory(rootPath) {
@@ -1201,10 +1210,10 @@ function runPreInstall() {
   }
 }
 
-function runPostInstall() {
+function runPostInstall(homeLock) {
   for (const script of targetConfig.postInstall ?? []) {
     if (targetName === "cursor" && script === "scripts/register-cursor-plugin.mjs") {
-      registerCursorPlugin({ installRoot, version: manifest.version });
+      registerCursorPlugin({ installRoot, version: manifest.version, homeLock });
       continue;
     }
 
@@ -1234,7 +1243,8 @@ function runMigration(state) {
       `do-it: install state at ${statePath} is ${state.version}, but the bundled manifest is ${manifest.version}. ` +
         "Re-run without --no-migrate (silent migrate is the default) or run \`do-it install\` once interactively to migrate."
     );
-    process.exit(2);
+    process.exitCode = 2;
+    return false;
   }
 
   console.error(`[do-it] migrating ${state.version} → ${manifest.version} (state at ${statePath})`);
@@ -1254,6 +1264,26 @@ function runMigration(state) {
 }
 
 function install() {
+  if (targetName !== "cursor") return installEntries();
+  const home = resolveUserHome();
+  if (!home) throw new Error("HOME / USERPROFILE is not set");
+  const homeLock = acquireCursorHomeLocks([home]);
+  let installError;
+  try {
+    return installEntries(homeLock);
+  } catch (error) {
+    installError = error;
+    throw error;
+  } finally {
+    const failures = homeLock();
+    if (installError) retainRecoveryFailures(installError, "lock release", failures);
+    else for (const failure of failures) {
+      console.error(`do-it: retained Cursor install lock after cleanup failed at ${failure.path}: ${failure.error.message}`);
+    }
+  }
+}
+
+function installEntries(homeLock) {
   if (!onlyAgents) runPreInstall();
   assertNativePathsSafe();
   assertCodexRoleConflictsAbsent();
@@ -1264,9 +1294,7 @@ function install() {
   if (onlyAgents && noMigrate && needsMigration(state, manifest.version)) {
     throw new Error("Install state version differs; re-run without --no-migrate to update native agents.");
   }
-  if (!onlyAgents && needsMigration(state, manifest.version)) {
-    runMigration(state);
-  }
+  if (!onlyAgents && needsMigration(state, manifest.version) && runMigration(state) === false) return;
 
   for (const entry of entries) {
     assertInstallSafe(entry, state);
@@ -1283,6 +1311,7 @@ function install() {
   const transaction = [];
   const summary = [];
   let committed = false;
+  let installError;
 
   try {
     for (const entry of entries) {
@@ -1311,16 +1340,25 @@ function install() {
 
     backupTargetForTransaction(statePath, transaction);
     writeInstallState(state);
-    if (!onlyAgents) runPostInstall();
+    if (!onlyAgents) runPostInstall(homeLock);
     committed = true;
   } catch (error) {
-    rollbackTransaction(transaction);
+    installError = error;
+    retainRecoveryFailures(error, "rollback", rollbackTransaction(transaction));
     throw error;
   } finally {
-    if (committed) {
-      cleanupTransaction(transaction);
+    let cleanupError = installError;
+    const backupFailures = committed ? cleanupTransaction(transaction) : [];
+    if (backupFailures.length) {
+      cleanupError ??= new Error("Managed install committed; cleanup incomplete");
+      retainRecoveryFailures(cleanupError, "backup cleanup", backupFailures);
     }
-    fs.rmSync(stagingRoot, { recursive: true, force: true });
+    try { fs.rmSync(stagingRoot, { recursive: true, force: true }); }
+    catch (error) {
+      cleanupError ??= new Error("Managed install committed; cleanup incomplete");
+      retainRecoveryFailures(cleanupError, "stage cleanup", [{ path: stagingRoot, error }]);
+    }
+    if (!installError && cleanupError) throw cleanupError;
   }
 
   console.log(`install completed into ${installRoot} (target=${targetName})`);
@@ -1733,5 +1771,5 @@ if (command === "install") {
   migrateLegacy();
 } else {
   install();
-  doctor();
+  if (!process.exitCode) doctor();
 }
