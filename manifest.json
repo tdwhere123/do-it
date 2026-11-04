@@ -251,6 +251,26 @@
   },
   "deprecatedTargets": [
     {
+      "name": "plan-challenger",
+      "kind": "agent",
+      "reason": "0.19 role consolidation; remove only when installer ownership is proven"
+    },
+    {
+      "name": "product-strategist",
+      "kind": "agent",
+      "reason": "0.19 role consolidation; remove only when installer ownership is proven"
+    },
+    {
+      "name": "spec-compliance-reviewer",
+      "kind": "agent",
+      "reason": "0.19 role consolidation; remove only when installer ownership is proven"
+    },
+    {
+      "name": "tdd-red-writer",
+      "kind": "agent",
+      "reason": "0.19 role consolidation; remove only when installer ownership is proven"
+    },
+    {
       "name": "using-superpowers",
       "target": "skills/using-superpowers",
       "legacyHashes": [
@@ -720,14 +740,9 @@
       "target": "agents/documentation-engineer.toml"
     },
     {
-      "name": "plan-challenger",
-      "source": "agents/plan-challenger.toml",
-      "target": "agents/plan-challenger.toml"
-    },
-    {
-      "name": "product-strategist",
-      "source": "agents/product-strategist.toml",
-      "target": "agents/product-strategist.toml"
+      "name": "decision-challenger",
+      "source": "agents/decision-challenger.toml",
+      "target": "agents/decision-challenger.toml"
     },
     {
       "name": "red-team-reviewer",
@@ -740,14 +755,9 @@
       "target": "agents/reviewer.toml"
     },
     {
-      "name": "spec-compliance-reviewer",
-      "source": "agents/spec-compliance-reviewer.toml",
-      "target": "agents/spec-compliance-reviewer.toml"
-    },
-    {
-      "name": "tdd-red-writer",
-      "source": "agents/tdd-red-writer.toml",
-      "target": "agents/tdd-red-writer.toml"
+      "name": "test-engineer",
+      "source": "agents/test-engineer.toml",
+      "target": "agents/test-engineer.toml"
     }
   ]
 }

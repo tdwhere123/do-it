@@ -97,6 +97,24 @@ test("do-it-audit local reference links survive each host bundle", () => {
   }
 });
 
+test("canonical role consolidation removes obsolete discovery entries", () => {
+  const manifest = JSON.parse(readRepoFile("manifest.json"));
+  const expected = [
+    "architecture-strategist", "code-mapper", "code-quality-cleaner",
+    "decision-challenger", "documentation-engineer", "red-team-reviewer",
+    "reviewer", "test-engineer"
+  ];
+  assert.deepEqual(manifest.agents.map(({ name }) => name).sort(), expected);
+  const retired = ["plan-challenger", "product-strategist", "spec-compliance-reviewer", "tdd-red-writer"];
+  for (const name of retired) {
+    assert.ok(manifest.deprecatedTargets.some((entry) => entry.name === name && entry.kind === "agent"));
+    assert.equal(fs.existsSync(path.join(repoRoot, "agents", `${name}.toml`)), false);
+    for (const root of ["dist/claude/agents", "plugins/do-it-cursor/agents", "plugins/do-it-grok/agents", "plugins/do-it-pi/agents"]) {
+      assert.equal(fs.existsSync(path.join(repoRoot, root, `${name}.md`)), false, `${root}/${name}.md`);
+    }
+  }
+});
+
 test("Codex entry preserves native hook discovery without claiming plugin agent registration", () => {
   const plugin = JSON.parse(readRepoFile("plugins/do-it/.codex-plugin/plugin.json"));
   const hasRootManifest = fs.existsSync(path.join(repoRoot, "plugins/do-it/plugin.json"));

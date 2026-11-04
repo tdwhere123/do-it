@@ -108,7 +108,7 @@ as do-it-native decision support, not as a replacement state machine:
 | --- | --- | --- |
 | Discuss-phase captures implementation decisions before planning | `do-it-decide` | Diverge briefly, pressure-test load-bearing premises, write shortest useful plan. |
 | Assumptions discussion mode | `do-it-decide` | Read repo truth first; ask only when preference gates the route. |
-| Decision coverage | `do-it-decide`, `do-it-review`, `spec-compliance-reviewer` | Requirements and decisions trace into a plan slice, delivered surface, or explicit deferral when that coverage matters. |
+| Decision coverage | `do-it-decide`, `do-it-review`, `reviewer` | Requirements and decisions trace into a plan slice, delivered surface, or explicit deferral when that coverage matters. |
 | Plan checker and source-audit gaps | `do-it-review` | Missing coverage, unwired implementation, unused surfaces, and synthetic proof become findings. |
 | Fresh context per task | parent delegation guidance, `docs/routing-matrix.md` | Give a worker its goal and needed ownership boundary; let it return useful evidence or uncertainty. |
 
@@ -155,14 +155,12 @@ Ten canonical specialist bodies in `agents/*.toml`:
 | Agent | do-it Role | Notes |
 | --- | --- | --- |
 | `architecture-strategist` | decide / architecture lens | Maps foundation, extension modules, boundaries, and verification route. |
-| `product-strategist` | decide / product lens | Maps product boundary, core goal, requirement shape, and option tradeoffs. |
-| `plan-challenger` | decide / grill sub-lens | Challenges assumptions, scope, acceptance criteria, and route sizing. |
-| `code-mapper` | write / path map | Builds ownership, call-path, branch-point, and unknown maps before edits. |
+| `decision-challenger` | decide / product and plan | Challenges user value, load-bearing premises, scope, acceptance, and cheaper credible alternatives. |
+| `code-mapper` | behavior / ownership trace | Answers bounded codebase questions and follows relevant producers, contracts, consumers, and recovery without a mandatory reconnaissance stage. |
 | `code-quality-cleaner` | write / YAGNI + maintainability | Finds redundancy, dead paths, avoidable abstraction, and cleanup risk. |
-| `tdd-red-writer` | write / RED-only contract | Writes failing tests only, then stops before implementation. |
-| `reviewer` | review / correctness | PR-style correctness, regression, contract, and test review. |
+| `test-engineer` | test-only writer | Owns assigned reproducers, regression tests, or verification; preserves an explicit RED-only handoff and cannot edit production code. |
+| `reviewer` | review / requirements and correctness | Checks requirements, scope, contracts, implementation, regression risk, and proof; keeps the two lenses distinct. |
 | `red-team-reviewer` | review / adversarial | Security, state, persistence, concurrency, replay, and failure modes. |
-| `spec-compliance-reviewer` | review / scope | Checks changes against the written task, plan, acceptance, and ownership. |
 | `documentation-engineer` | docs | Keeps docs faithful to tooling, install flow, adapters, and operator workflows. |
 
 Former supplemental lenses (CEO, UX, end-user, ops, domain-language,

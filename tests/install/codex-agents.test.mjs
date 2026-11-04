@@ -357,6 +357,79 @@ test("retired cleanup preserves current native agents and their ownership withou
   assert.ok(fs.existsSync(path.join(root, ".do-it-legacy-migration-backups")));
 });
 
+const consolidatedRoles = ["plan-challenger", "product-strategist", "spec-compliance-reviewer", "tdd-red-writer"];
+
+test("agent-only upgrade retires owned consolidated roles and delivers their replacements", (t) => {
+  const root = fixture(t);
+  const oldState = { version: "0.18.1", entries: {} };
+  for (const name of consolidatedRoles) {
+    const relative = `agents/${name}.toml`;
+    const content = `name = "${name}"\n# old managed role\n`;
+    put(root, relative, content);
+    oldState.entries[relative] = { kind: "agent", name, hash: hash(content) };
+  }
+  put(root, ".do-it-install-state.json", JSON.stringify(oldState));
+  const result = run(root);
+  assert.equal(result.status, 0, result.stderr + result.stdout);
+  for (const name of consolidatedRoles) {
+    assert.equal(fs.existsSync(path.join(root, `agents/${name}.toml`)), false);
+    assert.equal(Object.hasOwn(state(root).entries, `agents/${name}.toml`), false);
+  }
+  for (const name of ["decision-challenger", "reviewer", "test-engineer"]) {
+    assert.equal(fs.readFileSync(path.join(root, `agents/${name}.toml`), "utf8"),
+      fs.readFileSync(path.join(repo, `agents/${name}.toml`), "utf8"));
+  }
+  assert.equal(fs.existsSync(path.join(root, "config.toml")), false);
+});
+
+for (const aliasKind of ["relative", "absolute", "symlink"]) {
+  test(`consolidation preserves a configured ${aliasKind} alias to an owned retired role`, (t) => {
+    const root = fixture(t);
+    const name = "product-strategist";
+    const relative = `agents/${name}.toml`;
+    const content = `name = "${name}"\n`;
+    put(root, relative, content);
+    let alias = aliasKind === "absolute" ? path.join(root, relative) : relative;
+    if (aliasKind === "symlink") {
+      alias = "personal-role.toml";
+      fs.symlinkSync(path.join(root, relative), path.join(root, alias));
+    }
+    const config = `[agents.personal]\nconfig_file = ${JSON.stringify(alias)}\n`;
+    put(root, "config.toml", config);
+    const previous = JSON.stringify({ version: "0.18.1", entries: {
+      [relative]: { kind: "agent", name, hash: hash(content) }
+    } });
+    put(root, ".do-it-install-state.json", previous);
+    const result = run(root);
+    assert.notEqual(result.status, 0, "retirement must not break a configured file consumer");
+    assert.match(result.stderr, /role conflict/);
+    assert.equal(fs.readFileSync(path.join(root, relative), "utf8"), content);
+    assert.equal(fs.readFileSync(path.join(root, "config.toml"), "utf8"), config);
+    assert.equal(fs.readFileSync(path.join(root, ".do-it-install-state.json"), "utf8"), previous);
+    assert.equal(fs.existsSync(path.join(root, "agents/decision-challenger.toml")), false);
+  });
+}
+
+for (const name of consolidatedRoles) {
+  for (const owned of [false, true]) {
+    test(`consolidation preserves ${owned ? "modified-owned" : "unowned"} ${name} even with force`, (t) => {
+      const root = fixture(t);
+      const relative = `agents/${name}.toml`;
+      const content = `name = "${name}"\n# personal customization\n`;
+      put(root, relative, content);
+      const previous = JSON.stringify({ version: "0.18.1", entries: owned
+        ? { [relative]: { kind: "agent", name, hash: hash("previous managed content") } } : {} });
+      put(root, ".do-it-install-state.json", previous);
+      const result = run(root, "install", [], { DO_IT_FORCE: "1" });
+      assert.notEqual(result.status, 0);
+      assert.match(result.stderr, /Refusing to remove/);
+      assert.equal(fs.readFileSync(path.join(root, relative), "utf8"), content);
+      assert.equal(fs.readFileSync(path.join(root, ".do-it-install-state.json"), "utf8"), previous);
+      assert.equal(fs.existsSync(path.join(root, "agents/decision-challenger.toml")), false);
+    });
+  }
+}
+
 test("agent-only update preserves a modified retired role even with force", (t) => {
   const root = fixture(t);
   assert.equal(run(root).status, 0);

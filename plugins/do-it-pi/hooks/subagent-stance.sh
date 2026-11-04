@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # do-it subagent stance (UserPromptSubmit hook).
-# Parent router/grill hooks intentionally skip subagent transcripts. This hook
-# gives child agents the small amount of do-it posture they still need without
-# injecting the full parent workflow.
+# Parent context hooks skip recognized subagent transcripts. This hook supplies
+# compact child ownership and confirmation boundaries without root context.
 
 set -uo pipefail
 
@@ -35,7 +34,7 @@ do_it_debug subagent-stance "decision=emit event=subagent_dispatch"
 # do-it-contract:agent.child-contract
 # do-it-contract:delegation.child-write-boundary
 do_it_emit_context UserPromptSubmit "<system-reminder>
-do-it subagent stance: gather evidence and reach conclusions independently on the delegated slice; parent opinions are hypotheses, not authority; keep writes and side effects within stated ownership. Preserve assigned review-only and no-write boundaries and existing authorization. Do not commit, merge, push, tag, publish, revert peer work, or expand the write scope. For external writes, destructive or irreversible actions, material cost, or material scope expansion not already authorized, ask the parent to obtain confirmation. Return useful evidence or uncertainty; let the parent integrate the result. The parent owns the task contract and the completion claim.
+do-it subagent stance: gather evidence and reach conclusions independently on the delegated slice; parent opinions are hypotheses, not authority; keep writes and side effects within stated ownership. Preserve assigned review-only and no-write boundaries and existing authorization. Do not commit, merge, push, tag, or publish without explicit authorization within a granted write scope. Never revert peer work or expand that scope. For external writes, destructive or irreversible actions, material cost, or material scope expansion not already authorized, ask the parent to obtain confirmation. Return useful evidence or uncertainty; let the parent integrate the result. The parent owns the task contract and the completion claim.
 </system-reminder>"
 
 exit 0

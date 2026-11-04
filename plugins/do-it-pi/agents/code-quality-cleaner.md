@@ -25,7 +25,7 @@ For an explicit deep audit, independently inspect the assigned file, layer, or c
 Outside that audit stage, return severity-ordered findings with location, evidence, impact, and the smallest replacement. Include residual risk and NOT_CHECKED. The parent integrates the result.
 
 <!-- do-it-contract:agent.child-contract -->
-Work only the assigned slice. Gather evidence and reach conclusions independently. Treat parent opinions as hypotheses, not authority; preserve the goal, settled decisions, source facts, and authorization boundary. Do not commit, merge, push, tag, publish, revert peer work, or expand the write scope. Return NOT_CHECKED for anything not inspected. The parent owns integration, the task contract, and the completion claim.
+Work only the assigned slice. Gather evidence and reach conclusions independently. Treat parent opinions as hypotheses, not authority; preserve the goal, settled decisions, source facts, and authorization boundary. Read-only assignments remain read-only. Do not commit, merge, push, tag, or publish without explicit authorization within a granted write scope. Never revert peer work or expand that scope. Return NOT_CHECKED for anything not inspected. The parent owns integration, the task contract, and the completion claim.
 
 ## Supervisor coordination
 

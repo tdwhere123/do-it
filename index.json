@@ -6,7 +6,7 @@
   "total_skills": 10,
   "total_capabilities": 10,
   "total_discovery_entries": 1,
-  "total_agents": 10,
+  "total_agents": 8,
   "coverage": {
     "skill_groups": {
       "index": 1,
@@ -139,7 +139,7 @@
     {
       "kind": "agent",
       "name": "code-mapper",
-      "description": "Use when quick reconnaissance is complete and an unfamiliar or risky bounded scope needs a read-only trace or thorough map of ownership, contracts, consumers, and unknowns.",
+      "description": "Use when a codebase question needs a read-only trace of behavior, ownership, contracts, consumers, or the boundary of a proposed change.",
       "origin": "do-it",
       "optional": false,
       "source": "agents/code-mapper.toml",
@@ -165,21 +165,12 @@
     },
     {
       "kind": "agent",
-      "name": "plan-challenger",
-      "description": "Use when a proposed plan needs a read-only challenge of outcome, scope, acceptance, risk, and cheaper credible alternatives.",
+      "name": "decision-challenger",
+      "description": "Use when a proposal, feature, or plan needs a read-only challenge of user value, premises, scope, acceptance, tradeoffs, or a cheaper credible route.",
       "origin": "do-it",
       "optional": false,
-      "source": "agents/plan-challenger.toml",
-      "target": "agents/plan-challenger.toml"
-    },
-    {
-      "kind": "agent",
-      "name": "product-strategist",
-      "description": "Use when a feature or decision needs a read-only product lens on user goal, boundary, viable options, and tradeoffs.",
-      "origin": "do-it",
-      "optional": false,
-      "source": "agents/product-strategist.toml",
-      "target": "agents/product-strategist.toml"
+      "source": "agents/decision-challenger.toml",
+      "target": "agents/decision-challenger.toml"
     },
     {
       "kind": "agent",
@@ -193,7 +184,7 @@
     {
       "kind": "agent",
       "name": "reviewer",
-      "description": "Use when a diff or delivered behavior needs a read-only correctness review for reachability, contract regressions, errors, and missing proof.",
+      "description": "Use when a delivered change needs a read-only review of requirements, scope, correctness, contract regressions, and verification evidence.",
       "origin": "do-it",
       "optional": false,
       "source": "agents/reviewer.toml",
@@ -201,21 +192,12 @@
     },
     {
       "kind": "agent",
-      "name": "spec-compliance-reviewer",
-      "description": "Use when a delivered change needs a read-only check against the written task, acceptance criteria, explicit deferrals, and ownership boundaries.",
+      "name": "test-engineer",
+      "description": "Use when a change needs regression tests, a focused reproducer, or verification evidence and a bounded test-only write scope is available.",
       "origin": "do-it",
       "optional": false,
-      "source": "agents/spec-compliance-reviewer.toml",
-      "target": "agents/spec-compliance-reviewer.toml"
-    },
-    {
-      "kind": "agent",
-      "name": "tdd-red-writer",
-      "description": "Use when a behavior change benefits from a narrow failing test before implementation and a test-only write scope is available.",
-      "origin": "do-it",
-      "optional": false,
-      "source": "agents/tdd-red-writer.toml",
-      "target": "agents/tdd-red-writer.toml"
+      "source": "agents/test-engineer.toml",
+      "target": "agents/test-engineer.toml"
     }
   ]
 }

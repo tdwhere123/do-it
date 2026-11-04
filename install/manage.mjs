@@ -968,7 +968,13 @@ function inspectCodexRoleToml(text, names = null) {
       if (token?.kind !== "string") fail();
       const alias = path.resolve(installRoot, token.value);
       const resolved = resolveCodexAliasPath(alias);
-      if (canonicalAgentEntries.some((entry) => {
+      // Retirement is also a write to a configured consumer's dependency.
+      // Only include retired paths that exist; absent historical targets are not
+      // changed by this install and must not reserve user role names forever.
+      const protectedEntries = [...canonicalAgentEntries, ...deprecatedEntries.filter(
+        (entry) => entry.kind === "agent" && pathState(resolveHomePath(entry.target))
+      )];
+      if (protectedEntries.some((entry) => {
         const managed = resolveHomePath(entry.target);
         return alias === managed || resolved === resolveCodexAliasPath(managed);
       })) fail();

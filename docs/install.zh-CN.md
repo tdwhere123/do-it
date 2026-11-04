@@ -10,7 +10,7 @@
 
 | 真相平面 | 本仓库可以声明的内容 |
 | --- | --- |
-| 源码 / 包元数据 | 当前 checkout 声明 `0.18.1`、12 个用户可运行 skill + 1 个生成式发现入口、10 个 agent。 |
+| 源码 / 包元数据 | 当前 checkout 声明 `0.18.1`、10 个可运行 skill + 1 个生成式发现入口、8 个 agent。 |
 | Git tag | `0.18.1` 的 GitHub/npm 发布仍需要 `v0.18.1`；版本元数据不等于发布 tag。 |
 | Marketplace / npm | 文档记录坐标与发布路径；只有 workflow 之后的 `npm view` 才能证明已发布到 registry。Cursor 公开上架仍待完成。 |
 | Live host | 只有在对应宿主安装并检查，才能证明那里实际启用了什么；不能从源码或 tarball 推断。 |
@@ -144,8 +144,8 @@ agent inspect --json
 
 上述命令使用 Grok Build 原生 `agent` 可执行文件（已核实的宿主版本为 1.0.46）。
 刷新 Plugins 页或启动新会话，检查 `do-it-grok` 下实际加载的来源路径、技能名和
-代理名；仅在插件列表中出现不能证明发现时哪个来源生效。插件包包含 12 个规范技能
-和 10 个生成式 Markdown 专业代理。
+代理名；仅在插件列表中出现不能证明发现时哪个来源生效。插件包包含 10 个规范技能
+和 8 个生成式 Markdown 专业代理。
 
 UserPromptSubmit 仅更新轮次状态，不输出 Core 上下文。
 Grok 钩子协议与 Claude 不同：prompt/session 钩子的输出不能证明模型收到引导上下文。

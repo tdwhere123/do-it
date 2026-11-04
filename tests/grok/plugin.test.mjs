@@ -10,6 +10,7 @@ import { parseAgentToml } from "../../scripts/lib/agent-source.mjs";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const bundle = path.join(root, "plugins/do-it-grok");
 const adapter = path.join(bundle, "hooks/grok-adapter.sh");
+const manifest = JSON.parse(fs.readFileSync(path.join(root, "manifest.json"), "utf8"));
 function run(command, args, options = {}) {
   const result = spawnSync(command, args, { encoding: "utf8", timeout: 30000, ...options });
   assert.equal(result.status, 0, result.stderr || String(result.error));
@@ -34,8 +35,8 @@ function fixture(t) {
 }
 
 test("Grok specialists render canonical bodies with only native name/description metadata", () => {
-  const files = fs.readdirSync(path.join(bundle, "agents"));
-  assert.equal(files.length, 10);
+  const files = fs.readdirSync(path.join(bundle, "agents")).sort();
+  assert.deepEqual(files, manifest.agents.map(agent => `${agent.name}.md`).sort());
   for (const file of files) {
     const agent = parseAgentToml(fs.readFileSync(path.join(root, "agents", file.replace(/\.md$/, ".toml")), "utf8"));
     const text = fs.readFileSync(path.join(bundle, "agents", file), "utf8");
@@ -111,7 +112,7 @@ test("malformed input, missing identity/workspace, and ignored lifecycle events 
   assert.equal(JSON.parse(result).hookSpecificOutput.hookEventName, "PostToolUse");
 });
 
-test("native Grok validates manifest and discovers 12 skills and 10 agents in an isolated home", {
+test("native Grok validates manifest and discovers canonical skills and agents in an isolated home", {
   skip: !process.env.DO_IT_GROK_BINARY
 }, t => {
   const { dir, workspace } = fixture(t);
@@ -125,8 +126,11 @@ test("native Grok validates manifest and discovers 12 skills and 10 agents in an
   assert.match(run(binary, ["plugin", "validate", bundle], options), /manifest is valid/);
   const report = JSON.parse(run(binary, ["inspect", "--json"], options));
   const fromPlugin = item => item.source?.plugin_name === "do-it-grok";
-  assert.equal(report.skills.filter(fromPlugin).length, 12);
-  assert.equal(report.agents.filter(fromPlugin).length, 10);
+  assert.deepEqual(report.skills.filter(fromPlugin).map(skill => skill.name).sort(),
+    manifest.skills.filter(skill => fs.statSync(path.join(root, skill.source)).isDirectory())
+      .map(skill => skill.name).sort());
+  assert.deepEqual(report.agents.filter(fromPlugin).map(agent => agent.name).sort(),
+    manifest.agents.map(agent => `do-it-grok:${agent.name}`).sort());
   assert.equal(report.hooks.filter(fromPlugin).length, 1);
   assert.ok(report.plugins.some(plugin => plugin.name === "do-it-grok" && plugin.enabled));
 });
