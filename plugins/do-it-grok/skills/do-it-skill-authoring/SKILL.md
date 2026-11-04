@@ -5,12 +5,18 @@ description: "Use when creating or revising a do-it skill, its description, refe
 
 # Skill Authoring
 
-Start from an observed failure or repeated rediscovery, not an imagined need.
-Capture it as a reproducible behavior scenario (in this repository,
-`evals/behavior/`) and compare the revision against the current skill, or no
-skill for a new one. Write the least guidance that changes the observed
-behavior. A scenario that passes with and without the change does not show
-the skill helps.
+Improve a specific decision or instruction-quality problem, not an imagined
+feature gap. An observed failure, repeated rediscovery, ambiguous wording, or a
+concrete counterexample can reveal the problem. Read the current owner and any
+upstream prompt you borrow from: distinguish a genuinely missing judgment from
+an existing rule that needs a clearer question, example, or loading condition.
+
+Separate writing quality from behavioral effectiveness. Authorized clarity,
+structure, and example improvements need not wait for a model trial. Explain the
+concrete weakness they address; do not claim they improved task outcomes until
+measured. For a behavioral claim, preserve the motivating episode as a replayable
+scenario (here, `evals/behavior/`) and compare against the current skill, or no
+skill for a new one. A scenario that passes both ways does not show an effect.
 
 ## Description
 
@@ -22,11 +28,16 @@ prompts that should trigger the skill and near misses that should not.
 
 ## Body
 
-Give the model what it would not do well unaided: distinctive questions,
-distinctions, counterexamples, tool pitfalls, and precise ownership, permission,
-and side-effect boundaries. Explain why a constraint exists instead of
-escalating its emphasis. Match specificity to fragility: judgment stays open,
-while fragile or irreversible operations deserve exact commands or scripts.
+Give the model a usable reasoning move: a question that distinguishes two
+plausible explanations, a counterexample to an attractive wrong choice, a tool
+pitfall, or a precise ownership, permission, or side-effect boundary. "Verify
+carefully" adds little; "check that the failed test shows the predicted mismatch,
+not an unrelated setup failure" tells the reader what to inspect and why. Include
+the nearby valid case: an import error is relevant when importability is the
+claimed defect. Add only guidance that addresses the named weakness. Explain the
+reason for a constraint instead of escalating its emphasis. Match specificity to
+fragility: judgment stays open, while fragile or irreversible operations deserve
+exact commands or scripts.
 Deterministic checks belong in scripts, validators, or hooks rather than prose.
 
 Put load-bearing guidance first; hosts may retain only the opening of a long
@@ -53,10 +64,15 @@ scopes, and leave integration and verification with the parent.
 
 ## Validation
 
-Check the description, links, examples, and shipped copies against the skill's
-purpose with the repository's build and consistency checks. Rerun the motivating
-scenario on the hosts and model classes the skill ships to when available, and
-name the conditions not run. Observe how agents actually navigate the skill:
-unread references, repeatedly reread sections, and ignored guidance are evidence
+Check descriptions against realistic trigger and near-miss requests; inspect
+whether examples exercise the intended distinction rather than echoing the rule.
+Check links and shipped copies with the repository's build and consistency gates.
+For behavioral evaluation, verify the skill actually loaded, the relevant command
+or assertion ran, and the scorer recognizes that evidence. A broken harness is
+not evidence against the prompt. Rerun the motivating scenario on the relevant
+hosts and model classes when available; name conditions not run and keep writing
+validation separate from an unmeasured effectiveness claim. Observe how agents
+actually navigate the skill: unread references, repeatedly reread sections, and
+ignored guidance are evidence
 for restructuring or deletion. Do not validate a ritual heading structure or a
 target number of skills.

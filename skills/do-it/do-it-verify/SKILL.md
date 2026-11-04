@@ -8,21 +8,31 @@ description: "Use when selecting evidence for a delivery claim, regression fix, 
 Match evidence to the claim. A passing command establishes what that command
 actually checked; it does not automatically establish user acceptance. Prefer
 checks that exercise the affected behavior after the relevant change. Confirm
-that the intended items or assertions were actually checked: a validator that
-inspects nothing cannot establish that its target is valid.
+which checkout, inputs, assertions, and execution path produced the result. A
+validator that inspected nothing, or a test runner that skipped the intended
+case, cannot establish that its target is valid.
 
 Consider whether evidence is stale, from another checkout, unrelated, simulated,
 or incomplete. A green result can be manufactured: tests special-cased to the
 fixture, hard-coded expected values, weakened or skipped assertions, deleted
 failing tests, swallowed errors, or fallbacks that produce the expected output
 without the intended mechanism. Check that the passing check would fail if the
-claimed behavior were absent. Local tests can establish local behavior without establishing
-production operation. Reproduce the original symptom when verifying a bug fix
-and cover materially affected paths that share its cause. Choose evidence from
-the causal claim, not a fixed test count; a plausible diff or an unrelated green
-command does not close it. Retain relevant valid evidence, and bound conclusions
-when affected paths remain unchecked. Exercise package and host integration
-when claiming an installation works.
+claimed behavior were absent. For a failing-before claim, inspect the actual
+failure: the predicted mismatch is evidence; an unrelated import, setup, or
+runtime error is not. For a passing-after claim, inspect the relevant result rather
+than only the enclosing shell's exit code: `failing-test; echo done` can return 0.
+
+Reproduce the original symptom when verifying a bug fix and cover materially
+affected paths that share its cause. Choose evidence from the causal claim, not
+a fixed test count; a plausible diff or an unrelated green command does not close
+it. Retain valid evidence and bound conclusions when paths remain unchecked.
+
+Separate local correctness, host integration, and operation in a real deployment.
+A source test does not prove that an installed package is discovered or invoked;
+a discovered role name does not prove which instructions or permissions it uses.
+Exercise the relevant native boundary when making those claims. Do not contact
+external services or alter a production contract just to obtain stronger proof
+than the task authorizes; report that missing proof instead.
 
 Report the result and relevant check, plus material gaps or remaining risks.
 Use NOT_VERIFIED when proof is missing, and explain what is missing. No fixed

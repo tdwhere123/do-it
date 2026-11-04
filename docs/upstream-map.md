@@ -23,6 +23,26 @@ passes, and red-team tracing from caller control through a reachable operation
 to impact. These are guidance and evidence boundaries, not a new runtime or
 mandatory artifact framework.
 
+## Prompt-writing revision for 0.19
+
+The following source snapshots informed concrete writing changes, not new
+mandatory workflows. Prompt quality and measured task effectiveness are separate:
+the rewrite has no new live-model A/B result. Existing behavior records include
+harness limitations and must not be used as an unqualified skill ranking.
+
+| Source snapshot | Writing mechanism retained | do-it owner and boundary |
+| --- | --- | --- |
+| [Google Elephant-Goldfish, `113a3af`](https://github.com/google/elephant-goldfish-model/tree/113a3afc44e8f4f54722d7150d5701f65cc8ef7f), `agents/comprehension.md` (Apache-2.0) | Reconstruct a design in ordinary language to expose missing relationships even when every term is defined. | Context, Review, delegation reference. No compulsory paraphrase report, fixed reader roster, or removal of user constraints. |
+| [Cloudflare security-audit-skill, `c1c8a8c`](https://github.com/cloudflare/security-audit-skill/tree/c1c8a8c1471069fb0e188eeaff69b8e8db6564a8), validation/verifier guidance (MIT) | Reconstruct the strongest existing controls; separate a demonstrated boundary failure from a decisive missing fact; keep validation safe. | Audit and Review. Preserve independent audit synthesis, allow sufficient static evidence, and do not import the six-phase workflow, verdict schema, or artifact-promotion machinery. |
+| [Compound Engineering, `406b85c`](https://github.com/EveryInc/compound-engineering-plugin/tree/406b85c4562de3d415927fccc5e614c6554aab00), `ce-compound` (MIT) | Prefer an existing durable check or structural correction over accumulating reminders. | Retrospective and Context. No automatic solution directory, policy promotion, or redundant reminder. |
+| [pstack-claude, `79b36d9`](https://github.com/michael-denyer/pstack-claude/tree/79b36d9b53a53c78e5ec26bf6ce7dade76686c87), `tdd/SKILL.md` (MIT) | Inspect the failure content: an intended mismatch and a broken import both fail, but only one measures the defect. | Verify, Code Quality, Skill Authoring. Do not import fixed TDD steps or discard sound static findings because no reproduction ran. |
+| [Microsoft TokenEconomizer, `d3e193b`](https://github.com/microsoft/TokenEconomizer/tree/d3e193b8734ec76230da1e08d7929ba9d14640d8), loop-guard guidance (Apache-2.0) | Distinguish repeated activity from progress that changes evidence or eliminates an explanation. | Code Quality. No automatic abort counters, tool pruning, host configuration changes, or claimed token savings. |
+
+These are original do-it adaptations of the reasoning techniques, not vendored
+prompt text. Skill Authoring also addresses an observed authoring failure in this
+upgrade discussion: missing model-trial evidence must limit effectiveness claims,
+not prevent authorized improvements to wording, structure, and examples.
+
 ## External Idea Map
 
 The do-it skills are rewrites, not vendored copies. Useful ideas from

@@ -14,13 +14,19 @@ independent synthesis requirements.
 Pass the goal, scope, settled decisions, authorization boundary, acceptance,
 and source facts. Label parent interpretations as hypotheses. Reviewers should
 inspect evidence independently rather than inherit a verdict. Avoid passing
-irrelevant conversation history that anchors their analysis.
+irrelevant conversation history that anchors their analysis. Independence means
+forming a separate judgment, not discarding the user's constraints or the facts
+needed to understand the task. For an ambiguous design, an independent reader's
+plain-language reconstruction can expose a missing relationship before another
+round of recommendations.
 
 Keep read-only roles read-only. Assign a clear owner for each write scope and
 protect peer changes. A child cannot obtain more authorization by delegating.
 Children do not commit, merge, push, publish, or expand scope unless explicitly
 authorized. The parent integrates results, resolves conflicts, and checks the
-combined work before claiming delivery.
+combined work before claiming delivery. Inspect actual returned evidence: a
+failed, cancelled, or unavailable delegate is not a review with zero findings,
+and a role label alone does not prove which instructions or permissions ran.
 
 Findings should explain location, consequence, and evidence; ordinary reviews
 also identify a needed correction. Initial deep-audit reviewers withhold repair

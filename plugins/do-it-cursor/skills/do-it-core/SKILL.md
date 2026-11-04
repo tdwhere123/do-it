@@ -19,10 +19,12 @@ contexts gather evidence and test assumptions; the parent integrates and verifie
 Optional questions to guide reasoning:
 
 - What outcome and decisions must survive this change?
-- Which fact could change my conclusion, and have I checked it?
+- Which observation would change my conclusion, and have I looked for it?
+- Am I treating an assumption, tool label, or green status as an established fact?
 - Where does the behavior belong, and which consumers must change with it?
 - What does the available evidence establish, and what remains unknown?
 
-These questions are thinking aids, not a checklist, interview, or required report.
+Use the questions that expose a real uncertainty in this task, not a checklist,
+interview, or required report. Repeating a principle is not evidence of applying it.
 Use existing instructions and explicit task references for continuity. Write a
 short goal, decisions, boundary, or acceptance note only when persistence helps.
