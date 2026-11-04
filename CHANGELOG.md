@@ -22,14 +22,22 @@
   coverage is distinct from model efficacy. Verify nicobailon `pi-subagents`
   0.35.1 discovery, real child execution, project constraints, results, and
   cancellation on Linux; bound its optional peer to that version and the Pi
-  SDK peer to the 1.5 patch line. The Tintinweb creator-identity change remains
-  isolated pending lifecycle verification and an authorized paired migration;
-  the live-linked main checkout retains its existing child detector meanwhile.
+  SDK peer to the 1.5 patch line. Replace in-process child heuristics with
+  creator-owned identity in patched Tintinweb 0.23.0, including in-memory,
+  nested, resumed and reopened sessions. Root authority survives shell path
+  heuristics; interrupted stance delivery retries and role changes filter stale
+  reminders without rewriting history. Ship the reviewed runtime patch, MIT
+  license and pinned preparation guide in the independent Pi package; unpatched
+  Tintinweb 0.23.0 is unsupported and requires a paired migration.
 - **Behavioral evidence:** capture bounded execution provenance, recognize quoted
   Node test globs, and reject masked failures, ambiguous ordering, skipped work,
   and unattributed writes as fresh passing evidence. Preserve historical runs.
   A provider-free native Pi test covers actual tools through evidence capture;
   it is not a model comparison or a claim of benchmark-answer isolation.
+- **Cursor upgrades:** update managed assets in place instead of replacing the
+  plugin directory, preserving live `.do-it-data` and unrelated files. Retire
+  only hash-proven legacy assets. Retain uncertain install locks across OS/PID
+  namespaces, and preserve rollback, cleanup and recovery-path errors.
 - **Version accounting:** move source metadata to 0.19.0 rather than reusing the
   already-published 0.18.1 version. No tag, publication, or live-host update is
   performed by this source change.

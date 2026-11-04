@@ -21,8 +21,11 @@ The historical [0.18.1 verification record](./release-evidence/0.18.1-unreleased
 retains its original scope. It is not proof for the current checkout or the
 published 0.18.1 tarballs. Keep builds, native discovery, actual model probes,
 and registry publication separate. The [0.19.0 source checkpoint](./release-evidence/0.19.0-unreleased.md)
-records integrated prompt, role, evaluator, and compatibility checks, including
-the still-isolated Tintinweb migration gate.
+records an earlier prompt, role, evaluator and compatibility checkpoint, when
+the Tintinweb migration was still isolated. Creator identity and lifecycle fixes
+are now integrated; [standalone package evidence](./release-evidence/pi-primary-package.md)
+verifies the bundled patch and preparation recipe. Live activation and registry
+publication still require their own evidence.
 
 ## Current Truth Planes
 
@@ -30,7 +33,7 @@ the still-isolated Tintinweb migration gate.
 | --- | --- |
 | Source/package | Metadata prepares `0.19.0`: 10 runnable skills, 1 generated discovery entry, and 8 specialists. Prompt revisions, role consolidation, router removal, and host fixes are source changes, not a measured model-efficacy or publication claim. |
 | Git tag | This work creates no release tag. Tag the verified release commit only when authorized; do not retro-tag or move historical releases to conceal source/package drift. Version metadata or a tag alone does not prove npm publication. |
-| Marketplace/npm | Registry queries on 2026-11-04 confirm both `@tdwhere/do-it` and `@tdwhere/do-it-pi` 0.18.1 were published on 2026-10-17. The source continued changing under that version; these tarballs are not the current adapter. This work does not publish 0.19.0. Cursor marketplace listing remains pending. |
+| Marketplace/npm | Registry queries on 2026-11-04 confirm both `@tdwhere/do-it` and `@tdwhere/do-it-pi` 0.18.1 were published on 2026-10-17. The source continued changing under that version; these tarballs are not the current adapter. Publication of 0.19.0 is authorized but still pending the release gate. Verify the registry before claiming availability. Cursor marketplace listing remains pending. |
 | Live host | Only host install/inspection evidence proves an active version. Source, package, tag, and live host may differ. |
 
 ## Tag Policy
