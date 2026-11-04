@@ -17,6 +17,7 @@ import {
   discardPreparedReplacements,
   prepareDirectoryReplacement,
   prepareFileReplacement,
+  retainRecoveryFailures,
   validateCursorPlugin
 } from "./lib/cursor-plugin-fs.mjs";
 
@@ -73,7 +74,7 @@ export function registerCursorPlugin(options = {}) {
   const replacements = [];
   const recoveryBackups = [];
   const releaseLocks = acquireCursorHomeLocks([home], options.lockOptions);
-  let committed = false;
+  let installError;
 
   try {
     if (sameAsLocal && !isSymlink(localPlugin)) {
@@ -126,22 +127,20 @@ export function registerCursorPlugin(options = {}) {
         injectedFailure(`after-${record.kind}`, failAt);
       }
     });
-    committed = true;
     for (const failure of cleanupFailures) {
       recoveryBackups.push(failure.path);
       log(`installed successfully; retained recovery backup after cleanup failed: ${failure.path}`);
     }
   } catch (error) {
-    discardPreparedReplacements(replacements);
+    installError = error;
+    retainRecoveryFailures(error, "stage cleanup", discardPreparedReplacements(replacements));
     throw error;
   } finally {
-    for (const failure of releaseLocks()) {
+    const failures = releaseLocks();
+    if (installError) retainRecoveryFailures(installError, "lock release", failures);
+    else for (const failure of failures) {
       recoveryBackups.push(failure.path);
-      log(
-        committed
-          ? `installed successfully; retained Cursor install lock after cleanup failed: ${failure.path}`
-          : `install failed; retained Cursor install lock after cleanup failed: ${failure.path}`
-      );
+      log(`installed successfully; retained Cursor install lock after cleanup failed: ${failure.path}`);
     }
   }
 

@@ -92,6 +92,14 @@ listed there yet**. Until it is submitted/reviewed, use:
    are preserved. On a process interruption, inspect any `.do-it-backup-*` and
    `.do-it-stage-*` paths before retrying; interrupted work is not automatically
    rolled back. A rollback conflict reports its retained backup path.
+   An existing `<profile>/.cursor/.do-it-install.lock` always blocks another
+   installer, including across WSL and Windows; a local PID cannot establish
+   another OS's liveness. After interruption, stop concurrent install attempts
+   on all OSes sharing the profile, inspect the recorded owner and recovery
+   files, confirm no installer is active, then archive and remove that lock
+   and retry once. Never remove it while another installer may be running.
+   This coordination does not protect against external lock deletion or older
+   installers that ignore it.
 
    ```bash
    npm run install:cursor-local

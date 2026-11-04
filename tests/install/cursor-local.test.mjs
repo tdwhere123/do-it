@@ -50,7 +50,7 @@ function runInstall(env) {
   });
 }
 
-test("Cursor home locks steal immediately when owner PID is dead", () => {
+test("Cursor home locks retain dead-owner records until explicit recovery", () => {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-cursor-dead-lock-"));
   try {
     const lockPath = path.join(home, ".cursor", ".do-it-install.lock");
@@ -59,8 +59,9 @@ test("Cursor home locks steal immediately when owner PID is dead", () => {
       lockPath,
       `${JSON.stringify({ pid: 99999999, createdAt: Date.now(), id: "dead-owner" })}\n`
     );
-    const release = acquireCursorHomeLocks([home]);
-    release();
+    const before = fs.readFileSync(lockPath, "utf8");
+    assert.throws(() => acquireCursorHomeLocks([home]), /lock retained.*Stop concurrent install attempts/);
+    assert.equal(fs.readFileSync(lockPath, "utf8"), before);
   } finally {
     fs.rmSync(home, { recursive: true, force: true });
   }
@@ -70,7 +71,7 @@ test("Cursor home locks reject concurrent installs", () => {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-cursor-lock-"));
   try {
     const release = acquireCursorHomeLocks([home]);
-    assert.throws(() => acquireCursorHomeLocks([home]), /another Cursor install is active/);
+    assert.throws(() => acquireCursorHomeLocks([home]), /another Cursor install may be active/);
     assert.deepEqual(release(), []);
     const releaseAgain = acquireCursorHomeLocks([home]);
     assert.deepEqual(releaseAgain(), []);

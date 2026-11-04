@@ -16,6 +16,7 @@ import {
   discardPreparedReplacements,
   prepareDirectoryReplacement,
   prepareFileReplacement,
+  retainRecoveryFailures,
   validateCursorPlugin
 } from "./lib/cursor-plugin-fs.mjs";
 import {
@@ -93,6 +94,7 @@ export function installCursorLocal(options = {}) {
   const installed = [];
   const recoveryBackups = [];
   const releaseLocks = acquireCursorHomeLocks(homes, options.lockOptions);
+  let installError;
   try {
     for (const [index, home] of homes.entries()) {
       const dest = path.join(home, ".cursor", "plugins", "local", pluginName);
@@ -128,10 +130,13 @@ export function installCursorLocal(options = {}) {
     });
     for (const failure of cleanupFailures) recoveryBackups.push(failure.path);
   } catch (error) {
-    discardPreparedReplacements(replacements);
+    installError = error;
+    retainRecoveryFailures(error, "stage cleanup", discardPreparedReplacements(replacements));
     throw error;
   } finally {
-    for (const failure of releaseLocks()) recoveryBackups.push(failure.path);
+    const failures = releaseLocks();
+    if (installError) retainRecoveryFailures(installError, "lock release", failures);
+    else for (const failure of failures) recoveryBackups.push(failure.path);
   }
 
   return { installed, recoveryBackups };

@@ -8,6 +8,7 @@ import fs from "node:fs";
 import crypto from "node:crypto";
 import path from "node:path";
 import process from "node:process";
+import os from "node:os";
 
 function pathState(targetPath) {
   try {
@@ -89,7 +90,8 @@ const retiredCursorFiles = new Map([
   ["agents/product-strategist.md", "23e2d35152d9386e38baeac30cff8782208c16195563a439a344b62e9235b272"],
   ["agents/spec-compliance-reviewer.md", "a92549898503caf5764f3269ef16eb796a0c5b095788fc4884dfcc0406c1baa8"],
   ["agents/tdd-red-writer.md", "3b7be439e404883a9785d80d44d59136b2b6f9bbc6e0a0dd2ca468fe5d4d171e"],
-  ["skills/do-it-router/SKILL.md", "a9d72de56e72577e576545871fa71aa1737216f98d691b319396f9772023cbf3"]
+  ["skills/do-it-router/SKILL.md", "a9d72de56e72577e576545871fa71aa1737216f98d691b319396f9772023cbf3"],
+  ["skills/do-it-handbook/SKILL.md", "877cc4b36b4ac28d2f7de2bbe56bb2bccee00eae2f9d8cdeccbbc5f81674ba00"]
 ]);
 
 function fileHash(filePath) {
@@ -166,7 +168,7 @@ export function prepareDirectoryReplacement(sourcePath, targetPath, options = {}
       rootState: rootState ? { exists: true, dev: rootState.dev, ino: rootState.ino } : { exists: false }
     };
   } catch (error) {
-    fs.rmSync(stagedPath, { recursive: true, force: true });
+    retainRecoveryFailures(error, "stage cleanup", discardPreparedReplacements([{ stagedPath }]));
     throw error;
   }
 }
@@ -184,25 +186,44 @@ export function prepareFileReplacement(targetPath, content, options = {}) {
       expectedState: options.expectedState
     };
   } catch (error) {
-    fs.rmSync(stagedPath, { force: true });
+    retainRecoveryFailures(error, "stage cleanup", discardPreparedReplacements([{ stagedPath }]));
     throw error;
   }
 }
 
-export function discardPreparedReplacements(replacements) {
-  for (const replacement of replacements) {
-    fs.rmSync(replacement.stagedPath, { recursive: true, force: true });
+export function retainRecoveryFailures(error, phase, failures) {
+  for (const failure of failures) {
+    const detail = `${phase} failed at ${failure.path}: ${failure.error.message}`;
+    error.recoveryFailures ??= [];
+    if (error.recoveryFailures.some((entry) => entry.detail === detail)) continue;
+    error.recoveryFailures.push({ ...failure, detail });
+    error.message += `; ${detail}`;
   }
 }
 
-function processIsAlive(pid) {
-  if (!Number.isInteger(pid) || pid <= 0) return false;
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch (error) {
-    return error.code === "EPERM";
+export function discardPreparedReplacements(replacements) {
+  const failures = [];
+  for (const replacement of replacements) {
+    try {
+      fs.rmSync(replacement.stagedPath, { recursive: true, force: true });
+    } catch (error) {
+      failures.push({ path: replacement.stagedPath, error });
+    }
   }
+  return failures;
+}
+
+function lockNamespace() {
+  const identity = { platform: process.platform, hostname: os.hostname() };
+  if (process.platform === "linux") {
+    try {
+      identity.bootId = fs.readFileSync("/proc/sys/kernel/random/boot_id", "utf8").trim();
+      identity.pidNamespace = fs.readlinkSync("/proc/self/ns/pid");
+    } catch {
+      // Diagnostic identity only: missing namespace data never permits takeover.
+    }
+  }
+  return identity;
 }
 
 function acquireCursorHomeLock(
@@ -211,66 +232,44 @@ function acquireCursorHomeLock(
 ) {
   const lockPath = path.join(home, ".cursor", ".do-it-install.lock");
   fs.mkdirSync(path.dirname(lockPath), { recursive: true });
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    try {
-      const fd = fs.openSync(lockPath, "wx", 0o600);
-      const owner = {
-        pid: process.pid,
-        createdAt: Date.now(),
-        id: crypto.randomUUID()
-      };
-      try {
-        fs.writeFileSync(fd, `${JSON.stringify(owner)}\n`);
-      } catch (error) {
-        try { closeLock(fd); } catch {}
-        try { removeLock(lockPath, { force: true }); } catch {}
-        throw error;
-      }
-      return () => {
-        const cleanupFailures = [];
-        try {
-          closeLock(fd);
-        } catch (error) {
-          cleanupFailures.push({ path: lockPath, error });
-        }
-
-        try {
-          let current = null;
-          try {
-            current = JSON.parse(fs.readFileSync(lockPath, "utf8"));
-          } catch (error) {
-            if (error.code !== "ENOENT") throw error;
-          }
-          if (current && current.id !== owner.id) {
-            throw new Error(`Cursor install lock ownership changed for ${home}`);
-          }
-          if (current) removeLock(lockPath, { force: true });
-        } catch (error) {
-          cleanupFailures.push({ path: lockPath, error });
-        }
-        return cleanupFailures;
-      };
-    } catch (error) {
-      if (error.code !== "EEXIST") throw error;
-      let owner;
-      try {
-        owner = JSON.parse(fs.readFileSync(lockPath, "utf8"));
-      } catch {
-        owner = null;
-      }
-      const ageMs = Date.now() - (pathState(lockPath)?.mtimeMs ?? Date.now());
-      // Live owner always blocks. Dead-PID locks are stealable immediately.
-      // Unreadable/missing owner still gets a short grace window.
-      if (processIsAlive(owner?.pid)) {
-        throw new Error(`another Cursor install is active for ${home}`);
-      }
-      if (!Number.isInteger(owner?.pid) && ageMs <= 10 * 60 * 1000) {
-        throw new Error(`another Cursor install is active for ${home}`);
-      }
-      fs.rmSync(lockPath, { force: true });
-    }
+  let fd;
+  try {
+    fd = fs.openSync(lockPath, "wx", 0o600);
+  } catch (error) {
+    if (error.code !== "EEXIST") throw error;
+    // A PID belongs to its host/boot/PID namespace, not to this shared path.
+    // Never reclaim automatically: read/check/unlink cannot safely claim a stale
+    // lock while another installer may replace it. Recovery requires quiescence.
+    throw new Error(`another Cursor install may be active; lock retained at ${lockPath}. ` +
+      "Stop concurrent install attempts on every OS sharing this profile, inspect the recorded owner and recovery files, " +
+      "then archive and remove the lock only after confirming no installer is active; retry once.");
   }
-  throw new Error(`could not acquire Cursor install lock for ${home}`);
+  const owner = { pid: process.pid, namespace: lockNamespace(), createdAt: Date.now(), id: crypto.randomUUID() };
+  try {
+    fs.writeFileSync(fd, `${JSON.stringify(owner)}\n`);
+  } catch (error) {
+    error.message += `; incomplete Cursor install lock retained at ${lockPath}`;
+    try { closeLock(fd); } catch (closeError) {
+      retainRecoveryFailures(error, "lock close", [{ path: lockPath, error: closeError }]);
+    }
+    throw error;
+  }
+  return () => {
+    const cleanupFailures = [];
+    try {
+      closeLock(fd);
+    } catch (error) {
+      cleanupFailures.push({ path: lockPath, error });
+    }
+    try {
+      const current = JSON.parse(fs.readFileSync(lockPath, "utf8"));
+      if (current.id !== owner.id) throw new Error(`Cursor install lock ownership changed for ${home}`);
+      removeLock(lockPath, { force: true });
+    } catch (error) {
+      cleanupFailures.push({ path: lockPath, error });
+    }
+    return cleanupFailures;
+  };
 }
 
 export function acquireCursorHomeLocks(homes, options = {}) {
@@ -281,9 +280,7 @@ export function acquireCursorHomeLocks(homes, options = {}) {
     }
   } catch (error) {
     const cleanupFailures = releases.reverse().flatMap((release) => release());
-    if (cleanupFailures.length > 0) {
-      error.cause = cleanupFailures[0].error;
-    }
+    retainRecoveryFailures(error, "lock release", cleanupFailures);
     throw error;
   }
   return () => releases.reverse().flatMap((release) => release());
@@ -395,7 +392,7 @@ export function commitPreparedReplacements(replacements, { afterReplace, removeB
       error.cause = rollbackError;
       error.message = `${error.message}; rollback incomplete: ${rollbackError.message}`;
     }
-    discardPreparedReplacements(replacements);
+    retainRecoveryFailures(error, "stage cleanup", discardPreparedReplacements(replacements));
     throw error;
   }
 
@@ -416,7 +413,7 @@ export function commitPreparedReplacements(replacements, { afterReplace, removeB
     }
     // Removing a proven retired skill file must not remove any user files.
     for (const file of replacement.files ?? []) {
-      if (file.stagedPath || path.dirname(file.relative) !== path.join("skills", "do-it-router")) continue;
+      if (file.stagedPath || !file.relative.startsWith(`skills${path.sep}`)) continue;
       try {
         fs.rmdirSync(path.join(replacement.targetPath, path.dirname(file.relative)));
       } catch (error) {
