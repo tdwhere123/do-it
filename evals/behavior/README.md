@@ -150,6 +150,13 @@ A failed test command and an unverified/empty result are counted separately.
 Completion-only SDK events or SDKs without explicit exit/output metadata remain
 unverified; no success is inferred from `isError: false`.
 
+The provider-free native regression in `tests/pi/evidence-native.test.mjs`
+traverses the actual Pi 1.5 `runPiPrompt` adapter, Core injection, write/Bash tools,
+event capture, and evidence selection. It accepts a completed write followed by
+a passing quoted test glob and rejects a real failed test masked by a successful
+shell wrapper. Only the model provider is scripted; this is integration evidence,
+not a model-effectiveness or answer-isolation result.
+
 Historical v1 records and their original grades remain readable and unchanged.
 They lack this provenance, so rejudging an exit-only v1 command cannot establish
 fresh passing evidence. Do not reconstruct missing tool output from historical
