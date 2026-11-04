@@ -83,6 +83,29 @@ test('invalid and uncertain requests cannot silently consume more generations', 
   }
 });
 
+test('worker disconnect aborts the in-flight provider and retains an unknown reservation', async () => {
+  const dir = temp(), socket = path.join(dir, 'api.sock'), records = path.join(dir, 'records');
+  let started;
+  const entered = new Promise(resolve => { started = resolve; });
+  let aborted;
+  const sawAbort = new Promise(resolve => { aborted = resolve; });
+  const gate = await createGateway({ socket, dir: records, limit: 2, provider: async (body, { signal }) => {
+    started();
+    return await new Promise((resolve, reject) => signal.addEventListener('abort', () => {
+      aborted(); reject(new Error('controlled abort'));
+    }, { once: true }));
+  } });
+  try {
+    const req = http.request({ socketPath: socket, path: '/responses', method: 'POST' });
+    req.on('error', () => {}); req.end(valid);
+    await entered; req.destroy(); await sawAbort;
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(gate.status().inflight, 0);
+    assert.deepEqual(rows(records).map(row => row.event), ['reserved', 'unknown']);
+    assert.equal((await post(socket)).status, 503);
+  } finally { await gate.close(); fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
 function scriptedSse(item, index) {
   const events = [
     { type: 'response.output_item.added', output_index: 0,
@@ -128,7 +151,7 @@ test('native Pi worker, Bash and read tools stay inside the holdout boundary', {
       stdout: path.join(dir, 'stdout'), stderr: path.join(dir, 'stderr'), timeoutMs: 20_000 });
     const stdout = fs.readFileSync(path.join(dir, 'stdout'), 'utf8');
     const stderr = fs.readFileSync(path.join(dir, 'stderr'), 'utf8');
-    assert.deepEqual(result, { code: 0, signal: null, timedOut: false }, stderr);
+    assert.deepEqual(result, { code: 0, signal: null, timedOut: false, interrupted: false }, stderr);
     assert.equal(dispatched, 4); assert.equal(hostConnections, 0);
     assert.match(stdout, /ISOLATED/); assert.match(stdout, /Trace the live behavior/);
     assert.match(stdout, /Offline probe complete/); assert.doesNotMatch(stdout, new RegExp(marker));

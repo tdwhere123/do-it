@@ -1,0 +1,3 @@
+Investigate unreliable test-evidence decisions in this evaluator source snapshot. A real `node --test 'tests/*.test.mjs'` run can pass but not receive credit, while a failing `node --test tests/auth.test.mjs; echo done` can be credited because the enclosing shell exits zero.
+
+Trace the path from captured tool results to the judgment and propose a correction plus regression checks. Address what evidence would actually establish the test outcome and its relevance/freshness, and describe any cases that should remain unverified. Work read-only: do not change files, install anything, use network services, or delegate. Cite source evidence and distinguish an implemented check from a proposed one.

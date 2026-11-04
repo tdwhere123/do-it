@@ -1,0 +1,3 @@
+Investigate a Pi root-session regression in this source snapshot. A root session can lose its expected hook context when its transcript is stored under a directory named `agents`. Earlier changes to child-detection heuristics did not eliminate the symptom. Other hosts must retain their existing behavior.
+
+Trace the relevant session and hook path, explain what observation would distinguish the failing premise, and recommend the smallest end-to-end correction and regression checks. Work read-only: do not change files, install anything, use network services, or delegate. Cite source evidence and clearly identify anything not verified.

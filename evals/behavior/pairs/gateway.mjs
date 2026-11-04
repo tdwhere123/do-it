@@ -8,11 +8,15 @@ import { createHash } from 'node:crypto';
 
 const sha256 = data => createHash('sha256').update(data).digest('hex');
 
+function syncDirectory(dir) {
+  const fd = fs.openSync(dir, 'r');
+  try { fs.fsyncSync(fd); } finally { fs.closeSync(fd); }
+}
+
 function durableWrite(file, data) {
   const fd = fs.openSync(file, 'wx', 0o600);
   try { fs.writeFileSync(fd, data); fs.fsyncSync(fd); } finally { fs.closeSync(fd); }
-  const dirfd = fs.openSync(path.dirname(file), 'r');
-  try { fs.fsyncSync(dirfd); } finally { fs.closeSync(dirfd); }
+  syncDirectory(path.dirname(file));
 }
 
 function appendLedger(file, row) {
@@ -27,9 +31,11 @@ export async function createGateway({ socket, dir, limit, provider }) {
   const ledger = path.join(dir, 'ledger.jsonl');
   // Never restart an experiment: a reserved but unfinished request is unknown.
   durableWrite(ledger, '');
-  let count = 0, failure = null, inflight = 0;
+  let count = 0, failure = null, inflight = 0, pending = 0;
+  const waiters = [];
   const fail = reason => { failure ??= reason; };
   const server = http.createServer(async (req, res) => {
+    pending++;
     let reserved = 0, active = false;
     try {
       if (failure) throw new Error('gateway stopped');
@@ -42,6 +48,7 @@ export async function createGateway({ socket, dir, limit, provider }) {
       }
       const body = Buffer.concat(chunks);
       const parsed = JSON.parse(body.toString('utf8'));
+      if (failure) throw new Error('gateway stopped');
       if (parsed.model !== 'grok-4.6' || parsed.reasoning?.effort !== 'xhigh' || parsed.stream !== true) {
         throw new Error('unexpected model, effort, or stream setting');
       }
@@ -53,7 +60,9 @@ export async function createGateway({ socket, dir, limit, provider }) {
       durableWrite(path.join(dir, `${stem}.request.json`), body);
       appendLedger(ledger, { event: 'reserved', request: reserved, sha256: sha256(body), at: new Date().toISOString() });
       inflight++; active = true;
-      const upstream = await provider(body);
+      const controller = new AbortController();
+      res.once('close', () => { if (!res.writableFinished) controller.abort(); });
+      const upstream = await provider(body, { signal: controller.signal });
       if (!Number.isInteger(upstream.status) || !upstream.body) throw new Error('invalid upstream response');
       const responseFile = fs.openSync(path.join(dir, `${stem}.response`), 'wx', 0o600);
       const hash = createHash('sha256');
@@ -72,6 +81,7 @@ export async function createGateway({ socket, dir, limit, provider }) {
         }
         fs.fsyncSync(responseFile);
       } finally { fs.closeSync(responseFile); }
+      syncDirectory(dir);
       const ok = upstream.status >= 200 && upstream.status < 300;
       appendLedger(ledger, { event: ok ? 'completed' : 'failed', request: reserved, status: upstream.status,
         sha256: hash.digest('hex'), bytes, at: new Date().toISOString() });
@@ -86,19 +96,24 @@ export async function createGateway({ socket, dir, limit, provider }) {
       }
       if (!res.headersSent) res.writeHead(503, { 'content-type': 'text/plain' });
       res.end('generation gateway stopped');
-    } finally { if (active) inflight--; }
+    } finally {
+      if (active) inflight--;
+      pending--;
+      if (pending === 0) while (waiters.length) waiters.shift()();
+    }
   });
   await new Promise((resolve, reject) => { server.once('error', reject); server.listen(socket, resolve); });
   return {
-    status: () => ({ count, failure, inflight }),
+    status: () => ({ count, failure, inflight, pending }),
     stop: reason => fail(reason),
+    async idle() { if (pending) await new Promise(resolve => waiters.push(resolve)); },
     async close() { await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve())); }
   };
 }
 
 // Explicit token validity only; no refresh or write to the host's auth store.
 export function xaiProviderFromCredential(credential, requestImpl = https.request) {
-  return async body => {
+  return async (body, { signal } = {}) => {
     if (credential?.type !== 'oauth' || !credential.access || !Number.isFinite(credential.expires) || credential.expires <= Date.now()) {
       throw new Error('xai OAuth access token unavailable or expired; refresh is not authorized here');
     }
@@ -106,7 +121,8 @@ export function xaiProviderFromCredential(credential, requestImpl = https.reques
     // therefore exactly one possible generation per durable reservation.
     return await new Promise((resolve, reject) => {
       const req = requestImpl('https://api.x.ai/v1/responses', {
-        method: 'POST', agent: false, signal: AbortSignal.timeout(15 * 60 * 1000),
+        method: 'POST', agent: false,
+        signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(15 * 60 * 1000)]) : AbortSignal.timeout(15 * 60 * 1000),
         headers: { 'content-type': 'application/json', authorization: `Bearer ${credential.access}` }
       }, response => resolve({ status: response.statusCode, contentType: response.headers['content-type'], body: response }));
       req.once('error', reject);

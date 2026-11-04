@@ -39,6 +39,7 @@ const errors = loader.getSkills().diagnostics.filter(diagnostic => diagnostic.ty
 if (errors.length) throw new Error(`skill discovery failed: ${JSON.stringify(errors)}`);
 const { session } = await createAgentSession({ cwd, agentDir, model, thinkingLevel: 'xhigh',
   modelRuntime: runtime, resourceLoader: loader, settingsManager: settings, sessionManager: SessionManager.inMemory() });
+if (session.thinkingLevel !== 'xhigh') throw new Error('fixed xhigh setting was not applied');
 session.subscribe(event => {
   if (['tool_execution_start', 'tool_execution_end', 'message_end'].includes(event.type)) {
     console.log(JSON.stringify({ event }));
@@ -48,5 +49,5 @@ try {
   await session.prompt(fs.readFileSync('/job/prompt.txt', 'utf8'));
   const assistant = [...session.messages].reverse().find(message => message.role === 'assistant');
   console.log(JSON.stringify({ final: session.messages, thinking: session.thinkingLevel }));
-  if (!assistant || ['error', 'aborted', 'length'].includes(assistant.stopReason)) process.exitCode = 1;
+  if (!assistant || assistant.stopReason !== 'stop') process.exitCode = 1;
 } finally { session.dispose(); }
