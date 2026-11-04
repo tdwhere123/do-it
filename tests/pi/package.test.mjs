@@ -123,6 +123,9 @@ test("Pi package exposes one extension and optional namespaced subagents", () =>
 	assert.deepEqual(manifest.pi.subagents.agents, ["./agents"]);
 	assert.deepEqual(manifest.pi.prompts, ["./agents"]);
 	assert.equal(manifest.peerDependenciesMeta["pi-subagents"].optional, true);
+	assert.equal(manifest.peerDependencies["@earendil-works/pi-coding-agent"], "~1.5.0");
+	assert.equal(manifest.peerDependencies["pi-subagents"], "0.35.1");
+	assert.equal(manifest.devDependencies["pi-subagents"], "0.35.1");
 	assert.equal(manifest.engines.node, ">=22.19.0");
 	assert.equal(manifest.publishConfig.access, "public");
 	assert.equal(
