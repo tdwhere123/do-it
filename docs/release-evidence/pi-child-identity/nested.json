@@ -1,0 +1,361 @@
+{
+  "scenario": "nested",
+  "expectedPatched": true,
+  "pi": "1.5.0",
+  "runtime": "0.23.0",
+  "provider": "local faux; network fetch denied",
+  "requests": 7,
+  "source": "/home/tdwhere/vibe/pi-subagents-child-identity",
+  "writer": "documentation-engineer",
+  "canonicalRoles": [
+    "architecture-strategist",
+    "code-mapper",
+    "code-quality-cleaner",
+    "decision-challenger",
+    "documentation-engineer",
+    "red-team-reviewer",
+    "reviewer",
+    "test-engineer"
+  ],
+  "nativeCatalog": "The type of specialized agent to use. Available types: general-purpose, Explore, Plan, architecture-strategist, code-mapper, code-quality-cleaner, decision-challenger, documentation-engineer, red-team-reviewer, reviewer, test-engineer, probe-filtered, probe-nested. Custom agents from .pi/agents/*.md (project) or /tmp/do-it-pi-primary-v2VodQ/agent/agents/*.md (global) are also available.",
+  "node": "v24.21.0",
+  "fixtureHashes": {
+    "primary-probe.mjs": "8f0679ee1c259c1725247b1be4dff6fdb7ae81cb5988d54329c49aaced4f6fa8",
+    "primary-observer.mjs": "060c9faa83ac552fc19ea3d4fb5017175b65c67c70931946dbb8374d4c28c708"
+  },
+  "canonicalAgentHashes": {
+    "architecture-strategist": "69130ec1a11a53b8bced727b84546591343b1f5bc7c967402f2bcd096c3b8fe8",
+    "code-mapper": "5af83b313e3730be8aaa71c3795554cffe248f06c18412471706064d82d595ca",
+    "code-quality-cleaner": "c61076a19631b603e9224c1f0e69135804d37b6a44fa5828e5f34b1e0f22191e",
+    "decision-challenger": "83c37126abc713cc30ddd47fb81cc51dc4ca75c7d3483d26673d1b76047fc342",
+    "documentation-engineer": "d0b68207b225d6b7824201c566c679a71c388a4fa7d4ab31979ed3b996635661",
+    "red-team-reviewer": "17ebe5e6582855818642df9c51ecd15cddb248cd3e6c672b18b1c6b53c4f86fb",
+    "reviewer": "851dddb417ad73c0c2076524e721e23f562773cd909c136892b393b89262c46a",
+    "test-engineer": "c37eccac9bf6b7babd7e5c09d1367901670912625221a1f5f53267cee2586540"
+  },
+  "hashes": {
+    "src/agent-runner.ts": "c3c520ac339dedc057ba86714b4b7b8e87d819a6638521c7e7f0fd4883f1dc56",
+    "src/index.ts": "e86a53e37c782c30248ae8c41ba42fed535cb089c823ebb325bca16d7889cba0",
+    "src/session-context.ts": "be235d3d1fefe7bf9aabf6ded7950b62f5d83ef9bb61d9d1085f76c20a81c93c"
+  },
+  "adapterHash": "9742a85b5ae04d2ed830d712458bf508c84da276395c1edf0912c34e378cde1b",
+  "stanceHash": "7d1e7a7c1d4a785ebe3e7ab2aba597235a5581f86fcae23b5ed7f326fbf3deff",
+  "sessions": [
+    {
+      "type": "before",
+      "sessionId": "01a1a50f-67f2-77c2-8934-431c4d979bfb",
+      "prompt": "PROBE:root",
+      "identity": {
+        "version": 1,
+        "runtime": "@tintinweb/pi-subagents",
+        "role": "root"
+      },
+      "tools": [
+        {
+          "type": "tool",
+          "sessionId": "01a1a50f-67f2-77c2-8934-431c4d979bfb",
+          "name": "Agent",
+          "input": {
+            "subagent_type": "probe-nested",
+            "prompt": "PROBE:nested",
+            "description": "probe-nested",
+            "run_in_background": false
+          },
+          "identity": {
+            "version": 1,
+            "runtime": "@tintinweb/pi-subagents",
+            "role": "root"
+          },
+          "error": false,
+          "content": [
+            {
+              "type": "text",
+              "text": "Agent completed in 0.1s (1 tool uses, 4.9k token).\n\nfixture nested complete"
+            }
+          ]
+        }
+      ],
+      "processChildFlag": null,
+      "parent": null,
+      "registeredTools": [
+        "read",
+        "bash",
+        "powershell",
+        "edit",
+        "write",
+        "grep",
+        "find",
+        "ls",
+        "probe_wait",
+        "probe_control",
+        "Agent",
+        "SubagentWorkflow",
+        "get_subagent_result",
+        "steer_subagent"
+      ],
+      "modelRequests": 2,
+      "state": {
+        "user_turn": 1,
+        "kernel_text": "Do-it: Preserve the user's goal, settled decisions, and authorization boundary. Prior authorization remains valid within its scope. Review, diagnosis, and planning authorize inspection and reporting, not implementation; explicit no-write scope also applies to delegates. Use native host permissions for enforcement. Work from current facts and distinguish assumptions. Fix the causal owner with necessary scope. Support claims with relevant actual evidence and name gaps. Choose useful skills and methods for the task, without prescribed workflow phases. Independent contexts gather evidence and test assumptions; the parent integrates and verifies."
+      },
+      "start": {
+        "type": "start",
+        "sessionId": "01a1a50f-67f2-77c2-8934-431c4d979bfb",
+        "reason": "startup",
+        "parent": null,
+        "file": "/tmp/do-it-pi-primary-v2VodQ/sessions/2026-11-04T05-36-52-723Z_01a1a50f-67f2-77c2-8934-431c4d979bfb.jsonl"
+      },
+      "contexts": [
+        {
+          "type": "context",
+          "sessionId": "01a1a50f-67f2-77c2-8934-431c4d979bfb",
+          "identity": {
+            "version": 1,
+            "runtime": "@tintinweb/pi-subagents",
+            "role": "root"
+          },
+          "stance": 0,
+          "core": true
+        },
+        {
+          "type": "context",
+          "sessionId": "01a1a50f-67f2-77c2-8934-431c4d979bfb",
+          "identity": {
+            "version": 1,
+            "runtime": "@tintinweb/pi-subagents",
+            "role": "root"
+          },
+          "stance": 0,
+          "core": true
+        }
+      ],
+      "shutdown": [
+        {
+          "type": "shutdown",
+          "sessionId": "01a1a50f-67f2-77c2-8934-431c4d979bfb",
+          "reason": "quit"
+        }
+      ]
+    },
+    {
+      "type": "before",
+      "sessionId": "01a1a50f-6a12-77c2-8934-431f70b28313",
+      "prompt": "PROBE:nested",
+      "identity": {
+        "version": 1,
+        "runtime": "@tintinweb/pi-subagents",
+        "role": "child"
+      },
+      "tools": [
+        {
+          "type": "tool",
+          "sessionId": "01a1a50f-6a12-77c2-8934-431f70b28313",
+          "name": "Agent",
+          "input": {
+            "subagent_type": "documentation-engineer",
+            "prompt": "PROBE:leaf",
+            "description": "probe-leaf",
+            "run_in_background": false
+          },
+          "identity": {
+            "version": 1,
+            "runtime": "@tintinweb/pi-subagents",
+            "role": "child"
+          },
+          "error": false,
+          "content": [
+            {
+              "type": "text",
+              "text": "fixture leaf complete"
+            }
+          ]
+        }
+      ],
+      "processChildFlag": null,
+      "parent": "/tmp/do-it-pi-primary-v2VodQ/sessions/2026-11-04T05-36-52-723Z_01a1a50f-67f2-77c2-8934-431c4d979bfb.jsonl",
+      "registeredTools": [
+        "read",
+        "bash",
+        "powershell",
+        "write",
+        "probe_wait",
+        "probe_control",
+        "codemode",
+        "tool_search",
+        "Agent",
+        "get_subagent_result",
+        "steer_subagent"
+      ],
+      "modelRequests": 2,
+      "state": {
+        "hook_invocations": {
+          "subagent_stance": 1,
+          "subagent_dispatch": 1
+        },
+        "subagent_stance_seen": "1"
+      },
+      "start": {
+        "type": "start",
+        "sessionId": "01a1a50f-6a12-77c2-8934-431f70b28313",
+        "reason": "startup",
+        "parent": "/tmp/do-it-pi-primary-v2VodQ/sessions/2026-11-04T05-36-52-723Z_01a1a50f-67f2-77c2-8934-431c4d979bfb.jsonl",
+        "file": "/tmp/do-it-pi-primary-v2VodQ/agent/sessions/--tmp-do-it-pi-primary-v2VodQ-project--/2026-11-04T05-36-53-266Z_01a1a50f-6a12-77c2-8934-431f70b28313.jsonl"
+      },
+      "contexts": [
+        {
+          "type": "context",
+          "sessionId": "01a1a50f-6a12-77c2-8934-431f70b28313",
+          "identity": {
+            "version": 1,
+            "runtime": "@tintinweb/pi-subagents",
+            "role": "child"
+          },
+          "stance": 1,
+          "core": false
+        },
+        {
+          "type": "context",
+          "sessionId": "01a1a50f-6a12-77c2-8934-431f70b28313",
+          "identity": {
+            "version": 1,
+            "runtime": "@tintinweb/pi-subagents",
+            "role": "child"
+          },
+          "stance": 1,
+          "core": false
+        }
+      ],
+      "shutdown": [
+        {
+          "type": "shutdown",
+          "sessionId": "01a1a50f-6a12-77c2-8934-431f70b28313",
+          "reason": "quit"
+        }
+      ]
+    },
+    {
+      "type": "before",
+      "sessionId": "01a1a50f-6a53-77c2-8934-4321822acd02",
+      "prompt": "PROBE:leaf",
+      "identity": {
+        "version": 1,
+        "runtime": "@tintinweb/pi-subagents",
+        "role": "child"
+      },
+      "tools": [
+        {
+          "type": "tool",
+          "sessionId": "01a1a50f-6a53-77c2-8934-4321822acd02",
+          "name": "write",
+          "input": {
+            "path": "leaf.md",
+            "content": "fixture evidence\n"
+          },
+          "identity": {
+            "version": 1,
+            "runtime": "@tintinweb/pi-subagents",
+            "role": "child"
+          },
+          "error": false,
+          "content": [
+            {
+              "type": "text",
+              "text": "Successfully wrote to leaf.md"
+            }
+          ]
+        },
+        {
+          "type": "tool",
+          "sessionId": "01a1a50f-6a53-77c2-8934-4321822acd02",
+          "name": "bash",
+          "input": {
+            "command": "printf fixture-evidence"
+          },
+          "identity": {
+            "version": 1,
+            "runtime": "@tintinweb/pi-subagents",
+            "role": "child"
+          },
+          "error": false,
+          "content": [
+            {
+              "type": "text",
+              "text": "fixture-evidence"
+            }
+          ]
+        }
+      ],
+      "processChildFlag": null,
+      "parent": null,
+      "registeredTools": [
+        "read",
+        "bash",
+        "powershell",
+        "edit",
+        "write",
+        "probe_wait",
+        "probe_control",
+        "codemode",
+        "tool_search"
+      ],
+      "modelRequests": 3,
+      "state": {
+        "hook_invocations": {
+          "subagent_stance": 1,
+          "subagent_dispatch": 1
+        },
+        "subagent_stance_seen": "1"
+      },
+      "start": {
+        "type": "start",
+        "sessionId": "01a1a50f-6a53-77c2-8934-4321822acd02",
+        "reason": "startup",
+        "parent": null,
+        "file": null
+      },
+      "contexts": [
+        {
+          "type": "context",
+          "sessionId": "01a1a50f-6a53-77c2-8934-4321822acd02",
+          "identity": {
+            "version": 1,
+            "runtime": "@tintinweb/pi-subagents",
+            "role": "child"
+          },
+          "stance": 1,
+          "core": false
+        },
+        {
+          "type": "context",
+          "sessionId": "01a1a50f-6a53-77c2-8934-4321822acd02",
+          "identity": {
+            "version": 1,
+            "runtime": "@tintinweb/pi-subagents",
+            "role": "child"
+          },
+          "stance": 1,
+          "core": false
+        },
+        {
+          "type": "context",
+          "sessionId": "01a1a50f-6a53-77c2-8934-4321822acd02",
+          "identity": {
+            "version": 1,
+            "runtime": "@tintinweb/pi-subagents",
+            "role": "child"
+          },
+          "stance": 1,
+          "core": false
+        }
+      ],
+      "shutdown": [
+        {
+          "type": "shutdown",
+          "sessionId": "01a1a50f-6a53-77c2-8934-4321822acd02",
+          "reason": "quit"
+        }
+      ]
+    }
+  ],
+  "controls": []
+}

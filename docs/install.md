@@ -132,12 +132,19 @@ pi install npm:@tdwhere/do-it-pi@0.19.0
 
 Before registry publication or for package development, a local checkout can
 run `npm run install:pi-global`, then `/reload` in Pi. The extension, skills,
-and prompt templates work without extra packages. To use the primary subagent
-runtime, install it separately:
+and prompt templates work without extra packages. Correct child routing with
+the primary runtime `@tintinweb/pi-subagents` currently requires an unpublished
+source patch, not its unpatched npm 0.23.0 release. Prepare and review the
+[native verification record's source patch](release-evidence/pi-child-identity.md),
+then deliberately select that local runtime source instead of the old one:
 
 ```bash
-pi install npm:@tintinweb/pi-subagents@0.23.0
+pi install /path/to/pi-subagents-child-identity
 ```
+
+First inspect `pi list` and remove only the previous selected runtime package
+registration, if present; do not load both versions together. This is an
+operator action, not something do-it's installer or tests perform.
 
 It currently discovers package roles under bare names such as `code-mapper`;
 the separate `pi-subagents` compatibility runtime uses names such as
@@ -145,11 +152,21 @@ the separate `pi-subagents` compatibility runtime uses names such as
 won: user and project roles can override package roles. `/do-it-status` reports
 Bash, hook diagnostics, and tool registration, not role discovery.
 
-Pi 1.5.0 with Tintinweb 0.23.0 was probed locally with a fake provider. A
-persisted, non-nested child received the stance; in-memory and nested children
-can be mistaken for roots and are not yet supported. Its replacement prompt
-does not inherit project instruction files, so pass relevant constraints in the
-delegation. Tool lists and read-only instructions are not a sandbox. See
+Provider-free native tests on Pi 1.5.0 cover patched persisted, in-memory and
+nested children, ordinary forks, extension filtering, and cancelling one child
+while its sibling continues. The creator supplies session-local identity;
+`PI_SUBAGENT_CHILD=1` remains a separate subprocess marker. Without either,
+identity is **unmarked**, root hooks apply, and status warns explicitly.
+Unpatched Tintinweb 0.23.0 children are unsupported; lineage and tool presence
+are no longer guessed. No live installation was patched by these tests.
+
+The compatibility runtime's 0.35.1 discovery projection is tested, but its Pi
+1.5 lifecycle is **NOT_VERIFIED**. Both runtimes consume the same package agent
+declaration with different metadata semantics; separate runtime activation is
+still unresolved. Tintinweb's replacement prompt does not inherit project
+instruction files, so pass required constraints in the delegation. Tool lists,
+read-only instructions, and this trusted-extension identity seam are not a
+sandbox. See
 [`plugins/do-it-pi/README.md`](../plugins/do-it-pi/README.md) for details.
 
 `pi update` updates Pi; `pi update --extensions` reconciles extension packages.

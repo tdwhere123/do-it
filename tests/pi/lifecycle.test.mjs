@@ -18,6 +18,7 @@ const {
 	assistantTextFromMessages,
 	createDoItPiExtension,
 	isPiSubagent,
+	piSessionRole,
 	resolvePiAgentDir,
 } = await import(indexUrl);
 
@@ -34,13 +35,20 @@ function rmTemp(dir) {
 	fs.rmSync(dir, { recursive: true, force: true });
 }
 
-function fakePi(toolNames = ["read", "subagent"]) {
+function fakePi(toolNames = ["read", "subagent"], role) {
 	const handlers = new Map();
 	const commands = new Map();
 	return {
 		handlers,
 		commands,
 		api: {
+			events: {
+				emit(name, request) {
+					if (name === "subagents:session-context" && role) {
+						request.reply({ version: 1, runtime: "@tintinweb/pi-subagents", role });
+					}
+				},
+			},
 			on(name, handler) {
 				handlers.set(name, handler);
 			},
@@ -145,105 +153,65 @@ test("do-it-status reports tool registration without inferring agent discovery",
 			presentContext.hasUI = true;
 			await present.commands.get("do-it-status").handler("", presentContext);
 			assert.match(presentContext.notices[0].message, /subagent tool: registered/i);
-			assert.match(presentContext.notices[0].message, /does not verify do-it\.\*/i);
+			assert.match(presentContext.notices[0].message, /does not verify package-agent discovery or source/i);
+			assert.match(presentContext.notices[0].message, /session role: unmarked/);
+			assert.match(presentContext.notices[0].message, /unpatched Tintinweb children are unsupported/);
 		}
 	} finally {
 		rmTemp(cwd);
 	}
 });
 
-test("in-process child detection requires manager, lineage, and no delegation tool", () => {
-	const key = Symbol.for("pi-subagents:manager");
-	const previous = Object.getOwnPropertyDescriptor(globalThis, key);
-	const ctx = fakeContext("/tmp/pi-child");
-	try {
-		delete globalThis[key];
+test("session identity requires the runtime's versioned response, not tools or lineage", () => {
+	for (const role of ["root", "child"]) {
+		for (const tools of [[], ["Agent"], ["subagent"]]) {
+			assert.equal(piSessionRole({}, fakePi(tools, role).api), role);
+		}
+	}
+	assert.equal(piSessionRole({}, fakePi(["Agent"]).api), "unmarked");
+	for (const reply of [null, {}, { version: 2, runtime: "@tintinweb/pi-subagents", role: "child" },
+		{ version: 1, runtime: "another-runtime", role: "child" }]) {
+		assert.equal(piSessionRole({}, { events: { emit: (_name, request) => request.reply(reply) } }), "unmarked");
+	}
+});
+
+for (const role of ["root", "child"]) {
+	test(`${role} identity selects hooks even with nested Agent and parent lineage`, async () => {
+		const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-pi-identity-"));
+		const calls = [];
+		const pi = fakePi(["read", "edit", "Agent"], role);
+		createDoItPiExtension({
+			env: { HOME: cwd, DO_IT_EVIDENCE_MODE: "observe" },
+			runHook: async (_dir, script) => {
+				calls.push(script);
+				return { exitCode: 0, stdout: "", stderr: "", additionalContext: script };
+			},
+		})(pi.api);
+		const ctx = fakeContext(cwd);
 		ctx.sessionManager.getHeader = () => ({ parentSession: "/tmp/parent.jsonl" });
-		assert.equal(isPiSubagent({}, fakePi(["read"]).api, ctx), false, "lineage alone is not a child marker");
-		globalThis[key] = {};
-		for (const name of ["Agent", "subagent"]) {
-			assert.equal(isPiSubagent({}, fakePi(["read", name]).api, ctx), false, "ordinary forks retain their delegation tool");
-		}
-		assert.equal(isPiSubagent({}, fakePi(["read"]).api, ctx), true);
-		ctx.sessionManager.getHeader = () => null;
-		assert.equal(isPiSubagent({}, fakePi(["read"]).api, ctx), false, "shared manager alone does not establish a child");
-		ctx.sessionManager.getHeader = () => ({});
-		assert.equal(isPiSubagent({}, fakePi(["read"]).api, ctx), false);
-	} finally {
-		if (previous) Object.defineProperty(globalThis, key, previous);
-		else delete globalThis[key];
-	}
-});
-
-test("persisted fork child uses stance and skips root hooks without claiming inherited tool discovery", async () => {
-	const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-pi-fork-child-"));
-	const key = Symbol.for("pi-subagents:manager");
-	const previous = Object.getOwnPropertyDescriptor(globalThis, key);
-	const calls = [];
-	const pi = fakePi(["read", "edit"]);
-	createDoItPiExtension({
-		env: { HOME: cwd, DO_IT_EVIDENCE_MODE: "observe" },
-		runHook: async (_dir, script) => {
-			calls.push(script);
-			return { exitCode: 0, stdout: "", stderr: "", additionalContext: script };
-		},
-	})(pi.api);
-	const ctx = fakeContext(cwd);
-	ctx.sessionManager.getHeader = () => ({ parentSession: "/tmp/parent.jsonl" });
-	try {
-		// The parent manager becomes available after extension registration.
-		globalThis[key] = {};
-		const result = await pi.handlers.get("before_agent_start")({ prompt: "delegated task" }, ctx);
-		assert.equal(result.message.customType, "do-it");
-		assert.equal(result.message.content, "subagent-stance.sh");
-		for (const toolName of ["edit", "bash"]) {
-			assert.equal(await pi.handlers.get("tool_result")({ toolName, input: {}, content: [] }, ctx), undefined);
-		}
-		assert.deepEqual(calls, ["subagent-stance.sh"]);
-		ctx.hasUI = true;
-		await pi.commands.get("do-it-status").handler("", ctx);
-		assert.match(ctx.notices[0].message, /session role: subagent/);
-		assert.match(ctx.notices[0].message, /subagent tool: not registered in this session/);
-		assert.doesNotMatch(ctx.notices[0].message, /optional pi-subagents missing|subagent tool: registered/);
-
-		// Switching to an ordinary fork restores root behavior even though the
-		// manager and lineage remain. A tool may be registered but inactive.
-		pi.api.getAllTools = () => [{ name: "read" }, { name: "Agent", exposure: "hidden" }];
-		calls.length = 0;
-		const rootResult = await pi.handlers.get("before_agent_start")({ prompt: "normal fork" }, ctx);
-		assert.equal(rootResult.message.content, "prompt-submit.sh");
-		await pi.handlers.get("tool_result")({ toolName: "edit", input: {}, content: [] }, ctx);
-		assert.deepEqual(calls, ["prompt-submit.sh", "evidence-observer.sh", "write-quality-lint.sh"]);
-	} finally {
-		if (previous) Object.defineProperty(globalThis, key, previous);
-		else delete globalThis[key];
-		rmTemp(cwd);
-	}
-});
+		try {
+			const result = await pi.handlers.get("before_agent_start")({ prompt: "assigned task" }, ctx);
+			assert.equal(result.message.content, role === "child" ? "subagent-stance.sh" : "prompt-submit.sh");
+			await pi.handlers.get("tool_result")({ toolName: "edit", input: {}, content: [] }, ctx);
+			assert.deepEqual(calls, role === "child" ? ["subagent-stance.sh"] : ["prompt-submit.sh", "evidence-observer.sh", "write-quality-lint.sh"]);
+		} finally { rmTemp(cwd); }
+	});
+}
 
 test("in-process child delivers real shell stance with a subprocess-only child flag", async () => {
 	const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-pi-native-stance-"));
-	const key = Symbol.for("pi-subagents:manager");
-	const previous = Object.getOwnPropertyDescriptor(globalThis, key);
 	const previousChildFlag = process.env.PI_SUBAGENT_CHILD;
 	const env = { ...process.env, HOME: cwd, PI_CODING_AGENT_DIR: cwd, PI_SUBAGENT_CHILD: "" };
-	const pi = fakePi(["read"]);
+	const pi = fakePi(["read", "Agent"], "child");
 	createDoItPiExtension({ env, pluginRoot: path.join(repoRoot, "plugins/do-it-pi") })(pi.api);
-	const ctx = fakeContext(cwd);
-	ctx.sessionManager.getHeader = () => ({ parentSession: "/tmp/parent.jsonl" });
 	try {
-		globalThis[key] = {};
-		const result = await pi.handlers.get("before_agent_start")({ prompt: "inspect assigned files" }, ctx);
+		const result = await pi.handlers.get("before_agent_start")({ prompt: "inspect assigned files" }, fakeContext(cwd));
 		assert.equal(result?.message.customType, "do-it");
 		assert.match(result.message.content, /do-it subagent stance:/);
 		assert.doesNotMatch(result.message.content, KERNEL_NEEDLE);
 		assert.equal(env.PI_SUBAGENT_CHILD, "");
 		assert.equal(process.env.PI_SUBAGENT_CHILD, previousChildFlag);
-	} finally {
-		if (previous) Object.defineProperty(globalThis, key, previous);
-		else delete globalThis[key];
-		rmTemp(cwd);
-	}
+	} finally { rmTemp(cwd); }
 });
 
 test("advisory hook failures become context instead of rejecting Pi lifecycle", async () => {

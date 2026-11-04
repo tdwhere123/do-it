@@ -110,21 +110,33 @@ pi install npm:@tdwhere/do-it-pi@0.19.0
 
 registry 尚未发布或开发该包时可使用本地 checkout：运行
 `npm run install:pi-global`，然后在 Pi 中执行 `/reload`。核心 extension、skills
-与 prompt templates 不依赖额外包。如需使用主要的 subagent runtime，单独安装：
+与 prompt templates 不依赖额外包。主要 runtime `@tintinweb/pi-subagents` 的正确
+子会话路由目前需要尚未发布的源码补丁，而不是未打补丁的 npm 0.23.0。
+先按[原生验证记录](release-evidence/pi-child-identity.md)准备并审查补丁，再明确选择
+本地 runtime 来源来替代旧来源：
 
 ```bash
-pi install npm:@tintinweb/pi-subagents@0.23.0
+pi install /path/to/pi-subagents-child-identity
 ```
+
+先检查 `pi list`，如已有旧 runtime，只移除该 runtime 的包注册；不要同时加载两份。
+这是操作人员主动执行的步骤，do-it 安装器和测试不会代为修改现有安装。
 
 该 runtime 目前按裸名称发现 package roles，例如 `code-mapper`；另一个兼容性
 runtime `pi-subagents` 使用 `do-it.code-mapper` 等名称。工具已注册不代表已确认
 最终采用的角色来源：用户及项目角色可能覆盖 package roles。`/do-it-status` 报告
 Bash、hook 诊断及工具注册，并不验证角色发现。
 
-本地使用 fake provider 探针验证了 Pi 1.5.0 与 Tintinweb 0.23.0：持久化的非嵌套
-子会话收到了子代理职责提示；内存中或嵌套子会话可能被误判为主会话，目前尚不受支持。
-其替换提示不继承项目指令文件，应在委派任务中提供相关约束。工具列表和只读指令不是
-沙箱。详见 [`plugins/do-it-pi/README.md`](../plugins/do-it-pi/README.md)。
+Pi 1.5.0 上的无外部 provider 原生测试覆盖了打补丁后的持久化、内存中及嵌套子会话，
+普通 fork、extension 筛选，以及取消一个子会话而其兄弟会话继续运行的情况。
+创建者提供会话局部身份；`PI_SUBAGENT_CHILD=1` 仍是独立的子进程标记。两者均不可用时，
+身份为 **unmarked**，应用主会话 hooks，并在状态中明确警告。未打补丁的 Tintinweb
+0.23.0 子会话不受支持，不再根据会话谱系或工具存在性猜测。测试未修改任何现有安装。
+
+兼容 runtime 的 0.35.1 发现投影已测试，但其 Pi 1.5 生命周期仍为 **NOT_VERIFIED**。
+两个 runtime 读取相同的包级代理声明，却有不同的元数据语义；分别激活仍是未解决的限制。
+Tintinweb 的替换提示不继承项目指令文件，应在委派任务中提供必要约束。工具列表、
+只读指令及这个受信任 extension 身份接口都不是沙箱。详见 [`plugins/do-it-pi/README.md`](../plugins/do-it-pi/README.md)。
 
 `pi update` 更新 Pi 本身；`pi update --extensions` 协调 extension packages，固定版本
 的来源仍保持固定。构建与独立打包验证使用 `npm run test-pi` 和

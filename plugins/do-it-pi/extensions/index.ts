@@ -51,18 +51,30 @@ function hasSubagentTool(pi: Pick<ExtensionAPI, "getAllTools">): boolean {
 	return pi.getAllTools().some((tool) => tool.name === "Agent" || tool.name === "subagent");
 }
 
+export function piSessionRole(
+	env: NodeJS.ProcessEnv = process.env,
+	pi?: Pick<ExtensionAPI, "events">,
+): "child" | "root" | "unmarked" {
+	// nicobailon's subprocess contract remains separate from Tintinweb's
+	// in-process session identity. Never flip process.env for a child session.
+	if (env.PI_SUBAGENT_CHILD === "1") return "child";
+	let role: "child" | "root" | "unmarked" = "unmarked";
+	pi?.events.emit("subagents:session-context", {
+		reply(value: unknown) {
+			if (!value || typeof value !== "object") return;
+			const context = value as Record<string, unknown>;
+			if (context.version === 1 && context.runtime === "@tintinweb/pi-subagents" &&
+				(context.role === "child" || context.role === "root")) role = context.role;
+		},
+	});
+	return role;
+}
+
 export function isPiSubagent(
 	env: NodeJS.ProcessEnv = process.env,
-	pi?: Pick<ExtensionAPI, "getAllTools">,
-	ctx?: Pick<ExtensionContext, "sessionManager">,
+	pi?: Pick<ExtensionAPI, "events">,
 ): boolean {
-	if (env.PI_SUBAGENT_CHILD === "1") return true;
-	// @tintinweb/pi-subagents 0.19 loads child extensions but omits its Agent
-	// tool. Its process-wide manager alone is not a child marker; ordinary
-	// forks also have parentSession. Require all three signals at event time.
-	const manager = Reflect.get(globalThis, Symbol.for("pi-subagents:manager"));
-	if (!manager || !pi || !ctx || hasSubagentTool(pi)) return false;
-	return Boolean(ctx.sessionManager.getHeader()?.parentSession);
+	return piSessionRole(env, pi) === "child";
 }
 
 export function appendToolResultContext<T>(
@@ -197,7 +209,7 @@ export function createDoItPiExtension(
 	): Promise<HookResult> {
 		try {
 			const result = await runHook(hooksDir, scriptName, payload, {
-				// The shell hook also checks child identity. Scope the inferred flag
+				// The shell hook also checks child identity. Scope the explicit flag
 				// to this invocation; in-process siblings share process.env.
 				env: {
 					...hookEnvironment(),
@@ -240,22 +252,24 @@ export function createDoItPiExtension(
 
 	return function doItPiExtension(pi: ExtensionAPI): void {
 		const processOwner = createHookProcessOwner();
-		function childSession(ctx: ExtensionContext): boolean {
-			return isPiSubagent(currentEnv(), pi, ctx);
+		function childSession(): boolean {
+			return isPiSubagent(currentEnv(), pi);
 		}
 
 		pi.registerCommand("do-it-status", {
 			description: "Show do-it Pi adapter status and last hook diagnostic.",
 			handler: async (_args, ctx) => {
 				const hasSubagentRuntime = hasSubagentTool(pi);
+				const role = piSessionRole(currentEnv(), pi);
 				const status = [
 					`do-it Pi adapter: active`,
-					`session role: ${childSession(ctx) ? "subagent" : "root"}`,
+					`session role: ${role === "child" ? "subagent" : role}`,
+					...(role === "unmarked" ? ["runtime identity unavailable: root hooks apply; unpatched Tintinweb children are unsupported"] : []),
 					`hooks directory: ${hooksDir}`,
 					`data directory: ${dataDir()}`,
 					`Bash hook runner: ${resolveBash(currentEnv()) ? "available" : "unavailable"}`,
 					hasSubagentRuntime
-						? "subagent tool: registered; this command does not verify do-it.* package-agent discovery"
+						? "subagent tool: registered; this command does not verify package-agent discovery or source"
 						: "subagent tool: not registered in this session; extension, skills, and prompts remain active",
 					`last hook diagnostic: ${lastDiagnostic ?? "none"}`,
 				].join("\n");
@@ -272,7 +286,7 @@ export function createDoItPiExtension(
 			const prompt = "prompt" in event && typeof event.prompt === "string" ? event.prompt : "";
 			const contexts: string[] = [];
 
-			if (childSession(ctx)) {
+			if (childSession()) {
 				const result = await invokeHook(
 					"subagent-stance.sh",
 					basePayload(ctx, { prompt }),
@@ -305,7 +319,7 @@ export function createDoItPiExtension(
 		});
 
 		pi.on("tool_result", async (event, ctx) => {
-			if (childSession(ctx)) return undefined;
+			if (childSession()) return undefined;
 			if (currentEnv().DO_IT_EVIDENCE_MODE === "observe" && isEvidenceTool(event.toolName)) {
 				await invokeHook(
 					"evidence-observer.sh",
