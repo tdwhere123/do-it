@@ -23,7 +23,8 @@ workflow, or report.
 | Grok Build | [Generated bundle installation](./docs/install.md#grok-build) |
 
 [Installation details](./docs/install.md) cover host setup and smoke checks.
-This documentation describes 0.19.0. The previously published 0.18.1 tarballs
+The latest published release is 0.19.0; `main` now targets unreleased 0.19.1.
+The previously published 0.18.1 tarballs
 do not contain these changes; check the installed package version rather than
 assuming it matches a local checkout. Codex specialists require the separate
 native-agent setup described in that guide. OpenCode and Kimi Code repository support is

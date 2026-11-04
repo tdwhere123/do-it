@@ -24,17 +24,20 @@ and registry publication separate. The [0.19.0 source checkpoint](./release-evid
 records an earlier prompt, role, evaluator and compatibility checkpoint, when
 the Tintinweb migration was still isolated. Creator identity and lifecycle fixes
 are now integrated; [standalone package evidence](./release-evidence/pi-primary-package.md)
-verifies the bundled patch and preparation recipe. Live activation and registry
-publication still require their own evidence.
+verifies the bundled patch and preparation recipe. The final
+[publication and Pi activation record](./release-evidence/0.19.0-release.md)
+confirms registry bytes and the installed pair; the
+[prompt comparison](./release-evidence/0.19.0-behavior-pairs.md) states its
+contamination and does not claim an efficacy gain.
 
 ## Current Truth Planes
 
 | Plane | Current repository evidence |
 | --- | --- |
-| Source/package | Release metadata is `0.19.0`: 10 runnable skills, 1 generated discovery entry, and 8 specialists. Prompt revisions, role consolidation, router removal, and host fixes are source changes, not a measured model-efficacy or publication claim. |
-| Git tag | Create `v0.19.0` on the verified release commit as part of the authorized release; do not push it without authorization; do not retro-tag or move historical releases to conceal source/package drift. Version metadata or a tag alone does not prove npm publication. |
-| Marketplace/npm | Registry queries on 2026-11-04 confirm both `@tdwhere/do-it` and `@tdwhere/do-it-pi` 0.18.1 were published on 2026-10-17. The source continued changing under that version; these tarballs are not the current adapter. The authorized 0.19.0 release uses separately verified root and Pi tarballs. Verify both exact versions and integrity values in the registry before claiming publication. Cursor marketplace listing remains pending. |
-| Live host | Only host install/inspection evidence proves an active version. Source, package, tag, and live host may differ. |
+| Source/package | Published release `0.19.0`; `main` now carries unreleased `0.19.1` metadata: 10 runnable skills, 1 generated discovery entry, and 8 specialists. Prompt revisions, role consolidation, router removal, and host fixes are source changes, not a measured model-efficacy or publication claim. |
+| Git tag | `v0.19.0` identifies `61bdc12`, whose packed payloads match the published artifacts. Do not retro-tag or move historical releases to conceal source/package drift. Version metadata or a tag alone does not prove npm publication. |
+| Marketplace/npm | Registry queries on 2026-11-04 confirm both `@tdwhere/do-it` and `@tdwhere/do-it-pi` 0.18.1 were published on 2026-10-17. The source continued changing under that version; these tarballs are not the current adapter. Both 0.19.0 packages were published on 2026-11-04 and downloaded from a fresh cache; their registry integrities and bytes match the verified tarballs. See the final release record. Cursor marketplace listing remains pending. |
+| Live host | The [seven non-Pi installations](./release-evidence/local-deployment-0.19.0.md) and [Linux Pi pair](./release-evidence/0.19.0-release.md) are pinned to verified 0.19.0 payloads, not development `main`. Reload existing sessions; source metadata alone does not identify loaded code. |
 
 ## Tag Policy
 

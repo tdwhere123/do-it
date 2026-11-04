@@ -1,5 +1,7 @@
 # Changelog
 
+## 0.19.1 (unreleased)
+
 ## 0.19.0 (2026-11-04)
 
 - **Prompt judgment:** revise the ten skills using pinned upstream prompt comparisons:

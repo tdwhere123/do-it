@@ -1,6 +1,6 @@
 {
   "name": "@tdwhere/do-it",
-  "version": "0.19.0",
+  "version": "0.19.1",
   "description": "Professional coding judgment, independent specialists, compact context, and deterministic checks across agent hosts.",
   "type": "module",
   "license": "MIT",
