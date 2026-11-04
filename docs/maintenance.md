@@ -252,7 +252,7 @@ target installs the **full** skill inventory (`ALL_SKILLS`) and adds:
   `grill-pretool` / `preToolUse` plan gate.
 - `scripts/build-cursor-plugin.mjs` — the only supported way to refresh the
   generated Cursor bundle; both local copy and managed CLI setup install the
-  full twelve-skill bundle.
+  `ALL_SKILLS` inventory (10 runnable) plus generated discovery.
 
 ### Maintaining the Cursor Target
 
@@ -263,7 +263,7 @@ target installs the **full** skill inventory (`ALL_SKILLS`) and adds:
   `plugins/do-it-cursor/skills/` or `plugins/do-it-cursor/agents/`.
 - **Hook change:** edit kernel scripts under `hooks/` and Cursor mapping under
   `install/cursor-hooks.json`; regenerate with `npm run build:cursor-plugin`.
-- **Install verification:** for `npm run install:cursor-local`, confirm all twelve
+- **Install verification:** for `npm run install:cursor-local`, confirm all 10
   skill directories plus generated discovery/reference files land under
   `~/.cursor/plugins/local/do-it-cursor` as a **real directory**, Reload Window,
   and inspect Customize → Hooks for do-it `.cmd` entries. Do not run ordinary
@@ -294,11 +294,14 @@ list entry as proof of which source loaded. See [Grok](../skills/do-it/reference
 Regenerate with `npm run build:pi-plugin`. Test with `npm run test-pi` and
 `npm run smoke:pi-package`; a live `pi-subagents` invocation is separate proof
 of specialist discovery. Reader tool lists still include Bash: read-only role
-instructions are not an operating-system sandbox. The development dependencies
-target Pi 1.1.0. Detection accepts either `Agent` or `subagent`; in-process child
-detection combines manager presence, parent-session lineage, and absence of
-both delegation tools. Isolated proof without the older loaded extension
-remains pending; see [Pi runtime boundaries](../skills/do-it/references/host-pi.md).
+instructions are not an operating-system sandbox. Development SDK packages are
+locked at Pi 1.5.0; the optional peer `~1.5.0` is policy, not proof of other
+patch versions. Child identity is `PI_SUBAGENT_CHILD=1` or a patched Tintinweb
+`subagents:session-context` reply; otherwise the session is unmarked and root
+hooks apply. Lineage and `Agent`/`subagent` tool presence are not identity.
+Published `@tintinweb/pi-subagents` 0.23.0 cannot provide creator identity.
+Repository tests do not patch a live installation; see
+[Pi runtime boundaries](../skills/do-it/references/host-pi.md).
 
 ## Codex Plugin Target
 

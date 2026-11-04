@@ -10,10 +10,12 @@ separately. Native sandbox and approval settings remain authoritative.
 
 The bundle uses `plugins/do-it/.codex-plugin/plugin.json`. An isolated native
 Codex 0.162.0 `plugin/read` comparison found zero hooks with root `plugin.json`
-and found hooks with the Codex manifest. The final repository bundle returned
-twelve skills and three hook declarations with Skills/Hooks capabilities.
-The builder removes the root manifest
-and plugin `agents/` directory; specialists use the separate native path below.
+and found hooks with the Codex manifest. That 0.162.0 probe also reported
+twelve skill entries and three hook declarations with Skills/Hooks
+capabilities; it is not this checkout's inventory. This source packages 10
+runnable skills plus one generated discovery entry. The builder removes the
+root manifest and plugin `agents/` directory; specialists use the separate
+native path below.
 
 Plugin skills/hooks and native specialist roles have separate installation
 paths. Codex loads `.codex/agents` or explicit configured roles, not the plugin
@@ -29,8 +31,8 @@ and PostToolUse to edit checks through `codex-post-tool.sh`, including native
 `apply_patch` file targets. Schema validation and native plugin skill
 discovery are not live hook-execution evidence.
 The default path has no task classifier, completion-language scan, profile
-injection, or automatic task selection. The router skill is a compatibility
-alias only. Choose useful skills directly from descriptions.
+injection, or automatic task selection. There is no router compatibility alias.
+Choose useful skills directly from descriptions.
 
 Independent specialists gather evidence and form conclusions in scoped contexts.
 Keep read-only and write ownership restrictions explicit; the parent integrates

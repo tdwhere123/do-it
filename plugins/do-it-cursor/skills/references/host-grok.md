@@ -18,7 +18,9 @@ agent inspect --json
 
 Reload the Plugins tab or start a new session. Inspect loaded source paths and
 actual skill and agent names, rather than relying on `plugin list` alone. The
-bundle projects the twelve canonical skills and ten specialist bodies. See
+bundle currently projects 10 runnable skills and 8 specialist bodies. A Grok
+Build 1.0.46 loaded-source inspection that reported twelve skills and ten
+specialists is historical, not this checkout's inventory. See
 [installation](https://github.com/tdwhere123/do-it/blob/main/docs/install.md#grok-build).
 
 ## Runtime boundaries

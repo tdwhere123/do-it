@@ -12,14 +12,16 @@ The installer preserves unrelated user hook entries and rolls back failed update
 
 sessionStart and beforeSubmitPrompt deliver context; postToolUse checks edits.
 The default path has no task classifier, completion-language scan, profile
-injection, or automatic task selection. The router skill is a compatibility
-alias only. Choose useful skills directly from descriptions.
+injection, or automatic task selection. There is no router compatibility alias.
+Choose useful skills directly from descriptions.
 
 Independent specialists gather evidence and form conclusions in scoped contexts.
 Keep read-only and write ownership restrictions explicit; the parent integrates
-and verifies. The Cursor builder renders canonical TOML directly and maps the eight read-only
-roles to native `readonly: true`. It does not copy Claude agents or their
-`disallowedTools` field. Verify active host permissions separately.
+and verifies. The Cursor builder renders canonical TOML directly and maps the
+six read-only roles to native `readonly: true`. It does not copy Claude agents
+or their `disallowedTools` field. Plugin-native hook loading versus the
+user-level `~/.cursor/hooks.json` mirror is not closed; native actual hook
+counts are unverified. Verify active host permissions separately.
 
 ## Diagnostics and migration
 
