@@ -139,7 +139,12 @@ test("published agent definitions are portable, namespaced, and budget-free", ()
 		.readdirSync(agentDir)
 		.filter((name) => name.endsWith(".md"))
 		.sort();
-	assert.equal(files.length, 10);
+	const canonical = fs.readdirSync(path.join(repoRoot, "agents"))
+		.filter((name) => name.endsWith(".toml"))
+		.map((name) => name.replace(/\.toml$/, ".md"))
+		.sort();
+	assert.ok(canonical.length > 0);
+	assert.deepEqual(files, canonical);
 
 	const qualifiedNames = new Set();
 	for (const file of files) {
@@ -240,12 +245,12 @@ test("pi-subagents discovers the configured package under do-it.* names", () => 
 		);
 		assert.equal(discovered.status, 0, discovered.stderr || discovered.stdout);
 		const names = JSON.parse(discovered.stdout.trim());
-		assert.equal(names.length, 10);
-		assert.equal(names.includes("do-it.code-mapper"), true);
-		assert.equal(
-			names.every((name) => name.startsWith("do-it.")),
-			true,
-		);
+		const expected = fs.readdirSync(path.join(repoRoot, "agents"))
+			.filter((name) => name.endsWith(".toml"))
+			.map((name) => `do-it.${name.replace(/\.toml$/, "")}`)
+			.sort();
+		assert.ok(expected.length > 0);
+		assert.deepEqual(names, expected);
 	} finally {
 		fs.rmSync(tempHome, { recursive: true, force: true });
 	}

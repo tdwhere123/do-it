@@ -8,11 +8,12 @@ import type {
 } from "@earendil-works/pi-coding-agent";
 import {
 	buildHookPayload,
+	createHookProcessOwner,
 	isEditTool,
 	isEvidenceTool,
 	resolveBash,
 	spawnHook,
-	terminateActiveProcesses,
+	type HookProcessOwner,
 	type HookPayload,
 	type HookResult,
 	type HookRunnerOptions,
@@ -192,6 +193,7 @@ export function createDoItPiExtension(
 		scriptName: string,
 		payload: HookPayload,
 		ctx: ExtensionContext,
+		processOwner: HookProcessOwner,
 	): Promise<HookResult> {
 		try {
 			const result = await runHook(hooksDir, scriptName, payload, {
@@ -202,6 +204,7 @@ export function createDoItPiExtension(
 					...(scriptName === "subagent-stance.sh" ? { PI_SUBAGENT_CHILD: "1" } : {}),
 				},
 				signal: ctx.signal,
+				processOwner,
 			});
 			if (result.diagnostic) lastDiagnostic = result.diagnostic;
 			return result;
@@ -236,6 +239,7 @@ export function createDoItPiExtension(
 	}
 
 	return function doItPiExtension(pi: ExtensionAPI): void {
+		const processOwner = createHookProcessOwner();
 		function childSession(ctx: ExtensionContext): boolean {
 			return isPiSubagent(currentEnv(), pi, ctx);
 		}
@@ -273,6 +277,7 @@ export function createDoItPiExtension(
 					"subagent-stance.sh",
 					basePayload(ctx, { prompt }),
 					ctx,
+					processOwner,
 				);
 				const context = resultContext(result);
 				if (context) contexts.push(context);
@@ -281,7 +286,7 @@ export function createDoItPiExtension(
 					const payload = basePayload(ctx, { prompt });
           for (const scriptName of ["prompt-submit.sh"]) {
 						if (ctx.signal?.aborted) break;
-						const result = await invokeHook(scriptName, payload, ctx);
+						const result = await invokeHook(scriptName, payload, ctx, processOwner);
 						const context = resultContext(result);
 						if (context) contexts.push(context);
 						if (result.unavailable) break;
@@ -311,6 +316,7 @@ export function createDoItPiExtension(
 						details: detailsRecord(event.details),
 					}),
 					ctx,
+					processOwner,
 				);
 			}
 			if (!isEditTool(event.toolName)) return undefined;
@@ -324,19 +330,21 @@ export function createDoItPiExtension(
 					details: detailsRecord(event.details),
 				}),
 				ctx,
+				processOwner,
 			);
 			const context = resultContext(result);
 			if (!context) return undefined;
 
 			return {
 				content: appendToolResultContext(event.content, context),
+				structuredContent: event.structuredContent,
 				details: event.details,
 				isError: event.isError,
 			};
 		});
 
 		pi.on("session_shutdown", async () => {
-			terminateActiveProcesses();
+			processOwner.terminate();
 		});
 	};
 }

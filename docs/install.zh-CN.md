@@ -107,22 +107,26 @@ pi install npm:@tdwhere/do-it-pi
 ```
 
 registry 尚未发布或开发该包时可使用本地 checkout：运行
-`npm run install:pi-global`，然后在 Pi 中执行
-`/reload`。核心 extension、skills 与 prompt templates 不依赖额外包。若要运行
-十个带命名空间的 package agents（例如 `do-it.code-mapper`、
-`do-it.reviewer`），再单独安装：
+`npm run install:pi-global`，然后在 Pi 中执行 `/reload`。核心 extension、skills
+与 prompt templates 不依赖额外包。如需使用主要的 subagent runtime，单独安装：
 
 ```bash
-pi install npm:pi-subagents
+pi install npm:@tintinweb/pi-subagents@0.23.0
 ```
 
-用 `/do-it-status` 检查 Bash、Windows Git Bash、hook 诊断及 `Agent`/`subagent`
-工具注册。实际 `do-it.*` 角色列表需另行检查；工具已注册不代表当前会话或子 fork
-已经发现 package agents。全新 Pi 1.1.0 进程中的原生持久化子会话已通过 `pwd`
-探针验证：只收到子代理职责提示，没有 Core 或主会话 hook。
-构建与独立打包验证使用 `npm run test-pi` 和
-`npm run smoke:pi-package`。详见
-[`plugins/do-it-pi/README.md`](../plugins/do-it-pi/README.md)。
+该 runtime 目前按裸名称发现 package roles，例如 `code-mapper`；另一个兼容性
+runtime `pi-subagents` 使用 `do-it.code-mapper` 等名称。工具已注册不代表已确认
+最终采用的角色来源：用户及项目角色可能覆盖 package roles。`/do-it-status` 报告
+Bash、hook 诊断及工具注册，并不验证角色发现。
+
+本地使用 fake provider 探针验证了 Pi 1.5.0 与 Tintinweb 0.23.0：持久化的非嵌套
+子会话收到了子代理职责提示；内存中或嵌套子会话可能被误判为主会话，目前尚不受支持。
+其替换提示不继承项目指令文件，应在委派任务中提供相关约束。工具列表和只读指令不是
+沙箱。详见 [`plugins/do-it-pi/README.md`](../plugins/do-it-pi/README.md)。
+
+`pi update` 更新 Pi 本身；`pi update --extensions` 协调 extension packages，固定版本
+的来源仍保持固定。构建与独立打包验证使用 `npm run test-pi` 和
+`npm run smoke:pi-package`。
 
 ## Grok Build
 

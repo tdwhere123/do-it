@@ -33,6 +33,7 @@ export type HookRunnerOptions = {
 	env?: NodeJS.ProcessEnv;
 	platform?: NodeJS.Platform;
 	signal?: AbortSignal;
+	processOwner?: HookProcessOwner;
 };
 
 type ContentPart = { type?: unknown; text?: unknown };
@@ -44,7 +45,31 @@ const MAX_HOOK_OUTPUT_BYTES = 256 * 1024;
 const MAX_ADDITIONAL_CONTEXT_BYTES = 64 * 1024;
 const MAX_BLOCK_REASON_BYTES = 8 * 1024;
 const TERMINATION_GRACE_MS = 250;
-const activeProcesses = new Map<ReturnType<typeof spawn>, () => void>();
+
+// Each extension instance owns only the hooks it started. In-process child
+// sessions can shut down while their parent or siblings are still active.
+export function createHookProcessOwner() {
+	const active = new Set<() => void>();
+	let closed = false;
+	return {
+		isClosed(): boolean { return closed; },
+		track(terminate: () => void): () => void {
+			if (closed) {
+				terminate();
+				return () => undefined;
+			}
+			active.add(terminate);
+			return () => { active.delete(terminate); };
+		},
+		terminate(): void {
+			closed = true;
+			for (const terminate of active) terminate();
+			active.clear();
+		},
+	};
+}
+
+export type HookProcessOwner = ReturnType<typeof createHookProcessOwner>;
 
 export function normalizeToolName(tool: string): string | null {
 	switch (tool.toLowerCase()) {
@@ -328,12 +353,6 @@ function terminateProcessTree(
 	}
 }
 
-export function terminateActiveProcesses(): void {
-	for (const requestTermination of activeProcesses.values())
-		requestTermination();
-	activeProcesses.clear();
-}
-
 /** Run a shared advisory shell hook without blocking Pi's event loop. */
 export async function spawnHook(
 	hooksDir: string,
@@ -368,7 +387,7 @@ export async function spawnHook(
 			unavailable: true,
 		};
 	}
-	if (options.signal?.aborted) {
+	if (options.signal?.aborted || options.processOwner?.isClosed()) {
 		const diagnostic = `do-it hook ${scriptName} aborted before launch.`;
 		return {
 			exitCode: 130,
@@ -414,12 +433,13 @@ export async function spawnHook(
 		};
 
 		let timer: ReturnType<typeof setTimeout>;
+		let releaseOwner = (): void => undefined;
 		const abort = (): void => requestTermination("abort");
 		const settle = (code: number | null, forced = false): void => {
 			if (settled) return;
 			settled = true;
 			forcedCleanup = forcedCleanup || forced;
-			activeProcesses.delete(child);
+			releaseOwner();
 			clearTimeout(timer);
 			if (terminationTimer) clearTimeout(terminationTimer);
 			options.signal?.removeEventListener("abort", abort);
@@ -476,7 +496,7 @@ export async function spawnHook(
 			}, TERMINATION_GRACE_MS);
 		}
 
-		activeProcesses.set(child, () => requestTermination("shutdown"));
+		releaseOwner = options.processOwner?.track(() => requestTermination("shutdown")) ?? releaseOwner;
 		child.stdout.on("data", (chunk: Buffer) => {
 			collect(chunk, stdoutChunks);
 			if (observedOutputBytes > MAX_HOOK_OUTPUT_BYTES)

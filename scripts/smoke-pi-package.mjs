@@ -297,12 +297,13 @@ export function smokePiHostLoad(packageRoot, repoRoot = defaultRepoRoot) {
 			if (!report.skills.includes(skill))
 				throw new Error(`installed Pi package did not discover skill ${skill}`);
 		}
-		if (
-			report.prompts.length !== 10 ||
-			!report.prompts.includes("code-mapper")
-		) {
+		const expectedPrompts = fs.readdirSync(path.join(repoRoot, "agents"))
+			.filter((name) => name.endsWith(".toml"))
+			.map((name) => name.replace(/\.toml$/, ""))
+			.sort();
+		if (expectedPrompts.length === 0 || JSON.stringify(report.prompts) !== JSON.stringify(expectedPrompts)) {
 			throw new Error(
-				`installed Pi prompt discovery mismatch: ${report.prompts.join(", ")}`,
+				`installed Pi prompt discovery mismatch: expected ${expectedPrompts.join(", ")}; got ${report.prompts.join(", ")}`,
 			);
 		}
 		return report;

@@ -289,6 +289,24 @@ test("spawnHook terminates an aborted hook", async (t) => {
 	}
 });
 
+test("a shut-down hook owner rejects new work without launching it", async (t) => {
+	if (!bridge.resolveBash()) return t.skip("Bash unavailable");
+	const dir = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-pi-closed-owner-"));
+	const marker = path.join(dir, "launched");
+	fs.writeFileSync(path.join(dir, "hook.sh"), `#!/usr/bin/env bash\nprintf launched > "${marker}"\n`, { mode: 0o700 });
+	try {
+		const owner = bridge.createHookProcessOwner();
+		owner.terminate();
+		owner.terminate();
+		const result = await bridge.spawnHook(dir, "hook.sh", { session_id: "s", cwd: dir }, { processOwner: owner });
+		assert.equal(result.aborted, true);
+		assert.match(result.diagnostic, /aborted before launch/);
+		assert.equal(fs.existsSync(marker), false);
+	} finally {
+		rmTemp(dir);
+	}
+});
+
 test("windowsTaskkill resolves the native process-tree killer", () => {
 	assert.equal(
 		bridge.windowsTaskkill({ SystemRoot: "C:\\Windows" }),

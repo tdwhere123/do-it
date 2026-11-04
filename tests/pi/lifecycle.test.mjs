@@ -404,14 +404,40 @@ test("default Pi runtime delivers context and edit checks without diagnostics or
     await pi.handlers.get("before_agent_start")({ prompt: "fix the helper" }, ctx);
     const image = { type: "image", data: "abc", mimeType: "image/png" };
     const content = [{ type: "text", text: "changed" }, image];
-    const result = await pi.handlers.get("tool_result")({ toolName: "edit", input: { path: "a.ts" }, content, details: { kept: true }, isError: false }, ctx);
+    const structuredContent = { changed: true, count: 1 };
+    const result = await pi.handlers.get("tool_result")({ toolName: "edit", input: { path: "a.ts" }, content, details: { kept: true }, structuredContent, isError: false }, ctx);
     assert.equal(result.content[1], image);
+    assert.equal(result.structuredContent, structuredContent);
     assert.equal(result.isError, false);
     await pi.handlers.get("tool_result")({ toolName: "bash", input: { command: "printf https://example.invalid" }, content: [] }, ctx);
     assert.deepEqual(calls, ["prompt-submit.sh", "write-quality-lint.sh"]);
     assert.equal(pi.handlers.has("agent_settled"), false);
     await pi.handlers.get("session_shutdown")({}, ctx);
   } finally { rmTemp(cwd); }
+});
+
+test("session shutdown terminates only hooks owned by that extension instance", { skip: process.platform === "win32" }, async () => {
+	const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-pi-owners-"));
+	const hookDir = path.join(cwd, "hooks");
+	fs.mkdirSync(hookDir);
+	fs.writeFileSync(path.join(hookDir, "prompt-submit.sh"),
+		'#!/usr/bin/env bash\nsleep 0.5\nprintf \'%s\\n\' \'{"hookSpecificOutput":{"additionalContext":"completed"}}\'\n',
+		{ mode: 0o700 });
+	const first = fakePi();
+	const second = fakePi();
+	const extension = createDoItPiExtension({ env: { ...process.env, HOME: cwd }, pluginRoot: cwd });
+	extension(first.api);
+	extension(second.api);
+	try {
+		const firstRun = first.handlers.get("before_agent_start")({ prompt: "first" }, fakeContext(cwd, "first"));
+		const secondRun = second.handlers.get("before_agent_start")({ prompt: "second" }, fakeContext(cwd, "second"));
+		await first.handlers.get("session_shutdown")();
+		assert.match((await firstRun).message.content, /aborted/);
+		assert.equal((await secondRun).message.content, "completed");
+		await second.handlers.get("session_shutdown")();
+	} finally {
+		rmTemp(cwd);
+	}
 });
 
 for (const child of [false, true]) {

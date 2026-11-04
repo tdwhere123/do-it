@@ -128,22 +128,29 @@ pi install npm:@tdwhere/do-it-pi
 
 Before registry publication or for package development, a local checkout can
 run `npm run install:pi-global`, then `/reload` in Pi. The extension, skills,
-and prompt templates work without extra packages. Install `pi-subagents`
-separately to execute the ten namespaced package agents such as
-`do-it.code-mapper` and `do-it.reviewer`:
+and prompt templates work without extra packages. To use the primary subagent
+runtime, install it separately:
 
 ```bash
-pi install npm:pi-subagents
+pi install npm:@tintinweb/pi-subagents@0.23.0
 ```
 
-Use `/do-it-status` to check Bash, Git Bash on Windows, hook diagnostics, and
-`Agent`/`subagent` tool registration. Check the runtime’s actual `do-it.*` role
-list separately; a registered tool alone does not establish package-agent
-discovery in that session or a child fork. A fresh Pi 1.1.0 process verified
-stance-only context and no root hooks for a persisted native child running `pwd`.
-Build and package checks are available as
-`npm run test-pi` and `npm run smoke:pi-package`. See
-[`plugins/do-it-pi/README.md`](../plugins/do-it-pi/README.md).
+It currently discovers package roles under bare names such as `code-mapper`;
+the separate `pi-subagents` compatibility runtime uses names such as
+`do-it.code-mapper`. Do not assume a registered tool proves which role source
+won: user and project roles can override package roles. `/do-it-status` reports
+Bash, hook diagnostics, and tool registration, not role discovery.
+
+Pi 1.5.0 with Tintinweb 0.23.0 was probed locally with a fake provider. A
+persisted, non-nested child received the stance; in-memory and nested children
+can be mistaken for roots and are not yet supported. Its replacement prompt
+does not inherit project instruction files, so pass relevant constraints in the
+delegation. Tool lists and read-only instructions are not a sandbox. See
+[`plugins/do-it-pi/README.md`](../plugins/do-it-pi/README.md) for details.
+
+`pi update` updates Pi; `pi update --extensions` reconciles extension packages.
+Pinned package sources remain pinned. Build and package checks are
+`npm run test-pi` and `npm run smoke:pi-package`.
 
 ## Grok Build
 

@@ -80,10 +80,10 @@ export function main(installRoot = pluginRoot) {
 
 	console.log(`installed do-it-pi from ${installRoot}`);
 	console.log(
-		"In Pi, run /reload, then use /do-it-status to check Bash and optional pi-subagents.",
+		"In Pi, run /reload, then use /do-it-status to check Bash and subagent tool registration.",
 	);
 	console.log(
-		"Skills and prompts work without pi-subagents; executable package agents use do-it.* names when it is installed.",
+		"Skills and prompts work without a subagent runtime. Inspect its role list and sources; runtime naming differs.",
 	);
 }
 
