@@ -1,6 +1,6 @@
 # Architecture
 
-The 0.19.0 architecture ships independently selected skills from
+The 0.19.1 architecture ships independently selected skills from
 `skills/do-it/` (`scripts/skill-tiers.mjs` `ALL_SKILLS`: 10 runnable) plus one
 generated discovery entry (`do-it-skills-index` in `index.json`), and specialist
 roles from `agents/*.toml` (8). Skill descriptions determine task fit. Neither
@@ -19,7 +19,7 @@ Packaging metadata does not imply any of the latter.
 | --- | --- | --- |
 | `skills/do-it/*/SKILL.md` | Host skill bundles and discovery indexes | Preserve full descriptions; indexes organize discovery without rewriting triggers. |
 | Marked bootstrap excerpt in `do-it-core/SKILL.md` | `hooks/data/core-context.txt` via `scripts/build-core-context.mjs` | Runtime context has no independently maintained principle text. |
-| `agents/*.toml` | Claude/Cursor/Grok/Pi Markdown; separately installed Codex TOML roles | Specialist bodies have one source. |
+| `agents/*.toml` | Claude/Cursor/Grok/Antigravity/Pi Markdown; separately installed Codex TOML roles | Specialist bodies have one source. |
 | `scripts/lib/pi-agent-adapter.mjs` | Pi agent metadata and supervisor coordination | Host mechanics remain separate from specialist judgment. |
 | `plugins/do-it-pi/extensions/*.ts` | Pi runtime adapter | Maintained source, not generated agent policy. |
 | `manifest.json`, package metadata, host builders | Host inventory and plugin manifests | Packaging is separate from native host discovery and enforcement. |
@@ -30,7 +30,7 @@ second authorities when a source instruction changes.
 
 ## Delivery and enforcement
 
-Claude Code, Codex, Cursor, Pi, and Grok Build are the maintained host set.
+Claude Code, Codex, Cursor, Pi, Grok Build, and Antigravity are the maintained host set.
 OpenCode and Kimi Code repository support is retired. This support change does
 not remove local applications, configuration, profiles, or memory.
 
@@ -100,6 +100,15 @@ permissions. A 1.0.46 loaded-source inspection that reported twelve skills and
 ten specialists is historical, not this checkout's inventory; the generated
 bundle currently has 10 skill directories and 8 agent files. Native package
 validation and discovery are separate from proof of runtime execution.
+
+Antigravity uses `plugins/do-it-agy/` (`plugin.json` and root `hooks.json`, with
+shared `references/` at the bundle root and rewritten `../../references/` links
+inside `skills/`). `hooks/agy-adapter.sh` inspects transcript step 0 to
+separate root conversations (`USER_INPUT`) from child conversations
+(`SYSTEM_MESSAGE`) and relays `PostToolUse` lint findings through `PostInvocation`
+`injectSteps`. Canonical specialists map `read-only` roles to
+`[read_file, run_command, manage_task]` and `workspace-write` roles to include
+`edit_file` and `write_file`. See [Antigravity host details](../skills/do-it/references/host-agy.md).
 
 Pi child identity is `PI_SUBAGENT_CHILD=1` (subprocess) or a patched Tintinweb
 `subagents:session-context` reply

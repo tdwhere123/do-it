@@ -6,15 +6,15 @@ Delivery is host-specific. Codex and Claude Code are **marketplace-first**;
 Cursor is **local copy or Team Import today, with public listing pending**;
 Pi ships as an **independent npm package**. Skills, specialists, and runtime
 checks use the host-specific delivery paths below. Grok Build uses its generated
-`do-it-grok` bundle.
+`do-it-grok` bundle, and Antigravity uses its generated `do-it-agy` local bundle.
 OpenCode and Kimi Code repository support is retired; this does not remove local
 applications or user configuration.
 
 | Truth plane | What this repository can claim |
 | --- | --- |
-| Source/package metadata | This checkout prepares `0.19.0`, 10 runnable skills + 1 generated discovery entry, and 8 agents. |
-| Git tag | This source update creates no release tag. A future `v0.19.0` must identify the verified release commit; metadata alone is not publication. |
-| Marketplace / npm | Both npm packages published `0.18.1` on 2026-10-17 (registry checked 2026-11-04); those tarballs predate this checkout. This work does not publish `0.19.0`. Cursor marketplace listing remains pending. |
+| Source/package metadata | This checkout prepares `0.19.1`, 10 runnable skills + 1 generated discovery entry, and 8 agents. |
+| Git tag | Tag `v0.19.1` identifies the verified release commit; version metadata alone is not publication. |
+| Marketplace / npm | Confirm `@tdwhere/do-it@0.19.1` and `@tdwhere/do-it-pi@0.19.1` via `npm view` before relying on registry packages. Cursor marketplace listing remains pending. |
 | Live host | Only an install/inspection on that host proves what is active there; do not infer it from source or a packed artifact. |
 
 ## Codex
@@ -138,12 +138,12 @@ diagnostics are not registered. See [host matrix](./harness-adapter-matrix.md).
 
 ## Pi
 
-The published package is separate from this unreleased checkout. After
-`npm view @tdwhere/do-it-pi@0.19.0 version` confirms the intended release,
+After
+`npm view @tdwhere/do-it-pi@0.19.1 version` confirms the intended release,
 install that exact Pi package:
 
 ```bash
-pi install npm:@tdwhere/do-it-pi@0.19.0
+pi install npm:@tdwhere/do-it-pi@0.19.1
 ```
 
 Before registry publication or for package development, a local checkout can
@@ -231,6 +231,27 @@ before the first action; live execution still needs separate evidence.
 The Claude strict external-action profile is not copied to Grok. See
 [Grok host details](../skills/do-it/references/host-grok.md).
 
+## Antigravity
+
+Generate, validate, and install the standalone `plugins/do-it-agy/` bundle locally
+as `do-it-agy`:
+
+```bash
+npm run install:agy-local
+```
+
+This runs `agy plugin validate plugins/do-it-agy --strict --json`, copies the
+bundle atomically into `~/.gemini/config/plugins/do-it-agy` (preserving
+`.do-it-data`), and never edits `~/.gemini/config/config.json`. To upgrade, re-run
+`npm run install:agy-local`. To enable or disable the plugin in Antigravity,
+open `[do-it-agy](customization://do-it-agy)` in the Customizations UI. To
+uninstall, remove `~/.gemini/config/plugins/do-it-agy`.
+
+`hooks/agy-adapter.sh` isolates root (`USER_INPUT`) and subagent
+(`SYSTEM_MESSAGE`) sessions via transcript step 0 and stages `PostToolUse` edit
+checks to surface on `PostInvocation`. See
+[Antigravity host details](../skills/do-it/references/host-agy.md).
+
 ## Optional / legacy: `do-it setup`
 
 CLI setup remains for doctor checks, temp-home smoke tests, and migration from
@@ -266,6 +287,6 @@ For a packed local release artifact:
 
 ```bash
 npm pack
-npm install -g ./tdwhere-do-it-0.19.0.tgz
+npm install -g ./tdwhere-do-it-0.19.1.tgz
 do-it setup   # optional / legacy global copy
 ```

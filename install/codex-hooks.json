@@ -16,6 +16,17 @@
         ]
       }
     ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "DO_IT_HOOK_DATA=\"${CODEX_HOME:-$HOME/.codex}/do-it-data\" \"${CODEX_HOME:-$HOME/.codex}/hooks/subagent-stance.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "apply_patch|Edit|Write|MultiEdit|NotebookEdit",

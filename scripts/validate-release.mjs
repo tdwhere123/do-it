@@ -71,6 +71,10 @@ export function validateRelease(tag, repoRoot = defaultRepoRoot) {
 				.version,
 		],
 		[
+			"AGY plugin metadata",
+			readJson(repoRoot, "plugins/do-it-agy/plugin.json").version,
+		],
+		[
 			"Pi package metadata",
 			readJson(repoRoot, "plugins/do-it-pi/package.json").version,
 		],

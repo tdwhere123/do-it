@@ -22,7 +22,7 @@ const retired = [
 const pattern = new RegExp(`\\b(?:${retired.join("|")})\\b`, "g");
 const roots = [
   "agents", "commands", "hooks", "skills/do-it", "scripts",
-  "plugins/do-it", "plugins/do-it-cursor", "plugins/do-it-pi", "plugins/do-it-grok",
+  "plugins/do-it", "plugins/do-it-cursor", "plugins/do-it-pi", "plugins/do-it-grok", "plugins/do-it-agy",
   "dist/claude", ".claude-plugin", ".cursor-plugin"
 ];
 const ignored = new Set([

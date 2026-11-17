@@ -62,12 +62,13 @@ jobs:
           npm run build:cursor-plugin
           npm run build:pi-plugin
           npm run build:grok-plugin
+          npm run build:agy-plugin
           npm --prefix plugins/do-it-pi test
 
       - name: Ensure generated artifacts are committed and unchanged by build
         run: |
-          git diff --exit-code -- index.json hooks/data/core-context.txt dist/claude .agents/plugins plugins/do-it plugins/do-it-cursor plugins/do-it-grok plugins/do-it-pi .cursor-plugin
-          test -z "$(git ls-files --others --exclude-standard -- index.json hooks/data/core-context.txt dist/claude .agents/plugins plugins/do-it plugins/do-it-cursor plugins/do-it-grok plugins/do-it-pi .cursor-plugin)"
+          git diff --exit-code -- index.json hooks/data/core-context.txt dist/claude .agents/plugins plugins/do-it plugins/do-it-cursor plugins/do-it-grok plugins/do-it-agy plugins/do-it-pi .cursor-plugin
+          test -z "$(git ls-files --others --exclude-standard -- index.json hooks/data/core-context.txt dist/claude .agents/plugins plugins/do-it plugins/do-it-cursor plugins/do-it-grok plugins/do-it-agy plugins/do-it-pi .cursor-plugin)"
 
       - name: Pack release tarball
         env:

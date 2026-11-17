@@ -775,8 +775,8 @@ test("codex and claude targets install into independent state files", () => {
       "Claude must receive the opt-in strict external-action hook"
     );
     assert.ok(
-      fs.existsSync(path.join(claudeRoot, "commands", "do-it-retrospective.md")),
-      "Claude must receive the retrospective report command"
+      fs.existsSync(path.join(claudeRoot, "commands", "do-it-skip.md")),
+      "Claude must receive the skip command"
     );
     const claudeHooks = JSON.parse(
       fs.readFileSync(path.join(claudeRoot, "hooks", "hooks.json"), "utf8")

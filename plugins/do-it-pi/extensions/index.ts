@@ -366,8 +366,7 @@ export function createDoItPiExtension(
 
 		pi.on("tool_result", async (event, ctx) => {
 			const role = piSessionRole(currentEnv(), pi);
-			if (role === "child") return undefined;
-			if (currentEnv().DO_IT_EVIDENCE_MODE === "observe" && isEvidenceTool(event.toolName)) {
+			if (role !== "child" && currentEnv().DO_IT_EVIDENCE_MODE === "observe" && isEvidenceTool(event.toolName)) {
 				await invokeHook(
 					"evidence-observer.sh",
 					basePayload(ctx, {

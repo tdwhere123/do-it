@@ -181,6 +181,7 @@ function copyReleaseMetadata() {
 		"plugins/do-it/.codex-plugin/plugin.json",
 		"plugins/do-it-grok/.grok-plugin/plugin.json",
 		"plugins/do-it-cursor/.cursor-plugin/plugin.json",
+		"plugins/do-it-agy/plugin.json",
 		"plugins/do-it-pi/package.json",
 		"plugins/do-it-pi/package-lock.json",
 	]) {
@@ -198,7 +199,7 @@ const releaseVersion = JSON.parse(
 test("release guard accepts a matching tag, metadata set, and changelog entry", () => {
 	const result = validateRelease(`v${releaseVersion}`, repoRoot);
 	assert.equal(result.version, releaseVersion);
-	assert.equal(result.checkedVersions, 11);
+	assert.equal(result.checkedVersions, 12);
 });
 
 test("release guard accepts a local Codex cachebuster on the matching base version", () => {

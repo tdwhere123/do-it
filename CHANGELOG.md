@@ -1,6 +1,10 @@
 # Changelog
 
-## 0.19.1 (unreleased)
+## 0.19.1 (2026-11-17)
+
+- **Antigravity (`do-it-agy`)**: add generated `plugins/do-it-agy/` bundle (`plugin.json`, root `hooks.json`, root `references/` with rewritten skill reference paths, 10 skills, 8 explicit tool-scoped subagents), `hooks/agy-adapter.sh` (`SessionStart` and `PreInvocation` step-0 root vs child isolation, `PostToolUse` -> `PostInvocation` staged lint relay), `npm run install:agy-local`, validators, smoke checks, and `tests/agy/plugin.test.mjs`.
+- **Runtime & write-quality hooks**: split `hooks/lib/session-state.sh` from `hooks/lib/common.sh` with stale-session pruning, `wql_seen_*` turn eviction, and a 64-entry `wql_hash_*` cap; emit top-level `additional_context` on Cursor guarded by `DO_IT_EVENT_HOST`; wire `SubagentStart` on Claude and Codex with isolated child session buckets; omit outer `<system-reminder>` XML tags on Grok and AGY; scan subagent edits in `write-quality-lint` and Pi; retire `scope-chain` (15 families retained) and add cross-turn identical-diff dedup plus new-file, CLI, and test-path exemptions.
+- **Installer & documentation**: split `install/manage.mjs` into `install/lib/*.mjs`; remove orphaned references (`dimensions.md`, `task-pointer.md`, `host-vocabulary.md`), empty `tests/opencode/`, and duplicate `commands/do-it-retrospective.md`; add `skills/do-it/references/host-agy.md`, refine core skills, update bilingual documentation, and cover `do-it-agy` in CI and release workflows.
 
 ## 0.19.0 (2026-11-04)
 

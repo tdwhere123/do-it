@@ -11,11 +11,12 @@ not prove native execution.
 
 | Host | Context | Deterministic edit checks | Specialist integration |
 | --- | --- | --- | --- |
-| Claude Code | UserPromptSubmit | PostToolUse | Generated Markdown; read-only roles deny Edit/Write/NotebookEdit |
-| Codex | UserPromptSubmit configuration | PostToolUse configuration; live execution unverified | Separately installed native `.codex/agents` TOML roles |
-| Cursor | sessionStart, beforeSubmitPrompt | postToolUse via run-hook.cmd | Canonical TOML rendered with native readonly for reader roles |
-| Pi | before_agent_start | root tool_result | Optional runtimes; identity from `PI_SUBAGENT_CHILD` or patched Tintinweb `subagents:session-context` |
-| Grok Build | Core after first completed tool via PostToolUse | PostToolUse supports result context | Generated Markdown agents in the distinct do-it-grok bundle |
+| Claude Code | UserPromptSubmit, SubagentStart | PostToolUse | Generated Markdown; read-only roles deny Edit/Write/NotebookEdit |
+| Codex | UserPromptSubmit, SubagentStart | PostToolUse via codex-post-tool.sh | Separately installed native `.codex/agents` TOML roles |
+| Cursor | sessionStart, beforeSubmitPrompt | postToolUse via run-hook.cmd (top-level `additional_context`) | Canonical TOML rendered with native readonly for reader roles |
+| Pi | before_agent_start | root and child tool_result | Optional runtimes; identity from `PI_SUBAGENT_CHILD` or patched Tintinweb `subagents:session-context` |
+| Grok Build | Core after first completed tool via PostToolUse | PostToolUse supports result context (plain body, no XML wrapper) | Generated Markdown agents in the distinct do-it-grok bundle |
+| Antigravity | SessionStart, PreInvocation (transcript step 0 distinguishes root vs child) | PostToolUse stages advisories; PostInvocation emits `injectSteps` | Generated Markdown (`do-it-agy`); explicit AGY `tools` arrays (`subagent: true`, `mainAgent: false`) |
 
 Codex 0.162.0 discovers hooks through `.codex-plugin/plugin.json`; the builder
 removes root `plugin.json`, which yielded zero hooks in the isolated comparison.
@@ -40,8 +41,11 @@ prompt does not inherit project instruction files. See
 [Pi runtime boundaries](../skills/do-it/references/host-pi.md).
 
 See [Grok installation](./install.md#grok-build) for the separate `do-it-grok`
-bundle. Its Core context arrives after the first completed tool; no pre-action
-bootstrap or tool-free-turn injection is claimed.
+bundle (Core arrives after the first completed tool) and
+[Antigravity installation](./install.md#antigravity) for `do-it-agy` (root `hooks.json`
+and `plugin.json`; `PostToolUse` emits `{}` and stages `write-quality-lint`
+for `PostInvocation`). Session bookkeeping checks `CURSOR_PLUGIN_DATA`,
+`CLAUDE_PLUGIN_DATA`, `PLUGIN_DATA`, `DO_IT_HOOK_DATA`, `CODEX_HOME`, then `TMPDIR`.
 
 Hook payloads and responses follow the host protocol. Advisory hooks fail open
 on malformed input or unavailable tooling. Native permissions enforce configured

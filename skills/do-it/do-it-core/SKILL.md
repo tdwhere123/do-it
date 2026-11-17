@@ -26,5 +26,12 @@ Optional questions to guide reasoning:
 
 Use the questions that expose a real uncertainty in this task, not a checklist,
 interview, or required report. Repeating a principle is not evidence of applying it.
-Use existing instructions and explicit task references for continuity. Write a
-short goal, decisions, boundary, or acceptance note only when persistence helps.
+Before broad workspace edits or cleanup, check git status and active workers so
+in-flight changes are not discarded. Use existing instructions and explicit task
+references for continuity; write a short goal, decisions, boundary, or
+acceptance note only when persistence helps.
+
+Host integration sheets cover [Claude](../references/host-claude.md),
+[Codex](../references/host-codex.md), [Cursor](../references/host-cursor.md),
+[Pi](../references/host-pi.md), [Grok](../references/host-grok.md), and
+[Antigravity](../references/host-agy.md).

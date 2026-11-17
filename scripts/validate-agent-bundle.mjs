@@ -331,7 +331,8 @@ function validateGeneratedAgents(sourceNames, errors) {
   for (const [directory, readOnlyField] of [
     ["dist/claude/agents", "disallowedTools: Edit, Write, NotebookEdit"],
     ["plugins/do-it-cursor/agents", "readonly: true"],
-    ["plugins/do-it-grok/agents", null]
+    ["plugins/do-it-grok/agents", null],
+    ["plugins/do-it-agy/agents", "tools: [read_file, run_command, manage_task]"]
   ]) {
     const names = listNames(directory, ".md").map((file) => file.replace(/\.md$/, ""));
     compareSets(directory, sourceNames, names, errors);
@@ -345,11 +346,21 @@ function validateGeneratedAgents(sourceNames, errors) {
         errors.push(`${relativePath}: missing or mismatched agent frontmatter`);
         continue;
       }
+      const frontmatterLines = parts[1].split("\n");
       if (parts[2].trim() !== source.developer_instructions.trim()) {
         errors.push(`${relativePath}: specialist instructions drifted from canonical TOML`);
       }
-      if (readOnlyField && parts[1].split("\n").includes(readOnlyField) !== (source.sandbox_mode === "read-only")) {
+      if (readOnlyField && frontmatterLines.includes(readOnlyField) !== (source.sandbox_mode === "read-only")) {
         errors.push(`${relativePath}: native read-only policy does not match canonical scope`);
+      }
+      if (directory === "plugins/do-it-agy/agents") {
+        if (!frontmatterLines.includes("subagent: true") || !frontmatterLines.includes("mainAgent: false")) {
+          errors.push(`${relativePath}: must declare subagent: true and mainAgent: false`);
+        }
+        if (source.sandbox_mode === "workspace-write" &&
+            !frontmatterLines.includes("tools: [read_file, edit_file, write_file, run_command, manage_task]")) {
+          errors.push(`${relativePath}: workspace-write agent must declare exact writable AGY tools`);
+        }
       }
       if (/^model:/m.test(parts[1])) errors.push(`${relativePath}: must inherit the host model`);
       validatePortableAgentPolicy(relativePath, content, errors);

@@ -30,15 +30,27 @@ cd -- "$CWD" 2>/dev/null || exit 0
 SESSION_ID="$(do_it_json_get "$RAW_INPUT" session_id)"
 TRANSCRIPT_PATH="$(do_it_json_get "$RAW_INPUT" transcript_path)"
 TARGETS=()
+TARGET_TOOLS=()
 PENDING=""
+PENDING_TOOL=""
 while IFS= read -r line; do
   case "$line" in
     '*** Add File: '*|'*** Update File: '*|'*** Delete File: '*|'*** End Patch')
-      if [[ -n "$PENDING" ]]; then TARGETS+=("$PENDING"); fi
+      if [[ -n "$PENDING" ]]; then
+        TARGETS+=("$PENDING")
+        TARGET_TOOLS+=("$PENDING_TOOL")
+      fi
       PENDING=""
+      PENDING_TOOL=""
       case "$line" in
-        '*** Add File: '*) PENDING="${line#'*** Add File: '}" ;;
-        '*** Update File: '*) PENDING="${line#'*** Update File: '}" ;;
+        '*** Add File: '*)
+          PENDING="${line#'*** Add File: '}"
+          PENDING_TOOL="Write"
+          ;;
+        '*** Update File: '*)
+          PENDING="${line#'*** Update File: '}"
+          PENDING_TOOL="Edit"
+          ;;
       esac
       ;;
     '*** Move to: '*)
@@ -50,7 +62,10 @@ done <<< "$PATCH"
 SEEN=()
 CONTEXT=""
 # Bash 3.2 treats empty arrays as unset under nounset.
+idx=0
 for target in ${TARGETS[@]+"${TARGETS[@]}"}; do
+  mapped_tool="${TARGET_TOOLS[$idx]:-Edit}"
+  idx=$((idx + 1))
   [[ "$target" == /* ]] || target="$PWD/$target"
   # Retain the final path component so the canonical symlink guard still sees it.
   [[ -f "$target" && ! -L "$target" ]] || continue
@@ -62,8 +77,8 @@ for target in ${TARGETS[@]+"${TARGETS[@]}"}; do
   done
   [[ "$duplicate" == 0 ]] || continue
   SEEN+=("$target")
-  input="$(printf '{"tool_name":"Edit","tool_input":{"file_path":"%s"},"cwd":"%s","session_id":"%s","transcript_path":"%s"}' \
-    "$(_do_it_json_escape "$target")" "$(_do_it_json_escape "$CWD")" \
+  input="$(printf '{"tool_name":"%s","tool_input":{"file_path":"%s"},"cwd":"%s","session_id":"%s","transcript_path":"%s"}' \
+    "$mapped_tool" "$(_do_it_json_escape "$target")" "$(_do_it_json_escape "$CWD")" \
     "$(_do_it_json_escape "$SESSION_ID")" "$(_do_it_json_escape "$TRANSCRIPT_PATH")")"
   output="$(printf '%s' "$input" | bash "${SCRIPT_DIR}/write-quality-lint.sh")"
   advisory="$(do_it_json_get_nested "$output" hookSpecificOutput.additionalContext)"

@@ -105,6 +105,69 @@ function exercisePackedGrok(packageRoot, tempRoot, version) {
 	}
 }
 
+function exercisePackedAgy(packageRoot, tempRoot, version) {
+	const agyRoot = path.join(packageRoot, "plugins/do-it-agy");
+	const readJson = (file) => JSON.parse(fs.readFileSync(file, "utf8"));
+	const plugin = readJson(path.join(agyRoot, "plugin.json"));
+	const inventory = readJson(path.join(packageRoot, "manifest.json"));
+	assert.equal(plugin.name, "do-it-agy");
+	assert.equal(plugin.version, version);
+	for (const name of Object.values(inventory.skillTiers).flat()) {
+		assert.ok(fs.existsSync(path.join(agyRoot, "skills", name, "SKILL.md")), `packed AGY skill missing: ${name}`);
+	}
+	for (const agent of inventory.agents) {
+		assert.ok(fs.existsSync(path.join(agyRoot, "agents", `${agent.name}.md`)), `packed AGY agent missing: ${agent.name}`);
+	}
+	const hooks = readJson(path.join(agyRoot, "hooks.json"))["do-it"];
+	const agyRepo = path.join(tempRoot, "agy-repo");
+	fs.mkdirSync(agyRepo, { recursive: true });
+	run("git", ["init", "--quiet", agyRepo]);
+	const transcript = path.join(tempRoot, "agy-transcript.jsonl");
+	fs.writeFileSync(transcript, `${JSON.stringify({ step_index: 0, source: "USER_EXPLICIT", type: "USER_INPUT", content: "hi" })}\n`);
+	const lintTarget = path.join(agyRepo, "agy-smoke.js");
+	fs.writeFileSync(lintTarget, "export const v = 1;\n");
+	run("git", ["-C", agyRepo, "add", "agy-smoke.js"]);
+	run("git", ["-C", agyRepo, "-c", "user.name=Smoke", "-c", "user.email=smoke@example.invalid", "commit", "--quiet", "-m", "init"]);
+	fs.appendFileSync(lintTarget, "export function f() { console.log('dbg'); return 2; }\n");
+	const agyConfig = path.join(tempRoot, "agy-config");
+	const env = {
+		...process.env,
+		HOME: path.join(tempRoot, "home"),
+		AGY_CONFIG_DIR: agyConfig,
+		DO_IT_SKIP_AGY_VALIDATE: "1",
+		PLUGIN_ROOT: agyRoot,
+		PLUGIN_DATA: path.join(tempRoot, "agy-data"),
+	};
+	const invoke = (cmd, payload) => JSON.parse(
+		run("bash", ["-c", cmd], { cwd: agyRoot, env, capture: true, input: JSON.stringify(payload) }).stdout,
+	);
+	const session = invoke(hooks.SessionStart[0].command, {
+		hookEventName: "SessionStart",
+		conversationId: "agy-package-smoke",
+		cwd: agyRepo,
+		transcriptPath: transcript,
+		lastUserInput: "review code",
+	});
+	const expectedCore = fs.readFileSync(path.join(packageRoot, "hooks/data/core-context.txt"), "utf8").trimEnd();
+	assert.equal(session.injectSteps?.[0]?.systemMessage?.systemMessage, expectedCore);
+	assert.deepEqual(invoke(hooks.PostToolUse[0].hooks[0].command, {
+		hookEventName: "PostToolUse",
+		conversationId: "agy-package-smoke",
+		cwd: agyRepo,
+		transcriptPath: transcript,
+		toolCall: { name: "edit_file", args: { Path: lintTarget } },
+	}), {});
+	const drained = invoke(hooks.PostInvocation[0].command, {
+		hookEventName: "PostInvocation",
+		conversationId: "agy-package-smoke",
+		cwd: agyRepo,
+		transcriptPath: transcript,
+	});
+	assert.match(drained.injectSteps?.[0]?.systemMessage?.systemMessage ?? "", /do-it write-quality-lint/);
+	run("node", [path.join(packageRoot, "scripts/install-agy-local.mjs")], { cwd: tempRoot, env, capture: true });
+	assert.ok(fs.existsSync(path.join(agyConfig, "plugins/do-it-agy/plugin.json")));
+}
+
 function installAndExerciseRootTarball(tarball, tempRoot) {
 	// Check package identity before npm can install a mislabeled artifact.
 	const manifest = JSON.parse(
@@ -178,6 +241,7 @@ function installAndExerciseRootTarball(tarball, tempRoot) {
 	);
 	const packageRoot = path.resolve(path.dirname(fs.realpathSync(executable)), "..");
 	exercisePackedGrok(packageRoot, tempRoot, manifest.version);
+	exercisePackedAgy(packageRoot, tempRoot, manifest.version);
 }
 
 async function main() {

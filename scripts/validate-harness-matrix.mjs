@@ -260,10 +260,17 @@ function main() {
 	}
 	assertEqualSets("Grok skill bundle", listSkillDirs("plugins/do-it-grok/skills"), allSkills);
 
+	const agyPlugin = readJson("plugins/do-it-agy/plugin.json");
+	if (agyPlugin.name !== "do-it-agy" || agyPlugin.version !== manifest.version) {
+		throw new Error("Antigravity native identity/version drift");
+	}
+	assertEqualSets("AGY skill bundle", listSkillDirs("plugins/do-it-agy/skills"), allSkills);
+
 	for (const hooksJson of [
 		...Object.values(TARGET_HOOKS_JSON),
 		"plugins/do-it-cursor/hooks/hooks.json",
 		"plugins/do-it-grok/hooks/hooks.json",
+		"plugins/do-it-agy/hooks.json",
 	]) {
 		const raw = JSON.stringify(readJson(hooksJson));
 		if (raw.includes("grill-pretool")) {

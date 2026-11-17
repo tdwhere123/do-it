@@ -113,37 +113,28 @@ OUT=$(_run_hook "$FILE" bloat)
 assert_contains "edit-bloat flags large edit" "$OUT" "edit-bloat"
 rm -rf "$DIR"
 
-echo "Case 5: path-only SCOPE_RISK (scope-chain); stale dim_* ignored"
-case_file index
-cat > "$FILE" <<'EOF'
-export function local() { return 1; }
-EOF
-OUT=$(_run_hook "$FILE" scope Heavy 1 0 0)
-assert_contains "index.* basename sets SCOPE_RISK=1 without dim_breaks_interface" "$OUT" "scope-chain"
-rm -rf "$DIR"
-
+echo "Case 5: CLI script console.log and test-path edit-bloat/copy-paste exemptions"
 DIR=$(_setup_repo)
-mkdir -p "$DIR/packages/pkg/src"
-FILE="$DIR/packages/pkg/src/util.ts"
+mkdir -p "$DIR/scripts" "$DIR/tests"
+FILE="$DIR/scripts/cli.mjs"
 printf 'export const base = 1;\n' > "$FILE"
+TESTFILE="$DIR/tests/sample.test.ts"
+printf 'export const base = 1;\n' > "$TESTFILE"
+NEIGHBOR="$DIR/tests/other.test.ts"
+printf 'export const base = 1;\n' > "$NEIGHBOR"
 (cd "$DIR" && git add . && git commit -q -m base) >/dev/null 2>&1
 cat > "$FILE" <<'EOF'
-export function local() { return 1; }
+// Fixed-size ring buffer used to hold CLI status.
+export function main() { console.log('ok'); }
 EOF
-OUT=$(_run_hook "$FILE" scope-pkg Heavy 1 0 0)
-assert_contains "nested packages path sets SCOPE_RISK=1 without dim_breaks_interface" "$OUT" "scope-chain"
-rm -rf "$DIR"
-
-DIR=$(_setup_repo)
-mkdir -p "$DIR/src"
-FILE="$DIR/src/foo.ts"
-printf 'export const base = 1;\n' > "$FILE"
-(cd "$DIR" && git add . && git commit -q -m base) >/dev/null 2>&1
-cat > "$FILE" <<'EOF'
-export function local() { return 1; }
-EOF
-OUT=$(_run_hook "$FILE" scope-src Heavy 1 1 1)
-assert_not_contains "stale dim_* do not force SCOPE_RISK on src/foo.ts" "$OUT" "scope-chain"
+OUT=$(_run_hook "$FILE" cli-exempt)
+assert_not_contains "CLI script console.log does not trigger debug-leftover" "$OUT" "debug-leftover"
+assert_not_contains "technical prose fixed-size/used-to does not trigger narrative-comment" "$OUT" "narrative-comment"
+{
+  for i in $(seq 1 125); do printf 'const line_%s = "long repeated test fixture value %s";\n' "$i" "$i"; done
+} > "$TESTFILE"
+OUT=$(_run_hook "$TESTFILE" test-exempt)
+assert_not_contains "test file does not trigger edit-bloat" "$OUT" "edit-bloat"
 rm -rf "$DIR"
 
 echo "Case 6: live-path and type-escape"
@@ -195,16 +186,47 @@ OUT=$(_run_hook "$FILE" dedup Heavy 1 0 0 7)
 assert_not_contains "same turn is deduplicated" "$OUT" "system-reminder"
 rm -rf "$DIR"
 
-echo "Case 10: unknown session state does not invent scope-chain on a local path"
-case_file fallback
-cat > "$FILE" <<'EOF'
-export function local() { return 1; }
-EOF
-rm -rf "$CLAUDE_PLUGIN_DATA/sessions/fallback"
-printf '{"tool_name":"Edit","tool_input":{"file_path":"%s"},"session_id":"fallback","cwd":"%s"}' "$FILE" "$(dirname "$FILE")" \
-  | bash "$HOOK" 2>/dev/null > "$CLAUDE_PLUGIN_DATA/fallback.out"
-OUT=$(<"$CLAUDE_PLUGIN_DATA/fallback.out")
-assert_not_contains "unknown state does not trigger path-unsure scope nudge" "$OUT" "scope-chain"
+echo "Case 10: Write new-file no-consumer exemption, .mjs live-path resolution, and cross-turn hash dedup"
+DIR=$(_setup_repo)
+printf 'export const base = 1;\n' > "$DIR/seed.mjs"
+(cd "$DIR" && git add . && git commit -q -m base) >/dev/null 2>&1
+NEW_MOD="$DIR/new-module.mjs"
+printf 'export function brandNewExport() { return 1; }\n' > "$NEW_MOD"
+OUT=$(printf '{"tool_name":"Write","tool_input":{"file_path":"%s"},"session_id":"write-exempt","cwd":"%s"}' "$NEW_MOD" "$DIR" \
+  | bash "$HOOK" 2>/dev/null)
+assert_not_contains "Write on new untracked file skips premature no-consumer" "$OUT" "no-consumer"
+
+HANDLER="$DIR/handler.mjs"
+CALLER="$DIR/caller.mjs"
+printf 'export const stub = 1;\n' > "$HANDLER"
+printf 'import { handleOrder } from "./handler.mjs"; handleOrder();\n' > "$CALLER"
+(cd "$DIR" && git add . && git commit -q -m wire) >/dev/null 2>&1
+printf 'export function handleOrder() { return 1; }\n' > "$HANDLER"
+OUT=$(_run_hook "$HANDLER" mjs-live)
+assert_not_contains ".mjs caller resolves live-path without false positive" "$OUT" "live-path"
+
+HASH_FILE="$DIR/repeat.ts"
+printf 'export const base = 1;\n' > "$HASH_FILE"
+(cd "$DIR" && git add . && git commit -q -m repeat) >/dev/null 2>&1
+printf 'export function load() { console.log("x"); return 1; }\n' > "$HASH_FILE"
+OUT1=$(_run_hook "$HASH_FILE" hash-dedup Heavy 1 0 0 1)
+assert_contains "turn 1 emits debug-leftover" "$OUT1" "debug-leftover"
+OUT2=$(_run_hook "$HASH_FILE" hash-dedup Heavy 1 0 0 2)
+assert_not_contains "turn 2 with identical added lines is suppressed" "$OUT2" "debug-leftover"
+
+CURSOR_OUT=$(DO_IT_EVENT_HOST=cursor _run_hook "$HASH_FILE" cursor-shape Heavy 1 0 0 1)
+if printf '%s' "$CURSOR_OUT" | jq -e '.additional_context | contains("debug-leftover")' >/dev/null 2>&1; then
+  echo "  ok: Cursor mode emits top-level additional_context"; PASS=$((PASS + 1))
+else
+  echo "  FAIL: Cursor mode missing additional_context: $CURSOR_OUT" >&2; FAIL=$((FAIL + 1))
+fi
+
+GROK_OUT=$(DO_IT_EVENT_HOST=grok _run_hook "$HASH_FILE" grok-shape Heavy 1 0 0 1)
+assert_not_contains "Grok mode omits outer system-reminder XML tags" "$GROK_OUT" "<system-reminder>"
+assert_contains "Grok mode still delivers advisory body" "$GROK_OUT" "debug-leftover"
+
+SUB_OUT=$(CLAUDE_SUBAGENT=1 _run_hook "$HASH_FILE" subagent-lint Heavy 1 0 0 1)
+assert_contains "subagent edits are scanned by write-quality-lint" "$SUB_OUT" "debug-leftover"
 rm -rf "$DIR"
 
 # Grow $FILE to exactly $1 total lines: 1 base + (N-2) filler committed + 1 tail edit.

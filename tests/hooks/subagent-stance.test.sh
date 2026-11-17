@@ -97,6 +97,19 @@ for attempt in 1 2; do
   if [[ -n "$out" ]]; then _pass "Pi attempt $attempt emits for SDK delivery"; else _fail "shell state suppressed Pi retry"; fi
 done
 
+echo "Case 7: SubagentStart with distinct agent_id isolates parallel child state buckets"
+_isolate /tmp/doit-subagent-stance-c7
+out_a="$(printf '{"session_id":"parent-shared","agent_id":"agent-a","hook_event_name":"SubagentStart","transcript_path":"/tmp/parent.jsonl"}' | bash "$STANCE")"
+out_b="$(printf '{"session_id":"parent-shared","agent_id":"agent-b","hook_event_name":"SubagentStart","transcript_path":"/tmp/parent.jsonl"}' | bash "$STANCE")"
+out_a2="$(printf '{"session_id":"parent-shared","agent_id":"agent-a","hook_event_name":"SubagentStart","transcript_path":"/tmp/parent.jsonl"}' | bash "$STANCE")"
+if printf '%s' "$out_a" | jq -e '.hookSpecificOutput.hookEventName == "SubagentStart"' >/dev/null 2>&1 \
+   && printf '%s' "$out_b" | jq -e '.hookSpecificOutput.hookEventName == "SubagentStart"' >/dev/null 2>&1 \
+   && [[ -z "$out_a2" ]]; then
+  _pass "SubagentStart delivers once per distinct agent_id"
+else
+  _fail "SubagentStart isolation failed: a=$out_a b=$out_b a2=$out_a2"
+fi
+
 if [[ "$FAIL" -ne 0 ]]; then
   echo "FAIL: $FAIL test(s) failed" >&2
   exit 1

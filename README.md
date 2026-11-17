@@ -2,7 +2,7 @@
 
 [English](./README.md) | [中文](./README.zh-CN.md)
 
-Professional coding judgment for Codex, Claude Code, Cursor, Pi, and Grok Build.
+Professional coding judgment for Codex, Claude Code, Cursor, Pi, Grok Build, and Antigravity.
 do-it supplies task-fit skills, independent specialists, compact
 context, and useful deterministic checks. The model chooses methods.
 
@@ -21,11 +21,10 @@ workflow, or report.
 | Cursor | `npm run install:cursor-local` → Reload Window |
 | Pi | `pi install npm:@tdwhere/do-it-pi` |
 | Grok Build | [Generated bundle installation](./docs/install.md#grok-build) |
+| Antigravity | `npm run install:agy-local` |
 
 [Installation details](./docs/install.md) cover host setup and smoke checks.
-The latest published release is 0.19.0; `main` now targets unreleased 0.19.1.
-The previously published 0.18.1 tarballs
-do not contain these changes; check the installed package version rather than
+This documentation describes 0.19.1. Check the installed package version rather than
 assuming it matches a local checkout. Codex specialists require the separate
 native-agent setup described in that guide. OpenCode and Kimi Code repository support is
 retired; local applications and user configuration remain untouched.

@@ -145,6 +145,10 @@ UI, third-party webhook, email/SMS, rebuild job, repair script, an
 **Common mistakes:**
 - Hand-editing the cache or UI because that is the symptom the user sees.
 - Letting a projection become a second semantic authority.
+- Modifying canonical source without regenerating derived host bundles (`plugins/*/`,
+  indexes, or generated hook data) covered by CI consistency checks.
+- Assuming identical JSON field casing or hook response envelopes across hosts when
+  adapting multi-host payloads.
 - No reconcile owner — drift is patched at the symptom forever.
 - Retrying until it "looks right" with no terminal invariant.
 

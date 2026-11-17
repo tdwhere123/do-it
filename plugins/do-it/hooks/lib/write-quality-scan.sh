@@ -90,9 +90,10 @@ wq_scan_comment_families() {
   local hits=0
   local narr_hits orphan_hits tomb_hits
 
-  # Merged former history / fix-narrative / task-ref / what-comment into one family.
+  # Merged narrative and fix/tracker families while avoiding technical prose
+  # such as "fixed-size" or "used to sign".
   narr_hits=$(printf '%s\n' "$filtered" \
-    | grep -ciE '修改了|添加了|新增了|删除了|去掉了|之前是|原来是|改成|曾经|\badded\b|\bpreviously\b|used to|changed to|\bmoved\b|修复|修正|\bfixed\b|fix:|\bbug fix\b|\bhotfix\b|\bpatched\b|issue #|pr #|ticket #|jira-|\bBL-[0-9]|\bphase[ -][0-9]|\bwave[ -][0-9]' \
+    | grep -ciE '修改了|添加了|新增了|删除了|去掉了|之前是|原来是|改成|曾经|修复|修正|\bpreviously\b|changed to|\bhotfix\b|\bbug ?fix\b|fix:|issue #[0-9]|pr #[0-9]|ticket #|jira-|\bBL-[0-9]|\bphase[ -][0-9]|\bwave[ -][0-9]|^[[:space:]]*(\/\/+|#+|\/\*+|\*)[[:space:]]*(added|fixed|moved|patched)([[:space:]]|$)' \
     || true)
   # Bare removed/deleted without tombstone colon form.
   local narr_tomb_hits
@@ -126,15 +127,33 @@ wq_scan_comment_families() {
   WQ_COMMENT_HITS="$hits"
 }
 
-# Args: <repo_root> <file_path> <cwd>. Updates WQ_HIT_FAMILIES, WQ_HIT_DETAILS.
+_wq_is_test_or_repro_rel() {
+  case "${1:-}" in
+    *.test.*|*.spec.*|*_test.*|test/*|tests/*|*/test/*|*/tests/*|*__tests__/*|repro/*|*/repro/*|*fixture*|*fixtures/*) return 0 ;;
+  esac
+  return 1
+}
+
+_wq_is_cli_script_rel() {
+  case "${1:-}" in
+    scripts/*|*/scripts/*|bin/*|*/bin/*|*.cli.*) return 0 ;;
+  esac
+  return 1
+}
+
+# Args: <repo_root> <file_path> <cwd> [tool_name]. Updates WQ_HIT_FAMILIES, WQ_HIT_DETAILS.
 wq_scan_antipattern_families() {
-  local repo_root="$1" file_path="$2" cwd="$3"
-  local file_dir rel_dir rel_file
+  local repo_root="$1" file_path="$2" cwd="$3" tool_name="${4:-Edit}"
+  local file_dir rel_dir rel_file is_test_repro=0 is_tracked=0
 
   file_dir="$(dirname "$file_path")"
   rel_dir="${file_dir#"${repo_root}/"}"
   [[ "$rel_dir" == "$file_dir" ]] && rel_dir="."
   rel_file="${file_path#"${repo_root}/"}"
+  _wq_is_test_or_repro_rel "$rel_file" && is_test_repro=1
+  if _wq_timeout 5s git -C "$repo_root" ls-files --error-unmatch -- "$rel_file" >/dev/null 2>&1; then
+    is_tracked=1
+  fi
 
   local case_run
   case_run=$(printf '%s\n' "$WQ_ADDED_LINES" | awk '
@@ -148,34 +167,38 @@ wq_scan_antipattern_families() {
     _wq_append_detail "case-list: ${case_run} consecutive case-branch patterns — consider externalising to hooks/data/*.tsv or equivalent data file"
   fi
 
-  case "$file_path" in
-    *.ts|*.tsx|*.js|*.jsx|*.mjs|*.cjs)
-      local export_names no_consumer_names name refs refs_other
-      export_names="$(printf '%s\n' "$WQ_ADDED_LINES" \
-        | grep -E '^[[:space:]]*export[[:space:]]+(default[[:space:]]+(async[[:space:]]+)?(function|class)|async[[:space:]]+function|abstract[[:space:]]+class|const|let|var|function|class|interface|type)[[:space:]]+[A-Za-z_][A-Za-z0-9_]*' \
-        | sed -E 's/^[[:space:]]*export[[:space:]]+(default[[:space:]]+)?(async[[:space:]]+function|abstract[[:space:]]+class|function|class|const|let|var|interface|type)[[:space:]]+([A-Za-z_][A-Za-z0-9_]*).*/\3/' \
-        | sort -u)"
-      if [[ -n "$export_names" ]]; then
-        no_consumer_names=""
-        while IFS= read -r name; do
-          [[ -z "$name" ]] && continue
-          refs="$(_wq_timeout 5s git -C "$repo_root" grep -lwF -e "$name" \
-            -- '*.ts' '*.tsx' '*.js' '*.jsx' '*.mjs' '*.cjs' 2>/dev/null || true)"
-          refs_other="$(printf '%s\n' "$refs" \
-            | grep -vxF -- "$rel_file" \
-            | grep -vE '^$' \
-            | head -n1 || true)"
-          if [[ -z "$refs_other" ]]; then
-            no_consumer_names="${no_consumer_names:+${no_consumer_names}, }${name}"
+  if [[ "$tool_name" != "Write" && "$is_tracked" -eq 1 ]]; then
+    case "$file_path" in
+      *.ts|*.tsx|*.js|*.jsx|*.mjs|*.cjs)
+        local export_names no_consumer_names name refs refs_other
+        export_names="$(printf '%s\n' "$WQ_ADDED_LINES" \
+          | grep -E '^[[:space:]]*export[[:space:]]+(default[[:space:]]+(async[[:space:]]+)?(function|class)|async[[:space:]]+function|abstract[[:space:]]+class|const|let|var|function|class|interface|type)[[:space:]]+[A-Za-z_][A-Za-z0-9_]*' \
+          | sed -E 's/^[[:space:]]*export[[:space:]]+(default[[:space:]]+)?(async[[:space:]]+function|abstract[[:space:]]+class|function|class|const|let|var|interface|type)[[:space:]]+([A-Za-z_][A-Za-z0-9_]*).*/\3/' \
+          | sort -u)"
+        if [[ -n "$export_names" ]]; then
+          no_consumer_names=""
+          while IFS= read -r name; do
+            [[ -z "$name" ]] && continue
+            refs="$(_wq_timeout 5s git -C "$repo_root" grep -lwF -e "$name" \
+              -- '*.ts' '*.tsx' '*.js' '*.jsx' '*.mjs' '*.cjs' 2>/dev/null || true)"
+            refs_other="$(printf '%s\n' "$refs" \
+              | grep -vxF -- "$rel_file" \
+              | grep -vE '^$' \
+              | head -n1 || true)"
+            if [[ -z "$refs_other" ]]; then
+              no_consumer_names="${no_consumer_names:+${no_consumer_names}, }${name}"
+            fi
+          done <<<"$export_names"
+          if [[ -n "$no_consumer_names" ]]; then
+            wq_record_family "no-consumer"
+            _wq_append_detail "no-consumer: ${no_consumer_names} (newly-exported, no other file references it — decision ladder rung 1: does it need to exist, or can it be inlined or dropped?)"
           fi
-        done <<<"$export_names"
-        if [[ -n "$no_consumer_names" ]]; then
-          wq_record_family "no-consumer"
-          _wq_append_detail "no-consumer: ${no_consumer_names} (newly-exported, no other file references it — decision ladder rung 1: does it need to exist, or can it be inlined or dropped?)"
         fi
-      fi
-      ;;
-  esac
+        ;;
+    esac
+  fi
+
+  [[ "$is_test_repro" -eq 1 ]] && return 0
 
   local chunks_file copypaste_hit=0 copypaste_neighbor=""
   chunks_file="$(mktemp 2>/dev/null || true)"
@@ -294,12 +317,20 @@ _wq_limit() {
   printf '%s\n' "$value"
 }
 
-# Args: <file_path> [scope-risk] [repo-root]. Adds integrity / metacognition / size families.
+# Args: <file_path> <repo_root> <rel_file> [tool_name]. Adds integrity / slicing / wiring families.
 wq_scan_extra_families() {
-  local file_path="$1" scope_risk="${2:-0}" repo_root="${3:-}"
+  local file_path="$1" repo_root="${2:-}" rel_file="${3:-}" tool_name="${4:-Edit}"
   local bloat_threshold added_count swallow_hits debug_hits test_hits
   local secret_hits type_hits fiction_hits
   local size_warn size_split total_lines
+  local is_test_repro=0 is_cli_script=0 is_tracked=0
+
+  [[ -n "$rel_file" ]] || rel_file="${file_path#"${repo_root%/}/"}"
+  _wq_is_test_or_repro_rel "$rel_file" && is_test_repro=1
+  _wq_is_cli_script_rel "$rel_file" && is_cli_script=1
+  if [[ -n "$repo_root" ]] && _wq_timeout 5s git -C "$repo_root" ls-files --error-unmatch -- "$rel_file" >/dev/null 2>&1; then
+    is_tracked=1
+  fi
 
   bloat_threshold="${DO_IT_EDIT_BLOAT_LINES:-120}"
   case "$bloat_threshold" in
@@ -307,13 +338,12 @@ wq_scan_extra_families() {
   esac
 
   added_count="$(printf '%s\n' "$WQ_ADDED_LINES" | grep -c . || true)"
-  if [[ "${added_count:-0}" -gt "$bloat_threshold" ]]; then
+  if [[ "$is_test_repro" -eq 0 && "${added_count:-0}" -gt "$bloat_threshold" ]]; then
     wq_record_family "edit-bloat"
     _wq_append_detail "edit-bloat: ${added_count} lines added in one edit (threshold ${bloat_threshold}) — consider slicing into smaller vertical changes"
   fi
 
-  # file-size: whole-file length against project shape limits. An edit landing
-  # on an over-limit file is exactly "adding behavior" — nudge to split first.
+  # file-size: whole-file length against project shape limits.
   size_warn="$(_wq_limit file-size-warn "${DO_IT_FILE_SIZE_WARN_LINES:-}" 500 "$repo_root")"
   size_split="$(_wq_limit file-size-split "${DO_IT_FILE_SIZE_SPLIT_LINES:-}" 800 "$repo_root")"
   total_lines="$(wc -l < "$file_path" 2>/dev/null || echo 0)"
@@ -329,13 +359,6 @@ wq_scan_extra_families() {
     _wq_append_detail "file-size: ${total_lines} lines (warn threshold ${size_warn}) — approaching the size limit; extract phases before extending"
   fi
 
-  # Weak metacognition nudge: ask only when router/context sees a non-local
-  # surface; unknown state gets a restrained large-edit fallback.
-  if [[ "$scope_risk" == "1" || ( "$scope_risk" == "unknown" && "${added_count:-0}" -ge 40 ) ]]; then
-    wq_record_family "scope-chain"
-    _wq_append_detail "scope-chain: this edit has a non-local surface — what premise, affected consumer, or smallest producer→consumer proof path is still missing? (see references/scope-chain.md)"
-  fi
-
   swallow_hits=$(printf '%s\n' "$WQ_ADDED_LINES" \
     | grep -cE 'catch[[:space:]]*\([^)]*\)[[:space:]]*\{[[:space:]]*\}|catch[[:space:]]*\{[[:space:]]*\}|\.catch\([[:space:]]*\(\)[[:space:]]*=>[[:space:]]*\{[[:space:]]*\}|except[^:]*:[[:space:]]*pass[[:space:]]*(#|$)' \
     || true)
@@ -344,18 +367,19 @@ wq_scan_extra_families() {
     _wq_append_detail "swallow-error: empty catch or except:pass on newly-added lines — trace the failure instead of hiding it"
   fi
 
-  case "$file_path" in
-    *test*|*__tests__*|*Test*) ;;
-    *)
+  if [[ "$is_test_repro" -eq 0 ]]; then
+    if [[ "$is_cli_script" -eq 1 ]]; then
+      debug_hits=$(printf '%s\n' "$WQ_ADDED_LINES" | grep -cE '\bdebugger\b' || true)
+    else
       debug_hits=$(printf '%s\n' "$WQ_ADDED_LINES" \
         | grep -cE '\bconsole\.(log|debug|info|warn|error)\(|\bdebugger\b|\bprint\([^)]+\)' \
         || true)
-      if [[ "${debug_hits:-0}" -gt 0 ]]; then
-        wq_record_family "debug-leftover"
-        _wq_append_detail "debug-leftover: console.log/debugger/print added outside test paths — remove before declaring done"
-      fi
-      ;;
-  esac
+    fi
+    if [[ "${debug_hits:-0}" -gt 0 ]]; then
+      wq_record_family "debug-leftover"
+      _wq_append_detail "debug-leftover: console.log/debugger/print added outside test paths — remove before declaring done"
+    fi
+  fi
 
   test_hits=$(printf '%s\n' "$WQ_ADDED_LINES" \
     | grep -ciE '\.(skip|only)\(|\.(skip|only)[[:space:]]*\(|^[[:space:]]*(xit|xtest|xdescribe|xcontext)\(|@pytest\.mark\.(skip|skipif)|it\.skip|describe\.skip|test\.skip' \
@@ -389,33 +413,32 @@ wq_scan_extra_families() {
     _wq_append_detail "test-fiction: many mocks in one edit — ask whether the test still exercises the real contract or only a fictional double"
   fi
 
-  # live-path: newly exported handler-ish names with no other-file reference
-  # (complements no-consumer for wiring metacognition).
-  case "$file_path" in
-    *.ts|*.tsx|*.js|*.jsx|*.mjs|*.cjs)
-      local handler_names name refs refs_other
-      handler_names="$(printf '%s\n' "$WQ_ADDED_LINES" \
-        | grep -E 'export[[:space:]]+(async[[:space:]]+)?function[[:space:]]+(handle|on|route|controller|middleware)[A-Za-z0-9_]*' \
-        | sed -E 's/.*function[[:space:]]+([A-Za-z_][A-Za-z0-9_]*).*/\1/' \
-        | sort -u)"
-      if [[ -n "$handler_names" ]]; then
-        local live_miss=""
-        local rel_file="${file_path#"$(git -C "$(dirname "$file_path")" rev-parse --show-toplevel 2>/dev/null)/"}"
-        while IFS= read -r name; do
-          [[ -z "$name" ]] && continue
-          refs="$(git -C "$(dirname "$file_path")" rev-parse --show-toplevel 2>/dev/null)"
-          [[ -z "$refs" ]] && continue
-          refs_other="$(git -C "$refs" grep -lwF -e "$name" -- '*.ts' '*.tsx' '*.js' '*.jsx' 2>/dev/null \
-            | grep -vxF -- "$rel_file" | head -n1 || true)"
-          if [[ -z "$refs_other" ]]; then
-            live_miss="${live_miss:+$live_miss, }$name"
+  # live-path: newly exported handler-ish names in tracked files with no other-file caller.
+  if [[ -n "$repo_root" && "$tool_name" != "Write" && "$is_tracked" -eq 1 ]]; then
+    case "$file_path" in
+      *.ts|*.tsx|*.js|*.jsx|*.mjs|*.cjs)
+        local handler_names name refs_other
+        handler_names="$(printf '%s\n' "$WQ_ADDED_LINES" \
+          | grep -E 'export[[:space:]]+(async[[:space:]]+)?function[[:space:]]+(handle|on|route|controller|middleware)[A-Za-z0-9_]*' \
+          | sed -E 's/.*function[[:space:]]+([A-Za-z_][A-Za-z0-9_]*).*/\1/' \
+          | sort -u)"
+        if [[ -n "$handler_names" ]]; then
+          local live_miss=""
+          while IFS= read -r name; do
+            [[ -z "$name" ]] && continue
+            refs_other="$(_wq_timeout 5s git -C "$repo_root" grep -lwF -e "$name" \
+              -- '*.ts' '*.tsx' '*.js' '*.jsx' '*.mjs' '*.cjs' 2>/dev/null \
+              | grep -vxF -- "$rel_file" | head -n1 || true)"
+            if [[ -z "$refs_other" ]]; then
+              live_miss="${live_miss:+$live_miss, }$name"
+            fi
+          done <<<"$handler_names"
+          if [[ -n "$live_miss" ]]; then
+            wq_record_family "live-path"
+            _wq_append_detail "live-path: ${live_miss} looks like an entrypoint/handler with no other-file caller — confirm producer→consumer wiring"
           fi
-        done <<<"$handler_names"
-        if [[ -n "$live_miss" ]]; then
-          wq_record_family "live-path"
-          _wq_append_detail "live-path: ${live_miss} looks like an entrypoint/handler with no other-file caller — confirm producer→consumer wiring"
         fi
-      fi
-      ;;
-  esac
+        ;;
+    esac
+  fi
 }

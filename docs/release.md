@@ -1,6 +1,6 @@
 # Release Notes
 
-The maintained host set is Claude Code, Codex, Cursor, Pi, and Grok Build:
+The maintained host set is Claude Code, Codex, Cursor, Pi, Grok Build, and Antigravity:
 
 1. Codex — marketplace skills and plugin hook configuration; native specialist
    roles are installed separately. See [installation](./install.md).
@@ -10,6 +10,8 @@ The maintained host set is Claude Code, Codex, Cursor, Pi, and Grok Build:
    maintained extension and generated agents executed through optional `pi-subagents`.
 5. Grok Build — generated `plugins/do-it-grok/` local bundle, installed as
    `do-it-grok`; inspect loaded source paths and names after native validation.
+6. Antigravity — generated `plugins/do-it-agy/` local bundle, installed as
+   `do-it-agy` via `npm run install:agy-local`.
 
 OpenCode and Kimi Code repository support is retired. Historical version notes
 below remain unchanged. No local application or user configuration removal is
@@ -34,9 +36,9 @@ contamination and does not claim an efficacy gain.
 
 | Plane | Current repository evidence |
 | --- | --- |
-| Source/package | Published release `0.19.0`; `main` now carries unreleased `0.19.1` metadata: 10 runnable skills, 1 generated discovery entry, and 8 specialists. Prompt revisions, role consolidation, router removal, and host fixes are source changes, not a measured model-efficacy or publication claim. |
-| Git tag | `v0.19.0` identifies `61bdc12`, whose packed payloads match the published artifacts. Do not retro-tag or move historical releases to conceal source/package drift. Version metadata or a tag alone does not prove npm publication. |
-| Marketplace/npm | Registry queries on 2026-11-04 confirm both `@tdwhere/do-it` and `@tdwhere/do-it-pi` 0.18.1 were published on 2026-10-17. The source continued changing under that version; these tarballs are not the current adapter. Both 0.19.0 packages were published on 2026-11-04 and downloaded from a fresh cache; their registry integrities and bytes match the verified tarballs. See the final release record. Cursor marketplace listing remains pending. |
+| Source/package | `0.19.1`: 10 runnable skills, 1 generated discovery entry, and 8 specialists across 6 hosts. Source changes are not a measured model-efficacy or publication claim. |
+| Git tag | `v0.19.1` identifies the verified `0.19.1` release commit (`v0.19.0` remains on `61bdc12`). Version metadata or a tag alone does not prove npm publication. |
+| Marketplace/npm | Confirm `@tdwhere/do-it@0.19.1` and `@tdwhere/do-it-pi@0.19.1` via `npm view` before relying on registry packages; historical `0.18.1` and `0.19.0` integrities stay unchanged. Cursor marketplace listing remains pending. |
 | Live host | The [seven non-Pi installations](./release-evidence/local-deployment-0.19.0.md) and [Linux Pi pair](./release-evidence/0.19.0-release.md) are pinned to verified 0.19.0 payloads, not development `main`. Reload existing sessions; source metadata alone does not identify loaded code. |
 
 ## Tag Policy
@@ -97,7 +99,7 @@ npm install -g https://github.com/tdwhere123/do-it/archive/refs/heads/main.tar.g
 do-it setup
 ```
 
-After `npm view @tdwhere/do-it@0.19.0 version` succeeds, the root registry
+After `npm view @tdwhere/do-it@0.19.1 version` succeeds, the root registry
 package provides the optional managed CLI. Before publication, use the GitHub
 or checkout-local path above.
 
@@ -209,13 +211,14 @@ Set `CODEX_HOME=/path/to/codex-home` to test or install into a temporary target.
 Prefer publishing the exact tarballs that already passed release validation:
 
 ```bash
-VERSION=0.19.0
+VERSION=0.19.1
 npm run validate:release -- "v${VERSION}"
 npm run build:generated
 npm run build:codex-plugin
 npm run build:cursor-plugin
 npm run build:pi-plugin
 node scripts/build-grok-plugin.mjs
+node scripts/build-agy-plugin.mjs
 npm --prefix plugins/do-it-pi test
 
 npm pack --ignore-scripts
@@ -231,7 +234,7 @@ npm publish "$ROOT_TARBALL" --access public
 ```
 
 Keep the root package scoped and keep `do-it` as its bin. Install from the
-registry only after `npm view @tdwhere/do-it@0.19.0 version` succeeds; before
+registry only after `npm view @tdwhere/do-it@0.19.1 version` succeeds; before
 publication, use the exact local tarball from the verified pack step.
 
 ```bash
@@ -245,7 +248,7 @@ Publishing one must not select another package's tarball by a broad wildcard.
 ### Option 2: Pack And Test Locally
 
 ```bash
-VERSION=0.19.0
+VERSION=0.19.1
 npm pack --ignore-scripts
 npm run smoke:package -- "./tdwhere-do-it-${VERSION}.tgz"
 ```
@@ -291,7 +294,7 @@ a release artifact.
     packed Pi tarball.
 14. Confirm `manifest.json` matches the on-disk inventory (10 runnable
     skills + 1 generated discovery entry, 8 agents). Source metadata is
-    `0.19.0`; do not tag or npm-publish until those are authorized. Default
+    `0.19.1`; do not tag or npm-publish until those are authorized. Default
     runtime provides compact context and source-edit checks; classification and
     completion reminder gates are retired.
 15. Confirm root tarball contents remain separate from `plugins/do-it-pi`, and

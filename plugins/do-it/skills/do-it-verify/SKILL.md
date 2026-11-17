@@ -6,11 +6,14 @@ description: "Use when selecting evidence for a delivery claim, regression fix, 
 # Verify
 
 Match evidence to the claim. A passing command establishes what that command
-actually checked; it does not automatically establish user acceptance. Prefer
-checks that exercise the affected behavior after the relevant change. Confirm
+actually checked; it does not automatically establish user acceptance. Use narrow
+targeted checks to iterate quickly, then run the full relevant verification gate
+after the final edit before claiming done. Confirm
 which checkout, inputs, assertions, and execution path produced the result. A
 validator that inspected nothing, or a test runner that skipped the intended
-case, cannot establish that its target is valid.
+case, cannot establish that its target is valid. For headless, non-TTY, or
+sandboxed checks, state environment limits alongside what ran; see
+[integrity rules](../references/integrity.md).
 
 Consider whether evidence is stale, from another checkout, unrelated, simulated,
 or incomplete. A green result can be manufactured: tests special-cased to the

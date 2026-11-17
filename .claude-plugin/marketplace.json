@@ -7,7 +7,7 @@
   "plugins": [
     {
       "name": "do-it",
-      "description": "Workflow discipline plugin: skills auto-trigger via hooks; no slash commands required.",
+      "description": "Professional coding judgment, independent specialists, compact context, and deterministic checks across agent hosts.",
       "version": "0.19.1",
       "source": "./",
       "author": {

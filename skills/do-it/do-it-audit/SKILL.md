@@ -21,7 +21,8 @@ proof; do not run an unsafe reproducer to earn a stronger verdict.
 ## Map before judging
 
 Use the user's scope: repository, selected subsystems or paths, or a change and
-its affected contracts. If missing, clarify scope without reopening settled
+its affected contracts. State explicit in-scope and out-of-scope boundaries up
+front; if missing, clarify scope without reopening settled
 choices. Record the revision and inventory the scope, then build a system map
 before hunting defects: layers and module responsibilities, semantic
 authorities, entry points, the end-to-end chains that carry the project's

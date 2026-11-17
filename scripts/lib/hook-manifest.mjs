@@ -34,7 +34,8 @@ export const RUN_HOOK_CMD_ALLOWLIST = [SESSION_START_SCRIPT, ...HOOK_SCRIPTS];
 /** Hook files copied into each plugin bundle (bundles also get hooks/lib + hooks/data). */
 export const CODEX_HOOK_FILES = ["hooks.json", ...HOOK_SCRIPTS, SESSION_START_SCRIPT, "codex-post-tool.sh"];
 export const CURSOR_HOOK_FILES = [SESSION_START_SCRIPT, ...HOOK_SCRIPTS, RUN_HOOK_CMD];
-export const GROK_HOOK_FILES = ["grok-adapter.sh", "write-quality-lint.sh"];
+export const GROK_HOOK_FILES = ["grok-adapter.sh", "write-quality-lint.sh", "subagent-stance.sh"];
+export const AGY_HOOK_FILES = ["agy-adapter.sh", "write-quality-lint.sh", "subagent-stance.sh"];
 
 /** Source hooks.json each managed install target ships (manifest.json extras). */
 export const TARGET_HOOKS_JSON = {
@@ -58,6 +59,7 @@ export function codexHooksJson() {
   const command = (script, timeout) => ({ type: "command", command: codexHookCommand(script), timeout });
   return { hooks: {
     UserPromptSubmit: [{ hooks: [command("prompt-submit.sh", 10), command("subagent-stance.sh", 10)] }],
+    SubagentStart: [{ hooks: [command("subagent-stance.sh", 10)] }],
     PostToolUse: [{ matcher: "apply_patch|Edit|Write|MultiEdit|NotebookEdit|StrReplace|EditNotebook", hooks: [command("codex-post-tool.sh", 15)] }]
   } };
 }

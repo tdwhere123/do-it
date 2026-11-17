@@ -16,6 +16,17 @@
         ]
       }
     ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "DO_IT_EVENT_HOST=codex DO_IT_HOOK_DATA=\"${PLUGIN_DATA:-${CLAUDE_PLUGIN_DATA:-/tmp/do-it-data}}\" \"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-.}}/hooks/subagent-stance.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "apply_patch|Edit|Write|MultiEdit|NotebookEdit|StrReplace|EditNotebook",

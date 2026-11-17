@@ -77,6 +77,7 @@ for (const noJq of [false, true]) {
     assert.match(output.hookSpecificOutput.additionalContext, /write-quality-lint.*sample\.ts/);
     assert.equal(hook("write-quality", edit, env), "");
     assert.equal(hook("user-turn", prompt, env), "");
+    fs.appendFileSync(file, "export function load2() { console.log('debug2'); return 2; }\n");
     assert.ok(hook("write-quality", { ...edit, toolInput: { path: file } }, env));
     assert.equal(hook("write-quality", { ...edit, toolName: "read_file" }, env), "");
   });

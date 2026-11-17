@@ -42,6 +42,9 @@ entry_points=(
   hooks/session-start.sh
   hooks/subagent-stance.sh
   hooks/write-quality-lint.sh
+  hooks/codex-post-tool.sh
+  hooks/grok-adapter.sh
+  hooks/agy-adapter.sh
   hooks/anti-patterns-lint.sh
   hooks/comments-lint.sh
 )

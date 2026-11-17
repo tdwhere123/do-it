@@ -42,9 +42,11 @@ from what is inferred, and do not inflate impact beyond the demonstrated path.
 
 A useful finding identifies its location, consequence, evidence, and needed
 correction (deferred until synthesis during an audit). The correction is not
-permission to edit during review-only work. Leave out style preference and
-unreachable hypotheticals; distinguish blocking defects, important regressions,
-and optional improvements. Do not claim clean while material findings remain
+permission to edit during review-only work. Calibrate severity strictly from the
+demonstrated path: mark a defect blocking only when an observed path breaks a
+contract or causes loss; leave out style preferences and unreachable
+hypotheticals; distinguish blocking defects, important regressions, and optional
+improvements. Do not claim clean while material findings remain
 unresolved. Identify unchecked or deferred scope, using the user's vocabulary.
 
 [Review lenses](../references/review-lenses.md) provide optional specialist detail;

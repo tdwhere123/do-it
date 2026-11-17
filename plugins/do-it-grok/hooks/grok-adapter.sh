@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Grok command-hook adapter. Core arrives after the first completed tool;
+# Grok command-hook adapter. Core/stance arrive after the first completed tool;
 # Grok discards SessionStart and allowing UserPromptSubmit context.
 set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -32,26 +32,38 @@ CWD="$(field cwd)"
 [[ -n "$CWD" ]] || CWD="${GROK_WORKSPACE_ROOT:-}"
 [[ -d "$CWD" ]] || exit 0
 TRANSCRIPT="$(field transcriptPath)"
+SUBAGENT_TYPE="$(field subagentType)"
 case "${1:-}" in
   user-turn)
     # Prompt stdout is discarded by Grok: update state only, never consume Core.
     do_it_user_turn_bump "$SESSION_ID" >/dev/null 2>&1 || true
     ;;
   core)
-    TEXT="$(do_it_kernel_context_collect "$SESSION_ID" "$CWD" "" "$TRANSCRIPT")"
-    [[ -z "$TEXT" ]] || do_it_emit_context PostToolUse "$TEXT"
+    do_it_prune_stale_sessions "$SESSION_ID" >/dev/null 2>&1 || true
+    if do_it_in_subagent_context "$TRANSCRIPT" "$RAW_INPUT"; then
+      printf '{"session_id":"%s","transcript_path":"%s","hook_event_name":"PostToolUse","subagentType":"%s"}' \
+        "$(_do_it_json_escape "$SESSION_ID")" "$(_do_it_json_escape "$TRANSCRIPT")" \
+        "$(_do_it_json_escape "${SUBAGENT_TYPE:-subagent}")" \
+        | bash "$SCRIPT_DIR/subagent-stance.sh" || true
+    else
+      TEXT="$(do_it_kernel_context_collect "$SESSION_ID" "$CWD" "" "$TRANSCRIPT" "$RAW_INPUT")"
+      [[ -z "$TEXT" ]] || do_it_emit_context PostToolUse "$TEXT"
+    fi
     ;;
   write-quality)
     TOOL="$(field toolName)"
     case "$TOOL" in search_replace|Edit|Write|MultiEdit) ;; *) exit 0 ;; esac
+    MAPPED_TOOL="Edit"
+    [[ "$TOOL" == "Write" ]] && MAPPED_TOOL="Write"
     FILE_PATH="$(field toolInput.file_path)"
     [[ -n "$FILE_PATH" ]] || FILE_PATH="$(field toolInput.path)"
     [[ -n "$FILE_PATH" ]] || FILE_PATH="$(field toolInput.filePath)"
     [[ -n "$FILE_PATH" ]] || exit 0
     [[ "$FILE_PATH" == /* ]] || FILE_PATH="$CWD/$FILE_PATH"
-    printf '{"session_id":"%s","cwd":"%s","tool_name":"Edit","transcript_path":"%s","tool_input":{"file_path":"%s"}}' \
+    printf '{"session_id":"%s","cwd":"%s","tool_name":"%s","transcript_path":"%s","subagentType":"%s","tool_input":{"file_path":"%s"}}' \
       "$(_do_it_json_escape "$SESSION_ID")" "$(_do_it_json_escape "$CWD")" \
-      "$(_do_it_json_escape "$TRANSCRIPT")" "$(_do_it_json_escape "$FILE_PATH")" \
+      "$MAPPED_TOOL" "$(_do_it_json_escape "$TRANSCRIPT")" \
+      "$(_do_it_json_escape "$SUBAGENT_TYPE")" "$(_do_it_json_escape "$FILE_PATH")" \
       | bash "$SCRIPT_DIR/write-quality-lint.sh" || true
     ;;
 esac

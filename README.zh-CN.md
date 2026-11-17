@@ -2,7 +2,7 @@
 
 [English](./README.md) | [中文](./README.zh-CN.md)
 
-面向 Codex、Claude Code、Cursor、Pi 和 Grok Build 的专业编程判断插件。
+面向 Codex、Claude Code、Cursor、Pi、Grok Build 和 Antigravity 的专业编程判断插件。
 do-it 提供按需技能、独立专业代理、精简上下文和有用的确定性检查，由模型选择方法。
 
 Core 只保留稳定原则：守住用户目标、已定决策和授权边界；依据当前事实并区分假设；
@@ -18,11 +18,10 @@ Core 只保留稳定原则：守住用户目标、已定决策和授权边界；
 | Cursor | `npm run install:cursor-local` → Reload Window |
 | Pi | `pi install npm:@tdwhere/do-it-pi` |
 | Grok Build | [生成式插件包安装](./docs/install.zh-CN.md#grok-build) |
+| Antigravity | `npm run install:agy-local` |
 
 [安装详情](./docs/install.zh-CN.md)包含宿主配置和冒烟检查。
-最新已发布版本为 0.19.0；`main` 已进入尚未发布的 0.19.1 开发周期。
-此前发布的 0.18.1 tarball 不包含这些改动；请核对实际安装包
-版本，不要假定它与本地 checkout 一致。Codex 专业代理需要按安装指南单独安装原生角色。OpenCode 和 Kimi Code 的仓库支持已退役，
+本文档描述 0.19.1。请核对实际安装包版本，不要假定它与本地 checkout 一致。Codex 专业代理需要按安装指南单独安装原生角色。OpenCode 和 Kimi Code 的仓库支持已退役，
 不移除本机应用或用户配置。安装后正常表达需求即可。
 无需任务分级、强制 router 入口或 .do-it 脚手架。优先复用已有指令和项目文档，仅在
 有助于连续工作时记录轻量任务说明。

@@ -51,7 +51,6 @@ Suppress one advisory family with `write-quality-lint-allow: <family-id> — <re
 
 | ID | Detects / nudge |
 |---|---|
-| `scope-chain` | Non-local/interface-risk edit — identify the next missing premise, consumer, or bounded proof path ([scope-chain.md](scope-chain.md)) |
 | `live-path` | Handler-like export with no other-file caller |
 | `type-escape` | `as any` / `@ts-ignore` / `as unknown as` — bypassing contracts? |
 | `test-fiction` | ≥3 mock helpers in one edit — real contract or fiction? |
@@ -62,4 +61,4 @@ Suppress one advisory family with `write-quality-lint-allow: <family-id> — <re
 |---|---|
 | Applicable source edit | Scan newly added lines, regardless of task labels |
 
-Subagent context: skipped.
+Subagent context: scanned using per-session state.

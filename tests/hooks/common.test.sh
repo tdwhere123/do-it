@@ -275,6 +275,58 @@ case "$?" in
 esac
 
 # -------------------------------------------------------------------------
+echo "Case 4b: do_it_in_subagent_context detects Codex, Grok, and AGY subagent transcripts + isolates session ids"
+(
+  _isolate_env "/tmp/doit-test-host-subagents"
+  source "$COMMON"
+  TMPD="$(mktemp -d)"
+  printf '{"timestamp":"2026-11-16T00:00:00Z","type":"session_meta","payload":{"source":{"subagent":{"thread_spawn":{"parent_thread_id":"p1"}}}}}\n' > "$TMPD/rollout-2026-child.jsonl"
+  printf '{"timestamp":"2026-11-16T00:00:00Z","type":"session_meta","payload":{"source":"cli"}}\n' > "$TMPD/rollout-2026-root.jsonl"
+  mkdir -p "$TMPD/grok-sub" "$TMPD/grok-res" "$TMPD/grok-root"
+  printf '{"session_kind":"subagent"}\n' > "$TMPD/grok-sub/summary.json"
+  : > "$TMPD/grok-sub/chat_history.jsonl"
+  printf '{"session_kind":"subagent_resume"}\n' > "$TMPD/grok-res/summary.json"
+  : > "$TMPD/grok-res/chat_history.jsonl"
+  printf '{"session_kind":"primary"}\n' > "$TMPD/grok-root/summary.json"
+  : > "$TMPD/grok-root/chat_history.jsonl"
+  printf '{"step_index":0,"source":"SYSTEM","type":"SYSTEM_MESSAGE","content":"child"}\n' > "$TMPD/agy-child.jsonl"
+  printf '{"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","content":"root"}\n' > "$TMPD/agy-root.jsonl"
+
+  do_it_in_subagent_context "$TMPD/rollout-2026-child.jsonl" || { rm -rf "$TMPD"; exit 47; }
+  if do_it_in_subagent_context "$TMPD/rollout-2026-root.jsonl"; then rm -rf "$TMPD"; exit 48; fi
+  do_it_in_subagent_context "$TMPD/grok-sub/chat_history.jsonl" || { rm -rf "$TMPD"; exit 49; }
+  do_it_in_subagent_context "$TMPD/grok-res/chat_history.jsonl" || { rm -rf "$TMPD"; exit 50; }
+  if do_it_in_subagent_context "$TMPD/grok-root/chat_history.jsonl"; then rm -rf "$TMPD"; exit 51; fi
+  do_it_in_subagent_context "$TMPD/agy-child.jsonl" || { rm -rf "$TMPD"; exit 52; }
+  if do_it_in_subagent_context "$TMPD/agy-root.jsonl"; then rm -rf "$TMPD"; exit 53; fi
+  [[ "$(do_it_effective_session_id "parent-1" "$TMPD/rollout-2026-child.jsonl")" == "subagent-rollout-2026-child" ]] || { rm -rf "$TMPD"; exit 54; }
+  [[ "$(do_it_effective_session_id "parent-1" "$TMPD/rollout-2026-root.jsonl")" == "parent-1" ]] || { rm -rf "$TMPD"; exit 55; }
+  rm -rf "$TMPD"
+)
+case "$?" in
+  0)  _pass "Codex, Grok, and AGY subagent detection and session isolation work" ;;
+  *)  _fail "host subagent detection failed (exit=$?)" ;;
+esac
+
+# -------------------------------------------------------------------------
+echo "Case 4c: do_it_user_turn_bump prunes expired wql_seen_* keys and Cursor emit outputs additional_context"
+(
+  _isolate_env "/tmp/doit-test-turn-prune"
+  source "$COMMON"
+  do_it_session_state_set_many prune_sess user_turn 1 wql_seen_a_ts 1 wql_seen_b_ts 1 wql_hash_a_ts deadbeef
+  do_it_user_turn_bump prune_sess
+  [[ "$(do_it_user_turn_get prune_sess)" == "2" ]] || exit 61
+  [[ -z "$(do_it_session_state_get prune_sess wql_seen_a_ts)" ]] || exit 62
+  [[ "$(do_it_session_state_get prune_sess wql_hash_a_ts)" == "deadbeef" ]] || exit 63
+  cursor_out="$(DO_IT_EVENT_HOST=cursor do_it_emit_context PostToolUse "cursor note")"
+  printf '%s' "$cursor_out" | jq -e '.additional_context == "cursor note"' >/dev/null 2>&1 || exit 64
+)
+case "$?" in
+  0)  _pass "turn bump prunes wql_seen_* and Cursor emit uses additional_context" ;;
+  *)  _fail "turn prune or Cursor emit failed (exit=$?)" ;;
+esac
+
+# -------------------------------------------------------------------------
 echo "Case 5: runtime gitignore is self-contained (parent .gitignore untouched)"
 (
   _isolate_env ""

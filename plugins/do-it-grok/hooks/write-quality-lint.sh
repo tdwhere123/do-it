@@ -1,11 +1,8 @@
 #!/usr/bin/env bash
 # do-it write-quality-lint (PostToolUse, matcher: Edit|Write|MultiEdit).
 # Merged advisory hook: comment discipline + coarse anti-patterns + integrity
-# heuristics. Scans newly-added lines once and emits ONE system-reminder per
-# edit (deduped per user turn + file path); never blocks.
-#
-# Registered in hooks.json as a PostToolUse advisory hook. Legacy entry points
-# comments-lint.sh and anti-patterns-lint.sh exec this script.
+# heuristics. Scans newly-added lines once and emits ONE reminder per edit
+# (deduped per user turn + file path + unchanged added-line hash); never blocks.
 
 set -uo pipefail
 
@@ -27,15 +24,12 @@ if [[ -z "$FILE_PATH" ]]; then
   FILE_PATH="$(do_it_json_get_nested "$RAW_INPUT" tool_input.path)"
 fi
 
-if ! command -v do_it_in_subagent_context >/dev/null 2>&1; then
-  echo "write-quality-lint: common.sh out of sync, do_it_in_subagent_context missing" >&2
-  exit 0
-fi
-if do_it_in_subagent_context "$TRANSCRIPT_PATH"; then
-  do_it_debug write-quality-lint "decision=skip reason=subagent-context"
+if ! command -v do_it_effective_session_id >/dev/null 2>&1; then
+  echo "write-quality-lint: common.sh out of sync, do_it_effective_session_id missing" >&2
   exit 0
 fi
 
+SESSION_ID="$(do_it_effective_session_id "$SESSION_ID" "$TRANSCRIPT_PATH" "$RAW_INPUT")"
 do_it_session_state_inc "$SESSION_ID" hook_invocations write_quality_lint
 
 case "$TOOL_NAME" in
@@ -113,8 +107,6 @@ if [[ -z "$WQ_ADDED_LINES" ]]; then
   exit 0
 fi
 
-# Scan added lines directly, independent of task classification.
-
 PROJECT_ROOT="$(do_it_project_root "$CWD")"
 PROJECT_ROOT="${PROJECT_ROOT%/}"
 PROJECT_ROOT="$(cd "$PROJECT_ROOT" 2>/dev/null && pwd -P || printf '%s' "$PROJECT_ROOT")"
@@ -122,13 +114,24 @@ case "$FILE_PATH" in
   "$PROJECT_ROOT"/*) DISPLAY_PATH="${FILE_PATH#"$PROJECT_ROOT"/}" ;;
   *) DISPLAY_PATH="$FILE_PATH" ;;
 esac
+case "$FILE_PATH" in
+  "$REPO_ROOT"/*) REL_FILE="${FILE_PATH#"$REPO_ROOT"/}" ;;
+  *) REL_FILE="$(basename "$FILE_PATH")" ;;
+esac
 
 SANITIZED_PATH="$(printf '%s' "$DISPLAY_PATH" | tr '/\\' '__' | tr -cd '[:alnum:]_.-')"
 [[ -z "$SANITIZED_PATH" ]] && SANITIZED_PATH="path"
 DEDUP_KEY="wql_seen_${SANITIZED_PATH}"
+HASH_KEY="wql_hash_${SANITIZED_PATH}"
 CURRENT_TURN="$(do_it_user_turn_get "$SESSION_ID")"
 if [[ "$(do_it_session_state_get "$SESSION_ID" "$DEDUP_KEY")" == "$CURRENT_TURN" ]]; then
   do_it_debug write-quality-lint "decision=skip reason=dedup turn=$CURRENT_TURN file=$DISPLAY_PATH"
+  exit 0
+fi
+
+ADDED_HASH="$(printf '%s' "$WQ_ADDED_LINES" | _do_it_hash_key)"
+if [[ -n "$ADDED_HASH" && "$(do_it_session_state_get "$SESSION_ID" "$HASH_KEY")" == "$ADDED_HASH" ]]; then
+  do_it_debug write-quality-lint "decision=skip reason=unchanged-added-lines file=$DISPLAY_PATH"
   exit 0
 fi
 
@@ -137,27 +140,8 @@ WQ_HIT_DETAILS=""
 WQ_COMMENT_HITS=0
 
 wq_scan_comment_families
-wq_scan_antipattern_families "$REPO_ROOT" "$FILE_PATH" "$CWD"
-
-# Cheap path-only SCOPE_RISK for extra families. High-signal public API or a
-# nested workspace package → 1; otherwise unknown (large-edit fallback in the
-# scanner). Not a lexical-router reimplementation.
-_wq_scope_risk_from_path() {
-  local file_path="$1" repo_root="$2"
-  local rel="${file_path#"${repo_root}/"}" base
-  [[ "$rel" == "$file_path" ]] && rel="${file_path##*/}"
-  rel="${rel#./}"
-  base="${rel##*/}"
-  case "$base" in
-    index.*|plugin.json|manifest.json) printf '%s' 1; return ;;
-  esac
-  case "$rel" in
-    packages/*/*|plugins/*/*|apps/*/*) printf '%s' 1; return ;;
-  esac
-  printf '%s' unknown
-}
-SCOPE_RISK="$(_wq_scope_risk_from_path "$FILE_PATH" "$REPO_ROOT")"
-wq_scan_extra_families "$FILE_PATH" "$SCOPE_RISK" "$REPO_ROOT"
+wq_scan_antipattern_families "$REPO_ROOT" "$FILE_PATH" "$CWD" "$TOOL_NAME"
+wq_scan_extra_families "$FILE_PATH" "$REPO_ROOT" "$REL_FILE" "$TOOL_NAME"
 
 # Suppress individual advisory families with a reason-bearing marker, never the
 # entire scan. Secret-leak is intentionally unsuppressible: a marker must not
@@ -191,15 +175,23 @@ if [[ -z "$WQ_HIT_FAMILIES" ]]; then
   exit 0
 fi
 
-do_it_session_state_set "$SESSION_ID" "$DEDUP_KEY" "$CURRENT_TURN"
+if [[ -n "$ADDED_HASH" ]]; then
+  do_it_session_state_set_many "$SESSION_ID" "$DEDUP_KEY" "$CURRENT_TURN" "$HASH_KEY" "$ADDED_HASH"
+else
+  do_it_session_state_set "$SESSION_ID" "$DEDUP_KEY" "$CURRENT_TURN"
+fi
 
 COMMENT_HITS_DISPLAY="$WQ_COMMENT_HITS"
 if [[ "${WQ_COMMENT_HITS:-0}" -gt 50 ]]; then
   COMMENT_HITS_DISPLAY=">50"
 fi
 
-REMINDER=$'<system-reminder>\n'
-REMINDER+="do-it write-quality-lint (advisory): edit on ${DISPLAY_PATH} matched ${WQ_HIT_FAMILIES}."
+if [[ "${DO_IT_EVENT_HOST:-}" == "grok" || "${DO_IT_EVENT_HOST:-}" == "agy" ]]; then
+  REMINDER="do-it write-quality-lint (advisory): edit on ${DISPLAY_PATH} matched ${WQ_HIT_FAMILIES}."
+else
+  REMINDER=$'<system-reminder>\n'
+  REMINDER+="do-it write-quality-lint (advisory): edit on ${DISPLAY_PATH} matched ${WQ_HIT_FAMILIES}."
+fi
 if [[ "${WQ_COMMENT_HITS:-0}" -gt 0 ]]; then
   REMINDER+=$'\n'"Comments discipline: ${COMMENT_HITS_DISPLAY} likely-violating new comment(s) (see do-it-code-quality)."
   REMINDER+=$'\n'"注释纪律：新增 ${COMMENT_HITS_DISPLAY} 处可能违反注释元规则的注释，请改写为索引锚点或删除（见 do-it-code-quality）。"
@@ -209,7 +201,9 @@ while IFS= read -r detail; do
   REMINDER+=$'\n'"- ${detail}"
 done <<<"$WQ_HIT_DETAILS"
 REMINDER+=$'\n'"Suppress one advisory family with write-quality-lint-allow: <family-id> — <reason>. Possible secrets are never suppressible. Review flagged families before declaring done."
-REMINDER+=$'\n</system-reminder>'
+if [[ "${DO_IT_EVENT_HOST:-}" != "grok" && "${DO_IT_EVENT_HOST:-}" != "agy" ]]; then
+  REMINDER+=$'\n</system-reminder>'
+fi
 
 do_it_emit_context PostToolUse "$REMINDER"
 do_it_debug write-quality-lint "decision=flagged families=$WQ_HIT_FAMILIES comment_hits=$WQ_COMMENT_HITS file=$DISPLAY_PATH"

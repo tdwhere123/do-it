@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { coreContextPath, renderCoreContext } from "./build-core-context.mjs";
-import { HOOK_SCRIPTS, CODEX_HOOK_FILES, CURSOR_HOOK_FILES, GROK_HOOK_FILES } from "./lib/hook-manifest.mjs";
+import { HOOK_SCRIPTS, CODEX_HOOK_FILES, CURSOR_HOOK_FILES, GROK_HOOK_FILES, AGY_HOOK_FILES } from "./lib/hook-manifest.mjs";
 const defaultRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 export function validateCoreConsistency(root = defaultRoot) {
   const errors = [];
@@ -19,10 +19,13 @@ export function validateCoreConsistency(root = defaultRoot) {
     ["do-it", CODEX_HOOK_FILES.filter((file) => file !== "hooks.json")],
     ["do-it-cursor", CURSOR_HOOK_FILES],
     ["do-it-pi", HOOK_SCRIPTS],
-    ["do-it-grok", GROK_HOOK_FILES]
+    ["do-it-grok", GROK_HOOK_FILES],
+    ["do-it-agy", AGY_HOOK_FILES]
   ]) {
     const bundle = `plugins/${host}`;
-    pairs.push(["skills/do-it/do-it-core/SKILL.md", `${bundle}/skills/do-it-core/SKILL.md`]);
+    if (host !== "do-it-agy") {
+      pairs.push(["skills/do-it/do-it-core/SKILL.md", `${bundle}/skills/do-it-core/SKILL.md`]);
+    }
     for (const script of scripts) pairs.push([`hooks/${script}`, `${bundle}/hooks/${script}`]);
     for (const dir of ["lib", "data"]) {
       for (const file of fs.readdirSync(path.join(root, "hooks", dir))) {
@@ -35,6 +38,14 @@ export function validateCoreConsistency(root = defaultRoot) {
       if (!fs.readFileSync(path.join(root, source)).equals(fs.readFileSync(path.join(root, target)))) errors.push(`${target}: generated copy drifted from ${source}`);
     } catch { errors.push(`${target}: generated copy or source missing`); }
   }
+  const agyCoreTarget = "plugins/do-it-agy/skills/do-it-core/SKILL.md";
+  try {
+    const expected = fs.readFileSync(path.join(root, "skills/do-it/do-it-core/SKILL.md"), "utf8")
+      .replaceAll("../references/", "../../references/");
+    if (fs.readFileSync(path.join(root, agyCoreTarget), "utf8") !== expected) {
+      errors.push(`${agyCoreTarget}: generated copy drifted from skills/do-it/do-it-core/SKILL.md`);
+    }
+  } catch { errors.push(`${agyCoreTarget}: generated copy or source missing`); }
   return { errors };
 }
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

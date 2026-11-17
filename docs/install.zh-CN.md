@@ -5,14 +5,14 @@
 交付方式按宿主区分：Codex 与 Claude Code **marketplace 优先**；Cursor
 目前走**本地拷贝或 Team Import，公开上架待完成**；Pi 使用**独立 npm 包**。
 技能、专业代理和运行时检查按下文的宿主路径交付。Grok Build 使用生成的
-`do-it-grok` 插件包。OpenCode 和 Kimi Code 的仓库支持已退役；
+`do-it-grok` 插件包，Antigravity 使用生成的 `do-it-agy` 本地插件包。OpenCode 和 Kimi Code 的仓库支持已退役；
 这不会移除本机应用或用户配置。
 
 | 真相平面 | 本仓库可以声明的内容 |
 | --- | --- |
-| 源码 / 包元数据 | 当前 checkout 准备 `0.19.0`、10 个可运行 skill + 1 个生成式发现入口、8 个 agent。 |
-| Git tag | 本次源码更新不创建发布 tag；将来的 `v0.19.0` 应标记已验证的发布提交。版本元数据不等于发布。 |
-| Marketplace / npm | 两个 npm 包已于 2026-10-17 发布 `0.18.1`（2026-11-04 查询确认），那些 tarball 早于本次源码；本次不发布 `0.19.0`。Cursor 公开上架仍待完成。 |
+| 源码 / 包元数据 | 当前 checkout 准备 `0.19.1`、10 个可运行 skill + 1 个生成式发现入口、8 个 agent。 |
+| Git tag | `v0.19.1` 标记已验证的发布提交；仅版本元数据不等于发布。 |
+| Marketplace / npm | 依赖 registry 包前先通过 `npm view` 核对 `@tdwhere/do-it@0.19.1` 与 `@tdwhere/do-it-pi@0.19.1`。Cursor 公开上架仍待完成。 |
 | Live host | 只有在对应宿主安装并检查，才能证明那里实际启用了什么；不能从源码或 tarball 推断。 |
 
 ## Codex
@@ -113,11 +113,11 @@ Cursor 安装完整技能、发现索引、参考文档和限定范围的代理�
 
 ## Pi
 
-已发布包与当前未发布的 checkout 不同。确认
-`npm view @tdwhere/do-it-pi@0.19.0 version` 已提供目标版本后，再安装这个确切版本：
+确认
+`npm view @tdwhere/do-it-pi@0.19.1 version` 已提供目标版本后，再安装这个确切版本：
 
 ```bash
-pi install npm:@tdwhere/do-it-pi@0.19.0
+pi install npm:@tdwhere/do-it-pi@0.19.1
 ```
 
 registry 尚未发布或开发该包时可使用本地 checkout：运行
@@ -188,8 +188,25 @@ UserPromptSubmit 仅更新轮次状态，不输出 Core 上下文。
 Grok 钩子协议与 Claude 不同：prompt/session 钩子的输出不能证明模型收到引导上下文。
 PostToolUse 可在工具结果之后传递上下文。适配器在首个工具完成后交付 Core，
 并非首个动作之前；实际宿主执行仍需独立证据。
-Grok 不复制 Claude 的严格外部操作配置。详见
+GroK 不复制 Claude 的严格外部操作配置。详见
 [Grok 宿主说明（英文）](../skills/do-it/references/host-grok.md)。
+
+## Antigravity
+
+从本 checkout 生成、校验并安装独立的 `plugins/do-it-agy/` 插件包（名为 `do-it-agy`）：
+
+```bash
+npm run install:agy-local
+```
+
+脚本会调用 `agy plugin validate plugins/do-it-agy --strict --json` 严格校验，并原子替换到
+`~/.gemini/config/plugins/do-it-agy`（保留 `.do-it-data`），绝不手改 `~/.gemini/config/config.json`。
+升级时重新执行 `npm run install:agy-local`；在 Antigravity UI 中通过
+`[do-it-agy](customization://do-it-agy)` 启用/停用；卸载时删除 `~/.gemini/config/plugins/do-it-agy` 即可。
+
+`hooks/agy-adapter.sh` 根据对话记录 step 0 区分主对话（`USER_INPUT`）与子代理（`SYSTEM_MESSAGE`），
+并将 `PostToolUse` 编辑检查暂存到 `PostInvocation` 注入。详见
+[Antigravity 宿主说明（英文）](../skills/do-it/references/host-agy.md)。
 
 ## 可选 / 遗留：`do-it setup`
 
@@ -222,6 +239,6 @@ do-it doctor
 
 ```bash
 npm pack
-npm install -g ./tdwhere-do-it-0.19.0.tgz
+npm install -g ./tdwhere-do-it-0.19.1.tgz
 do-it setup   # 可选 / 遗留全局拷贝
 ```

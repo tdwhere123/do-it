@@ -1,0 +1,37 @@
+# Cursor
+
+```text
+npm run install:cursor-local
+```
+
+Reload Window after installation. Cursor commands use the polyglot run-hook.cmd
+wrapper so Windows launches Git Bash instead of opening shell scripts as files.
+The installer preserves unrelated user hook entries and rolls back failed updates.
+
+## Runtime
+
+sessionStart and beforeSubmitPrompt deliver context; postToolUse checks edits.
+The default path has no task classifier, completion-language scan, profile
+injection, or automatic task selection. There is no router compatibility alias.
+Choose useful skills directly from descriptions.
+
+Independent specialists gather evidence and form conclusions in scoped contexts.
+Keep read-only and write ownership restrictions explicit; the parent integrates
+and verifies. The Cursor builder renders canonical TOML directly and maps the
+six read-only roles to native `readonly: true`. It does not copy Claude agents
+or their `disallowedTools` field. Plugin-native hook loading versus the
+user-level `~/.cursor/hooks.json` mirror is not closed; native actual hook
+counts are unverified. Verify active host permissions separately.
+
+## Diagnostics and migration
+
+Diagnostics default off. For Pi, set `DO_IT_EVIDENCE_MODE=observe` in the
+host environment. Other hosts can explicitly register `evidence-observer.sh` on
+the desired tool-result event with that setting, or invoke it manually with a
+host-shaped JSON payload on stdin. Cursor uses `run-hook.cmd evidence-observer`.
+These records are observations, not proof of task acceptance.
+
+Existing profiles, memory, task notes, and runtime pointers remain untouched.
+Custom adaptive personalization is retired. Native host instructions or memory
+own preferences. See [migration](https://github.com/tdwhere123/do-it/blob/main/docs/simplification-migration.md) and
+[installation details](https://github.com/tdwhere123/do-it/blob/main/docs/install.md).

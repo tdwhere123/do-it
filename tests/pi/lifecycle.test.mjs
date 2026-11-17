@@ -194,7 +194,7 @@ for (const role of ["root", "child"]) {
 			const result = await pi.handlers.get("before_agent_start")({ prompt: "assigned task" }, ctx);
 			assert.equal(result.message.content, role === "child" ? "subagent-stance.sh" : "prompt-submit.sh");
 			await pi.handlers.get("tool_result")({ toolName: "edit", input: {}, content: [] }, ctx);
-			assert.deepEqual(calls, role === "child" ? ["subagent-stance.sh"] : ["prompt-submit.sh", "evidence-observer.sh", "write-quality-lint.sh"]);
+			assert.deepEqual(calls, role === "child" ? ["subagent-stance.sh", "write-quality-lint.sh"] : ["prompt-submit.sh", "evidence-observer.sh", "write-quality-lint.sh"]);
 		} finally { rmTemp(cwd); }
 	});
 }
@@ -284,7 +284,7 @@ test("advisory hook failures become context instead of rejecting Pi lifecycle", 
 	}
 });
 
-test("child lifecycle runs only subagent stance", async () => {
+test("child lifecycle skips root context and evidence observer while linting child edits", async () => {
 	const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "do-it-pi-child-"));
 	const calls = [];
 	const runHook = async (_hooksDir, scriptName) => {
@@ -298,7 +298,7 @@ test("child lifecycle runs only subagent stance", async () => {
 	};
 	const pi = fakePi();
 	createDoItPiExtension({
-		env: { HOME: cwd, PI_SUBAGENT_CHILD: "1" },
+		env: { HOME: cwd, PI_SUBAGENT_CHILD: "1", DO_IT_EVIDENCE_MODE: "observe" },
 		dataDir: path.join(cwd, "data"),
 		runHook,
 	})(pi.api);
@@ -313,6 +313,16 @@ test("child lifecycle runs only subagent stance", async () => {
 		assert.match(result.message.content, /subagent-stance\.sh-context/);
 		assert.doesNotMatch(result.message.content, /<do-it-bootstrap>/);
 
+		const bashResult = await pi.handlers.get("tool_result")(
+			{
+				toolName: "bash",
+				input: { command: "npm test" },
+				content: [{ type: "text", text: "ok" }],
+			},
+			ctx,
+		);
+		assert.equal(bashResult, undefined);
+
 		const toolResult = await pi.handlers.get("tool_result")(
 			{
 				toolName: "edit",
@@ -321,10 +331,10 @@ test("child lifecycle runs only subagent stance", async () => {
 			},
 			ctx,
 		);
-		assert.equal(toolResult, undefined);
-        assert.equal(pi.handlers.has("agent_end"), false);
-        assert.equal(pi.handlers.has("agent_settled"), false);
-		assert.deepEqual(calls, ["subagent-stance.sh"]);
+		assert.equal(toolResult.content.at(-1).text, "write-quality-lint.sh-context");
+		assert.equal(pi.handlers.has("agent_end"), false);
+		assert.equal(pi.handlers.has("agent_settled"), false);
+		assert.deepEqual(calls, ["subagent-stance.sh", "write-quality-lint.sh"]);
 	} finally {
 		rmTemp(cwd);
 	}

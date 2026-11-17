@@ -9,7 +9,11 @@ SESSION_ID="$(do_it_json_get "$RAW_INPUT" session_id)"
 PROMPT="$(do_it_json_get_prompt "$RAW_INPUT")"
 CWD="$(do_it_json_get "$RAW_INPUT" cwd)"
 TRANSCRIPT_PATH="$(do_it_json_get "$RAW_INPUT" transcript_path)"
+if do_it_in_subagent_context "$TRANSCRIPT_PATH" "$RAW_INPUT"; then
+  exit 0
+fi
+do_it_prune_stale_sessions "$SESSION_ID" >/dev/null 2>&1 || true
 do_it_user_turn_bump "$SESSION_ID" >/dev/null 2>&1 || true
-text="$(do_it_kernel_context_collect "$SESSION_ID" "${CWD:-.}" "$PROMPT" "$TRANSCRIPT_PATH")"
+text="$(do_it_kernel_context_collect "$SESSION_ID" "${CWD:-.}" "$PROMPT" "$TRANSCRIPT_PATH" "$RAW_INPUT")"
 [[ -z "$text" ]] || do_it_emit_context "${DO_IT_KERNEL_EVENT:-UserPromptSubmit}" "$text"
 exit 0

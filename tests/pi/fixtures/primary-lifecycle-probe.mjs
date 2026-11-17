@@ -178,7 +178,6 @@ try {
 		assert.equal(entry.identity.role, child ? "child" : "root");
 		if (child) {
 			assert.equal(entry.state?.kernel_text, undefined);
-			assert.equal(entry.state?.hook_invocations?.write_quality_lint, undefined);
 			assert.equal(entry.state?.hook_invocations?.evidence_observer, undefined);
 		}
 	}

@@ -109,6 +109,13 @@ jobs:
           git diff --exit-code -- plugins/do-it-grok
           test -z "$(git ls-files --others --exclude-standard -- plugins/do-it-grok)"
 
+      - name: Build and check Antigravity plugin
+        run: |
+          npm run build:agy-plugin
+          npm run test-agy
+          git diff --exit-code -- plugins/do-it-agy
+          test -z "$(git ls-files --others --exclude-standard -- plugins/do-it-agy)"
+
       - name: Smoke Cursor local install (real copy, no external symlink)
         env:
           HOME: ${{ runner.temp }}/cursor-local-home

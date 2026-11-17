@@ -28,8 +28,11 @@ test convenient. A test that needs a fake collaborator may need a better fixture
 not a new production API.
 
 For stateful work, consider applicable identity, interleaving, commit, retry,
-and copied-state failures. The [stateful scan](../references/stateful-change-scan.md)
-and [causal change notes](../references/causal-change.md) offer deeper prompts.
+and copied-state failures. The [stateful scan](../references/stateful-change-scan.md),
+[causal change notes](../references/causal-change.md), and
+[integrity rules](../references/integrity.md) offer deeper prompts. When creating a new
+helper or module alongside callers, write the target module before wiring exports and
+keep CLI stdout separate from library debug logging.
 
 When attempts repeat the same failure without changing the evidence, revisit the
 causal hypothesis rather than patching another nearby layer. If several fixes

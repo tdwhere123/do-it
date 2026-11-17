@@ -1,0 +1,37 @@
+{
+  "do-it": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "./hooks/agy-adapter.sh session-start",
+        "timeout": 15
+      }
+    ],
+    "PreInvocation": [
+      {
+        "type": "command",
+        "command": "./hooks/agy-adapter.sh pre-invocation",
+        "timeout": 15
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "write_file|edit_file|replace_file_content|multi_replace_file_content",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./hooks/agy-adapter.sh post-tool",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PostInvocation": [
+      {
+        "type": "command",
+        "command": "./hooks/agy-adapter.sh post-invocation",
+        "timeout": 15
+      }
+    ]
+  }
+}
