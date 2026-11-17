@@ -36,9 +36,9 @@ contamination and does not claim an efficacy gain.
 
 | Plane | Current repository evidence |
 | --- | --- |
-| Source/package | `0.19.1`: 10 runnable skills, 1 generated discovery entry, and 8 specialists across 6 hosts. Source changes are not a measured model-efficacy or publication claim. |
-| Git tag | `v0.19.1` identifies the verified `0.19.1` release commit (`v0.19.0` remains on `61bdc12`). Version metadata or a tag alone does not prove npm publication. |
-| Marketplace/npm | Confirm `@tdwhere/do-it@0.19.1` and `@tdwhere/do-it-pi@0.19.1` via `npm view` before relying on registry packages; historical `0.18.1` and `0.19.0` integrities stay unchanged. Cursor marketplace listing remains pending. |
+| Source/package | `0.19.2`: 10 runnable skills, 1 generated discovery entry, and 8 specialists across 6 hosts. Source changes are not a measured model-efficacy or publication claim. |
+| Git tag | `v0.19.2` identifies the verified `0.19.2` release commit (`v0.19.0` remains on `61bdc12`, `v0.19.1` on `de5edc1`). Version metadata or a tag alone does not prove npm publication. |
+| Marketplace/npm | Confirm `@tdwhere/do-it@0.19.2` and `@tdwhere/do-it-pi@0.19.2` via `npm view` before relying on registry packages; historical `0.18.1`, `0.19.0`, and `0.19.1` integrities stay unchanged. Cursor marketplace listing remains pending. |
 | Live host | The [seven non-Pi installations](./release-evidence/local-deployment-0.19.0.md) and [Linux Pi pair](./release-evidence/0.19.0-release.md) are pinned to verified 0.19.0 payloads, not development `main`. Reload existing sessions; source metadata alone does not identify loaded code. |
 
 ## Tag Policy
@@ -46,7 +46,7 @@ contamination and does not claim an efficacy gain.
 - Every release ends with a `vX.Y.Z` git tag on the release commit — the tag is
   what triggers `.github/workflows/release.yml` (verify → pack → optional npm
   publish). A version bump without a tag is not a release.
-- After a release, `main` bumps to the next development version (e.g. `0.19.1`)
+- After a release, `main` bumps to the next development version (e.g. `0.19.2`)
   promptly, so a checkout never claims a published version it has already
   moved past.
 - Historical gap: `0.6.1`–`0.14.0` shipped without tags (latest tag was
@@ -99,7 +99,7 @@ npm install -g https://github.com/tdwhere123/do-it/archive/refs/heads/main.tar.g
 do-it setup
 ```
 
-After `npm view @tdwhere/do-it@0.19.1 version` succeeds, the root registry
+After `npm view @tdwhere/do-it@0.19.2 version` succeeds, the root registry
 package provides the optional managed CLI. Before publication, use the GitHub
 or checkout-local path above.
 
@@ -211,7 +211,7 @@ Set `CODEX_HOME=/path/to/codex-home` to test or install into a temporary target.
 Prefer publishing the exact tarballs that already passed release validation:
 
 ```bash
-VERSION=0.19.1
+VERSION=0.19.2
 npm run validate:release -- "v${VERSION}"
 npm run build:generated
 npm run build:codex-plugin
@@ -234,7 +234,7 @@ npm publish "$ROOT_TARBALL" --access public
 ```
 
 Keep the root package scoped and keep `do-it` as its bin. Install from the
-registry only after `npm view @tdwhere/do-it@0.19.1 version` succeeds; before
+registry only after `npm view @tdwhere/do-it@0.19.2 version` succeeds; before
 publication, use the exact local tarball from the verified pack step.
 
 ```bash
@@ -248,7 +248,7 @@ Publishing one must not select another package's tarball by a broad wildcard.
 ### Option 2: Pack And Test Locally
 
 ```bash
-VERSION=0.19.1
+VERSION=0.19.2
 npm pack --ignore-scripts
 npm run smoke:package -- "./tdwhere-do-it-${VERSION}.tgz"
 ```
@@ -294,7 +294,7 @@ a release artifact.
     packed Pi tarball.
 14. Confirm `manifest.json` matches the on-disk inventory (10 runnable
     skills + 1 generated discovery entry, 8 agents). Source metadata is
-    `0.19.1`; do not tag or npm-publish until those are authorized. Default
+    `0.19.2`; do not tag or npm-publish until those are authorized. Default
     runtime provides compact context and source-edit checks; classification and
     completion reminder gates are retired.
 15. Confirm root tarball contents remain separate from `plugins/do-it-pi`, and

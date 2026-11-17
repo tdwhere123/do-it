@@ -10,9 +10,9 @@
 
 | 真相平面 | 本仓库可以声明的内容 |
 | --- | --- |
-| 源码 / 包元数据 | 当前 checkout 准备 `0.19.1`、10 个可运行 skill + 1 个生成式发现入口、8 个 agent。 |
-| Git tag | `v0.19.1` 标记已验证的发布提交；仅版本元数据不等于发布。 |
-| Marketplace / npm | 依赖 registry 包前先通过 `npm view` 核对 `@tdwhere/do-it@0.19.1` 与 `@tdwhere/do-it-pi@0.19.1`。Cursor 公开上架仍待完成。 |
+| 源码 / 包元数据 | 当前 checkout 准备 `0.19.2`、10 个可运行 skill + 1 个生成式发现入口、8 个 agent。 |
+| Git tag | `v0.19.2` 标记已验证的发布提交；仅版本元数据不等于发布。 |
+| Marketplace / npm | 依赖 registry 包前先通过 `npm view` 核对 `@tdwhere/do-it@0.19.2` 与 `@tdwhere/do-it-pi@0.19.2`。Cursor 公开上架仍待完成。 |
 | Live host | 只有在对应宿主安装并检查，才能证明那里实际启用了什么；不能从源码或 tarball 推断。 |
 
 ## Codex
@@ -114,10 +114,10 @@ Cursor 安装完整技能、发现索引、参考文档和限定范围的代理�
 ## Pi
 
 确认
-`npm view @tdwhere/do-it-pi@0.19.1 version` 已提供目标版本后，再安装这个确切版本：
+`npm view @tdwhere/do-it-pi@0.19.2 version` 已提供目标版本后，再安装这个确切版本：
 
 ```bash
-pi install npm:@tdwhere/do-it-pi@0.19.1
+pi install npm:@tdwhere/do-it-pi@0.19.2
 ```
 
 registry 尚未发布或开发该包时可使用本地 checkout：运行
@@ -239,6 +239,6 @@ do-it doctor
 
 ```bash
 npm pack
-npm install -g ./tdwhere-do-it-0.19.1.tgz
+npm install -g ./tdwhere-do-it-0.19.2.tgz
 do-it setup   # 可选 / 遗留全局拷贝
 ```

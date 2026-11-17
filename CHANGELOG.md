@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.19.2 (2026-11-17)
+
+- **Portable session lock**: enforce kernel-atomic `noclobber` (`O_CREAT | O_EXCL`) owner-file acquisition and release in `hooks/lib/session-state.sh` so Ubuntu 26.04 `uutils` `mkdir` (`uutils/coreutils#16344`) cannot admit concurrent lock holders.
+- **Lock contention & portability**: add `! -e "$lock_dir/owner"` pre-checks, existing-directory fast paths before `mkdir -p`, a uniform 60s wait budget across platforms, and Linux-first `stat -c %Y` epoch lookups.
+- **Tests**: add `Case 3e` to `tests/hooks/common.test.sh` verifying serialization and clean stderr when `mkdir` behaves non-exclusively.
+
 ## 0.19.1 (2026-11-17)
 
 - **Antigravity (`do-it-agy`)**: add generated `plugins/do-it-agy/` bundle (`plugin.json`, root `hooks.json`, root `references/` with rewritten skill reference paths, 10 skills, 8 explicit tool-scoped subagents), `hooks/agy-adapter.sh` (`SessionStart` and `PreInvocation` step-0 root vs child isolation, `PostToolUse` -> `PostInvocation` staged lint relay), `npm run install:agy-local`, validators, smoke checks, and `tests/agy/plugin.test.mjs`.

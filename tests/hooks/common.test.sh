@@ -32,7 +32,14 @@ _isolate_env() {
   rm -rf "$DO_IT_HOOK_DATA"
 }
 
-# -------------------------------------------------------------------------
+_no_flock() {
+  command() {
+    if [[ "${1:-}" == "-v" && "${2:-}" == "flock" ]]; then return 1; fi
+    builtin command "$@"
+  }
+  export -f command 2>/dev/null
+}
+
 echo "Case 1: do_it_session_dir rejects path-injection"
 (
   _isolate_env "/tmp/doit-test-pathinj"
@@ -55,7 +62,6 @@ case "$?" in
   *)  _fail "subshell crashed (exit=$?)" ;;
 esac
 
-# -------------------------------------------------------------------------
 echo "Case 1b: do_it_session_dir hashes LF/CR/TAB and bare dot/dotdot ids"
 (
   _isolate_env "/tmp/doit-test-lfdot"
@@ -83,7 +89,6 @@ case "$?" in
   *)  _fail "subshell crashed (exit=$?)" ;;
 esac
 
-# -------------------------------------------------------------------------
 echo "Case 2: empty SESSION_ID + non-git cwd buckets per cwd (no global 'nosession')"
 (
   _isolate_env "/tmp/doit-test-cwdbucket"
@@ -109,16 +114,11 @@ case "$?" in
   *)  _fail "subshell crashed (exit=$?)" ;;
 esac
 
-# -------------------------------------------------------------------------
 echo "Case 3: flock-missing fallback serializes 50 concurrent writers"
 (
   _isolate_env "/tmp/doit-test-race"
   # Stub: pretend `flock` is missing.
-  command() {
-    if [[ "${1:-}" == "-v" && "${2:-}" == "flock" ]]; then return 1; fi
-    builtin command "$@"
-  }
-  export -f command 2>/dev/null
+  _no_flock
   source "$COMMON"
   if command -v flock >/dev/null 2>&1; then exit 31; fi
   SDIR="$(do_it_session_dir race_test)"
@@ -145,7 +145,6 @@ case "$?" in
   *)  _fail "subshell crashed (exit=$?)" ;;
 esac
 
-# -------------------------------------------------------------------------
 echo "Case 3b: jq-free mkdir fallback serializes counters and user turns"
 (
   _isolate_env "/tmp/doit-test-race-kv"
@@ -180,15 +179,10 @@ case "$?" in
   *)  _fail "subshell crashed (exit=$?)" ;;
 esac
 
-# -------------------------------------------------------------------------
 echo "Case 3c: mkdir fallback reclaims a dead-owner lock directory"
 (
   _isolate_env "/tmp/doit-test-stale-lock"
-  command() {
-    if [[ "${1:-}" == "-v" && "${2:-}" == "flock" ]]; then return 1; fi
-    builtin command "$@"
-  }
-  export -f command 2>/dev/null
+  _no_flock
   source "$COMMON"
   lock="$DO_IT_HOOK_DATA/stale.lock"
   mkdir -p "${lock}.d"
@@ -206,15 +200,10 @@ case "$?" in
   *)  _fail "subshell crashed (exit=$?)" ;;
 esac
 
-# -------------------------------------------------------------------------
 echo "Case 3d: mkdir fallback never steals an old lock from a live owner"
 (
   _isolate_env "/tmp/doit-test-live-lock"
-  command() {
-    if [[ "${1:-}" == "-v" && "${2:-}" == "flock" ]]; then return 1; fi
-    builtin command "$@"
-  }
-  export -f command 2>/dev/null
+  _no_flock
   source "$COMMON"
   mkdir -p "$DO_IT_HOOK_DATA"
   lock="$DO_IT_HOOK_DATA/live.lock"
@@ -249,7 +238,39 @@ case "$?" in
   *)  _fail "subshell crashed (exit=$?)" ;;
 esac
 
-# -------------------------------------------------------------------------
+echo "Case 3e: mkdir fallback serializes writers even when mkdir is non-exclusive"
+(
+  _isolate_env "/tmp/doit-test-nonexcl-mkdir"
+  _no_flock
+  mkdir() {
+    if [[ "${1:-}" != "-p" && -d "${1:-}" ]]; then return 0; fi
+    command mkdir "$@"
+  }
+  export -f mkdir
+  source "$COMMON"
+  SDIR="$(do_it_session_dir race_nonexcl)"
+  command mkdir -p "$SDIR"
+  echo '{}' > "$SDIR/state.json"
+  {
+    for _ in $(seq 1 50); do
+      ( do_it_session_state_inc race_nonexcl hook_invocations router ) &
+    done
+    wait
+  } 2>"$DO_IT_HOOK_DATA/err.log"
+  [[ ! -s "$DO_IT_HOOK_DATA/err.log" ]] || exit 48
+  jq -e . "$SDIR/state.json" >/dev/null 2>&1 || exit 49
+  [[ "$(jq -r '.hook_invocations.router' "$SDIR/state.json")" == "50" ]] || exit 50
+  [[ ! -d "$SDIR/.state.lock.d" ]] || exit 51
+)
+case "$?" in
+  0)  _pass "noclobber lock serialized all 50 writers with clean stderr" ;;
+  48) _fail "unexpected stderr output during non-exclusive mkdir contention" ;;
+  49) _fail "state.json malformed under non-exclusive mkdir" ;;
+  50) _fail "increments lost under non-exclusive mkdir" ;;
+  51) _fail "lock dir leaked under non-exclusive mkdir" ;;
+  *)  _fail "subshell crashed (exit=$?)" ;;
+esac
+
 echo "Case 4: do_it_in_subagent_context honors host and portable path signals"
 (
   _isolate_env "/tmp/doit-test-subagent"
@@ -274,7 +295,6 @@ case "$?" in
   *)  _fail "subshell crashed (exit=$?)" ;;
 esac
 
-# -------------------------------------------------------------------------
 echo "Case 4b: do_it_in_subagent_context detects Codex, Grok, and AGY subagent transcripts + isolates session ids"
 (
   _isolate_env "/tmp/doit-test-host-subagents"
@@ -308,7 +328,6 @@ case "$?" in
   *)  _fail "host subagent detection failed (exit=$?)" ;;
 esac
 
-# -------------------------------------------------------------------------
 echo "Case 4c: do_it_user_turn_bump prunes expired wql_seen_* keys and Cursor emit outputs additional_context"
 (
   _isolate_env "/tmp/doit-test-turn-prune"
@@ -326,7 +345,6 @@ case "$?" in
   *)  _fail "turn prune or Cursor emit failed (exit=$?)" ;;
 esac
 
-# -------------------------------------------------------------------------
 echo "Case 5: runtime gitignore is self-contained (parent .gitignore untouched)"
 (
   _isolate_env ""
@@ -361,7 +379,6 @@ case "$?" in
   *)  _fail "subshell crashed (exit=$?)" ;;
 esac
 
-# -------------------------------------------------------------------------
 echo "Case 5b: explicit adapter data precedes the Codex session root"
 (
   _isolate_env ""
@@ -384,7 +401,6 @@ case "$?" in
   *)  _fail "subshell crashed (exit=$?)" ;;
 esac
 
-# -------------------------------------------------------------------------
 echo "Case 6: do_it_emit_context emits valid JSON without jq"
 (
   _isolate_env "/tmp/doit-test-emitjq"
@@ -404,7 +420,6 @@ case "$?" in
   *)  _fail "subshell crashed (exit=$?)" ;;
 esac
 
-# -------------------------------------------------------------------------
 echo "Case 7: do_it_prune_stale_sessions removes stale dirs, keeps fresh + self"
 (
   _isolate_env "/tmp/doit-test-prune"
@@ -428,7 +443,6 @@ case "$?" in
   *)  _fail "subshell crashed (exit=$?)" ;;
 esac
 
-# -------------------------------------------------------------------------
 echo "Case 16: structured prompt text and explicitly selected output format"
 (
   _isolate_env "/tmp/doit-test-context-proto"
@@ -456,7 +470,6 @@ case "$?" in
   *)   _fail "context protocol case crashed (exit=$?)" ;;
 esac
 
-# -------------------------------------------------------------------------
 echo "Case 16b: jq-free JSON fallback preserves session and prompt payloads"
 (
   _isolate_env "/tmp/doit-test-json-fallback"
@@ -478,7 +491,6 @@ case "$?" in
   *)   _fail "jq-free JSON fallback crashed (exit=$?)" ;;
 esac
 
-# -------------------------------------------------------------------------
 echo "Summary: $PASS passed, $FAIL failed"
 if [[ "$FAIL" -gt 0 ]]; then
   exit 1

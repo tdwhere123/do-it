@@ -24,7 +24,7 @@ workflow, or report.
 | Antigravity | `npm run install:agy-local` |
 
 [Installation details](./docs/install.md) cover host setup and smoke checks.
-This documentation describes 0.19.1. Check the installed package version rather than
+This documentation describes 0.19.2. Check the installed package version rather than
 assuming it matches a local checkout. Codex specialists require the separate
 native-agent setup described in that guide. OpenCode and Kimi Code repository support is
 retired; local applications and user configuration remain untouched.

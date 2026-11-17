@@ -21,7 +21,7 @@ Core 只保留稳定原则：守住用户目标、已定决策和授权边界；
 | Antigravity | `npm run install:agy-local` |
 
 [安装详情](./docs/install.zh-CN.md)包含宿主配置和冒烟检查。
-本文档描述 0.19.1。请核对实际安装包版本，不要假定它与本地 checkout 一致。Codex 专业代理需要按安装指南单独安装原生角色。OpenCode 和 Kimi Code 的仓库支持已退役，
+本文档描述 0.19.2。请核对实际安装包版本，不要假定它与本地 checkout 一致。Codex 专业代理需要按安装指南单独安装原生角色。OpenCode 和 Kimi Code 的仓库支持已退役，
 不移除本机应用或用户配置。安装后正常表达需求即可。
 无需任务分级、强制 router 入口或 .do-it 脚手架。优先复用已有指令和项目文档，仅在
 有助于连续工作时记录轻量任务说明。

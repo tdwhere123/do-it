@@ -247,31 +247,31 @@ do_it_session_dir() {
   # Each branch: set base only if the parent dir is writable.
   if [[ -n "${CURSOR_PLUGIN_DATA:-}" ]]; then
     candidate="${CURSOR_PLUGIN_DATA%/}/sessions"
-    if mkdir -p "$candidate" 2>/dev/null && [[ -w "$candidate" ]]; then
+    if ( [[ -d "$candidate" ]] || mkdir -p "$candidate" 2>/dev/null || [[ -d "$candidate" ]] ) && [[ -w "$candidate" ]]; then
       base="$candidate"
     fi
   fi
   if [[ -z "$base" && -n "${CLAUDE_PLUGIN_DATA:-}" ]]; then
     candidate="${CLAUDE_PLUGIN_DATA%/}/sessions"
-    if mkdir -p "$candidate" 2>/dev/null && [[ -w "$candidate" ]]; then
+    if ( [[ -d "$candidate" ]] || mkdir -p "$candidate" 2>/dev/null || [[ -d "$candidate" ]] ) && [[ -w "$candidate" ]]; then
       base="$candidate"
     fi
   fi
   if [[ -z "$base" && -n "${PLUGIN_DATA:-}" ]]; then
     candidate="${PLUGIN_DATA%/}/sessions"
-    if mkdir -p "$candidate" 2>/dev/null && [[ -w "$candidate" ]]; then
+    if ( [[ -d "$candidate" ]] || mkdir -p "$candidate" 2>/dev/null || [[ -d "$candidate" ]] ) && [[ -w "$candidate" ]]; then
       base="$candidate"
     fi
   fi
   if [[ -z "$base" && -n "${DO_IT_HOOK_DATA:-}" ]]; then
     candidate="${DO_IT_HOOK_DATA%/}/sessions"
-    if mkdir -p "$candidate" 2>/dev/null && [[ -w "$candidate" ]]; then
+    if ( [[ -d "$candidate" ]] || mkdir -p "$candidate" 2>/dev/null || [[ -d "$candidate" ]] ) && [[ -w "$candidate" ]]; then
       base="$candidate"
     fi
   fi
   if [[ -z "$base" && -n "${CODEX_HOME:-}" ]]; then
     candidate="${CODEX_HOME%/}/do-it-data/sessions"
-    if mkdir -p "$candidate" 2>/dev/null && [[ -w "$candidate" ]]; then
+    if ( [[ -d "$candidate" ]] || mkdir -p "$candidate" 2>/dev/null || [[ -d "$candidate" ]] ) && [[ -w "$candidate" ]]; then
       base="$candidate"
     fi
   fi

@@ -1,4 +1,4 @@
-# do-it-agy (0.19.1)
+# do-it-agy (0.19.2)
 
 Antigravity plugin bundle for **@tdwhere/do-it**.
 

@@ -12,9 +12,9 @@ applications or user configuration.
 
 | Truth plane | What this repository can claim |
 | --- | --- |
-| Source/package metadata | This checkout prepares `0.19.1`, 10 runnable skills + 1 generated discovery entry, and 8 agents. |
-| Git tag | Tag `v0.19.1` identifies the verified release commit; version metadata alone is not publication. |
-| Marketplace / npm | Confirm `@tdwhere/do-it@0.19.1` and `@tdwhere/do-it-pi@0.19.1` via `npm view` before relying on registry packages. Cursor marketplace listing remains pending. |
+| Source/package metadata | This checkout prepares `0.19.2`, 10 runnable skills + 1 generated discovery entry, and 8 agents. |
+| Git tag | Tag `v0.19.2` identifies the verified release commit; version metadata alone is not publication. |
+| Marketplace / npm | Confirm `@tdwhere/do-it@0.19.2` and `@tdwhere/do-it-pi@0.19.2` via `npm view` before relying on registry packages. Cursor marketplace listing remains pending. |
 | Live host | Only an install/inspection on that host proves what is active there; do not infer it from source or a packed artifact. |
 
 ## Codex
@@ -139,11 +139,11 @@ diagnostics are not registered. See [host matrix](./harness-adapter-matrix.md).
 ## Pi
 
 After
-`npm view @tdwhere/do-it-pi@0.19.1 version` confirms the intended release,
+`npm view @tdwhere/do-it-pi@0.19.2 version` confirms the intended release,
 install that exact Pi package:
 
 ```bash
-pi install npm:@tdwhere/do-it-pi@0.19.1
+pi install npm:@tdwhere/do-it-pi@0.19.2
 ```
 
 Before registry publication or for package development, a local checkout can
@@ -287,6 +287,6 @@ For a packed local release artifact:
 
 ```bash
 npm pack
-npm install -g ./tdwhere-do-it-0.19.1.tgz
+npm install -g ./tdwhere-do-it-0.19.2.tgz
 do-it setup   # optional / legacy global copy
 ```

@@ -15,7 +15,7 @@ do_it_prune_stale_sessions() {
   [[ -z "$base" || ! -d "$base" ]] && return 0
   marker="${self}/.pruned"
   [[ -f "$marker" ]] && return 0
-  mkdir -p "$self" 2>/dev/null || return 0
+  [[ -d "$self" ]] || mkdir -p "$self" 2>/dev/null || [[ -d "$self" ]] || return 0
   : > "$marker" 2>/dev/null || true
 
   # `-mtime +N` / `-mtime -N` are portable across BSD and GNU find. The inner
@@ -37,9 +37,19 @@ _do_it_release_mkdir_lock() {
   current="$(cat "$lock_dir/owner" 2>/dev/null)"
   [[ -n "$token" && "$current" == "$token" ]] || return 1
   rm -f "$lock_dir/owner" 2>/dev/null || return 1
-  # A waiter may reclaim a stale-looking dir between rm and rmdir; once owner is
-  # removed, missing dir still represents a completed release.
-  rmdir "$lock_dir" 2>/dev/null || [[ ! -d "$lock_dir" ]]
+  # Release is complete once our owner token is unlinked, even if a new
+  # acquirer already created its own owner file before rmdir runs.
+  rmdir "$lock_dir" 2>/dev/null || [[ ! -d "$lock_dir" || -e "$lock_dir/owner" ]]
+}
+
+_do_it_mtime_epoch() {
+  local path="$1" ts=""
+  if [[ "${OSTYPE:-}" == darwin* ]]; then
+    ts=$(stat -f %m "$path" 2>/dev/null || stat -c %Y "$path" 2>/dev/null || printf '0')
+  else
+    ts=$(stat -c %Y "$path" 2>/dev/null || stat -f %m "$path" 2>/dev/null || printf '0')
+  fi
+  [[ "$ts" =~ ^[0-9]+$ ]] && printf '%s' "$ts" || printf '0'
 }
 
 _do_it_with_state_lock() {
@@ -57,17 +67,15 @@ _do_it_with_state_lock() {
 
   local lock_dir="${lock}.d" reaping="${lock}.d.reaping"
   local acquired=0 attempts=0 now=0 modified=0 owner_record="" owner_pid="" token="" stale=0
-  local _lock_start=$SECONDS _lock_delay="spin" _lock_budget=30
-  [[ "${OSTYPE:-}" == darwin* ]] && _lock_budget=60
+  local _lock_start=$SECONDS _lock_delay="spin" _lock_budget=60
   if sleep 0.01 2>/dev/null; then
     _lock_delay=0.01
   fi
   while [[ $((SECONDS - _lock_start)) -lt "$_lock_budget" ]]; do
     if [[ -d "$reaping" ]]; then
       now=$(date +%s 2>/dev/null || printf '0')
-      modified=$(stat -f %m "$reaping" 2>/dev/null || stat -c %Y "$reaping" 2>/dev/null || printf '0')
-      if [[ "$now" =~ ^[0-9]+$ && "$modified" =~ ^[0-9]+$ \
-         && "$modified" -gt 0 && $((now - modified)) -gt 30 ]]; then
+      modified=$(_do_it_mtime_epoch "$reaping")
+      if [[ "$now" =~ ^[0-9]+$ && "$modified" -gt 0 && $((now - modified)) -gt 30 ]]; then
         rm -f "$reaping/owner" 2>/dev/null || true
         rmdir "$reaping" 2>/dev/null || true
       fi
@@ -78,14 +86,25 @@ _do_it_with_state_lock() {
       continue
     fi
 
-    if mkdir "$lock_dir" 2>/dev/null; then
+    if [[ ! -e "$lock_dir/owner" ]] && mkdir "$lock_dir" 2>/dev/null; then
       # Prefer BASHPID (live subshell pid) or $$ (bash 3.2 lacks BASHPID);
       # never use a transient command-substitution pid that dies immediately.
       owner_pid="${BASHPID:-$$}"
       [[ "$owner_pid" =~ ^[0-9]+$ ]] || owner_pid="$$"
       token="${owner_pid}:${RANDOM}:${RANDOM}"
-      if ! printf '%s\n' "$token" > "$lock_dir/owner" 2>/dev/null; then
-        if [[ -d "$lock_dir" && ! -e "$lock_dir/owner" ]]; then
+      # Use noclobber so owner creation requires kernel O_CREAT|O_EXCL even if
+      # an implementation of mkdir falsely succeeds on a concurrent race.
+      local _had_noclobber=0 _owner_rc=0
+      [[ -o noclobber ]] && _had_noclobber=1
+      set -C
+      { printf '%s\n' "$token" > "$lock_dir/owner"; } 2>/dev/null || _owner_rc=$?
+      (( _had_noclobber == 0 )) && set +C
+      if [[ "$_owner_rc" -ne 0 ]]; then
+        if _do_it_is_msys && [[ -d "$lock_dir" && ! -e "$lock_dir/owner" ]]; then
+          rmdir "$lock_dir" 2>/dev/null || true
+          return 1
+        fi
+        if [[ -d "$lock_dir" && ! -w "$lock_dir" ]]; then
           rmdir "$lock_dir" 2>/dev/null || true
           return 1
         fi
@@ -110,37 +129,45 @@ _do_it_with_state_lock() {
         fi
       elif [[ $((attempts % 100)) -eq 0 ]]; then
         now=$(date +%s 2>/dev/null || printf '0')
-        modified=$(stat -f %m "$lock_dir" 2>/dev/null || stat -c %Y "$lock_dir" 2>/dev/null || printf '0')
-        if [[ "$now" =~ ^[0-9]+$ && "$modified" =~ ^[0-9]+$ \
-           && "$modified" -gt 0 && $((now - modified)) -gt 30 ]]; then
+        modified=$(_do_it_mtime_epoch "$lock_dir")
+        if [[ "$now" =~ ^[0-9]+$ && "$modified" -gt 0 && $((now - modified)) -gt 30 ]]; then
           stale=1
         fi
       fi
-      if [[ "$stale" -eq 1 ]] && mkdir "$reaping" 2>/dev/null; then
-        local current_record current_pid current_stale=0
-        current_record="$(cat "$lock_dir/owner" 2>/dev/null)"
-        current_pid="${current_record%%:*}"
-        if [[ "$current_record" == "$owner_record" ]]; then
-          if [[ "$current_pid" =~ ^[0-9]+$ ]]; then
-            kill -0 "$current_pid" 2>/dev/null || current_stale=1
-          else
-            now=$(date +%s 2>/dev/null || printf '0')
-            modified=$(stat -f %m "$lock_dir" 2>/dev/null || stat -c %Y "$lock_dir" 2>/dev/null || printf '0')
-            if [[ "$now" =~ ^[0-9]+$ && "$modified" =~ ^[0-9]+$ \
-               && "$modified" -gt 0 && $((now - modified)) -gt 30 ]]; then
-              current_stale=1
+      if [[ "$stale" -eq 1 && ! -e "$reaping/owner" ]] && mkdir "$reaping" 2>/dev/null; then
+        local _reap_nc=0 _reap_rc=0
+        [[ -o noclobber ]] && _reap_nc=1
+        set -C
+        { : > "$reaping/owner"; } 2>/dev/null || _reap_rc=$?
+        (( _reap_nc == 0 )) && set +C
+        if [[ "$_reap_rc" -eq 0 ]]; then
+          local current_record current_pid current_stale=0
+          current_record="$(cat "$lock_dir/owner" 2>/dev/null)"
+          current_pid="${current_record%%:*}"
+          if [[ "$current_record" == "$owner_record" ]]; then
+            if [[ "$current_pid" =~ ^[0-9]+$ ]]; then
+              kill -0 "$current_pid" 2>/dev/null || current_stale=1
+            else
+              now=$(date +%s 2>/dev/null || printf '0')
+              modified=$(_do_it_mtime_epoch "$lock_dir")
+              if [[ "$now" =~ ^[0-9]+$ && "$modified" -gt 0 && $((now - modified)) -gt 30 ]]; then
+                current_stale=1
+              fi
             fi
           fi
-        fi
-        if [[ "$current_stale" -eq 1 ]]; then
-          local final_record
-          final_record="$(cat "$lock_dir/owner" 2>/dev/null)"
-          if [[ -n "$final_record" && "$final_record" == "$current_record" ]]; then
-            rm -f "$lock_dir/owner" 2>/dev/null || true
-            rmdir "$lock_dir" 2>/dev/null || true
+          if [[ "$current_stale" -eq 1 ]]; then
+            local final_record
+            final_record="$(cat "$lock_dir/owner" 2>/dev/null)"
+            if [[ -n "$final_record" && "$final_record" == "$current_record" ]]; then
+              rm -f "$lock_dir/owner" 2>/dev/null || true
+              rmdir "$lock_dir" 2>/dev/null || true
+            elif [[ -z "$current_record" && ! -e "$lock_dir/owner" ]]; then
+              rmdir "$lock_dir" 2>/dev/null || true
+            fi
           fi
+          rm -f "$reaping/owner" 2>/dev/null || true
+          rmdir "$reaping" 2>/dev/null || true
         fi
-        rmdir "$reaping" 2>/dev/null || true
         continue
       fi
     fi
@@ -239,7 +266,7 @@ _do_it_session_state_append_kv_locked() {
 do_it_session_state_set() {
   local session_id="$1" key="$2" value="$3" dir state
   dir="$(do_it_session_dir "$session_id")"
-  mkdir -p "$dir" 2>/dev/null || return 1
+  [[ -d "$dir" ]] || mkdir -p "$dir" 2>/dev/null || [[ -d "$dir" ]] || return 1
   state="$dir/state.json"
   if [[ "$DO_IT_HAVE_JQ" == "1" ]]; then
     _do_it_with_state_lock "$dir/.state.lock" \
@@ -292,7 +319,7 @@ do_it_session_state_set_many() {
   fi
   local dir state
   dir="$(do_it_session_dir "$session_id")"
-  mkdir -p "$dir" 2>/dev/null || return 1
+  [[ -d "$dir" ]] || mkdir -p "$dir" 2>/dev/null || [[ -d "$dir" ]] || return 1
   state="$dir/state.json"
   if [[ "$DO_IT_HAVE_JQ" == "1" ]]; then
     _do_it_with_state_lock "$dir/.state.lock" \
@@ -365,7 +392,7 @@ _do_it_session_state_bump_kv_locked() {
 do_it_session_state_bump() {
   local session_id="$1" key="$2" dir state
   dir="$(do_it_session_dir "$session_id")"
-  mkdir -p "$dir" 2>/dev/null || return 1
+  [[ -d "$dir" ]] || mkdir -p "$dir" 2>/dev/null || [[ -d "$dir" ]] || return 1
   state="$dir/state.json"
   if [[ "$DO_IT_HAVE_JQ" == "1" ]]; then
     _do_it_with_state_lock "$dir/.state.lock" \
@@ -380,7 +407,7 @@ do_it_session_state_bump() {
 do_it_session_state_inc() {
   local session_id="$1" bucket="$2" name="$3" dir state
   dir="$(do_it_session_dir "$session_id")"
-  mkdir -p "$dir" 2>/dev/null || return 1
+  [[ -d "$dir" ]] || mkdir -p "$dir" 2>/dev/null || [[ -d "$dir" ]] || return 1
   state="$dir/state.json"
   if [[ "$DO_IT_HAVE_JQ" == "1" ]]; then
     _do_it_with_state_lock "$dir/.state.lock" \
@@ -429,7 +456,7 @@ do_it_user_turn_bump() {
     return $?
   fi
   dir="$(do_it_session_dir "$session_id")"
-  mkdir -p "$dir" 2>/dev/null || return 1
+  [[ -d "$dir" ]] || mkdir -p "$dir" 2>/dev/null || [[ -d "$dir" ]] || return 1
   state="$dir/state.json"
   _do_it_with_state_lock "$dir/.state.lock" _do_it_user_turn_bump_locked "$state"
 }
